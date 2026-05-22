@@ -1,0 +1,2512 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Blue Line (Corridor 1)",
+        "line": 1,
+        "color": "#0ea5e9"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.308994,
+            13.183971
+          ],
+          [
+            80.307344,
+            13.17929
+          ],
+          [
+            80.305269,
+            13.171803
+          ],
+          [
+            80.302448,
+            13.160215
+          ],
+          [
+            80.299393,
+            13.150667
+          ],
+          [
+            80.296329,
+            13.143134
+          ],
+          [
+            80.293001,
+            13.13452
+          ],
+          [
+            80.288856,
+            13.124528
+          ],
+          [
+            80.284744,
+            13.115755
+          ],
+          [
+            80.280949,
+            13.107847
+          ],
+          [
+            80.286131,
+            13.095447
+          ],
+          [
+            80.284985,
+            13.087268
+          ],
+          [
+            80.273916,
+            13.081725
+          ],
+          [
+            80.273036,
+            13.069635
+          ],
+          [
+            80.265847,
+            13.064372
+          ],
+          [
+            80.258783,
+            13.058516
+          ],
+          [
+            80.248285,
+            13.045885
+          ],
+          [
+            80.246419,
+            13.0368
+          ],
+          [
+            80.241196,
+            13.031709
+          ],
+          [
+            80.228124,
+            13.023995
+          ],
+          [
+            80.224167,
+            13.014663
+          ],
+          [
+            80.213085,
+            13.009275
+          ],
+          [
+            80.201453,
+            13.004256
+          ],
+          [
+            80.19401,
+            12.99988
+          ],
+          [
+            80.176479,
+            12.987673
+          ],
+          [
+            80.164203,
+            12.980809
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Green Line (Corridor 2)",
+        "line": 2,
+        "color": "#22c55e"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            80.273916,
+            13.081725
+          ],
+          [
+            80.263055,
+            13.080281
+          ],
+          [
+            80.250473,
+            13.078784
+          ],
+          [
+            80.242619,
+            13.077637
+          ],
+          [
+            80.232852,
+            13.075547
+          ],
+          [
+            80.225,
+            13.077
+          ],
+          [
+            80.213,
+            13.079
+          ],
+          [
+            80.205,
+            13.0853
+          ],
+          [
+            80.198,
+            13.078
+          ],
+          [
+            80.194836,
+            13.07345
+          ],
+          [
+            80.203963,
+            13.068525
+          ],
+          [
+            80.211666,
+            13.061675
+          ],
+          [
+            80.212066,
+            13.05093
+          ],
+          [
+            80.211108,
+            13.035477
+          ],
+          [
+            80.205424,
+            13.016922
+          ],
+          [
+            80.201453,
+            13.004256
+          ],
+          [
+            80.198582,
+            12.995
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Purple Line (Line 1)",
+        "line": 1,
+        "color": "#7c3aed"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            77.462701,
+            12.897934
+          ],
+          [
+            77.476466,
+            12.907963
+          ],
+          [
+            77.48731,
+            12.914962
+          ],
+          [
+            77.498288,
+            12.924326
+          ],
+          [
+            77.512182,
+            12.935423
+          ],
+          [
+            77.519593,
+            12.936662
+          ],
+          [
+            77.525598,
+            12.942479
+          ],
+          [
+            77.52971,
+            12.946549
+          ],
+          [
+            77.536973,
+            12.952191
+          ],
+          [
+            77.533589,
+            12.961954
+          ],
+          [
+            77.537389,
+            12.970795
+          ],
+          [
+            77.545541,
+            12.97424
+          ],
+          [
+            77.5555,
+            12.975633
+          ],
+          [
+            77.566017,
+            12.975842
+          ],
+          [
+            77.583998,
+            12.974345
+          ],
+          [
+            77.591752,
+            12.978793
+          ],
+          [
+            77.596645,
+            12.981227
+          ],
+          [
+            77.606762,
+            12.975505
+          ],
+          [
+            77.616984,
+            12.973033
+          ],
+          [
+            77.626616,
+            12.976431
+          ],
+          [
+            77.638731,
+            12.978318
+          ],
+          [
+            77.64493,
+            12.98595
+          ],
+          [
+            77.652504,
+            12.990738
+          ],
+          [
+            77.668324,
+            12.996499
+          ],
+          [
+            77.692534,
+            12.996623
+          ],
+          [
+            77.703896,
+            12.993393
+          ],
+          [
+            77.710515,
+            12.988396
+          ],
+          [
+            77.708791,
+            12.981041
+          ],
+          [
+            77.714957,
+            12.977701
+          ],
+          [
+            77.72394,
+            12.97677
+          ],
+          [
+            77.727703,
+            12.981848
+          ],
+          [
+            77.738169,
+            12.98768
+          ],
+          [
+            77.74651,
+            12.985824
+          ],
+          [
+            77.757732,
+            12.993819
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Green Line (Line 2)",
+        "line": 2,
+        "color": "#22c55e"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            77.472775,
+            13.057437
+          ],
+          [
+            77.483042,
+            13.054155
+          ],
+          [
+            77.4914,
+            13.05126
+          ],
+          [
+            77.500112,
+            13.04802
+          ],
+          [
+            77.512407,
+            13.043338
+          ],
+          [
+            77.519698,
+            13.039429
+          ],
+          [
+            77.52544,
+            13.03628
+          ],
+          [
+            77.533227,
+            13.032815
+          ],
+          [
+            77.540772,
+            13.028383
+          ],
+          [
+            77.549859,
+            13.023172
+          ],
+          [
+            77.553933,
+            13.014698
+          ],
+          [
+            77.54881,
+            13.008193
+          ],
+          [
+            77.549701,
+            13.000334
+          ],
+          [
+            77.556972,
+            12.998523
+          ],
+          [
+            77.563439,
+            12.996461
+          ],
+          [
+            77.57077,
+            12.990502
+          ],
+          [
+            77.572967,
+            12.975697
+          ],
+          [
+            77.574678,
+            12.96666
+          ],
+          [
+            77.574828,
+            12.961108
+          ],
+          [
+            77.573669,
+            12.95059
+          ],
+          [
+            77.58002,
+            12.946408
+          ],
+          [
+            77.580096,
+            12.938377
+          ],
+          [
+            77.58016,
+            12.929641
+          ],
+          [
+            77.580128,
+            12.921464
+          ],
+          [
+            77.573588,
+            12.915649
+          ],
+          [
+            77.573213,
+            12.907382
+          ],
+          [
+            77.570193,
+            12.895952
+          ],
+          [
+            77.562602,
+            12.888872
+          ],
+          [
+            77.552683,
+            12.884636
+          ],
+          [
+            77.544739,
+            12.877513
+          ],
+          [
+            77.538398,
+            12.871395
+          ],
+          [
+            77.529868,
+            12.861809
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Yellow Line (Line 3)",
+        "line": 3,
+        "color": "#eab308"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            77.5795,
+            12.9337
+          ],
+          [
+            77.5923,
+            12.928
+          ],
+          [
+            77.5994,
+            12.9237
+          ],
+          [
+            77.6054,
+            12.9167
+          ],
+          [
+            77.613,
+            12.9093
+          ],
+          [
+            77.6212,
+            12.9019
+          ],
+          [
+            77.6294,
+            12.894
+          ],
+          [
+            77.6377,
+            12.8851
+          ],
+          [
+            77.6471,
+            12.8753
+          ],
+          [
+            77.6549,
+            12.8641
+          ],
+          [
+            77.6618,
+            12.8519
+          ],
+          [
+            77.6669,
+            12.8424
+          ],
+          [
+            77.6726,
+            12.835
+          ],
+          [
+            77.6784,
+            12.8282
+          ],
+          [
+            77.6832,
+            12.8235
+          ],
+          [
+            77.6872,
+            12.82
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Wimco Nagar Depot",
+        "line": 1,
+        "type": "depot",
+        "city_label": "Chennai"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.308994,
+          13.183971
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Wimco Nagar",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.307344,
+          13.17929
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Thiruvottriyur",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.305269,
+          13.171803
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Thiruvottiyur Theradi",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.302448,
+          13.160215
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Kaladipet",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.299393,
+          13.150667
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Tollgate",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.296329,
+          13.143134
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "New Washermanpet",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.293001,
+          13.13452
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Tondiarpet",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.288856,
+          13.124528
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Sir Theagaraya College",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.284744,
+          13.115755
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Washermanpet",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.280949,
+          13.107847
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Mannadi",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.286131,
+          13.095447
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "High Court",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.284985,
+          13.087268
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "MGR Central",
+        "line": 1,
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.273916,
+          13.081725
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Government Estate",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.273036,
+          13.069635
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "LIC",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.265847,
+          13.064372
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Thousand Lights",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.258783,
+          13.058516
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "AG–DMS",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.248285,
+          13.045885
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Teynampet",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.246419,
+          13.0368
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Nandanam",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.241196,
+          13.031709
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Saidapet",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.228124,
+          13.023995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Little Mount",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.224167,
+          13.014663
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Guindy",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.213085,
+          13.009275
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Alandur",
+        "line": 1,
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.201453,
+          13.004256
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Nanganallur Road",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.19401,
+          12.99988
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Meenambakkam",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.176479,
+          12.987673
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Chennai Airport",
+        "line": 1,
+        "type": "terminal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.164203,
+          12.980809
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Egmore",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.263055,
+          13.080281
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Nehru Park",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.250473,
+          13.078784
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Kilpauk Medical College",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.242619,
+          13.077637
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Pachaiyappa's College",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.232852,
+          13.075547
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Shenoy Nagar",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.225,
+          13.077
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Anna Nagar East",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.213,
+          13.079
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Anna Nagar Tower",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.205,
+          13.0853
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Thirumangalam",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.198,
+          13.078
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Koyambedu",
+        "line": 2,
+        "type": "terminal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.194836,
+          13.07345
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "CMBT",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.203963,
+          13.068525
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Arumbakkam",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.211666,
+          13.061675
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Vadapalani",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.212066,
+          13.05093
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Ashok Nagar",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.211108,
+          13.035477
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Ekkattuthangal",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.205424,
+          13.016922
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai",
+        "name": "Saint Thomas Mount",
+        "line": 2,
+        "type": "terminal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.198582,
+          12.995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Challegatta",
+        "line": 1,
+        "type": "terminal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.462701,
+          12.897934
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Kengeri",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.476466,
+          12.907963
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Mailasandra",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.48731,
+          12.914962
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Pattanagere",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.498288,
+          12.924326
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Bangalore University",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.512182,
+          12.935423
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Rajarajeshwari Nagar",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.519593,
+          12.936662
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Nayandahalli",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.525598,
+          12.942479
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Mysore Road",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.52971,
+          12.946549
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Deepanjali Nagar",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.536973,
+          12.952191
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Attiguppe",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.533589,
+          12.961954
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Vijayanagar",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.537389,
+          12.970795
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Hosahalli",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.545541,
+          12.97424
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Magadi Road",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.5555,
+          12.975633
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "City Railway Station",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.566017,
+          12.975842
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Sir M. Visveshwaraya",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.583998,
+          12.974345
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Vidhana Soudha",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.591752,
+          12.978793
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Cubbon Park",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.596645,
+          12.981227
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "MG Road",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.606762,
+          12.975505
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Trinity",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.616984,
+          12.973033
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Halasuru",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.626616,
+          12.976431
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Indiranagar",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.638731,
+          12.978318
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Swami Vivekananda Road",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.64493,
+          12.98595
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Baiyappanahalli",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.652504,
+          12.990738
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Jyothipuram",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.668324,
+          12.996499
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Mahadevapura",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.692534,
+          12.996623
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Gurudacharpalya",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.703896,
+          12.993393
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Doddanakundi Industrial Area",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.710515,
+          12.988396
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Visvesvaraya Industrial Area",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.708791,
+          12.981041
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Kundalahalli",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.714957,
+          12.977701
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Vydehi Hospital",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.72394,
+          12.97677
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Sri Satya Sai Hospital",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.727703,
+          12.981848
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "ITPL",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.738169,
+          12.98768
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Kadugodi",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.74651,
+          12.985824
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Whitefield",
+        "line": 1,
+        "type": "terminal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.757732,
+          12.993819
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "BIEC",
+        "line": 2,
+        "type": "terminal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.472775,
+          13.057437
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Nagasandra",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.500112,
+          13.04802
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Dasarahalli",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.512407,
+          13.043338
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Jalahalli",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.519698,
+          13.039429
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Peenya Industry",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.52544,
+          13.03628
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Peenya",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.533227,
+          13.032815
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Yeshwanthpur Industry",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.540772,
+          13.028383
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Yeshwanthpur",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.549859,
+          13.023172
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Sandal Soap Factory",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.553933,
+          13.014698
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Mahalakshmi",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.54881,
+          13.008193
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Rajajinagar",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.549701,
+          13.000334
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Kuvempu Road",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.556972,
+          12.998523
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Srirampura",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.563439,
+          12.996461
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Sampige Road",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.57077,
+          12.990502
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Majestic (Kempegowda)",
+        "line": 2,
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.572967,
+          12.975697
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Chickpet",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.574678,
+          12.96666
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "KR Market",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.574828,
+          12.961108
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "National College",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.573669,
+          12.95059
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Lalbagh",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.58002,
+          12.946408
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Southend Circle",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.580096,
+          12.938377
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Jayanagar",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.58016,
+          12.929641
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Rashtreeya Vidyalaya Road",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.580128,
+          12.921464
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Banashankari",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.573588,
+          12.915649
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Jayaprakash Nagar",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.573213,
+          12.907382
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Yelachenahalli",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.570193,
+          12.895952
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Anjanapura Cross Road",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.562602,
+          12.888872
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Krishna Leela Park",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.552683,
+          12.884636
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Vajrahalli",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.544739,
+          12.877513
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Thalgattapura",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.538398,
+          12.871395
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Anjanapura Township",
+        "line": 2,
+        "type": "terminal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.529868,
+          12.861809
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "RV Road",
+        "line": 3,
+        "type": "terminal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.5795,
+          12.9337
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Dairy Circle",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.5923,
+          12.928
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Jayadeva Hospital",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.5994,
+          12.9237
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Lakkasandra",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.6054,
+          12.9167
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Ragigudda",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.613,
+          12.9093
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Hongasandra",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.6212,
+          12.9019
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Begur Road",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.6294,
+          12.894
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Hulimavu",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.6377,
+          12.8851
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Gottigere",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.6471,
+          12.8753
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Electronic City Bhumika",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.6549,
+          12.8641
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Electronic City Phase II",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.6618,
+          12.8519
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Kudlu Gate",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.6669,
+          12.8424
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Hosa Road",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.6726,
+          12.835
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Electronic City Phase I",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.6784,
+          12.8282
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Hebbagodi",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.6832,
+          12.8235
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru",
+        "name": "Bommasandra",
+        "line": 3,
+        "type": "terminal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.6872,
+          12.82
+        ]
+      }
+    }
+  ]
+}

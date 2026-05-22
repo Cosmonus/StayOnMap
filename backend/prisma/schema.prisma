@@ -1,0 +1,786 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  TENANT
+  OWNER
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  VILLA
+  PG
+  INDEPENDENT_HOUSE
+  COMMERCIAL
+}
+
+enum FurnishedType {
+  FULLY
+  SEMI
+  UNFURNISHED
+}
+
+enum PropertyStatus {
+  DRAFT
+  PENDING
+  ACTIVE
+  INACTIVE
+  OCCUPIED
+  SUSPENDED
+  REJECTED
+}
+
+enum AppointmentStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  RESCHEDULED
+  CANCELLED
+}
+
+enum GenderPreference {
+  ANY
+  MALE
+  FEMALE
+}
+
+enum ReviewerType {
+  TENANT
+  PREVIOUS_TENANT
+  NEIGHBOR
+  COMMUNITY
+}
+
+enum ContentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FLAGGED
+}
+
+enum InsightCategory {
+  WATER_SHORTAGE
+  SAFETY_CONCERN
+  QUIET_AREA
+  FAMILY_FRIENDLY
+  STUDENT_FRIENDLY
+  TRAFFIC
+  TRANSPORT
+  NOISE
+  OTHER
+}
+
+enum ReportCategory {
+  FRAUD
+  FAKE_PHOTOS
+  UNAUTHORIZED_LISTING
+  WRONG_PRICING
+  UNSAFE
+  ILLEGAL
+  HARASSMENT
+  OWNER_MISCONDUCT
+  DUPLICATE
+  FALSE_INFO
+  NOISE
+  WATER
+  SECURITY
+  BROKER_SPAM
+  OTHER
+}
+
+enum ReportSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ReportStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum VerificationStatus {
+  PENDING
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+  SUSPENDED
+}
+
+enum VerificationDocType {
+  GOVT_ID
+  PROPERTY_TAX
+  UTILITY_BILL
+  RENTAL_AGREEMENT
+  AADHAAR
+  PAN
+  SELFIE
+  OTHER
+}
+
+enum FraudSignalType {
+  DUPLICATE_ADDRESS
+  SIMILAR_GEOLOCATION
+  REUSED_IMAGES
+  SAME_CONTACT
+  SIMILAR_DESCRIPTION
+  AI_FLAGGED
+}
+
+enum TrustBadge {
+  VERIFIED_OWNER
+  COMMUNITY_TRUSTED
+  HIGHLY_RECOMMENDED
+  VERIFIED_NEIGHBORHOOD
+  LOW_COMPLAINT
+  UNDER_REVIEW
+  SUSPICIOUS
+  NEEDS_ATTENTION
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  SUSPICIOUS
+}
+
+enum FacingDirection {
+  EAST
+  WEST
+  NORTH
+  SOUTH
+}
+
+enum ModerationActionType {
+  APPROVE
+  REJECT
+  SUSPEND
+  INVESTIGATE
+  DISMISS
+  WARN_OWNER
+}
+
+enum ListingVisibility {
+  PUBLIC       // visible to everyone including non-logged-in visitors
+  LOGGED_IN    // pins show but details require login
+  HIDDEN       // not shown on map at all
+}
+
+enum ContactVisibility {
+  EVERYONE   // any logged-in user can see contact details
+  LOGGED_IN  // same as EVERYONE (alias kept for future distinction)
+  NOBODY     // contact info hidden from all users
+}
+
+enum NotificationType {
+  APPOINTMENT_REQUEST
+  APPOINTMENT_STATUS
+  APPOINTMENT_ACCEPTED
+  APPOINTMENT_REJECTED
+  REPORT_SUBMITTED
+  REPORT_UPDATE
+  VERIFICATION_UPDATE
+  TRUST_ALERT
+  LEASE_OFFERED
+  LEASE_SIGNED
+  LEASE_REJECTED
+  SYSTEM
+  MESSAGE
+}
+
+enum LeaseStatus {
+  OFFERED
+  ACTIVE
+  REJECTED
+  TERMINATED
+  EXPIRED
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Admin (separate auth — not Supabase)
+// ─────────────────────────────────────────────────────────────────
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+
+  moderationActions ModerationAction[]
+  activityLogs      ActivityLog[]
+
+  createdAt DateTime @default(now())
+}
+
+// ─────────────────────────────────────────────────────────────────
+// User (Supabase UID as primary key)
+// ─────────────────────────────────────────────────────────────────
+
+model User {
+  id         String   @id                     // Supabase Auth UID
+  displayId  String?  @unique                 // Human-readable ID: SRI-1234567890123456
+  email      String   @unique
+  name       String
+  phone      String?
+  avatarUrl  String?
+  bio        String?
+  socialLinks Json?                            // { website, linkedin, instagram, twitter }
+  role       UserRole @default(TENANT)
+  isVerified Boolean  @default(false)
+  isBlocked  Boolean  @default(false)
+
+  // Settings
+  listingVisibility   ListingVisibility   @default(PUBLIC)
+  contactVisibility   ContactVisibility   @default(LOGGED_IN)
+  showExactLocation   Boolean             @default(true)
+  emailNotifs         Boolean             @default(true)
+  pushNotifs          Boolean             @default(true)
+
+  properties        Property[]
+  occupiedProperties Property[] @relation("CurrentTenant")
+  savedListings  SavedListing[]
+  appointments   Appointment[]   @relation("TenantAppointments")
+  reviews        CommunityReview[]
+  votes          RecommendationVote[]
+  insights       NeighborhoodInsight[]
+  reports        PropertyReport[]
+  notifications  Notification[]
+  activityLogs   ActivityLog[]
+
+  tenantConversations Conversation[] @relation("TenantConversations")
+  ownerConversations  Conversation[] @relation("OwnerConversations")
+  sentMessages        Message[]      @relation("SentMessages")
+
+  tenantLeases      Lease[] @relation("TenantLeases")
+  ownerLeases       Lease[] @relation("OwnerLeases")
+  pushSubscriptions PushSubscription[]
+  ownerTrustScore   OwnerTrustScore?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Push Subscriptions
+// ─────────────────────────────────────────────────────────────────
+
+model PushSubscription {
+  id       String @id @default(cuid())
+  userId   String
+  endpoint String @unique
+  p256dh   String
+  auth     String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Amenities (normalized, admin-managed)
+// ─────────────────────────────────────────────────────────────────
+
+model Amenity {
+  id   String @id @default(cuid())
+  name String @unique
+
+  properties PropertyAmenity[]
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Property
+// ─────────────────────────────────────────────────────────────────
+
+model Property {
+  id          String         @id @default(cuid())
+  displayId   String?        @unique          // Human-readable ID: APT-1234567890123456
+  title       String
+  description String
+  type        PropertyType
+  furnished   FurnishedType  @default(UNFURNISHED)
+  status      PropertyStatus @default(DRAFT)
+
+  // Location
+  address   String
+  city      String
+  state     String
+  pincode   String
+  landmark  String?
+  lat       Decimal  @db.Decimal(10, 7)
+  lng       Decimal  @db.Decimal(10, 7)
+
+  // Specifics
+  bhk             Int?
+  sharing         Int?             // for PG type: 1–6
+  area            Decimal?         @db.Decimal(10, 2) // sq.ft
+  totalFloors     Int?
+  floor           Int?             // which floor the unit is on
+  facingDirection FacingDirection?
+
+  // Pricing
+  rent               Decimal  @db.Decimal(10, 2)
+  deposit            Decimal  @db.Decimal(10, 2)
+  maintenance        Decimal? @db.Decimal(10, 2)
+  brokerage          Decimal? @db.Decimal(10, 2)
+  electricityCharges Decimal? @db.Decimal(10, 2)
+  waterCharges       Decimal? @db.Decimal(10, 2)
+
+  // Availability
+  availableFrom  DateTime?
+  occupancyLimit Int?
+  leaseDuration  Int?       // months
+
+  // Appointment window set by owner (e.g. "09:00" / "18:00")
+  appointmentWindowStart String?
+  appointmentWindowEnd   String?
+
+  // Owner
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  // Current tenant (set when status = OCCUPIED)
+  currentTenant   User?     @relation("CurrentTenant", fields: [currentTenantId], references: [id], onDelete: SetNull)
+  currentTenantId String?
+  occupiedSince   DateTime?
+
+  // Relations
+  images        PropertyImage[]
+  amenities     PropertyAmenity[]
+  rules         PropertyRule?
+  appointments  Appointment[]
+  savedBy       SavedListing[]
+  reviews       CommunityReview[]
+  votes         RecommendationVote[]
+  insights      NeighborhoodInsight[]
+  reports       PropertyReport[]
+  verification  OwnershipVerification?
+  trustScore    TrustScore?
+  riskScore     PropertyRiskScore?
+  fraudSignals  FraudSignal[]
+  conversations Conversation[]
+  leases        Lease[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([city])
+  @@index([status])
+  @@index([lat, lng])
+  @@index([ownerId])
+  @@index([type])
+}
+
+model PropertyImage {
+  id         String   @id @default(cuid())
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  url        String
+  isPrimary  Boolean  @default(false)
+  order      Int      @default(0)
+
+  @@index([propertyId])
+}
+
+model PropertyAmenity {
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  amenity    Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+  amenityId  String
+
+  @@id([propertyId, amenityId])
+}
+
+model PropertyRule {
+  id            String          @id @default(cuid())
+  property      Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId    String          @unique
+  smokingAllowed    Boolean @default(false)
+  petsAllowed       Boolean @default(false)
+  bachelorAllowed   Boolean @default(true)
+  familyPreferred   Boolean @default(false)
+  visitorsAllowed   Boolean @default(true)
+  nonVegAllowed     Boolean @default(false)
+  curfewTime        String?
+  genderPreference  GenderPreference @default(ANY)
+  foodPreference    String?
+  alcoholAllowed    Boolean @default(false)
+  noiseRestrictions String?
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Saved Listings (Favorites)
+// ─────────────────────────────────────────────────────────────────
+
+model SavedListing {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, propertyId])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Appointments
+// ─────────────────────────────────────────────────────────────────
+
+model Appointment {
+  id            String            @id @default(cuid())
+  property      Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId    String
+  tenant        User              @relation("TenantAppointments", fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId      String
+  ownerId       String
+  requestedDate DateTime
+  requestedTime String
+  message       String?
+  contactNumber String
+  status        AppointmentStatus @default(PENDING)
+  scheduledAt   DateTime?
+  ownerNote     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, propertyId, status])
+  @@index([propertyId])
+  @@index([tenantId])
+  @@index([ownerId])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Community Reviews & Ratings
+// ─────────────────────────────────────────────────────────────────
+
+model CommunityReview {
+  id           String       @id @default(cuid())
+  property     Property     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId   String
+  reviewer     User         @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewerId   String
+  reviewerType ReviewerType
+  isAnonymous  Boolean      @default(false)
+  isVerified   Boolean      @default(false)
+  recommend    Boolean
+
+  // 12-category ratings (1–5)
+  ratingsSafety        Int
+  ratingsClean         Int
+  ratingsWater         Int
+  ratingsNoise         Int
+  ratingsInternet      Int
+  ratingsParking       Int
+  ratingsNeighborhood  Int
+  ratingsTransport     Int
+  ratingsMaintenance   Int
+  ratingsOwnerBehavior Int
+  ratingsSecurity      Int
+  ratingsPowerBackup   Int
+
+  body          String
+  mediaUrls     String[]
+  status        ContentStatus @default(PENDING)
+  ownerResponse String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([reviewerId, propertyId])
+  @@index([propertyId])
+  @@index([status])
+}
+
+model RecommendationVote {
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  recommend  Boolean
+
+  @@id([propertyId, userId])
+}
+
+model NeighborhoodInsight {
+  id          String          @id @default(cuid())
+  property    Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId  String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  isAnonymous Boolean         @default(false)
+  category    InsightCategory
+  body        String
+
+  createdAt DateTime @default(now())
+
+  @@index([propertyId])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Property Reports
+// ─────────────────────────────────────────────────────────────────
+
+model PropertyReport {
+  id          String         @id @default(cuid())
+  property    Property       @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId  String
+  reporter    User?          @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+  reporterId  String?
+  isAnonymous Boolean        @default(false)
+  category    ReportCategory
+  description String
+  severity    ReportSeverity
+  evidenceUrls  String[]
+  status        ReportStatus   @default(PENDING)
+  ownerResponse String?
+
+  moderationAction ModerationAction?
+
+  createdAt DateTime @default(now())
+
+  @@index([propertyId])
+  @@index([status])
+  @@index([severity])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Ownership Verification
+// ─────────────────────────────────────────────────────────────────
+
+model OwnershipVerification {
+  id         String             @id @default(cuid())
+  property   Property           @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String             @unique
+  ownerId    String
+  status     VerificationStatus @default(PENDING)
+  adminNote  String?
+  reviewedAt DateTime?
+  reviewedBy String?            // Admin.id
+
+  documents VerificationDocument[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([ownerId])
+}
+
+model VerificationDocument {
+  id             String              @id @default(cuid())
+  verification   OwnershipVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+  verificationId String
+  type           VerificationDocType
+  url            String
+  uploadedAt     DateTime            @default(now())
+
+  @@index([verificationId])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Trust & Risk Scores
+// ─────────────────────────────────────────────────────────────────
+
+model TrustScore {
+  id                String     @id @default(cuid())
+  property          Property   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId        String     @unique
+  overallScore      Float      @default(0)
+  safetyScore       Float      @default(0)
+  cleanlinessScore  Float      @default(0)
+  neighborhoodScore Float      @default(0)
+  totalReviews      Int        @default(0)
+  recommendCount    Int        @default(0)
+  notRecommendCount Int        @default(0)
+  recommendPercent  Float      @default(0)
+  badge             TrustBadge?
+  // Named scores
+  areaScore         Float      @default(0)   // AreaScore  0–10
+  waterScore        Float      @default(0)   // WaterScore 0–10
+  floodSafeRating   Float      @default(0)   // FloodSafe  0–10
+  updatedAt         DateTime   @updatedAt
+}
+
+model OwnerTrustScore {
+  id                String   @id @default(cuid())
+  owner             User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId           String   @unique
+  score             Float    @default(0)    // 0–100
+  level             String   @default("UNRATED") // UNRATED | LOW | MEDIUM | HIGH | EXCELLENT
+  responseRate      Float    @default(0)   // % appointments accepted
+  reviewAvg         Float    @default(0)   // avg StayScore across listings
+  verificationLevel Int      @default(0)
+  updatedAt         DateTime @updatedAt
+}
+
+model PropertyRiskScore {
+  id                String    @id @default(cuid())
+  property          Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId        String    @unique
+  score             Float     @default(0)
+  level             RiskLevel @default(LOW)
+  complaintCount    Int       @default(0)
+  unauthorizedReports Int     @default(0)
+  duplicateSignals  Int       @default(0)
+  verificationLevel Int       @default(0)   // 0=none, 1=docs uploaded, 2=under review, 4=verified
+  updatedAt         DateTime  @updatedAt
+}
+
+model FraudSignal {
+  id          String          @id @default(cuid())
+  property    Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId  String
+  type        FraudSignalType
+  detail      String?
+  detectedAt  DateTime        @default(now())
+  resolved    Boolean         @default(false)
+
+  @@index([propertyId])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Moderation
+// ─────────────────────────────────────────────────────────────────
+
+model ModerationAction {
+  id       String               @id @default(cuid())
+  report   PropertyReport       @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportId String               @unique
+  admin    Admin                @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  adminId  String
+  action   ModerationActionType
+  note     String?
+  createdAt DateTime            @default(now())
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Notifications
+// ─────────────────────────────────────────────────────────────────
+
+model Notification {
+  id            String           @id @default(cuid())
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  type          NotificationType
+  title         String
+  body          String
+  isRead        Boolean          @default(false)
+  referenceId   String?
+  referenceType String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Chat / Messaging
+// ─────────────────────────────────────────────────────────────────
+
+model Conversation {
+  id          String   @id @default(cuid())
+  propertyId  String
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenantId    String
+  tenant      User     @relation("TenantConversations", fields: [tenantId], references: [id], onDelete: Cascade)
+  ownerId     String
+  owner       User     @relation("OwnerConversations", fields: [ownerId], references: [id], onDelete: Cascade)
+  messages    Message[]
+  lastMessageAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@unique([propertyId, tenantId])
+  @@index([tenantId])
+  @@index([ownerId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  senderId       String
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  body           String
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+  @@index([senderId])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Activity Logs
+// ─────────────────────────────────────────────────────────────────
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    String?
+  admin     Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  adminId   String?
+  action    String
+  entity    String?
+  entityId  String?
+  meta      Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([adminId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Lease
+// ─────────────────────────────────────────────────────────────────
+
+model Lease {
+  id            String      @id @default(cuid())
+  propertyId    String
+  tenantId      String
+  ownerId       String
+  appointmentId String?
+
+  startDate     DateTime
+  endDate       DateTime
+  rentAmount    Decimal     @db.Decimal(10, 2)
+  depositAmount Decimal     @db.Decimal(10, 2)
+  status        LeaseStatus @default(OFFERED)
+
+  ownerNote    String?
+  tenantNote   String?
+  signedAt     DateTime?
+  rejectedAt   DateTime?
+  terminatedAt DateTime?
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant   User     @relation("TenantLeases", fields: [tenantId], references: [id], onDelete: Cascade)
+  owner    User     @relation("OwnerLeases", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([ownerId])
+  @@index([propertyId])
+}

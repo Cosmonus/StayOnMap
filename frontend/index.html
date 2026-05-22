@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Base SEO — overridden per-page by react-helmet-async -->
+    <title>StayOnMap — Find your place.</title>
+    <meta name="description" content="Every listing is a real home. Every home has a real owner. Find your place on the map — no brokers, no paywalls, no nonsense." />
+    <meta name="theme-color" content="#0d8a5f" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph defaults -->
+    <meta property="og:type"        content="website" />
+    <meta property="og:site_name"   content="StayOnMap" />
+    <meta property="og:title"       content="StayOnMap — Find your place." />
+    <meta property="og:description" content="Every listing is a real home. Every home has a real owner. Find your place on the map — no brokers, no paywalls." />
+    <meta property="og:image"       content="https://stayonmap.in/og-default.jpg" />
+    <meta property="og:url"         content="https://stayonmap.in" />
+    <meta property="og:locale"      content="en_IN" />
+
+    <!-- Twitter Card defaults -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:site"        content="@StayOnMap" />
+    <meta name="twitter:title"       content="StayOnMap — Find your place." />
+    <meta name="twitter:description" content="Every listing is a real home. Every home has a real owner. Find your place on the map." />
+    <meta name="twitter:image"       content="https://stayonmap.in/og-default.jpg" />
+
+    <!-- WebSite structured data (enables Google Sitelinks search box) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "StayOnMap",
+      "url": "https://stayonmap.in",
+      "description": "Broker-free rental discovery platform for India",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://stayonmap.in/properties?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- Organization structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "StayOnMap",
+      "url": "https://stayonmap.in",
+      "logo": "https://stayonmap.in/favicon.svg",
+      "sameAs": []
+    }
+    </script>
+
+    <!-- Performance hints -->
+    <link rel="preconnect" href="https://maps.googleapis.com" />
+    <link rel="preconnect" href="https://maps.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://rnfjdpbsxdwcpawvriqg.supabase.co" />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

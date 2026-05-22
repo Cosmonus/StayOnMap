@@ -1,0 +1,117 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai", "name": "OMR IT Corridor",
+        "areaSlug": "omr-chennai", "level": "major"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [80.233, 12.985], [80.260, 12.985], [80.254, 12.850],
+          [80.228, 12.850], [80.233, 12.985]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai", "name": "TIDEL Park / Taramani",
+        "areaSlug": "omr-chennai", "level": "major"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [80.238, 13.013], [80.260, 13.013], [80.260, 12.992],
+          [80.238, 12.992], [80.238, 13.013]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Chennai", "name": "Guindy Industrial Estate",
+        "areaSlug": "adyar-chennai", "level": "moderate"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [80.190, 12.998], [80.217, 12.998], [80.217, 12.980],
+          [80.190, 12.980], [80.190, 12.998]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru", "name": "Whitefield / ITPL",
+        "areaSlug": "whitefield-bengaluru", "level": "major"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [77.722, 12.989], [77.778, 12.989], [77.778, 12.948],
+          [77.722, 12.948], [77.722, 12.989]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru", "name": "Electronic City",
+        "areaSlug": "electronic-city-bengaluru", "level": "major"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [77.657, 12.864], [77.702, 12.864], [77.702, 12.818],
+          [77.657, 12.818], [77.657, 12.864]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru", "name": "Manyata Tech Park",
+        "areaSlug": "hebbal-bengaluru", "level": "major"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [77.582, 13.058], [77.624, 13.058], [77.624, 13.018],
+          [77.582, 13.018], [77.582, 13.058]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru", "name": "Outer Ring Road Corridor",
+        "areaSlug": "marathahalli-bengaluru", "level": "major"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [77.650, 12.970], [77.710, 12.970], [77.710, 12.938],
+          [77.650, 12.938], [77.650, 12.970]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Bengaluru", "name": "Koramangala Startup Hub",
+        "areaSlug": "koramangala-bengaluru", "level": "moderate"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [77.610, 12.945], [77.645, 12.945], [77.645, 12.922],
+          [77.610, 12.922], [77.610, 12.945]
+        ]]
+      }
+    }
+  ]
+}

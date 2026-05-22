@@ -1,0 +1,6 @@
+-- Add new NotificationType values (must commit before use in new tables)
+ALTER TYPE "NotificationType" ADD VALUE IF NOT EXISTS 'APPOINTMENT_ACCEPTED';
+ALTER TYPE "NotificationType" ADD VALUE IF NOT EXISTS 'APPOINTMENT_REJECTED';
+ALTER TYPE "NotificationType" ADD VALUE IF NOT EXISTS 'LEASE_OFFERED';
+ALTER TYPE "NotificationType" ADD VALUE IF NOT EXISTS 'LEASE_SIGNED';
+ALTER TYPE "NotificationType" ADD VALUE IF NOT EXISTS 'LEASE_REJECTED';

@@ -1,0 +1,8 @@
+-- Step 1: Add new enum values to existing enums (must be committed before use)
+ALTER TYPE "PropertyStatus" ADD VALUE IF NOT EXISTS 'DRAFT';
+ALTER TYPE "PropertyStatus" ADD VALUE IF NOT EXISTS 'SUSPENDED';
+ALTER TYPE "PropertyStatus" ADD VALUE IF NOT EXISTS 'REJECTED';
+
+ALTER TYPE "PropertyType" ADD VALUE IF NOT EXISTS 'PG';
+ALTER TYPE "PropertyType" ADD VALUE IF NOT EXISTS 'INDEPENDENT_HOUSE';
+ALTER TYPE "PropertyType" ADD VALUE IF NOT EXISTS 'COMMERCIAL';
