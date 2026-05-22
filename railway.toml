@@ -1,8 +1,8 @@
 [build]
-buildCommand = "cd backend && npm install && npm run build && npx prisma generate"
+buildCommand = "npm install && npx prisma generate"
 
 [deploy]
-startCommand = "cd backend && node src/index.js"
+startCommand = "npx prisma migrate deploy && node src/index.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
