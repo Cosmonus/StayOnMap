@@ -21,15 +21,6 @@ const LAYERS = [
     ),
   },
   {
-    key:   'floodZones',
-    label: 'Flood',
-    icon:  (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M17.66 8L12 2.35 6.34 8C4.78 9.56 4 11.64 4 13.64c0 2 .78 4.04 2.34 5.6 1.56 1.56 3.61 2.36 5.66 2.36s4.1-.8 5.66-2.36C19.22 17.68 20 15.64 20 13.64c0-2-.78-4.08-2.34-5.64z"/>
-      </svg>
-    ),
-  },
-  {
     key:   'traffic',
     label: 'Traffic',
     icon:  (
@@ -43,7 +34,6 @@ const LAYERS = [
 const ACTIVE_COLORS = {
   metro:       'bg-violet-600 text-white border-violet-600',
   itCorridors: 'bg-blue-600 text-white border-blue-600',
-  floodZones:  'bg-red-500 text-white border-red-500',
   traffic:     'bg-amber-500 text-white border-amber-500',
 }
 

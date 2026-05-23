@@ -1,9 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
-import metroData      from '@/data/layers/metro-lines.json'
-import itData         from '@/data/layers/it-corridors.json'
-import floodData      from '@/data/layers/flood-zones.json'
+import metroData from '@/data/layers/metro-lines.json'
+import itData    from '@/data/layers/it-corridors.json'
 
 const METRO_LINE_COLORS = { 1: '#7c3aed', 2: '#059669', 3: '#ca8a04' }
 
@@ -79,19 +78,6 @@ function styleItFeature(feature, hovered = false) {
   }
 }
 
-function styleFloodFeature(feature, hovered = false) {
-  const risk   = feature.getProperty('risk')
-  const isHigh = risk === 'HIGH'
-  return {
-    strokeColor:  isHigh ? '#dc2626' : '#d97706',
-    strokeWeight: hovered ? 2.5 : 1.5,
-    strokeOpacity: 0.8,
-    fillColor:    isHigh ? '#ef4444' : '#f59e0b',
-    fillOpacity:  hovered ? 0.22 : 0.12,
-    cursor: 'pointer',
-  }
-}
-
 // ─── Tooltip DOM helper ───────────────────────────────────────────
 function createTooltip() {
   const el = document.createElement('div')
@@ -131,34 +117,17 @@ function positionTooltip(el, x, y) {
   el.style.top  = `${top}px`
 }
 
-function tooltipHtml(feature, layerType) {
-  const name = feature.getProperty('name')
-  if (layerType === 'flood') {
-    const risk  = feature.getProperty('risk')
-    const note  = feature.getProperty('note') ?? ''
-    const color = risk === 'HIGH' ? '#dc2626' : '#d97706'
-    return `
-      <div style="font-weight:700;margin-bottom:2px">${name}</div>
-      <div style="display:flex;align-items:center;gap:5px;margin-bottom:${note ? 3 : 0}px">
-        <span style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0"></span>
-        <span style="color:${color};font-weight:600">Flood risk: ${risk}</span>
-      </div>
-      ${note ? `<div style="color:#64748b;font-size:11px">${note}</div>` : ''}
-      <div style="color:#94a3b8;font-size:10px;margin-top:4px">Click for full area profile</div>
-    `
-  }
-  if (layerType === 'it') {
-    const level = feature.getProperty('level') === 'major' ? 'Major IT zone' : 'IT zone'
-    return `
-      <div style="font-weight:700;margin-bottom:2px">${name}</div>
-      <div style="display:flex;align-items:center;gap:5px">
-        <span style="width:7px;height:7px;border-radius:50%;background:#2563eb;flex-shrink:0"></span>
-        <span style="color:#2563eb;font-weight:600">${level}</span>
-      </div>
-      <div style="color:#94a3b8;font-size:10px;margin-top:4px">Click for full area profile</div>
-    `
-  }
-  return `<div style="font-weight:700">${name}</div>`
+function tooltipHtml(feature) {
+  const name  = feature.getProperty('name')
+  const level = feature.getProperty('level') === 'major' ? 'Major IT zone' : 'IT zone'
+  return `
+    <div style="font-weight:700;margin-bottom:2px">${name}</div>
+    <div style="display:flex;align-items:center;gap:5px">
+      <span style="width:7px;height:7px;border-radius:50%;background:#2563eb;flex-shrink:0"></span>
+      <span style="color:#2563eb;font-weight:600">${level}</span>
+    </div>
+    <div style="color:#94a3b8;font-size:10px;margin-top:4px">Click for full area profile</div>
+  `
 }
 
 function filterByCity(geojson, city) {
@@ -182,7 +151,7 @@ export function useMapLayers(mapRef) {
   const mapReady        = useMapStore((s) => s.flyTo !== null)
   const city            = useFilterStore((s) => s.filters.city)
 
-  const layers     = useRef({ metro: null, itCorridors: null, floodZones: null, traffic: null })
+  const layers     = useRef({ metro: null, itCorridors: null, traffic: null })
   const tooltipEl  = useRef(null)
   const mouseMoveRef = useRef(null)
 
@@ -202,17 +171,14 @@ export function useMapLayers(mapRef) {
 
     layers.current.metro       = new window.google.maps.Data()
     layers.current.itCorridors = new window.google.maps.Data()
-    layers.current.floodZones  = new window.google.maps.Data()
     layers.current.traffic     = new window.google.maps.TrafficLayer()
 
     const initCity = useFilterStore.getState().filters.city
     layers.current.metro.addGeoJson(smoothLineStrings(filterByCity(metroData, initCity)))
     layers.current.itCorridors.addGeoJson(filterByCity(itData, initCity))
-    layers.current.floodZones.addGeoJson(filterByCity(floodData, initCity))
 
     layers.current.metro.setStyle(styleMetroFeature)
     layers.current.itCorridors.setStyle((f) => styleItFeature(f))
-    layers.current.floodZones.setStyle((f)  => styleFloodFeature(f))
 
     // ── Click → open area insight card ──
     const handleClick = (event) => {
@@ -220,54 +186,33 @@ export function useMapLayers(mapRef) {
       if (slug) setSelectedArea({ slug })
     }
     layers.current.itCorridors.addListener('click', handleClick)
-    layers.current.floodZones.addListener('click', handleClick)
 
     // ── Hover → tooltip + fill brightening ──
     const mapDiv = map.getDiv()
 
-    function onMouseOver(layerType) {
-      return (event) => {
-        const tt = tooltipEl.current
-        if (!tt) return
-        const feature = event.feature
-
-        // Brighten fill
-        if (layerType === 'it') {
-          layers.current.itCorridors.overrideStyle(feature, styleItFeature(feature, true))
-        } else if (layerType === 'flood') {
-          layers.current.floodZones.overrideStyle(feature, styleFloodFeature(feature, true))
-        }
-
-        // Track mouse for tooltip position
-        const move = (e) => positionTooltip(tt, e.clientX, e.clientY)
-        mapDiv.addEventListener('mousemove', move)
-        mouseMoveRef.current = move
-
-        // Get cursor position from the event's domEvent
-        const domEvent = event.domEvent
-        showTooltip(tt, domEvent.clientX, domEvent.clientY, tooltipHtml(feature, layerType))
-      }
+    function onItMouseOver(event) {
+      const tt = tooltipEl.current
+      if (!tt) return
+      const feature = event.feature
+      layers.current.itCorridors.overrideStyle(feature, styleItFeature(feature, true))
+      const move = (e) => positionTooltip(tt, e.clientX, e.clientY)
+      mapDiv.addEventListener('mousemove', move)
+      mouseMoveRef.current = move
+      const domEvent = event.domEvent
+      showTooltip(tt, domEvent.clientX, domEvent.clientY, tooltipHtml(feature))
     }
 
-    function onMouseOut(layerType) {
-      return (event) => {
-        if (tooltipEl.current) tooltipEl.current.style.display = 'none'
-        if (mouseMoveRef.current) {
-          mapDiv.removeEventListener('mousemove', mouseMoveRef.current)
-          mouseMoveRef.current = null
-        }
-        if (layerType === 'it') {
-          layers.current.itCorridors.revertStyle(event.feature)
-        } else if (layerType === 'flood') {
-          layers.current.floodZones.revertStyle(event.feature)
-        }
+    function onItMouseOut(event) {
+      if (tooltipEl.current) tooltipEl.current.style.display = 'none'
+      if (mouseMoveRef.current) {
+        mapDiv.removeEventListener('mousemove', mouseMoveRef.current)
+        mouseMoveRef.current = null
       }
+      layers.current.itCorridors.revertStyle(event.feature)
     }
 
-    layers.current.itCorridors.addListener('mouseover', onMouseOver('it'))
-    layers.current.itCorridors.addListener('mouseout',  onMouseOut('it'))
-    layers.current.floodZones.addListener('mouseover',  onMouseOver('flood'))
-    layers.current.floodZones.addListener('mouseout',   onMouseOut('flood'))
+    layers.current.itCorridors.addListener('mouseover', onItMouseOver)
+    layers.current.itCorridors.addListener('mouseout',  onItMouseOut)
 
     const currentLayers = layers.current
     return () => {
@@ -292,20 +237,15 @@ export function useMapLayers(mapRef) {
       itCorridors.forEach((f) => itCorridors.remove(f))
       itCorridors.addGeoJson(filterByCity(itData, city))
     }
-    if (floodZones) {
-      floodZones.forEach((f) => floodZones.remove(f))
-      floodZones.addGeoJson(filterByCity(floodData, city))
-    }
   }, [city]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Toggle each layer on/off
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    const { metro, itCorridors, floodZones, traffic } = layers.current
+    const { metro, itCorridors, traffic } = layers.current
     if (metro)       metro.setMap(activeLayers.metro        ? map : null)
     if (itCorridors) itCorridors.setMap(activeLayers.itCorridors ? map : null)
-    if (floodZones)  floodZones.setMap(activeLayers.floodZones   ? map : null)
     if (traffic)     traffic.setMap(activeLayers.traffic    ? map : null)
   }, [activeLayers, mapReady]) // eslint-disable-line react-hooks/exhaustive-deps
 }
