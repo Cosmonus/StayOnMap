@@ -17,7 +17,6 @@ const SavedPage         = lazy(() => import('@pages/SavedPage'))
 const AppointmentsPage  = lazy(() => import('@pages/AppointmentsPage'))
 const LoginPage         = lazy(() => import('@pages/LoginPage'))
 const NotFoundPage      = lazy(() => import('@pages/NotFoundPage'))
-const DesignSystemPage  = lazy(() => import('@pages/DesignSystemPage'))
 const AdminLoginPage    = lazy(() => import('@pages/AdminLoginPage'))
 const AdminPage         = lazy(() => import('@pages/AdminPage'))
 const ResetPasswordPage = lazy(() => import('@pages/ResetPasswordPage'))
@@ -56,8 +55,7 @@ export default function AppRoutes() {
           <Route path="/admin/login"  element={<AdminLoginPage />} />
           <Route path="/admin"        element={<AdminGuard><AdminPage /></AdminGuard>} />
 
-          <Route path="/design-system" element={<DesignSystemPage />} />
-          <Route path="*"              element={<NotFoundPage />} />
+<Route path="*"              element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     </div>
