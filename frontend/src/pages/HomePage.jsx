@@ -130,52 +130,9 @@ const ACTIVITY_MESSAGES = [
 ]
 
 /* ================================================================
-   SECTION 1 — HERO
+   SECTION 1 — HERO  (compact, centered, search integrated)
    ================================================================ */
 function HeroSection() {
-  return (
-    <section className="relative overflow-hidden bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.8fr] gap-12 lg:gap-16 items-center">
-
-          {/* Left — Headline */}
-          <Reveal>
-            <div>
-              <LivePulse />
-              <h1 className="font-display font-bold text-4xl sm:text-5xl lg:text-[3.5rem] text-slate-900 leading-[1.1] tracking-tight mb-5">
-                Find your place.
-              </h1>
-              <p className="text-base sm:text-lg text-slate-500 leading-relaxed mb-8 max-w-lg">
-                Every listing is a real home. Every home has a real owner. No brokers. No paywalls. Just the map.
-              </p>
-              <div className="flex items-center gap-3 flex-wrap">
-                <Link to="/properties" className="inline-flex items-center gap-2 px-6 py-3 bg-[#111111] hover:bg-[#2a2a2a] text-white text-sm font-semibold rounded-xl transition-colors no-underline">
-                  Explore the map →
-                </Link>
-                <Link to="/dashboard?tab=my-listings" className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 hover:border-slate-400 text-slate-700 text-sm font-semibold rounded-xl transition-colors no-underline">
-                  List your property
-                </Link>
-              </div>
-            </div>
-          </Reveal>
-
-          {/* Right — House image */}
-          <Reveal delay={0.15}>
-            <div className="hidden lg:block rounded-3xl overflow-hidden">
-              <img src="/house.png" alt="Browse rental homes" className="w-full object-contain" />
-            </div>
-          </Reveal>
-
-        </div>
-      </div>
-    </section>
-  )
-}
-
-/* ================================================================
-   SEARCH FILTER BAR
-   ================================================================ */
-function SearchFilter() {
   const navigate = useNavigate()
   const [city, setCity]     = useState('')
   const [type, setType]     = useState('')
@@ -190,34 +147,52 @@ function SearchFilter() {
   }
 
   return (
-    <section className="relative py-10" style={{ background: '#111111' }}>
-      {/* Decorative backdrop — clipped so orbs don't bleed, but dropdown stays visible */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-20"
-          style={{ background: 'radial-gradient(circle, #f4511e 0%, transparent 65%)', transform: 'translate(30%, -50%)' }} />
-        <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full opacity-15"
-          style={{ background: 'radial-gradient(circle, #ff8c42 0%, transparent 65%)', transform: 'translate(-20%, 40%)' }} />
-        <div className="absolute inset-0 opacity-[0.04]"
-          style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)', backgroundSize: '36px 36px' }} />
+    <section className="relative bg-white pt-20 pb-8 overflow-hidden">
+      {/* Subtle radial glow — purely decorative */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
+        <div className="absolute -top-32 -right-32 w-[520px] h-[520px] rounded-full opacity-[0.07]"
+          style={{ background: 'radial-gradient(circle, #12a374 0%, transparent 65%)' }} />
+        <div className="absolute -bottom-24 -left-24 w-[360px] h-[360px] rounded-full opacity-[0.05]"
+          style={{ background: 'radial-gradient(circle, #0284c7 0%, transparent 65%)' }} />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6">
-        <Reveal>
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200">
-            <div className="flex flex-col md:flex-row md:items-stretch divide-y md:divide-y-0 md:divide-x divide-slate-100">
-              <Dropdown label="Which city?" fieldIcon={FieldIcon.city} value={city} onChange={setCity} options={CITY_OPTIONS} placeholder="Bangalore, Chennai…" />
-              <Dropdown label="Property type" fieldIcon={FieldIcon.type} value={type} onChange={setType} options={TYPE_OPTIONS} placeholder="Apartment, PG…" />
-              <Dropdown label="Monthly rent" fieldIcon={FieldIcon.budget} value={budget} onChange={setBudget} options={BUDGET_OPTIONS} placeholder="Any budget" />
-              <button
-                onClick={handleSearch}
-                className="flex items-center justify-center gap-2 px-7 py-4 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-sm font-bold transition-colors rounded-b-2xl md:rounded-bl-none md:rounded-r-2xl shrink-0 whitespace-nowrap"
-              >
-                {Icon.search}
-                <span>{city ? `Search in ${city}` : 'Search rentals'}</span>
-              </button>
-            </div>
+      <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 text-center">
+        <LivePulse />
+
+        <h1 className="font-display font-bold text-4xl sm:text-5xl text-slate-900 leading-tight tracking-tight mb-4">
+          Find your place.<br />
+          <span className="text-brand-600">No brokers.</span>
+        </h1>
+
+        <p className="text-sm sm:text-base text-slate-500 leading-relaxed mb-7 max-w-xl mx-auto">
+          Real homes from real owners — pinned live on the map across {CITY_LIST_LABEL}.
+        </p>
+
+        {/* ── Search bar ── */}
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-stretch divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+            <Dropdown label="City" fieldIcon={FieldIcon.city}   value={city}   onChange={setCity}   options={CITY_OPTIONS}   placeholder="Any city" />
+            <Dropdown label="Type" fieldIcon={FieldIcon.type}   value={type}   onChange={setType}   options={TYPE_OPTIONS}   placeholder="Any type" />
+            <Dropdown label="Budget" fieldIcon={FieldIcon.budget} value={budget} onChange={setBudget} options={BUDGET_OPTIONS} placeholder="Any budget" />
+            <button
+              onClick={handleSearch}
+              className="flex items-center justify-center gap-2 px-7 py-4 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-sm font-bold transition-colors rounded-b-2xl sm:rounded-bl-none sm:rounded-r-2xl shrink-0 whitespace-nowrap"
+            >
+              {Icon.search}
+              <span>{city ? `Search in ${city}` : 'Search rentals'}</span>
+            </button>
           </div>
-        </Reveal>
+        </div>
+
+        {/* ── Quick action links ── */}
+        <div className="flex items-center justify-center gap-3 flex-wrap text-sm">
+          <Link to="/properties" className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#111111] hover:bg-[#2a2a2a] text-white font-semibold rounded-xl transition-colors no-underline">
+            Explore the map →
+          </Link>
+          <Link to="/dashboard?tab=my-listings" className="inline-flex items-center gap-1.5 px-5 py-2.5 border border-slate-200 hover:border-slate-400 text-slate-700 font-semibold rounded-xl transition-colors no-underline">
+            List your property
+          </Link>
+        </div>
       </div>
     </section>
   )
@@ -273,7 +248,7 @@ function TrustBadges() {
   return (
     <section className="border-b border-slate-100 bg-white">
       <Reveal>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
             {badges.map(({ icon, label, desc }) => (
               <div key={label} className="flex items-start gap-3">
@@ -305,9 +280,9 @@ function BrowseByType() {
   ]
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16">
       <Reveal>
-        <div className="text-center mb-10">
+        <div className="text-center mb-8">
           <p className="text-xs font-bold text-brand-600 uppercase tracking-widest mb-3">Browse by type</p>
           <h2 className="font-display font-bold text-3xl md:text-4xl text-slate-900 leading-tight">
             What kind of home are you looking for?
@@ -950,7 +925,6 @@ export default function HomePage() {
       />
       <HeroSection />
       <TrustBadges />
-      <SearchFilter />
       <BrowseByType />
       <ValuePropSection />
       <FeaturedListings />
