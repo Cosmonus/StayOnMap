@@ -7,6 +7,11 @@ import floodData      from '@/data/layers/flood-zones.json'
 
 const METRO_LINE_COLORS = { 1: '#7c3aed', 2: '#059669', 3: '#ca8a04' }
 
+// Prefer per-feature color from GeoJSON; fall back to line-number palette
+function metroColor(feature) {
+  return feature.getProperty('color') ?? METRO_LINE_COLORS[feature.getProperty('line')] ?? '#7c3aed'
+}
+
 // Catmull-Rom spline — interpolating: curve passes through every original point
 function catmullRomPoint(p0, p1, p2, p3, t) {
   const t2 = t * t, t3 = t2 * t
@@ -41,7 +46,8 @@ function smoothLineStrings(geojson) {
 }
 
 function styleMetroFeature(feature) {
-  const type = feature.getGeometry().getType()
+  const type  = feature.getGeometry().getType()
+  const color = metroColor(feature)
   if (type === 'Point') {
     const isInterchange = feature.getProperty('type') === 'interchange'
     return {
@@ -50,13 +56,13 @@ function styleMetroFeature(feature) {
         scale: isInterchange ? 7 : 5,
         fillColor: '#ffffff',
         fillOpacity: 1,
-        strokeColor: METRO_LINE_COLORS[feature.getProperty('line')] ?? '#7c3aed',
+        strokeColor: color,
         strokeWeight: isInterchange ? 2.5 : 2,
       },
     }
   }
   return {
-    strokeColor: METRO_LINE_COLORS[feature.getProperty('line')] ?? '#7c3aed',
+    strokeColor: color,
     strokeWeight: 3.5,
     strokeOpacity: 0.9,
   }

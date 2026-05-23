@@ -121,7 +121,7 @@ export default function AboutPage() {
             {MILESTONES.map(({ label, value, suffix, prefix }, i) => (
               <Reveal key={label} delay={i * 0.08}>
                 <div className="text-center">
-                  <p className="font-display font-bold text-4xl md:text-5xl text-slate-900 leading-none mb-2">
+                  <p className="font-serif font-bold text-4xl md:text-5xl text-slate-900 leading-none mb-2">
                     {prefix ? <>{currencySymbol}0</> : <CountUp target={value} suffix={suffix} />}
                   </p>
                   <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">{label}</p>

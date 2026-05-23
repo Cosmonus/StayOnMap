@@ -368,7 +368,7 @@ function ValuePropSection() {
               <div className="absolute inset-0 bg-black/55" />
               {/* Content */}
               <div className="relative z-10">
-                <p className="font-display font-bold text-5xl md:text-6xl text-white leading-none">
+                <p className="font-serif font-bold text-5xl md:text-6xl text-white leading-none">
                   <CountUp target={4200} suffix="+" />
                 </p>
                 <p className="text-sm text-white/70 mt-2">tenants found a home via StayOnMap</p>
@@ -695,25 +695,25 @@ function OwnerCTA() {
           <div className="bg-slate-50 p-10 md:p-14 flex flex-col justify-center h-full">
             <div className="grid grid-cols-2 gap-6">
               <div className="bg-white rounded-2xl p-6 border border-slate-100">
-                <p className="font-display font-bold text-4xl text-slate-900 leading-none mb-1">
+                <p className="font-serif font-bold text-4xl text-slate-900 leading-none mb-1">
                   <CountUp target={1200} suffix="+" />
                 </p>
                 <p className="text-xs text-slate-500">active owners</p>
               </div>
               <div className="bg-white rounded-2xl p-6 border border-slate-100">
-                <p className="font-display font-bold text-4xl text-slate-900 leading-none mb-1">
+                <p className="font-serif font-bold text-4xl text-slate-900 leading-none mb-1">
                   <CountUp target={5} suffix="x" />
                 </p>
                 <p className="text-xs text-slate-500">faster than brokers</p>
               </div>
               <div className="bg-white rounded-2xl p-6 border border-slate-100">
-                <p className="font-display font-bold text-4xl text-slate-900 leading-none mb-1">
+                <p className="font-serif font-bold text-4xl text-slate-900 leading-none mb-1">
                   <CountUp target={24} suffix="h" />
                 </p>
                 <p className="text-xs text-slate-500">listing goes live</p>
               </div>
               <div className="bg-white rounded-2xl p-6 border border-slate-100">
-                <p className="font-display font-bold text-4xl text-emerald-600 leading-none mb-1">{currencySymbol}0</p>
+                <p className="font-serif font-bold text-4xl text-emerald-600 leading-none mb-1">{currencySymbol}0</p>
                 <p className="text-xs text-slate-500">listing fee, always</p>
               </div>
             </div>
