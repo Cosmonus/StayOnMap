@@ -1,9 +1,9 @@
-// Single source of truth for all city data.
+﻿// Single source of truth for all city data.
 // To add a new city: append one entry to CITIES — nothing else needs to change.
 
 export const CITIES = [
   {
-    name:         'Bangalore',
+    name:         'Bengaluru',
     state:        'Karnataka',
     lat:          12.9716,
     lng:          77.5946,
@@ -52,7 +52,7 @@ export const CITIES = [
 
 export const CITY_NAMES = CITIES.map((c) => c.name)
 
-// { Bangalore: [...areas], Chennai: [...areas], ... }
+// { Bengaluru: [...areas], Chennai: [...areas], ... }
 export const CITY_AREAS = Object.fromEntries(CITIES.map((c) => [c.name, c.areas]))
 
 // Reverse map: area → city name (for auto-selecting city when user clicks an area chip)
@@ -63,7 +63,7 @@ export const AREA_TO_CITY = Object.fromEntries(
 // Mix of popular areas shown when no city is selected
 export const DEFAULT_AREAS = CITIES.flatMap((c) => c.areas.slice(0, 2))
 
-// "Bangalore, Chennai & Hyderabad" — joins with commas and & before last
+// "Bengaluru, Chennai & Hyderabad" — joins with commas and & before last
 export const CITY_LIST_LABEL = CITIES.length <= 1
   ? CITIES[0]?.name ?? ''
   : CITIES.slice(0, -1).map((c) => c.name).join(', ') + ' & ' + CITIES.at(-1).name

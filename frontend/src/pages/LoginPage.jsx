@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '@lib/supabase'
 import { authService } from '@services/auth.service'
@@ -107,7 +107,7 @@ export default function LoginPage() {
             <span style={{ color: '#f4511e' }}>No broker.<br />No fee.</span>
           </h1>
           <p className="text-base leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Connect directly with owners across Bangalore,<br />Chennai &amp; Hyderabad.
+            Connect directly with owners across Bengaluru,<br />Chennai &amp; Hyderabad.
           </p>
         </div>
 
