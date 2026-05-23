@@ -43,7 +43,7 @@ export default function MapControls() {
 
   return (
     <div
-      className="absolute z-10 flex flex-col gap-1.5"
+      className="absolute z-10 hidden md:flex flex-col gap-1.5"
       style={{ bottom: '90px', right: '10px' }}
     >
       {LAYERS.map(({ key, label, icon }) => {
