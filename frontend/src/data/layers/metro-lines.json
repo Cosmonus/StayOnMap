@@ -2817,125 +2817,6 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Hyderabad",
-        "name": "Miyapur",
-        "line": 1,
-        "color": "#dc2626",
-        "type": "terminal"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          78.373,
-          17.4965
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "city": "Hyderabad",
-        "name": "Ameerpet",
-        "line": 1,
-        "color": "#dc2626",
-        "type": "interchange"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          78.4448,
-          17.4357
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "city": "Hyderabad",
-        "name": "LB Nagar",
-        "line": 1,
-        "color": "#dc2626",
-        "type": "terminal"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          78.5479,
-          17.3498
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "city": "Hyderabad",
-        "name": "Nagole",
-        "line": 3,
-        "color": "#16a34a",
-        "type": "terminal"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          78.5588,
-          17.3908
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "city": "Hyderabad",
-        "name": "Raidurg",
-        "line": 3,
-        "color": "#16a34a",
-        "type": "terminal"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          78.3772,
-          17.4422
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "city": "Hyderabad",
-        "name": "JBS Parade Grounds",
-        "line": 2,
-        "color": "#2563eb",
-        "type": "terminal"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          78.4965,
-          17.4488
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "city": "Hyderabad",
-        "name": "Falaknuma",
-        "line": 2,
-        "color": "#2563eb",
-        "type": "terminal"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          78.47,
-          17.3317
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
         "city": "Delhi",
         "name": "Yellow Line — Samaypur Badli ↔ Huda City Centre",
         "line": 1,
@@ -3394,6 +3275,1072 @@
     {
       "type": "Feature",
       "properties": {
+        "city": "Hyderabad",
+        "name": "Miyapur",
+        "line": 1,
+        "color": "#dc2626",
+        "type": "terminal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.373,
+          17.4965
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "JNTU College",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.3889,
+          17.4987
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "KPHB Colony",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4018,
+          17.4938
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Kukatpally",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4116,
+          17.4851
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Balanagar",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.422,
+          17.4768
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Moosapet",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.426,
+          17.472
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Bharat Nagar",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.43,
+          17.4642
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Erragadda",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4335,
+          17.4573
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "ESI Hospital",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4384,
+          17.4474
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "SR Nagar",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4416,
+          17.4417
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Ameerpet",
+        "line": 1,
+        "color": "#dc2626",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4448,
+          17.4357
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Punjagutta",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4511,
+          17.4286
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Irrum Manzil",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4561,
+          17.4206
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Khairatabad",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4608,
+          17.4115
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Lakdi Ka Pul",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.465,
+          17.4039
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Assembly",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4708,
+          17.3981
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Nampally",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4701,
+          17.3924
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Gandhi Bhavan",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4731,
+          17.3861
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Osmania Medical College",
+        "line": 1,
+        "color": "#dc2626",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4811,
+          17.3823
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "MG Bus Station",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4862,
+          17.3799
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Malakpet",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4939,
+          17.3772
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "New Market",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.5032,
+          17.3734
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Musarambagh",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.5119,
+          17.3711
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Dilsukhnagar",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.5257,
+          17.3686
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Chaitanyapuri",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.5359,
+          17.3683
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Victoria Memorial",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.5439,
+          17.3619
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "LB Nagar",
+        "line": 1,
+        "color": "#dc2626",
+        "type": "terminal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.5479,
+          17.3498
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Nagole",
+        "line": 3,
+        "color": "#16a34a",
+        "type": "terminal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.5588,
+          17.3908
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Uppal",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.5602,
+          17.3999
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Survey of India",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.5543,
+          17.4074
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "NGRI",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.5463,
+          17.4148
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Habsiguda",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.5405,
+          17.4202
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Tarnaka",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.5284,
+          17.4283
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Mettuguda",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.5196,
+          17.4355
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Secunderabad East",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.5055,
+          17.4357
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Parade Grounds",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4975,
+          17.4432
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Paradise",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4862,
+          17.4435
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Rasoolpura",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4764,
+          17.4436
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Prakash Nagar",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4659,
+          17.4449
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Begumpet",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4569,
+          17.4376
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Ameerpet",
+        "line": 3,
+        "color": "#16a34a",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4448,
+          17.4353
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Madhura Nagar",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4391,
+          17.437
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Yousufguda",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4273,
+          17.4351
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Road No.5 Jubilee Hills",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4232,
+          17.43
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Jubilee Hills Check Post",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4137,
+          17.4282
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Peddamma Temple",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4084,
+          17.4307
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Madhapur",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4004,
+          17.4373
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Durgam Cheruvu",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.3876,
+          17.4429
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Hi-Tech City",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.3831,
+          17.449
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Raidurg",
+        "line": 3,
+        "color": "#16a34a",
+        "type": "terminal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.3772,
+          17.4422
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "JBS Parade Grounds",
+        "line": 2,
+        "color": "#2563eb",
+        "type": "terminal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4965,
+          17.4488
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Secunderabad West",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4976,
+          17.4445
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Gandhi Hospital",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4995,
+          17.4338
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Musheerabad",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.502,
+          17.4255
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "RTC Cross Roads",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4995,
+          17.4179
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Chikkadpally",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4968,
+          17.407
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Narayanguda",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4949,
+          17.4004
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Sultan Bazar",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.49,
+          17.3944
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "MG Bus Station",
+        "line": 2,
+        "color": "#2563eb",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.484,
+          17.3844
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Malakpet",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4859,
+          17.3797
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "New Market",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4823,
+          17.3718
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Shivam Road",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.48,
+          17.3619
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Bhavaninagar",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4724,
+          17.3508
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Chandrayangutta",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4684,
+          17.3408
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Charminar",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.4684,
+          17.3353
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Falaknuma",
+        "line": 2,
+        "color": "#2563eb",
+        "type": "terminal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.47,
+          17.3317
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
         "city": "Delhi",
         "name": "Samaypur Badli",
         "line": 1,
@@ -3405,6 +4352,233 @@
         "coordinates": [
           77.1377,
           28.745
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Rohini Sector 18,19",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1399,
+          28.7383
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Haiderpur Badli Mor",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1491,
+          28.7299
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Jahangirpuri",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1628,
+          28.7258
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Adarsh Nagar",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1705,
+          28.7165
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Azadpur",
+        "line": 1,
+        "color": "#ca8a04",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.18,
+          28.7073
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Model Town",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1939,
+          28.7028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "GTB Nagar",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.207,
+          28.6982
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Vishwavidyalaya",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2146,
+          28.6948
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Vidhan Sabha",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2218,
+          28.6879
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Civil Lines",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.225,
+          28.6769
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Kashmere Gate",
+        "line": 1,
+        "color": "#ca8a04",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.228,
+          28.6675
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Chandni Chowk",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2302,
+          28.6578
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Chawri Bazar",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2262,
+          28.6496
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "New Delhi",
+        "line": 1,
+        "color": "#ca8a04",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2215,
+          28.6422
         ]
       }
     },
@@ -3429,6 +4603,22 @@
       "type": "Feature",
       "properties": {
         "city": "Delhi",
+        "name": "Patel Chowk",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2118,
+          28.6232
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
         "name": "Central Secretariat",
         "line": 1,
         "color": "#ca8a04",
@@ -3439,6 +4629,297 @@
         "coordinates": [
           77.2118,
           28.615
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Udyog Bhawan",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.212,
+          28.6111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Lok Kalyan Marg",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2112,
+          28.5977
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Jor Bagh",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.212,
+          28.5861
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "INA",
+        "line": 1,
+        "color": "#ca8a04",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2073,
+          28.5752
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "AIIMS",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.208,
+          28.5669
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Green Park",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.207,
+          28.558
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Hauz Khas",
+        "line": 1,
+        "color": "#ca8a04",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2063,
+          28.5434
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Malviya Nagar",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2033,
+          28.5287
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Saket",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2015,
+          28.5205
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Qutab Minar",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1863,
+          28.513
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Chhattarpur",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1749,
+          28.5066
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Sultanpur",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1614,
+          28.4992
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Ghitorni",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1492,
+          28.4938
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Arjangarh",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1258,
+          28.4808
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Guru Dronacharya",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1025,
+          28.4819
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Sikanderpur",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0931,
+          28.4814
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "MG Road",
+        "line": 1,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0799,
+          28.4796
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "IFFCO Chowk",
+        "line": 1,
+        "color": "#ca8a04",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0726,
+          28.4721
         ]
       }
     },
@@ -3480,6 +4961,458 @@
       "type": "Feature",
       "properties": {
         "city": "Delhi",
+        "name": "Dwarka Sector 8",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0671,
+          28.5658
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Dwarka Sector 9",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0645,
+          28.5749
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Dwarka Sector 10",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0568,
+          28.5807
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Dwarka Sector 11",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0494,
+          28.5864
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Dwarka Sector 12",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0405,
+          28.5923
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Dwarka Sector 13",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0333,
+          28.5972
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Dwarka Sector 14",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0259,
+          28.6022
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Dwarka Mor",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.022,
+          28.6156
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Nawada",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0333,
+          28.6193
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Uttam Nagar West",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0451,
+          28.6203
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Uttam Nagar East",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0559,
+          28.6218
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Janakpuri West",
+        "line": 2,
+        "color": "#2563eb",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0653,
+          28.6248
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Janakpuri East",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0779,
+          28.6289
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Tilak Nagar",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0867,
+          28.6331
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Subhash Nagar",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.0965,
+          28.6366
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Tagore Garden",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.105,
+          28.6404
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Rajouri Garden",
+        "line": 2,
+        "color": "#2563eb",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1128,
+          28.6438
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Ramesh Nagar",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1227,
+          28.6491
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Moti Nagar",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1316,
+          28.6527
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Kirti Nagar",
+        "line": 2,
+        "color": "#2563eb",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1424,
+          28.6579
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Shadipur",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1515,
+          28.6551
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Patel Nagar",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1583,
+          28.6516
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Rajendra Place",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1693,
+          28.645
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Karol Bagh",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1783,
+          28.6425
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Jhandewalan",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1885,
+          28.644
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "RK Ashram Marg",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.1999,
+          28.6443
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Barakhamba Road",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2084,
+          28.6392
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Rajiv Chowk",
+        "line": 2,
+        "color": "#2563eb",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2196,
+          28.6328
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
         "name": "Yamuna Bank",
         "line": 2,
         "color": "#2563eb",
@@ -3490,6 +5423,103 @@
         "coordinates": [
           77.2679,
           28.6233
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Laxmi Nagar",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2776,
+          28.6306
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Nirman Vihar",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2868,
+          28.6365
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Preet Vihar",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2951,
+          28.6415
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Karkarduma",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.3056,
+          28.6485
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Karkarduma Court",
+        "line": 2,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.3159,
+          28.6469
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Anand Vihar ISBT",
+        "line": 2,
+        "color": "#2563eb",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.3243,
+          28.6455
         ]
       }
     },
@@ -3531,9 +5561,155 @@
       "type": "Feature",
       "properties": {
         "city": "Delhi",
-        "name": "Lajpat Nagar",
+        "name": "Lal Quila",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2367,
+          28.6567
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Jama Masjid",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2404,
+          28.6401
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Delhi Gate",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2413,
+          28.6294
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "ITO",
         "line": 3,
         "color": "#7c3aed",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2347,
+          28.6258
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Mandi House",
+        "line": 3,
+        "color": "#7c3aed",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2192,
+          28.6251
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Janpath",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2118,
+          28.6159
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Central Secretariat",
+        "line": 3,
+        "color": "#7c3aed",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2279,
+          28.6025
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Khan Market",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.233,
+          28.5904
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "JLN Stadium",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2397,
+          28.5833
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Jangpura",
+        "line": 3,
         "type": "station"
       },
       "geometry": {
@@ -3541,6 +5717,296 @@
         "coordinates": [
           77.2364,
           28.5706
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Lajpat Nagar",
+        "line": 3,
+        "color": "#7c3aed",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2342,
+          28.5642
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Moolchand",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2421,
+          28.5553
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Kailash Colony",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2515,
+          28.5515
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Nehru Place",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2591,
+          28.5495
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Kalkaji Mandir",
+        "line": 3,
+        "color": "#7c3aed",
+        "type": "interchange"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2643,
+          28.5446
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Govindpuri",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2751,
+          28.5429
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Harkesh Nagar Okhla",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2833,
+          28.5381
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Jasola Apollo",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2884,
+          28.5286
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Sarita Vihar",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2946,
+          28.5196
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Mohan Estate",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2994,
+          28.5026
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Tughlakabad",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.3031,
+          28.4936
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Badarpur Border",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.305,
+          28.4777
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Sarai",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.3074,
+          28.4577
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "NHPC Chowk",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.3081,
+          28.4485
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Mewala Maharajpur",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.3091,
+          28.4383
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Sector 28",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.3103,
+          28.4228
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Badkhal Mor",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.3114,
+          28.4108
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Old Faridabad",
+        "line": 3,
+        "type": "station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.3124,
+          28.3978
         ]
       }
     },
