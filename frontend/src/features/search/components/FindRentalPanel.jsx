@@ -87,13 +87,10 @@ export default function FindRentalPanel({ side = 'left', floating = true }) {
       <div className="px-5 py-4 flex flex-col gap-4 overflow-y-auto">
 
         {/* City */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">City</label>
-          <CityDropdown
-            value={draft.city}
-            onChange={(val) => setDraft((d) => ({ ...d, city: val, area: '' }))}
-          />
-        </div>
+        <CityDropdown
+          value={draft.city}
+          onChange={(val) => setDraft((d) => ({ ...d, city: val, area: '' }))}
+        />
 
         {/* Area */}
         <AreaInput
@@ -104,7 +101,6 @@ export default function FindRentalPanel({ side = 'left', floating = true }) {
 
         {/* Bedrooms */}
         <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Bedrooms</label>
           <div className="flex gap-1.5 flex-wrap">
             {BHK_OPTIONS.map(({ label, value }) => (
               <button
