@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
 import PropertyPopup from './PropertyPopup'
+import PropertyCard from '@features/properties/components/PropertyCard'
 import CityDropdown from '@features/search/components/CityDropdown'
 import AreaInput from '@features/search/components/AreaInput'
+import { propertyService } from '@services/property.service'
 
 /* ─── Constants ──────────────────────────────────────────── */
 const BHK_OPTIONS = [
@@ -228,6 +231,32 @@ function SheetHeader({ title, onClose }) {
   )
 }
 
+/* ─── Mobile property card (fetches + renders PropertyCard) ── */
+function MobilePropertyCard({ propertyId }) {
+  const { data: property, isLoading } = useQuery({
+    queryKey: ['property-popup', propertyId],
+    queryFn:  () => propertyService.getById(propertyId).then((r) => r.data),
+    enabled:  !!propertyId,
+    staleTime: 60_000,
+  })
+
+  if (isLoading) return (
+    <div className="p-4 flex flex-col gap-3">
+      <div className="animate-pulse rounded-2xl bg-slate-100 aspect-[4/3]" />
+      <div className="h-5 bg-slate-100 rounded-lg animate-pulse w-3/4" />
+      <div className="h-4 bg-slate-100 rounded-lg animate-pulse w-1/2" />
+    </div>
+  )
+
+  if (!property) return null
+
+  return (
+    <div className="p-4 pb-6">
+      <PropertyCard property={property} />
+    </div>
+  )
+}
+
 /* ═══════════════════════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════════════════════ */
@@ -401,12 +430,12 @@ export default function MapRightPanel({ topClass = 'top-20' }) {
           {/* Sheet */}
           <div
             className="absolute bottom-0 inset-x-0 bg-white rounded-t-3xl overflow-y-auto"
-            style={{ maxHeight: '78vh', scrollbarWidth: 'none', boxShadow: '0 -8px 40px rgba(0,0,0,0.15)' }}
+            style={{ maxHeight: '62vh', scrollbarWidth: 'none', boxShadow: '0 -8px 40px rgba(0,0,0,0.15)' }}
           >
             <div className="flex justify-center pt-3 pb-1">
               <div className="w-10 h-1 bg-slate-200 rounded-full" />
             </div>
-            <PropertyPopup />
+            <MobilePropertyCard propertyId={selectedPinId} />
           </div>
         </div>
       )}
