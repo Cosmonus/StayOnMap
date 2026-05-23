@@ -2506,8 +2506,6 @@
       }
     },
 
-    // ── Hyderabad ─────────────────────────────────────────────────
-
     {
       "type": "Feature",
       "properties": {
@@ -2640,8 +2638,6 @@
       "properties": { "city": "Hyderabad", "name": "Raidurg", "line": 3, "color": "#16a34a", "type": "terminal" },
       "geometry": { "type": "Point", "coordinates": [78.3767, 17.4272] }
     },
-
-    // ── Delhi ──────────────────────────────────────────────────────
 
     {
       "type": "Feature",
