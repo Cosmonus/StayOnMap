@@ -2,7 +2,7 @@
 import { create } from 'zustand'
 
 const defaultFilters = {
-  city:      '',   // 'Bengaluru' | 'Chennai' | 'Hyderabad' | 'Delhi' | ''
+  city:      '',   // 'Bangalore' | 'Chennai' | 'Hyderabad' | 'Delhi' | ''
   area:      '',   // free-text area / landmark
   bhk:       [],   // e.g. [1, 2, 3]
   furnished: null,
