@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useFilterStore } from '@store/filterStore'
 import { useMapStore } from '@store/mapStore'
+import { CITIES } from '@/config/cities'
 import CityDropdown from './CityDropdown'
 import AreaInput from './AreaInput'
 
@@ -39,6 +40,16 @@ export default function FindRentalPanel({ side = 'left', floating = true }) {
 
   function handleApply() {
     setFilters({ city: draft.city, area: draft.area, bhk: draft.bhk })
+
+    // Fly map to selected city; fall back to India overview when cleared
+    const flyTo = useMapStore.getState().flyTo
+    if (!flyTo) return
+    if (draft.city) {
+      const city = CITIES.find((c) => c.name === draft.city)
+      if (city) flyTo({ center: [city.lng, city.lat], zoom: 12 })
+    } else if (!draft.area) {
+      flyTo({ center: [78.9629, 20.5937], zoom: 5 })
+    }
   }
 
   function handleReset() {
