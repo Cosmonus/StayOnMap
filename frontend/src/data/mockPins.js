@@ -1,5 +1,5 @@
-export const MOCK_PINS = [
-  // ── Bangalore ──────────────────────────────────
+﻿export const MOCK_PINS = [
+  // ── Bengaluru ──────────────────────────────────
   { id: 'b1',  lat: 12.9352, lng: 77.6245, rent: 32000, area: 'Koramangala'    },
   { id: 'b2',  lat: 12.9784, lng: 77.6408, rent: 45000, area: 'Indiranagar'    },
   { id: 'b3',  lat: 12.9116, lng: 77.6474, rent: 28000, area: 'HSR Layout'     },

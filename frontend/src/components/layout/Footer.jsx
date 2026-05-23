@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+﻿import { Link } from 'react-router-dom'
 
 const LINKS = {
   Explore: [
@@ -69,7 +69,7 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm text-slate-400 leading-relaxed mb-6 max-w-xs">
-              Owner-direct rentals in Bangalore, Chennai &amp; Hyderabad. No broker. No commission. Just a home and the person who owns it.
+              Owner-direct rentals in Bengaluru, Chennai &amp; Hyderabad. No broker. No commission. Just a home and the person who owns it.
             </p>
 
             {/* Socials */}

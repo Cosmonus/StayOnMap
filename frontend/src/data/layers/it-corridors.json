@@ -1,4 +1,4 @@
-{
+﻿{
   "type": "FeatureCollection",
   "features": [
     {
@@ -18,27 +18,27 @@
     },
     {
       "type": "Feature",
-      "properties": { "city": "Bangalore", "name": "Whitefield / ITPL", "areaSlug": "whitefield-bengaluru", "level": "major" },
+      "properties": { "city": "Bengaluru", "name": "Whitefield / ITPL", "areaSlug": "whitefield-bengaluru", "level": "major" },
       "geometry": { "type": "Polygon", "coordinates": [[[77.722, 12.989], [77.778, 12.989], [77.778, 12.948], [77.722, 12.948], [77.722, 12.989]]] }
     },
     {
       "type": "Feature",
-      "properties": { "city": "Bangalore", "name": "Electronic City", "areaSlug": "electronic-city-bengaluru", "level": "major" },
+      "properties": { "city": "Bengaluru", "name": "Electronic City", "areaSlug": "electronic-city-bengaluru", "level": "major" },
       "geometry": { "type": "Polygon", "coordinates": [[[77.657, 12.864], [77.702, 12.864], [77.702, 12.818], [77.657, 12.818], [77.657, 12.864]]] }
     },
     {
       "type": "Feature",
-      "properties": { "city": "Bangalore", "name": "Manyata Tech Park", "areaSlug": "hebbal-bengaluru", "level": "major" },
+      "properties": { "city": "Bengaluru", "name": "Manyata Tech Park", "areaSlug": "hebbal-bengaluru", "level": "major" },
       "geometry": { "type": "Polygon", "coordinates": [[[77.582, 13.058], [77.624, 13.058], [77.624, 13.018], [77.582, 13.018], [77.582, 13.058]]] }
     },
     {
       "type": "Feature",
-      "properties": { "city": "Bangalore", "name": "Outer Ring Road Corridor", "areaSlug": "marathahalli-bengaluru", "level": "major" },
+      "properties": { "city": "Bengaluru", "name": "Outer Ring Road Corridor", "areaSlug": "marathahalli-bengaluru", "level": "major" },
       "geometry": { "type": "Polygon", "coordinates": [[[77.650, 12.970], [77.710, 12.970], [77.710, 12.938], [77.650, 12.938], [77.650, 12.970]]] }
     },
     {
       "type": "Feature",
-      "properties": { "city": "Bangalore", "name": "Koramangala Startup Hub", "areaSlug": "koramangala-bengaluru", "level": "moderate" },
+      "properties": { "city": "Bengaluru", "name": "Koramangala Startup Hub", "areaSlug": "koramangala-bengaluru", "level": "moderate" },
       "geometry": { "type": "Polygon", "coordinates": [[[77.610, 12.945], [77.645, 12.945], [77.645, 12.922], [77.610, 12.922], [77.610, 12.945]]] }
     },
     {

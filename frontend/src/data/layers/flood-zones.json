@@ -1,4 +1,4 @@
-{
+﻿{
   "type": "FeatureCollection",
   "features": [
     {
@@ -23,17 +23,17 @@
     },
     {
       "type": "Feature",
-      "properties": { "city": "Bangalore", "name": "Koramangala Lowlands", "risk": "MEDIUM", "areaSlug": "koramangala-bengaluru", "note": "Lake overflow + stormwater drain overflow in heavy rains" },
+      "properties": { "city": "Bengaluru", "name": "Koramangala Lowlands", "risk": "MEDIUM", "areaSlug": "koramangala-bengaluru", "note": "Lake overflow + stormwater drain overflow in heavy rains" },
       "geometry": { "type": "Polygon", "coordinates": [[[77.612, 12.960], [77.644, 12.960], [77.644, 12.920], [77.612, 12.920], [77.612, 12.960]]] }
     },
     {
       "type": "Feature",
-      "properties": { "city": "Bangalore", "name": "Bellandur Lake Zone", "risk": "HIGH", "areaSlug": "marathahalli-bengaluru", "note": "Severely polluted lake with overflow flooding adjacent areas" },
+      "properties": { "city": "Bengaluru", "name": "Bellandur Lake Zone", "risk": "HIGH", "areaSlug": "marathahalli-bengaluru", "note": "Severely polluted lake with overflow flooding adjacent areas" },
       "geometry": { "type": "Polygon", "coordinates": [[[77.668, 12.948], [77.707, 12.948], [77.707, 12.915], [77.668, 12.915], [77.668, 12.948]]] }
     },
     {
       "type": "Feature",
-      "properties": { "city": "Bangalore", "name": "Hebbal Lake Area", "risk": "MEDIUM", "areaSlug": "hebbal-bengaluru", "note": "Lake overflow affects nearby roads and low-lying apartments" },
+      "properties": { "city": "Bengaluru", "name": "Hebbal Lake Area", "risk": "MEDIUM", "areaSlug": "hebbal-bengaluru", "note": "Lake overflow affects nearby roads and low-lying apartments" },
       "geometry": { "type": "Polygon", "coordinates": [[[77.580, 13.068], [77.616, 13.068], [77.616, 13.036], [77.580, 13.036], [77.580, 13.068]]] }
     },
     {

@@ -204,7 +204,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Purple Line (Line 1)",
         "line": 1,
         "color": "#7c3aed"
@@ -354,7 +354,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Green Line (Line 2)",
         "line": 2,
         "color": "#22c55e"
@@ -496,7 +496,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Yellow Line (Line 3)",
         "line": 3,
         "color": "#eab308"
@@ -1231,7 +1231,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Challegatta",
         "line": 1,
         "type": "terminal"
@@ -1247,7 +1247,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Kengeri",
         "line": 1,
         "type": "station"
@@ -1263,7 +1263,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Mailasandra",
         "line": 1,
         "type": "station"
@@ -1279,7 +1279,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Pattanagere",
         "line": 1,
         "type": "station"
@@ -1295,8 +1295,8 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
-        "name": "Bangalore University",
+        "city": "Bengaluru",
+        "name": "Bengaluru University",
         "line": 1,
         "type": "station"
       },
@@ -1311,7 +1311,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Rajarajeshwari Nagar",
         "line": 1,
         "type": "station"
@@ -1327,7 +1327,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Nayandahalli",
         "line": 1,
         "type": "station"
@@ -1343,7 +1343,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Mysore Road",
         "line": 1,
         "type": "station"
@@ -1359,7 +1359,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Deepanjali Nagar",
         "line": 1,
         "type": "station"
@@ -1375,7 +1375,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Attiguppe",
         "line": 1,
         "type": "station"
@@ -1391,7 +1391,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Vijayanagar",
         "line": 1,
         "type": "station"
@@ -1407,7 +1407,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Hosahalli",
         "line": 1,
         "type": "station"
@@ -1423,7 +1423,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Magadi Road",
         "line": 1,
         "type": "station"
@@ -1439,7 +1439,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "City Railway Station",
         "line": 1,
         "type": "station"
@@ -1455,7 +1455,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Sir M. Visveshwaraya",
         "line": 1,
         "type": "station"
@@ -1471,7 +1471,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Vidhana Soudha",
         "line": 1,
         "type": "station"
@@ -1487,7 +1487,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Cubbon Park",
         "line": 1,
         "type": "station"
@@ -1503,7 +1503,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "MG Road",
         "line": 1,
         "type": "station"
@@ -1519,7 +1519,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Trinity",
         "line": 1,
         "type": "station"
@@ -1535,7 +1535,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Halasuru",
         "line": 1,
         "type": "station"
@@ -1551,7 +1551,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Indiranagar",
         "line": 1,
         "type": "station"
@@ -1567,7 +1567,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Swami Vivekananda Road",
         "line": 1,
         "type": "station"
@@ -1583,7 +1583,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Baiyappanahalli",
         "line": 1,
         "type": "station"
@@ -1599,7 +1599,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Jyothipuram",
         "line": 1,
         "type": "station"
@@ -1615,7 +1615,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Mahadevapura",
         "line": 1,
         "type": "station"
@@ -1631,7 +1631,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Gurudacharpalya",
         "line": 1,
         "type": "station"
@@ -1647,7 +1647,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Doddanakundi Industrial Area",
         "line": 1,
         "type": "station"
@@ -1663,7 +1663,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Visvesvaraya Industrial Area",
         "line": 1,
         "type": "station"
@@ -1679,7 +1679,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Kundalahalli",
         "line": 1,
         "type": "station"
@@ -1695,7 +1695,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Vydehi Hospital",
         "line": 1,
         "type": "station"
@@ -1711,7 +1711,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Sri Satya Sai Hospital",
         "line": 1,
         "type": "station"
@@ -1727,7 +1727,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "ITPL",
         "line": 1,
         "type": "station"
@@ -1743,7 +1743,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Kadugodi",
         "line": 1,
         "type": "station"
@@ -1759,7 +1759,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Whitefield",
         "line": 1,
         "type": "terminal"
@@ -1775,7 +1775,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "BIEC",
         "line": 2,
         "type": "terminal"
@@ -1791,7 +1791,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Nagasandra",
         "line": 2,
         "type": "station"
@@ -1807,7 +1807,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Dasarahalli",
         "line": 2,
         "type": "station"
@@ -1823,7 +1823,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Jalahalli",
         "line": 2,
         "type": "station"
@@ -1839,7 +1839,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Peenya Industry",
         "line": 2,
         "type": "station"
@@ -1855,7 +1855,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Peenya",
         "line": 2,
         "type": "station"
@@ -1871,7 +1871,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Yeshwanthpur Industry",
         "line": 2,
         "type": "station"
@@ -1887,7 +1887,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Yeshwanthpur",
         "line": 2,
         "type": "station"
@@ -1903,7 +1903,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Sandal Soap Factory",
         "line": 2,
         "type": "station"
@@ -1919,7 +1919,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Mahalakshmi",
         "line": 2,
         "type": "station"
@@ -1935,7 +1935,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Rajajinagar",
         "line": 2,
         "type": "station"
@@ -1951,7 +1951,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Kuvempu Road",
         "line": 2,
         "type": "station"
@@ -1967,7 +1967,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Srirampura",
         "line": 2,
         "type": "station"
@@ -1983,7 +1983,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Sampige Road",
         "line": 2,
         "type": "station"
@@ -1999,7 +1999,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Majestic (Kempegowda)",
         "line": 2,
         "type": "interchange"
@@ -2015,7 +2015,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Chickpet",
         "line": 2,
         "type": "station"
@@ -2031,7 +2031,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "KR Market",
         "line": 2,
         "type": "station"
@@ -2047,7 +2047,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "National College",
         "line": 2,
         "type": "station"
@@ -2063,7 +2063,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Lalbagh",
         "line": 2,
         "type": "station"
@@ -2079,7 +2079,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Southend Circle",
         "line": 2,
         "type": "station"
@@ -2095,7 +2095,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Jayanagar",
         "line": 2,
         "type": "station"
@@ -2111,7 +2111,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Rashtreeya Vidyalaya Road",
         "line": 2,
         "type": "station"
@@ -2127,7 +2127,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Banashankari",
         "line": 2,
         "type": "station"
@@ -2143,7 +2143,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Jayaprakash Nagar",
         "line": 2,
         "type": "station"
@@ -2159,7 +2159,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Yelachenahalli",
         "line": 2,
         "type": "station"
@@ -2175,7 +2175,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Anjanapura Cross Road",
         "line": 2,
         "type": "station"
@@ -2191,7 +2191,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Krishna Leela Park",
         "line": 2,
         "type": "station"
@@ -2207,7 +2207,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Vajrahalli",
         "line": 2,
         "type": "station"
@@ -2223,7 +2223,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Thalgattapura",
         "line": 2,
         "type": "station"
@@ -2239,7 +2239,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Anjanapura Township",
         "line": 2,
         "type": "terminal"
@@ -2255,7 +2255,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "RV Road",
         "line": 3,
         "type": "terminal"
@@ -2271,7 +2271,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Dairy Circle",
         "line": 3,
         "type": "station"
@@ -2287,7 +2287,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Jayadeva Hospital",
         "line": 3,
         "type": "station"
@@ -2303,7 +2303,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Lakkasandra",
         "line": 3,
         "type": "station"
@@ -2319,7 +2319,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Ragigudda",
         "line": 3,
         "type": "station"
@@ -2335,7 +2335,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Hongasandra",
         "line": 3,
         "type": "station"
@@ -2351,7 +2351,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Begur Road",
         "line": 3,
         "type": "station"
@@ -2367,7 +2367,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Hulimavu",
         "line": 3,
         "type": "station"
@@ -2383,7 +2383,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Gottigere",
         "line": 3,
         "type": "station"
@@ -2399,7 +2399,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Electronic City Bhumika",
         "line": 3,
         "type": "station"
@@ -2415,7 +2415,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Electronic City Phase II",
         "line": 3,
         "type": "station"
@@ -2431,7 +2431,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Kudlu Gate",
         "line": 3,
         "type": "station"
@@ -2447,7 +2447,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Hosa Road",
         "line": 3,
         "type": "station"
@@ -2463,7 +2463,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Electronic City Phase I",
         "line": 3,
         "type": "station"
@@ -2479,7 +2479,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Hebbagodi",
         "line": 3,
         "type": "station"
@@ -2495,7 +2495,7 @@
     {
       "type": "Feature",
       "properties": {
-        "city": "Bangalore",
+        "city": "Bengaluru",
         "name": "Bommasandra",
         "line": 3,
         "type": "terminal"

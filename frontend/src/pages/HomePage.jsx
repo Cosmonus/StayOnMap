@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import MapPreview from '@features/map/components/MapPreview'
@@ -119,13 +119,13 @@ function FieldDivider() {
 
 /* ─── Activity messages for live pulse ───────────────── */
 const ACTIVITY_MESSAGES = [
-  { city: 'Bangalore', action: 'searching for 2BHK in Koramangala' },
+  { city: 'Bengaluru', action: 'searching for 2BHK in Koramangala' },
   { city: 'Chennai', action: 'viewing a villa in Anna Nagar' },
   { city: 'Hyderabad', action: 'booked a visit in Gachibowli' },
-  { city: 'Bangalore', action: 'saved a PG in HSR Layout' },
+  { city: 'Bengaluru', action: 'saved a PG in HSR Layout' },
   { city: 'Chennai', action: 'contacted an owner in T. Nagar' },
   { city: 'Hyderabad', action: 'searching apartments in Madhapur' },
-  { city: 'Bangalore', action: 'viewing 3BHK in Whitefield' },
+  { city: 'Bengaluru', action: 'viewing 3BHK in Whitefield' },
   { city: 'Chennai', action: 'booked a visit in Velachery' },
 ]
 
@@ -487,7 +487,7 @@ function HowItWorks() {
    CITY SHOWCASE
    ================================================================ */
 const CITY_IMAGE = {
-  Bangalore: '/bengaluru.jpg',
+  Bengaluru: '/bengaluru.jpg',
   Chennai:   '/chennai.jpg',
   Hyderabad: '/hyderabad.jpg',
   Delhi:     '/delhi.jpg',
@@ -581,7 +581,7 @@ function CityShowcase() {
    ================================================================ */
 function TestimonialsSection() {
   const testimonials = [
-    { quote: 'I found a 2BHK in Koramangala within three days — and saved Rs.18,000 in brokerage that I would have paid a middleman. The map made it so easy to check distance to my office.', name: 'Priya Sharma', role: 'Software Engineer, Bangalore', initial: 'P' },
+    { quote: 'I found a 2BHK in Koramangala within three days — and saved Rs.18,000 in brokerage that I would have paid a middleman. The map made it so easy to check distance to my office.', name: 'Priya Sharma', role: 'Software Engineer, Bengaluru', initial: 'P' },
     { quote: 'As an owner, I listed my flat and got five genuine inquiries in the first week. No spam calls from agents, no one asking for my listing to share on their portal. Just real tenants.', name: 'Rajesh Menon', role: 'Property Owner, Chennai', initial: 'R' },
     { quote: 'Moving cities for a new job is stressful enough. StayOnMap let me shortlist homes from Hyderabad while still sitting in Delhi — the verified photos and map pins were incredibly helpful.', name: 'Aisha Khan', role: 'Marketing Manager, Hyderabad', initial: 'A' },
   ]
@@ -770,7 +770,7 @@ function FAQSection() {
 function GuidesSection() {
   const guides = [
     { tag: 'For Tenants', title: 'How to Spot a Fake Rental Listing — and What StayOnMap Does About It', excerpt: 'Fake listings cost Indian renters crores every year. Here\'s how to protect yourself and why verified platforms matter.', color: 'bg-brand-600' },
-    { tag: 'Market Trends', title: 'Rental Prices in Bangalore, Chennai & Hyderabad: 2026 Update', excerpt: 'We analyzed 6,000+ listings to break down average rents by city, area, and BHK. See where you get the best value.', color: 'bg-red-500' },
+    { tag: 'Market Trends', title: 'Rental Prices in Bengaluru, Chennai & Hyderabad: 2026 Update', excerpt: 'We analyzed 6,000+ listings to break down average rents by city, area, and BHK. See where you get the best value.', color: 'bg-red-500' },
     { tag: 'For Owners', title: 'List Your Property & Get Genuine Tenants — Without Paying a Broker', excerpt: 'Why owner-direct platforms outperform traditional brokers for occupancy rate, tenant quality, and your bottom line.', color: 'bg-blue-500' },
   ]
 
