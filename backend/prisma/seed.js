@@ -1,4 +1,4 @@
-// Seed: amenities + admin account + sample properties across India
+﻿// Seed: amenities + admin account + sample properties across India
 // Run: npx prisma db seed
 
 import { PrismaClient } from '@prisma/client'
@@ -17,14 +17,14 @@ const AMENITIES = [
 // ─── Sample Properties ────────────────────────────────────────────
 // 15 properties across 6 cities — all ACTIVE so they appear on the map
 const PROPERTIES = [
-  // ── Bengaluru ──────────────────────────────────────────────────
+  // ── Bangalore ──────────────────────────────────────────────────
   {
     title: '2 BHK in Koramangala',
     description: 'Spacious 2BHK flat in the heart of Koramangala. Walking distance to cafes, restaurants, and tech parks. West-facing with excellent cross-ventilation. Building has 24/7 security and power backup.',
     type: 'APARTMENT', furnished: 'SEMI', bhk: 2,
     rent: 28000, deposit: 56000, maintenance: 1500, area: 1100,
     totalFloors: 6, floor: 3, facingDirection: 'WEST',
-    address: '5th Cross, Koramangala 5th Block', city: 'Bengaluru', state: 'Karnataka', pincode: '560095',
+    address: '5th Cross, Koramangala 5th Block', city: 'Bangalore', state: 'Karnataka', pincode: '560095',
     landmark: 'Near Forum Mall',
     lat: 12.9352, lng: 77.6245,
     amenityNames: ['WiFi', 'Parking', 'CCTV', 'Power Backup', 'Security Guard'],
@@ -41,7 +41,7 @@ const PROPERTIES = [
     type: 'VILLA', furnished: 'FULLY', bhk: 3,
     rent: 65000, deposit: 195000, maintenance: 3000, area: 2200,
     totalFloors: 2, floor: 1, facingDirection: 'EAST',
-    address: '12th Main, Indiranagar', city: 'Bengaluru', state: 'Karnataka', pincode: '560038',
+    address: '12th Main, Indiranagar', city: 'Bangalore', state: 'Karnataka', pincode: '560038',
     landmark: 'Near Indiranagar Metro',
     lat: 12.9784, lng: 77.6408,
     amenityNames: ['WiFi', 'Parking', 'Garden', 'AC', 'Washing Machine', 'CCTV'],
@@ -57,7 +57,7 @@ const PROPERTIES = [
     type: 'APARTMENT', furnished: 'FULLY', bhk: 1,
     rent: 18000, deposit: 36000, maintenance: 1000, area: 650,
     totalFloors: 5, floor: 2, facingDirection: 'NORTH',
-    address: 'Sector 2, HSR Layout', city: 'Bengaluru', state: 'Karnataka', pincode: '560102',
+    address: 'Sector 2, HSR Layout', city: 'Bangalore', state: 'Karnataka', pincode: '560102',
     landmark: 'Near Agara Lake',
     lat: 12.9116, lng: 77.6389,
     amenityNames: ['WiFi', 'Gym', 'Swimming Pool', 'Lift', 'AC', 'Power Backup'],
@@ -73,7 +73,7 @@ const PROPERTIES = [
     type: 'PG', furnished: 'FULLY', sharing: 2,
     rent: 9500, deposit: 9500, maintenance: 0, area: 0,
     totalFloors: 3, floor: 1, facingDirection: 'SOUTH',
-    address: 'Marathahalli Bridge Road', city: 'Bengaluru', state: 'Karnataka', pincode: '560037',
+    address: 'Marathahalli Bridge Road', city: 'Bangalore', state: 'Karnataka', pincode: '560037',
     landmark: 'Near Marathahalli Bridge',
     lat: 12.9592, lng: 77.6974,
     amenityNames: ['WiFi', 'AC', 'CCTV', 'Security Guard', 'Kitchen', 'Power Backup'],
@@ -283,3 +283,5 @@ async function main() {
 main()
   .catch(console.error)
   .finally(() => prisma.$disconnect())
+
+
