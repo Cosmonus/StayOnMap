@@ -2502,11 +2502,318 @@
       },
       "geometry": {
         "type": "Point",
+        "coordinates": [ 77.6872, 12.82 ]
+      }
+    },
+
+    // ── Hyderabad ─────────────────────────────────────────────────
+
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Corridor 1 — Miyapur ↔ LB Nagar",
+        "line": 1,
+        "color": "#dc2626"
+      },
+      "geometry": {
+        "type": "LineString",
         "coordinates": [
-          77.6872,
-          12.82
+          [78.3496, 17.4949],
+          [78.3573, 17.4929],
+          [78.3681, 17.4893],
+          [78.3796, 17.4849],
+          [78.3964, 17.4748],
+          [78.4041, 17.4662],
+          [78.4127, 17.4575],
+          [78.4194, 17.4492],
+          [78.4264, 17.4408],
+          [78.4318, 17.4327],
+          [78.4484, 17.4261],
+          [78.4560, 17.4254],
+          [78.4614, 17.4236],
+          [78.4620, 17.4171],
+          [78.4668, 17.4092],
+          [78.4742, 17.3986],
+          [78.4762, 17.3953],
+          [78.4782, 17.3882],
+          [78.4785, 17.3828],
+          [78.4808, 17.3770],
+          [78.4851, 17.3688],
+          [78.4921, 17.3649],
+          [78.5002, 17.3577],
+          [78.5063, 17.3527],
+          [78.5492, 17.3448]
         ]
       }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Corridor 2 — JBS ↔ Falaknuma",
+        "line": 2,
+        "color": "#2563eb"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [78.5053, 17.4443],
+          [78.5003, 17.4390],
+          [78.4964, 17.4332],
+          [78.4883, 17.4244],
+          [78.4821, 17.4165],
+          [78.4793, 17.4078],
+          [78.4775, 17.4002],
+          [78.4817, 17.3913],
+          [78.4806, 17.3824],
+          [78.4789, 17.3791],
+          [78.4879, 17.3702],
+          [78.4849, 17.3621],
+          [78.4790, 17.3513],
+          [78.4728, 17.3290]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Hyderabad",
+        "name": "Corridor 3 — Nagole ↔ Raidurg",
+        "line": 3,
+        "color": "#16a34a"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [78.5572, 17.3860],
+          [78.5569, 17.4006],
+          [78.5431, 17.4074],
+          [78.5330, 17.4155],
+          [78.5286, 17.4202],
+          [78.5249, 17.4284],
+          [78.5171, 17.4378],
+          [78.5021, 17.4470],
+          [78.5053, 17.4443],
+          [78.4964, 17.4332],
+          [78.4820, 17.4410],
+          [78.4484, 17.4261],
+          [78.4180, 17.4280],
+          [78.4050, 17.4266],
+          [78.3900, 17.4220],
+          [78.3767, 17.4272]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Hyderabad", "name": "Miyapur", "line": 1, "color": "#dc2626", "type": "terminal" },
+      "geometry": { "type": "Point", "coordinates": [78.3496, 17.4949] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Hyderabad", "name": "Ameerpet", "line": 1, "color": "#dc2626", "type": "interchange" },
+      "geometry": { "type": "Point", "coordinates": [78.4484, 17.4261] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Hyderabad", "name": "LB Nagar", "line": 1, "color": "#dc2626", "type": "terminal" },
+      "geometry": { "type": "Point", "coordinates": [78.5492, 17.3448] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Hyderabad", "name": "JBS Parade Grounds", "line": 2, "color": "#2563eb", "type": "interchange" },
+      "geometry": { "type": "Point", "coordinates": [78.5053, 17.4443] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Hyderabad", "name": "Falaknuma", "line": 2, "color": "#2563eb", "type": "terminal" },
+      "geometry": { "type": "Point", "coordinates": [78.4728, 17.3290] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Hyderabad", "name": "Nagole", "line": 3, "color": "#16a34a", "type": "terminal" },
+      "geometry": { "type": "Point", "coordinates": [78.5572, 17.3860] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Hyderabad", "name": "Raidurg", "line": 3, "color": "#16a34a", "type": "terminal" },
+      "geometry": { "type": "Point", "coordinates": [78.3767, 17.4272] }
+    },
+
+    // ── Delhi ──────────────────────────────────────────────────────
+
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Yellow Line — Samaypur Badli ↔ HUDA City Centre",
+        "line": 1,
+        "color": "#ca8a04"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [77.1378, 28.7356],
+          [77.1624, 28.7225],
+          [77.1854, 28.7111],
+          [77.1956, 28.7027],
+          [77.2038, 28.6974],
+          [77.2107, 28.6931],
+          [77.2204, 28.6817],
+          [77.2257, 28.6700],
+          [77.2309, 28.6589],
+          [77.2316, 28.6516],
+          [77.2245, 28.6459],
+          [77.2190, 28.6328],
+          [77.2158, 28.6248],
+          [77.2114, 28.6143],
+          [77.2070, 28.6090],
+          [77.2003, 28.6037],
+          [77.2027, 28.5949],
+          [77.2078, 28.5842],
+          [77.2085, 28.5740],
+          [77.2063, 28.5627],
+          [77.2028, 28.5444],
+          [77.2029, 28.5304],
+          [77.2029, 28.5220],
+          [77.1869, 28.5046],
+          [77.1724, 28.4975],
+          [77.1588, 28.4869],
+          [77.1429, 28.4791],
+          [77.1288, 28.4724],
+          [77.1072, 28.4629],
+          [77.0951, 28.4573],
+          [77.0887, 28.4553],
+          [77.0805, 28.4716],
+          [77.0631, 28.4620]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Blue Line — Dwarka Sec 21 ↔ Vaishali / Noida",
+        "line": 2,
+        "color": "#2563eb"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [77.0545, 28.5517],
+          [77.0706, 28.5773],
+          [77.0823, 28.5823],
+          [77.1028, 28.6067],
+          [77.1151, 28.6105],
+          [77.1403, 28.6201],
+          [77.1726, 28.6293],
+          [77.1954, 28.6407],
+          [77.2222, 28.6492],
+          [77.2527, 28.6512],
+          [77.2826, 28.6397],
+          [77.2990, 28.6367],
+          [77.2090, 28.6367],
+          [77.2190, 28.6328],
+          [77.2288, 28.6317],
+          [77.2401, 28.6267],
+          [77.2568, 28.6168],
+          [77.2636, 28.6176],
+          [77.2723, 28.6174],
+          [77.3065, 28.6459],
+          [77.3386, 28.6394]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "city": "Delhi",
+        "name": "Violet Line — Kashmere Gate ↔ Escorts Mujesar",
+        "line": 3,
+        "color": "#7c3aed"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [77.2278, 28.6657],
+          [77.2412, 28.6561],
+          [77.2453, 28.6440],
+          [77.2457, 28.6311],
+          [77.2401, 28.6267],
+          [77.2195, 28.6256],
+          [77.2114, 28.6143],
+          [77.2313, 28.6013],
+          [77.2417, 28.5938],
+          [77.2458, 28.5857],
+          [77.2387, 28.5706],
+          [77.2376, 28.5604],
+          [77.2441, 28.5522],
+          [77.2510, 28.5493],
+          [77.2604, 28.5437],
+          [77.2714, 28.5369],
+          [77.2870, 28.5310],
+          [77.2950, 28.5128],
+          [77.2924, 28.5010],
+          [77.2944, 28.4876],
+          [77.2987, 28.4769],
+          [77.3001, 28.4669],
+          [77.3056, 28.4572],
+          [77.3126, 28.4497],
+          [77.3205, 28.4380],
+          [77.3320, 28.4280]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Delhi", "name": "Samaypur Badli", "line": 1, "color": "#ca8a04", "type": "terminal" },
+      "geometry": { "type": "Point", "coordinates": [77.1378, 28.7356] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Delhi", "name": "Rajiv Chowk", "line": 1, "color": "#ca8a04", "type": "interchange" },
+      "geometry": { "type": "Point", "coordinates": [77.2190, 28.6328] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Delhi", "name": "Central Secretariat", "line": 1, "color": "#ca8a04", "type": "interchange" },
+      "geometry": { "type": "Point", "coordinates": [77.2114, 28.6143] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Delhi", "name": "HUDA City Centre", "line": 1, "color": "#ca8a04", "type": "terminal" },
+      "geometry": { "type": "Point", "coordinates": [77.0631, 28.4620] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Delhi", "name": "Dwarka Sector 21", "line": 2, "color": "#2563eb", "type": "terminal" },
+      "geometry": { "type": "Point", "coordinates": [77.0545, 28.5517] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Delhi", "name": "Dwarka Sector 10", "line": 2, "color": "#2563eb", "type": "station" },
+      "geometry": { "type": "Point", "coordinates": [77.0823, 28.5823] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Delhi", "name": "Vaishali", "line": 2, "color": "#2563eb", "type": "terminal" },
+      "geometry": { "type": "Point", "coordinates": [77.3386, 28.6394] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Delhi", "name": "Kashmere Gate", "line": 3, "color": "#7c3aed", "type": "interchange" },
+      "geometry": { "type": "Point", "coordinates": [77.2278, 28.6657] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Delhi", "name": "Lajpat Nagar", "line": 3, "color": "#7c3aed", "type": "station" },
+      "geometry": { "type": "Point", "coordinates": [77.2387, 28.5706] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Delhi", "name": "Escorts Mujesar", "line": 3, "color": "#7c3aed", "type": "terminal" },
+      "geometry": { "type": "Point", "coordinates": [77.3320, 28.4280] }
     }
   ]
 }

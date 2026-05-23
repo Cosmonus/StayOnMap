@@ -66,7 +66,8 @@ export default {
 
       fontFamily: {
         sans:    ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui'],
-        display: ['Fraunces', 'Georgia', 'ui-serif'],  // hero headlines — optical-size variable serif
+        display: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui'], // hero headlines
+        serif:   ['Fraunces', 'Georgia', 'ui-serif'],  // large numerics only (stat blocks)
         mono:    ['"JetBrains Mono"', 'ui-monospace', 'monospace'], // prices, data, IDs
       },
 
