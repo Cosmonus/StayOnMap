@@ -248,7 +248,7 @@ function TrustBadges() {
   return (
     <section className="border-b border-slate-100 bg-white">
       <Reveal>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-12 lg:py-16 xl:py-20">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
             {badges.map(({ icon, label, desc }) => (
               <div key={label} className="flex items-start gap-3">
@@ -280,7 +280,7 @@ function BrowseByType() {
   ]
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-14 md:py-20 lg:py-28 xl:py-36">
       <Reveal>
         <div className="text-center mb-8">
           <p className="text-xs font-bold text-brand-600 uppercase tracking-widest mb-3">Browse by type</p>
@@ -316,7 +316,7 @@ function BrowseByType() {
 function ValuePropSection() {
   return (
     <section className="bg-slate-50 border-y border-slate-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 xl:py-40">
         <Reveal>
           <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center mb-14">
             <div>
@@ -389,7 +389,7 @@ function FeaturedListings() {
 
   if (isLoading) {
     return (
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 xl:py-40">
         <Reveal>
           <div className="text-center mb-10">
             <p className="text-xs font-bold text-brand-600 uppercase tracking-widest mb-3">Featured</p>
@@ -410,7 +410,7 @@ function FeaturedListings() {
   if (!properties.length) return null
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 xl:py-40">
       <Reveal>
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
           <div>
@@ -452,7 +452,7 @@ function HowItWorks() {
 
   return (
     <section className="bg-slate-50 border-y border-slate-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 xl:py-40">
         <Reveal>
           <div className="text-center mb-14">
             <p className="text-xs font-bold text-brand-600 uppercase tracking-widest mb-3">How StayOnMap Works</p>
@@ -498,7 +498,7 @@ function CityShowcase() {
   const filteredCities = activeCity ? CITIES.filter(c => c.name === activeCity) : CITIES
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 xl:py-40">
       <Reveal>
         <div className="text-center mb-10">
           <h2 className="font-display font-bold text-3xl md:text-4xl text-slate-900 leading-tight mb-3">
@@ -591,7 +591,7 @@ function TestimonialsSection() {
 
   return (
     <section className="bg-slate-50 border-y border-slate-100">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 xl:py-40">
         <Reveal>
           <div className="bg-white rounded-2xl border border-slate-100 p-8 md:p-12">
             <blockquote className="text-lg md:text-xl text-slate-800 leading-relaxed mb-8 font-medium">
@@ -636,7 +636,7 @@ function OwnerCTA() {
   ]
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 xl:py-40">
       <div className="grid md:grid-cols-2 gap-0 rounded-3xl overflow-hidden border border-slate-200">
         {/* Left — dark */}
         <Reveal>
@@ -715,7 +715,7 @@ function FAQSection() {
 
   return (
     <section className="bg-slate-50 border-y border-slate-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 xl:py-40">
         <div className="grid md:grid-cols-2 gap-12 md:gap-16">
           <Reveal>
             <div>
@@ -775,7 +775,7 @@ function GuidesSection() {
   ]
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 xl:py-40">
       <Reveal>
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
           <div>
@@ -820,7 +820,7 @@ function GuidesSection() {
 function AppBanner() {
   return (
     <section className="bg-slate-50 border-y border-slate-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 xl:py-40">
         <Reveal>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
             {/* Left — text */}
@@ -870,7 +870,7 @@ function AppBanner() {
    ================================================================ */
 function CTABanner() {
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 xl:py-40">
       <Reveal>
         <div className="bg-[#111111] rounded-3xl px-8 md:px-16 py-14 md:py-20 text-center relative overflow-hidden">
           {/* Gradient orbs */}
