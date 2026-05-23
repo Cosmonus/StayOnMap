@@ -147,7 +147,7 @@ function HeroSection() {
   }
 
   return (
-    <section className="relative bg-white pt-20 pb-8 overflow-hidden">
+    <section className="relative bg-white pt-20 pb-8 lg:pt-28 lg:pb-16 xl:pt-36 xl:pb-20 overflow-hidden">
       {/* Subtle radial glow — purely decorative */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden>
         <div className="absolute -top-32 -right-32 w-[520px] h-[520px] rounded-full opacity-[0.07]"
