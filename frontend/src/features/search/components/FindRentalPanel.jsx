@@ -97,6 +97,7 @@ export default function FindRentalPanel({ side = 'left', floating = true }) {
           value={draft.area}
           city={draft.city}
           onChange={(val) => setDraft((d) => ({ ...d, area: val }))}
+          showLabel={false}
         />
 
         {/* Bedrooms */}

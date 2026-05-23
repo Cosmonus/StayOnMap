@@ -74,7 +74,7 @@ function saveRecentArea(label) {
  *   onClear      – called when user clears the input (no args).
  *                   When omitted, clears the user mapStore searchedPlace.
  */
-export default function AreaInput({ value, city, onChange, onPlacePicked, onClear }) {
+export default function AreaInput({ value, city, onChange, onPlacePicked, onClear, showLabel = true }) {
   const [query, setQuery]     = useState(value)
   const [open, setOpen]       = useState(false)
   const [recents, setRecents] = useState([])
@@ -150,6 +150,11 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
 
   return (
     <div ref={wrapRef}>
+      {showLabel && (
+        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+          Area or landmark
+        </label>
+      )}
       <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 focus-within:border-[#111111] focus-within:ring-2 focus-within:ring-black/8 transition overflow-hidden">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
