@@ -1,19 +1,25 @@
+// Renders property pins and cluster bubbles on the Google Map.
+// Zoomed out → nearby pins merge into "N flats" bubbles.
+// Zoomed in  → bubbles split back into individual price pills.
+
 import { useEffect, useRef } from 'react'
 import { createHtmlMarker } from '@lib/googleMaps'
 import { useMapStore } from '@store/mapStore'
+import { computeClusters, getExpansionZoom } from '../utils/clustering'
 
 const TYPE_SHORT = {
-  APARTMENT:        'Apt',
-  HOUSE:            'House',
-  VILLA:            'Villa',
-  PG:               'PG',
-  INDEPENDENT_HOUSE:'Indep.',
-  COMMERCIAL:       'Comm.',
+  APARTMENT:         'Apt',
+  HOUSE:             'House',
+  VILLA:             'Villa',
+  PG:                'PG',
+  INDEPENDENT_HOUSE: 'Indep.',
+  COMMERCIAL:        'Comm.',
 }
 
+// ── Individual pin (white pill with rent label) ───────────────────
 function makePinEl(pin, selected) {
-  const rent = `₹${(Number(pin.rent) / 1000).toFixed(0)}K`
-  const type = TYPE_SHORT[pin.type] ?? ''
+  const rent  = `₹${(Number(pin.rent) / 1000).toFixed(0)}K`
+  const type  = TYPE_SHORT[pin.type] ?? ''
   const label = type ? `${rent} · ${type}` : rent
 
   const el = document.createElement('div')
@@ -29,83 +35,144 @@ function makePinEl(pin, selected) {
     white-space: nowrap;
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-    transition: transform 150ms ease, background 150ms ease, color 150ms ease;
+    transition: transform 150ms ease;
     transform-origin: center bottom;
     will-change: transform;
     user-select: none;
     ${selected
-      ? 'background:#111111;color:#fff;border:2px solid #111111;box-shadow:0 4px 16px rgba(13,138,95,0.40);'
+      ? 'background:#111111;color:#fff;border:2px solid #111111;'
       : 'background:#fff;color:#1c1a16;border:2px solid #d6d2c8;'}
   `
   el.textContent = label
-
-  el.addEventListener('mouseenter', () => { el.style.transform = 'translateZ(0) scale(1.08)' })
-  el.addEventListener('mouseleave', () => { el.style.transform = 'translateZ(0) scale(1)' })
+  el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.08)' })
+  el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)' })
   return el
 }
 
 function applySelected(el, selected) {
-  if (selected) {
-    el.style.background  = '#111111'
-    el.style.color       = '#fff'
-    el.style.borderColor = '#111111'
-    el.style.boxShadow   = '0 4px 16px rgba(13,138,95,0.40)'
-  } else {
-    el.style.background  = '#fff'
-    el.style.color       = '#1c1a16'
-    el.style.borderColor = '#d6d2c8'
-    el.style.boxShadow   = '0 2px 8px rgba(0,0,0,0.18)'
-  }
+  el.style.background  = selected ? '#111111' : '#fff'
+  el.style.color       = selected ? '#fff'     : '#1c1a16'
+  el.style.borderColor = selected ? '#111111'  : '#d6d2c8'
 }
 
-export function useMapPins(mapRef) {
-  const markersRef     = useRef(new Map())
-  const pins           = useMapStore((s) => s.pins)
-  const selectedId     = useMapStore((s) => s.selectedPinId)
-  const selectPin      = useMapStore((s) => s.selectPin)
-  const clearSelection = useMapStore((s) => s.clearSelection)
-  const mapReady       = useMapStore((s) => s.flyTo !== null)
+// ── Cluster bubble (brand-blue pill with count) ───────────────────
+function makeClusterEl(count) {
+  const label = `${count} flat${count !== 1 ? 's' : ''}`
+  const el = document.createElement('div')
+  el.setAttribute('aria-label', `${count} properties`)
+  el.style.cssText = `
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: Inter, sans-serif;
+    white-space: nowrap;
+    cursor: pointer;
+    background: #0284c7;
+    color: #fff;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 12px rgba(2,132,199,0.35);
+    transition: transform 150ms ease;
+    transform-origin: center bottom;
+    will-change: transform;
+    user-select: none;
+  `
+  el.textContent = label
+  el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.1)' })
+  el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)' })
+  return el
+}
 
+// ─────────────────────────────────────────────────────────────────
+export function useMapPins(mapRef) {
+  const pinMarkersRef     = useRef(new Map())  // id → marker
+  const clusterMarkersRef = useRef(new Map())  // cluster_id → marker
+
+  const pins        = useMapStore((s) => s.pins)
+  const zoom        = useMapStore((s) => s.zoom)
+  const bounds      = useMapStore((s) => s.bounds)
+  const selectedId  = useMapStore((s) => s.selectedPinId)
+  const selectPin   = useMapStore((s) => s.selectPin)
+  const clearSelection = useMapStore((s) => s.clearSelection)
+  const mapReady    = useMapStore((s) => s.flyTo !== null)
+
+  // Re-render all markers whenever pins, zoom, or bounds change
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
+    if (!map || !mapReady) return
 
-    const incoming = new Set(pins.map((p) => p.id))
+    // Clear all existing markers
+    for (const m of pinMarkersRef.current.values())     m.remove()
+    for (const m of clusterMarkersRef.current.values()) m.remove()
+    pinMarkersRef.current.clear()
+    clusterMarkersRef.current.clear()
 
-    for (const [id, marker] of markersRef.current) {
-      if (!incoming.has(id)) {
-        marker.remove()
-        markersRef.current.delete(id)
+    if (!pins.length) return
+
+    const currentSelectedId = useMapStore.getState().selectedPinId
+    const items = computeClusters(pins, bounds, zoom)
+
+    for (const item of items) {
+      const [lng, lat] = item.geometry.coordinates
+
+      if (item.properties.cluster) {
+        // ── Cluster bubble ──
+        const count     = item.properties.point_count
+        const clusterId = item.id
+        const el        = makeClusterEl(count)
+        const marker    = createHtmlMarker({ element: el, lat, lng, map })
+
+        el.addEventListener('click', () => {
+          const expZoom = Math.min(getExpansionZoom(clusterId), 16)
+          useMapStore.getState().flyTo({ center: [lng, lat], zoom: expZoom })
+        })
+
+        clusterMarkersRef.current.set(clusterId, marker)
+      } else {
+        // ── Individual pin ──
+        const pinId = item.properties.id
+        const pin   = pins.find((p) => p.id === pinId)
+        if (!pin) continue
+
+        const selected = pinId === currentSelectedId
+        const el       = makePinEl(pin, selected)
+        const marker   = createHtmlMarker({
+          element: el,
+          lat: parseFloat(pin.lat),
+          lng: parseFloat(pin.lng),
+          map,
+        })
+
+        el.addEventListener('click', () => {
+          const { selectedPinId } = useMapStore.getState()
+          if (selectedPinId === pinId) clearSelection()
+          else selectPin(pinId, el.getBoundingClientRect())
+        })
+
+        pinMarkersRef.current.set(pinId, marker)
       }
     }
+  }, [pins, zoom, bounds, mapReady, mapRef, selectPin, clearSelection])
 
-    for (const pin of pins) {
-      if (markersRef.current.has(pin.id)) continue
-
-      const el = makePinEl(pin, pin.id === selectedId)
-
-      el.addEventListener('click', () => {
-        const { selectedPinId } = useMapStore.getState()
-        if (selectedPinId === pin.id) clearSelection()
-        else selectPin(pin.id, el.getBoundingClientRect())
-      })
-
-      const marker = createHtmlMarker({ element: el, lat: parseFloat(pin.lat), lng: parseFloat(pin.lng), map })
-      markersRef.current.set(pin.id, marker)
-    }
-  }, [pins, mapRef, selectedId, selectPin, clearSelection, mapReady])
-
+  // Update selected styling without re-creating markers
   useEffect(() => {
-    for (const [id, marker] of markersRef.current) {
+    for (const [id, marker] of pinMarkersRef.current) {
       applySelected(marker.getElement(), id === selectedId)
     }
   }, [selectedId])
 
+  // Cleanup on unmount
   useEffect(() => {
-    const markers = markersRef.current
+    const pins     = pinMarkersRef.current
+    const clusters = clusterMarkersRef.current
     return () => {
-      for (const marker of markers.values()) marker.remove()
-      markers.clear()
+      for (const m of pins.values())     m.remove()
+      for (const m of clusters.values()) m.remove()
+      pins.clear()
+      clusters.clear()
     }
   }, [])
 }

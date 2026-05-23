@@ -4,9 +4,11 @@ import { useFilterStore } from '@store/filterStore'
 import { propertyService } from '@services/property.service'
 
 export function useMapBounds(mapRef) {
-  const setPins  = useMapStore((s) => s.setPins)
-  const mapReady = useMapStore((s) => s.flyTo !== null)
-  const filters  = useFilterStore((s) => s.filters)
+  const setPins     = useMapStore((s) => s.setPins)
+  const setBounds   = useMapStore((s) => s.setBounds)
+  const setViewport = useMapStore((s) => s.setViewport)
+  const mapReady    = useMapStore((s) => s.flyTo !== null)
+  const filters     = useFilterStore((s) => s.filters)
 
   useEffect(() => {
     const map = mapRef.current
@@ -14,17 +16,24 @@ export function useMapBounds(mapRef) {
 
     let debounceTimer = null
     let pollTimer     = null
-    let done          = false   // prevents double-fetch once bounds arrive
+    let done          = false
 
     function fetchPins() {
-      const bounds = map.getBounds()
-      if (!bounds || typeof bounds.getSouthWest !== 'function') return
-      propertyService.getPinsInBounds(bounds, {
+      const b = map.getBounds()
+      if (!b || typeof b.getSouthWest !== 'function') return
+
+      // Keep zoom + bounds in the store so useMapPins can cluster
+      const sw = b.getSouthWest()
+      const ne = b.getNorthEast()
+      setBounds({ swLat: sw.lat(), swLng: sw.lng(), neLat: ne.lat(), neLng: ne.lng() })
+      setViewport(map.getCenter()?.toJSON() ?? {}, map.getZoom() ?? 5)
+
+      propertyService.getPinsInBounds(b, {
         bhk:       filters.bhk?.length ? filters.bhk.join(',') : undefined,
         furnished: filters.furnished || undefined,
         city:      filters.city      || undefined,
       })
-        .then(r => setPins(Array.isArray(r.data) ? r.data : []))
+        .then((r) => setPins(Array.isArray(r.data) ? r.data : []))
         .catch(() => {})
     }
 
@@ -33,9 +42,7 @@ export function useMapBounds(mapRef) {
       debounceTimer = setTimeout(fetchPins, 400)
     }
 
-    // Poll every 100ms until the map has valid bounds, then do the first fetch.
-    // This is more reliable than relying on 'idle' or 'tilesloaded' events
-    // which may have already fired before this effect registers listeners.
+    // Poll until Google Maps has valid bounds, then do the first fetch.
     function pollUntilBounds() {
       if (done) return
       const b = map.getBounds()
@@ -48,7 +55,6 @@ export function useMapBounds(mapRef) {
     }
     pollUntilBounds()
 
-    // Keep the idle listener so panning/zooming reloads pins
     const idleListener = window.google.maps.event.addListener(map, 'idle', onIdle)
 
     return () => {
@@ -57,5 +63,5 @@ export function useMapBounds(mapRef) {
       done = true
       window.google.maps.event.removeListener(idleListener)
     }
-  }, [mapRef, mapReady, filters, setPins])
+  }, [mapRef, mapReady, filters, setPins, setBounds, setViewport])
 }
