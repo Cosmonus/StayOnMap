@@ -84,57 +84,6 @@ const PROPERTIES = [
     rules: { smokingAllowed: false, petsAllowed: false, bachelorAllowed: false, visitorsAllowed: false, curfewTime: '22:00', genderPreference: 'FEMALE' },
   },
 
-  // ── Mumbai ─────────────────────────────────────────────────────
-  {
-    title: '2 BHK Sea-View Flat in Bandra West',
-    description: 'Premium 2BHK with partial sea view on Carter Road. Fully furnished with high-end interiors. Building has concierge, gymnasium and rooftop terrace. 5-minute walk to Bandstand.',
-    type: 'APARTMENT', furnished: 'FULLY', bhk: 2,
-    rent: 85000, deposit: 255000, maintenance: 5000, area: 950,
-    totalFloors: 18, floor: 12, facingDirection: 'WEST',
-    address: 'Carter Road, Bandra West', city: 'Mumbai', state: 'Maharashtra', pincode: '400050',
-    landmark: 'Near Bandstand Promenade',
-    lat: 19.0596, lng: 72.8295,
-    amenityNames: ['WiFi', 'Parking', 'Gym', 'CCTV', 'Lift', 'AC', 'Security Guard', 'Swimming Pool'],
-    images: [
-      { url: 'https://placehold.co/800x600/0369a1/ffffff?text=Bandra+Sea+View', isPrimary: true, order: 0 },
-      { url: 'https://placehold.co/800x600/0284c7/ffffff?text=Living+Room', isPrimary: false, order: 1 },
-      { url: 'https://placehold.co/800x600/0ea5e9/ffffff?text=Balcony+View', isPrimary: false, order: 2 },
-    ],
-    rules: { smokingAllowed: false, petsAllowed: true, bachelorAllowed: true, visitorsAllowed: true, nonVegAllowed: true, genderPreference: 'ANY' },
-  },
-  {
-    title: '1 BHK in Powai near Hiranandani',
-    description: 'Well-maintained 1BHK in a gated society near Hiranandani. Access to club house, pool and landscaped gardens. Close to Powai Lake and multiple MNCs. Excellent connectivity via JVLR.',
-    type: 'APARTMENT', furnished: 'SEMI', bhk: 1,
-    rent: 35000, deposit: 70000, maintenance: 2500, area: 720,
-    totalFloors: 14, floor: 7, facingDirection: 'EAST',
-    address: 'Hiranandani Gardens, Powai', city: 'Mumbai', state: 'Maharashtra', pincode: '400076',
-    landmark: 'Near Powai Lake',
-    lat: 19.1176, lng: 72.9060,
-    amenityNames: ['WiFi', 'Parking', 'Gym', 'Swimming Pool', 'Club House', 'Lift', 'CCTV', 'Gated Security'],
-    images: [
-      { url: 'https://placehold.co/800x600/065f46/ffffff?text=Powai+1BHK', isPrimary: true, order: 0 },
-      { url: 'https://placehold.co/800x600/047857/ffffff?text=Society+View', isPrimary: false, order: 1 },
-    ],
-    rules: { smokingAllowed: false, petsAllowed: false, bachelorAllowed: true, visitorsAllowed: true, nonVegAllowed: true, genderPreference: 'ANY' },
-  },
-  {
-    title: '2 BHK in Andheri East',
-    description: 'Spacious 2BHK near Andheri metro station. Easy access to BKC and airport. Society with jogging track and kids play area. Both bedrooms with attached bathrooms.',
-    type: 'APARTMENT', furnished: 'UNFURNISHED', bhk: 2,
-    rent: 42000, deposit: 84000, maintenance: 2000, area: 1050,
-    totalFloors: 10, floor: 5, facingDirection: 'NORTH',
-    address: 'Marol Naka, Andheri East', city: 'Mumbai', state: 'Maharashtra', pincode: '400059',
-    landmark: 'Near Andheri Metro',
-    lat: 19.1136, lng: 72.8697,
-    amenityNames: ['Parking', 'Lift', 'CCTV', 'Power Backup', 'Play Area', 'Security Guard'],
-    images: [
-      { url: 'https://placehold.co/800x600/92400e/ffffff?text=Andheri+2BHK', isPrimary: true, order: 0 },
-      { url: 'https://placehold.co/800x600/b45309/ffffff?text=Master+Bedroom', isPrimary: false, order: 1 },
-    ],
-    rules: { smokingAllowed: false, petsAllowed: false, bachelorAllowed: true, familyPreferred: false, visitorsAllowed: true, nonVegAllowed: true, genderPreference: 'ANY' },
-  },
-
   // ── Hyderabad ──────────────────────────────────────────────────
   {
     title: '3 BHK in Gachibowli IT Hub',
@@ -202,41 +151,6 @@ const PROPERTIES = [
       { url: 'https://placehold.co/800x600/0f766e/ffffff?text=Living+Room', isPrimary: false, order: 1 },
     ],
     rules: { smokingAllowed: false, petsAllowed: false, bachelorAllowed: false, familyPreferred: true, visitorsAllowed: true, nonVegAllowed: false, genderPreference: 'ANY' },
-  },
-
-  // ── Pune ───────────────────────────────────────────────────────
-  {
-    title: '2 BHK in Baner',
-    description: 'Modern 2BHK in a sought-after Baner society. Facing the hills with a great view. Society has a swimming pool, gym, and children\'s play area. Close to Balewadi Stadium and IT parks.',
-    type: 'APARTMENT', furnished: 'SEMI', bhk: 2,
-    rent: 23000, deposit: 46000, maintenance: 1500, area: 1000,
-    totalFloors: 12, floor: 8, facingDirection: 'WEST',
-    address: 'Baner-Pashan Link Road', city: 'Pune', state: 'Maharashtra', pincode: '411045',
-    landmark: 'Near Balewadi High Street',
-    lat: 18.5590, lng: 73.7868,
-    amenityNames: ['WiFi', 'Parking', 'Gym', 'Swimming Pool', 'Lift', 'CCTV', 'Play Area', 'Power Backup'],
-    images: [
-      { url: 'https://placehold.co/800x600/3b0764/ffffff?text=Baner+2BHK', isPrimary: true, order: 0 },
-      { url: 'https://placehold.co/800x600/6b21a8/ffffff?text=Hills+View', isPrimary: false, order: 1 },
-      { url: 'https://placehold.co/800x600/7e22ce/ffffff?text=Pool', isPrimary: false, order: 2 },
-    ],
-    rules: { smokingAllowed: false, petsAllowed: false, bachelorAllowed: true, visitorsAllowed: true, nonVegAllowed: true, genderPreference: 'ANY' },
-  },
-  {
-    title: '1 BHK in Kothrud',
-    description: 'Compact and clean 1BHK in established Kothrud locality. Perfect for a couple or single professional. Reliable water supply, 24/7 watchman. Close to Kothrud bus depot and market.',
-    type: 'APARTMENT', furnished: 'FULLY', bhk: 1,
-    rent: 15000, deposit: 30000, maintenance: 800, area: 600,
-    totalFloors: 5, floor: 3, facingDirection: 'SOUTH',
-    address: 'Dahanukar Colony, Kothrud', city: 'Pune', state: 'Maharashtra', pincode: '411029',
-    landmark: 'Near Kothrud Bus Depot',
-    lat: 18.5074, lng: 73.8077,
-    amenityNames: ['Parking', 'Power Backup', 'CCTV', 'Security Guard', 'Kitchen'],
-    images: [
-      { url: 'https://placehold.co/800x600/1e3a5f/ffffff?text=Kothrud+1BHK', isPrimary: true, order: 0 },
-      { url: 'https://placehold.co/800x600/1e40af/ffffff?text=Bedroom', isPrimary: false, order: 1 },
-    ],
-    rules: { smokingAllowed: false, petsAllowed: false, bachelorAllowed: true, visitorsAllowed: true, nonVegAllowed: true, genderPreference: 'ANY' },
   },
 
   // ── Delhi NCR ──────────────────────────────────────────────────
