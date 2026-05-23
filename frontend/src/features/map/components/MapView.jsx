@@ -5,6 +5,7 @@ import { useMapStore } from '@store/mapStore'
 import { useMapPins } from '../hooks/useMapPins'
 import { useMapBounds } from '../hooks/useMapBounds'
 import { useMapLayers } from '../hooks/useMapLayers'
+import MapControls from './MapControls'
 // import { useAreaLabels } from '../hooks/useAreaLabels'  // TODO: re-enable after area research
 import { CITIES } from '@/config/cities'
 
@@ -133,6 +134,9 @@ export default function MapView({ contained = false }) {
       : { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }
     }>
       <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+
+      {/* Layer toggles */}
+      {mapReady && <MapControls />}
 
       {/* Listing count pill */}
       {pins.length > 0 && (
