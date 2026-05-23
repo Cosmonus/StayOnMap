@@ -184,15 +184,6 @@ function HeroSection() {
           </div>
         </div>
 
-        {/* ── Quick action links ── */}
-        <div className="flex items-center justify-center gap-3 flex-wrap text-sm">
-          <Link to="/properties" className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#111111] hover:bg-[#2a2a2a] text-white font-semibold rounded-xl transition-colors no-underline">
-            Explore the map →
-          </Link>
-          <Link to="/dashboard?tab=my-listings" className="inline-flex items-center gap-1.5 px-5 py-2.5 border border-slate-200 hover:border-slate-400 text-slate-700 font-semibold rounded-xl transition-colors no-underline">
-            List your property
-          </Link>
-        </div>
       </div>
     </section>
   )
