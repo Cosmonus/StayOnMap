@@ -3,108 +3,63 @@
   "features": [
     {
       "type": "Feature",
-      "properties": {
-        "city": "Chennai", "name": "Velachery",
-        "risk": "HIGH", "areaSlug": "velachery-chennai",
-        "note": "Floods every monsoon — low-lying, poor drainage"
-      },
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-          [80.200, 12.997], [80.238, 12.997], [80.238, 12.960],
-          [80.200, 12.960], [80.200, 12.997]
-        ]]
-      }
+      "properties": { "city": "Chennai", "name": "Velachery", "risk": "HIGH", "areaSlug": "velachery-chennai", "note": "Floods every monsoon — low-lying, poor drainage" },
+      "geometry": { "type": "Polygon", "coordinates": [[[80.200, 12.997], [80.238, 12.997], [80.238, 12.960], [80.200, 12.960], [80.200, 12.997]]] }
     },
     {
       "type": "Feature",
-      "properties": {
-        "city": "Chennai", "name": "Pallikaranai Marsh",
-        "risk": "HIGH", "areaSlug": null,
-        "note": "Protected wetland — adjacent areas experience severe flooding"
-      },
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-          [80.190, 12.963], [80.238, 12.963], [80.238, 12.908],
-          [80.190, 12.908], [80.190, 12.963]
-        ]]
-      }
+      "properties": { "city": "Chennai", "name": "Pallikaranai Marsh", "risk": "HIGH", "areaSlug": null, "note": "Protected wetland — adjacent areas experience severe flooding" },
+      "geometry": { "type": "Polygon", "coordinates": [[[80.190, 12.963], [80.238, 12.963], [80.238, 12.908], [80.190, 12.908], [80.190, 12.963]]] }
     },
     {
       "type": "Feature",
-      "properties": {
-        "city": "Chennai", "name": "Adyar River Belt",
-        "risk": "MEDIUM", "areaSlug": "adyar-chennai",
-        "note": "River overflow risk during heavy northeast monsoon"
-      },
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-          [80.243, 13.012], [80.269, 13.012], [80.269, 12.990],
-          [80.243, 12.990], [80.243, 13.012]
-        ]]
-      }
+      "properties": { "city": "Chennai", "name": "Adyar River Belt", "risk": "MEDIUM", "areaSlug": "adyar-chennai", "note": "River overflow risk during heavy northeast monsoon" },
+      "geometry": { "type": "Polygon", "coordinates": [[[80.243, 13.012], [80.269, 13.012], [80.269, 12.990], [80.243, 12.990], [80.243, 13.012]]] }
     },
     {
       "type": "Feature",
-      "properties": {
-        "city": "Chennai", "name": "Buckingham Canal Zone",
-        "risk": "MEDIUM", "areaSlug": null,
-        "note": "Canal overflow risk in north Chennai"
-      },
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-          [80.277, 13.092], [80.302, 13.092], [80.302, 13.052],
-          [80.277, 13.052], [80.277, 13.092]
-        ]]
-      }
+      "properties": { "city": "Chennai", "name": "Buckingham Canal Zone", "risk": "MEDIUM", "areaSlug": null, "note": "Canal overflow risk in north Chennai" },
+      "geometry": { "type": "Polygon", "coordinates": [[[80.277, 13.092], [80.302, 13.092], [80.302, 13.052], [80.277, 13.052], [80.277, 13.092]]] }
     },
     {
       "type": "Feature",
-      "properties": {
-        "city": "Bengaluru", "name": "Koramangala Lowlands",
-        "risk": "MEDIUM", "areaSlug": "koramangala-bengaluru",
-        "note": "Lake overflow + stormwater drain overflow in heavy rains"
-      },
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-          [77.612, 12.960], [77.644, 12.960], [77.644, 12.920],
-          [77.612, 12.920], [77.612, 12.960]
-        ]]
-      }
+      "properties": { "city": "Bangalore", "name": "Koramangala Lowlands", "risk": "MEDIUM", "areaSlug": "koramangala-bengaluru", "note": "Lake overflow + stormwater drain overflow in heavy rains" },
+      "geometry": { "type": "Polygon", "coordinates": [[[77.612, 12.960], [77.644, 12.960], [77.644, 12.920], [77.612, 12.920], [77.612, 12.960]]] }
     },
     {
       "type": "Feature",
-      "properties": {
-        "city": "Bengaluru", "name": "Bellandur Lake Zone",
-        "risk": "HIGH", "areaSlug": "marathahalli-bengaluru",
-        "note": "Severely polluted lake with overflow flooding adjacent areas"
-      },
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-          [77.668, 12.948], [77.707, 12.948], [77.707, 12.915],
-          [77.668, 12.915], [77.668, 12.948]
-        ]]
-      }
+      "properties": { "city": "Bangalore", "name": "Bellandur Lake Zone", "risk": "HIGH", "areaSlug": "marathahalli-bengaluru", "note": "Severely polluted lake with overflow flooding adjacent areas" },
+      "geometry": { "type": "Polygon", "coordinates": [[[77.668, 12.948], [77.707, 12.948], [77.707, 12.915], [77.668, 12.915], [77.668, 12.948]]] }
     },
     {
       "type": "Feature",
-      "properties": {
-        "city": "Bengaluru", "name": "Hebbal Lake Area",
-        "risk": "MEDIUM", "areaSlug": "hebbal-bengaluru",
-        "note": "Lake overflow affects nearby roads and low-lying apartments"
-      },
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-          [77.580, 13.068], [77.616, 13.068], [77.616, 13.036],
-          [77.580, 13.036], [77.580, 13.068]
-        ]]
-      }
+      "properties": { "city": "Bangalore", "name": "Hebbal Lake Area", "risk": "MEDIUM", "areaSlug": "hebbal-bengaluru", "note": "Lake overflow affects nearby roads and low-lying apartments" },
+      "geometry": { "type": "Polygon", "coordinates": [[[77.580, 13.068], [77.616, 13.068], [77.616, 13.036], [77.580, 13.036], [77.580, 13.068]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Hyderabad", "name": "Musi River Belt", "risk": "HIGH", "areaSlug": null, "note": "River overflow during monsoon — low-lying riverbank areas at high risk" },
+      "geometry": { "type": "Polygon", "coordinates": [[[78.445, 17.395], [78.510, 17.395], [78.510, 17.368], [78.445, 17.368], [78.445, 17.395]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Hyderabad", "name": "Hussain Sagar Drain", "risk": "MEDIUM", "areaSlug": null, "note": "Stormwater overflow risk during heavy rains" },
+      "geometry": { "type": "Polygon", "coordinates": [[[78.452, 17.432], [78.488, 17.432], [78.488, 17.410], [78.452, 17.410], [78.452, 17.432]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Hyderabad", "name": "Kukatpally Low Zone", "risk": "MEDIUM", "areaSlug": null, "note": "Poor drainage infrastructure — waterlogging after moderate rains" },
+      "geometry": { "type": "Polygon", "coordinates": [[[78.392, 17.500], [78.426, 17.500], [78.426, 17.474], [78.392, 17.474], [78.392, 17.500]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Delhi", "name": "Yamuna Floodplain", "risk": "HIGH", "areaSlug": null, "note": "Annual flooding of Yamuna riverbanks — avoid low-lying areas east of ring road" },
+      "geometry": { "type": "Polygon", "coordinates": [[[77.278, 28.690], [77.320, 28.690], [77.320, 28.590], [77.278, 28.590], [77.278, 28.690]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "city": "Delhi", "name": "Najafgarh Drain Corridor", "risk": "MEDIUM", "areaSlug": null, "note": "Drain overflow during heavy monsoon affects west Delhi localities" },
+      "geometry": { "type": "Polygon", "coordinates": [[[76.980, 28.630], [77.050, 28.630], [77.050, 28.596], [76.980, 28.596], [76.980, 28.630]]] }
     }
   ]
 }
