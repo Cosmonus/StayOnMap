@@ -3,7 +3,7 @@
 
 export const CITIES = [
   {
-    name:         'Bangalore',
+    name:         'Bengaluru',
     state:        'Karnataka',
     lat:          12.9716,
     lng:          77.5946,
