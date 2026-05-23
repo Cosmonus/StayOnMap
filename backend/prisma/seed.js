@@ -294,18 +294,22 @@ async function main() {
   })
   console.log(`✓ Admin account: ${adminEmail}`)
 
-  // 3. Seed demo owner (fixed id so re-running is idempotent)
-  const owner = await prisma.user.upsert({
-    where:  { email: 'demo.owner@stayonmap.in' },
-    update: {},
-    create: {
-      id:    'seed-owner-001',
-      email: 'demo.owner@stayonmap.in',
-      name:  'Ravi Kumar',
-      role:  'OWNER',
-    },
-  })
-  console.log(`✓ Demo owner: ${owner.email}`)
+  // 3. Find the real owner account by email
+  //    This user must have logged in at least once so /auth/sync created their DB record.
+  const ownerEmail = process.env.SEED_OWNER_EMAIL ?? 'srigokulkrishnan@gmail.com'
+  const owner = await prisma.user.findUnique({ where: { email: ownerEmail } })
+  if (!owner) {
+    console.error(`✗ Owner not found: ${ownerEmail}`)
+    console.error('  Log in to the live site first so your account is synced to the DB, then re-run the seed.')
+    process.exit(1)
+  }
+
+  // Ensure owner has OWNER role
+  if (owner.role !== 'OWNER') {
+    await prisma.user.update({ where: { id: owner.id }, data: { role: 'OWNER' } })
+    console.log(`✓ Upgraded ${ownerEmail} to OWNER role`)
+  }
+  console.log(`✓ Owner: ${owner.email} (${owner.id})`)
 
   // 4. Seed properties
   const amenityMap = {}
