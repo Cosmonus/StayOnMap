@@ -25,7 +25,7 @@ import TrustScoreWidget from '@features/trust/components/TrustScoreWidget'
 import ReviewsSection   from '@features/reviews/components/ReviewsSection'
 import PropertyStatusPill from '@components/common/PropertyStatusPill'
 import UnifiedSidebar from '@components/layout/UnifiedSidebar'
-import AdminMonitorSection from '@features/admin/AdminMonitorSection'
+import AdminMonitorSection from '@features/admin/components/AdminMonitorSection'
 
 // ── Shared chart card shell ────────────────────────────────────────────────
 function ChartCard({ title, value, footer, children }) {

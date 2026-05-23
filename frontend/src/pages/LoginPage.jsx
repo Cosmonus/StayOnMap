@@ -92,14 +92,10 @@ export default function LoginPage() {
 
         {/* Top: Logo + headline */}
         <div className="relative z-10">
-          <Link to="/" className="flex items-center gap-2 no-underline mb-12">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #f4511e 0%, #d94318 100%)' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-              </svg>
-            </div>
-            <span className="text-white font-bold text-xl tracking-tight">StayOnMap</span>
+          <Link to="/" className="no-underline mb-12 block">
+            <span className="font-display font-bold text-xl tracking-tight text-white">
+              Stay<span style={{ color: '#f4511e' }}>OnMap</span>
+            </span>
           </Link>
 
           <h1 className="text-white font-bold text-4xl leading-tight mb-4">
@@ -135,14 +131,10 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col bg-white">
         {/* Top bar — logo + back */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <Link to="/" className="flex items-center gap-2 no-underline">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #f4511e 0%, #d94318 100%)' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
-                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-              </svg>
-            </div>
-            <span className="font-bold text-slate-900 text-base tracking-tight">StayOnMap</span>
+          <Link to="/" className="no-underline">
+            <span className="font-display font-bold text-base tracking-tight text-slate-900">
+              Stay<span className="text-brand-600">OnMap</span>
+            </span>
           </Link>
           <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 no-underline transition-colors">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
