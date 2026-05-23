@@ -2,4 +2,4 @@
 buildCommand = "npm install && npm run build"
 
 [deploy]
-startCommand = "npx serve dist -l $PORT"
+startCommand = "npx serve dist -l $PORT --single"
