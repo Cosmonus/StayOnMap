@@ -12,11 +12,15 @@ export default function Dropdown({
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0, width: 0 })
   const triggerRef = useRef(null)
+  const panelRef = useRef(null)
 
   useEffect(() => {
     if (!open) return
     function close(e) {
-      if (!triggerRef.current?.closest('[data-dropdown]')?.contains(e.target)) setOpen(false)
+      if (
+        !triggerRef.current?.closest('[data-dropdown]')?.contains(e.target) &&
+        !panelRef.current?.contains(e.target)
+      ) setOpen(false)
     }
     function onEsc(e) { if (e.key === 'Escape') setOpen(false) }
     document.addEventListener('mousedown', close)
@@ -58,6 +62,7 @@ export default function Dropdown({
 
       {open && createPortal(
         <div
+          ref={panelRef}
           style={{ position: 'absolute', top: pos.top, left: pos.left, minWidth: pos.width, zIndex: 9999 }}
           className="bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-slide-down"
           role="listbox"
