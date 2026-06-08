@@ -5,8 +5,6 @@ import { runFraudScan } from '../ai/ai.service.js'
 import { generatePropertyDisplayId } from '../../utils/idGenerator.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 
-const MAX_LISTINGS_PER_OWNER = 3
-
 const FULL_INCLUDE = {
   images:    { orderBy: { order: 'asc' } },
   amenities: { include: { amenity: true } },
@@ -93,10 +91,6 @@ export async function createProperty(ownerId, data) {
   }
 
   const property = await prisma.$transaction(async (tx) => {
-    const count = await tx.property.count({ where: { ownerId, status: 'ACTIVE' } })
-    if (count >= MAX_LISTINGS_PER_OWNER) {
-      throw Object.assign(new Error(`Maximum ${MAX_LISTINGS_PER_OWNER} active listings allowed per owner`), { statusCode: 403 })
-    }
     return tx.property.create({
       data: {
         ...propertyData,

@@ -41,21 +41,17 @@ const ICONS = {
   wishlist:      'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z',
 }
 
-const MAX_LISTINGS = 3
-
 // ── Section: Overview ──────────────────────────────────────────────────────
 function OverviewSection({ listings, isOwner, onAddListing, onNavigateToListings }) {
-  const atLimit = isOwner && listings.length >= MAX_LISTINGS
   const stats = isOwner
     ? [
-        { label: 'My listings',    value: `${listings.length} / ${MAX_LISTINGS}`, color: 'text-slate-800' },
+        { label: 'My listings',    value: listings.length,                                       color: 'text-slate-800' },
         { label: 'Active',         value: listings.filter(l => l.status === 'ACTIVE').length,   color: 'text-slate-800' },
         { label: 'Pending review', value: listings.filter(l => l.status === 'PENDING').length,  color: 'text-slate-500' },
         { label: 'Drafts',         value: listings.filter(l => l.status === 'DRAFT').length,    color: 'text-slate-400' },
       ]
     : [
-        { label: 'Plan',      value: 'Free',   color: 'text-slate-800' },
-        { label: 'Listings',  value: '0 / 3',  color: 'text-slate-400' },
+        { label: 'Listings',  value: '0',      color: 'text-slate-400' },
         { label: 'Role',      value: 'Tenant', color: 'text-slate-500' },
         { label: 'Visits',    value: '—',      color: 'text-slate-400' },
       ]
@@ -80,16 +76,15 @@ function OverviewSection({ listings, isOwner, onAddListing, onNavigateToListings
         <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Quick actions</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
-            onClick={atLimit ? undefined : (isOwner ? onAddListing : onNavigateToListings)}
-            disabled={atLimit}
-            className={`flex items-center gap-4 p-4 bg-white rounded-2xl border transition-all text-left ${atLimit ? 'border-slate-100 opacity-60 cursor-not-allowed' : 'border-slate-100 hover:border-slate-300'}`}
+            onClick={isOwner ? onAddListing : onNavigateToListings}
+            className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 hover:border-slate-300 transition-all text-left"
           >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${atLimit ? 'bg-slate-300' : 'bg-[#111111]'}`}>
-              <Icon d={atLimit ? ICONS.properties : ICONS.plus} size={18} />
+            <div className="w-10 h-10 rounded-xl bg-[#111111] flex items-center justify-center shrink-0">
+              <Icon d={ICONS.plus} size={18} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-800">{atLimit ? 'Listing limit reached' : 'List a property'}</p>
-              <p className="text-xs text-slate-400">{atLimit ? `Free plan: ${MAX_LISTINGS} listings max — pricing plans coming soon` : 'Add a new rental to StayOnMap'}</p>
+              <p className="text-sm font-semibold text-slate-800">List a property</p>
+              <p className="text-xs text-slate-400">Add a new rental to StayOnMap</p>
             </div>
           </button>
           <Link
@@ -518,7 +513,6 @@ export default function DashboardPage() {
             />
           )
         }
-        const atLimit = listings.length >= MAX_LISTINGS
         return (
           <div className="space-y-5">
             <div className="flex items-start sm:items-center justify-between gap-3">
@@ -527,11 +521,9 @@ export default function DashboardPage() {
                 <p className="text-sm text-slate-400 mt-0.5">Manage your rental properties</p>
               </div>
               <button
-                onClick={atLimit ? undefined : () => setShowForm(true)}
-                disabled={atLimit}
-                title={atLimit ? `Free plan allows ${MAX_LISTINGS} listings` : undefined}
-                className={`shrink-0 flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all ${atLimit ? 'bg-slate-400 cursor-not-allowed' : 'hover:opacity-90'}`}
-                style={atLimit ? {} : { background: '#111111' }}
+                onClick={() => setShowForm(true)}
+                className="shrink-0 flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-all"
+                style={{ background: '#111111' }}
               >
                 <Icon d={ICONS.plus} size={15} /> Add listing
               </button>
