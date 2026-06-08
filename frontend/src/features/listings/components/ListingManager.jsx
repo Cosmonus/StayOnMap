@@ -3,8 +3,6 @@ import { propertyService } from '@services/property.service'
 import { formatRent } from '@utils/format'
 import PropertyStatusPill from '@components/common/PropertyStatusPill'
 
-const MAX_LISTINGS = 3
-
 function ListingCard({ property, onViewDetails }) {
   const images = property.images ?? []
 
@@ -53,23 +51,6 @@ function ListingCard({ property, onViewDetails }) {
   )
 }
 
-function EmptySlotPlaceholder({ onAdd }) {
-  return (
-    <button
-      onClick={onAdd}
-      className="rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center min-h-[200px] hover:border-slate-300 hover:bg-slate-50 transition-colors group"
-    >
-      <div className="w-10 h-10 rounded-full bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center mb-2 transition-colors">
-        <svg className="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 4v16m8-8H4" />
-        </svg>
-      </div>
-      <p className="text-sm font-medium text-slate-400 group-hover:text-slate-500">Add listing</p>
-    </button>
-  )
-}
-
-
 export default function ListingManager({ onAdd, onViewDetails }) {
   const { data: listings = [], isLoading } = useQuery({
     queryKey: ['my-listings'],
@@ -96,15 +77,10 @@ export default function ListingManager({ onAdd, onViewDetails }) {
     )
   }
 
-  const emptySlots = Math.max(0, MAX_LISTINGS - listings.length)
-
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
       {listings.map(p => (
         <ListingCard key={p.id} property={p} onViewDetails={onViewDetails} />
-      ))}
-      {Array.from({ length: emptySlots }).map((_, i) => (
-        <EmptySlotPlaceholder key={`empty-${i}`} onAdd={onAdd} />
       ))}
     </div>
   )
