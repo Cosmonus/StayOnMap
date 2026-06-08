@@ -86,10 +86,13 @@ export default function ListingManager({ onAdd, onViewDetails }) {
 
   if (listings.length === 0) {
     return (
-      <div className="text-center py-16 border-2 border-dashed border-slate-200 rounded-2xl">
+      <button
+        onClick={onAdd}
+        className="w-full text-center py-16 border-2 border-dashed border-slate-200 rounded-2xl hover:border-slate-300 hover:bg-slate-50 transition-colors"
+      >
         <p className="text-sm font-medium text-slate-500">No listings yet</p>
-        <p className="text-xs text-slate-400 mt-1">Click &ldquo;Add Listing&rdquo; to get started</p>
-      </div>
+        <p className="text-xs text-slate-400 mt-1">Click to add your first listing</p>
+      </button>
     )
   }
 
