@@ -2,37 +2,42 @@
 
 > Broker-free rental discovery. Find your home on the map.
 
-A map-first rental platform for India where tenants discover homes visually and owners list directly — no brokers.
+A map-first rental platform for India where tenants discover homes visually and owners list directly — no brokers. The homepage IS the map, on both web and mobile.
 
 ---
 
 ## Live Demo
 
-_Coming soon_
+`stayonmap.com`
 
 ---
 
 ## Tech Stack
 
-| Layer     | Technology                     |
-|-----------|-------------------------------|
-| Frontend  | React 18 + Vite + Tailwind CSS |
-| Backend   | Node.js + Express.js           |
-| Database  | PostgreSQL (Railway) + Prisma  |
-| Maps      | Mapbox GL JS                   |
-| Storage   | Supabase Storage               |
-| Auth      | Supabase Auth                  |
+| Layer     | Technology                              |
+|-----------|------------------------------------------|
+| Frontend  | React 18 + Vite + Tailwind CSS           |
+| Mobile    | Expo + React Native (iOS/Android)        |
+| Backend   | Node.js + Express.js + Prisma            |
+| Database  | PostgreSQL (Railway)                     |
+| Maps      | Google Maps JavaScript API (web), native map view (mobile) |
+| Image storage | Cloudinary                          |
+| Auth      | Supabase Auth (JWT verification only — not the database) |
+| Real-time | Socket.io (chat, notifications) — JWT-verified handshake |
+| Push      | Web Push/VAPID (web), Expo push service (mobile) |
 
 ---
 
 ## Project Structure
 
 ```
-STAYNEAR/
-├── frontend/       React app (Vite)
-├── backend/        Express API
+STAYONMAP/
+├── frontend/       React app (Vite) — web
+├── mobile/         Expo app (React Native) — iOS/Android, see mobile/AGENTS.md
+├── backend/        Express API + Prisma, shared by both clients
 ├── shared/         Shared types
-└── docs/           Documentation
+├── docs/           Developer docs (architecture, database, deployment, API, features)
+└── .claude/        Claude Code skill files (domain rules, not user-facing docs)
 ```
 
 ---
@@ -43,77 +48,111 @@ STAYNEAR/
 
 - Node.js 18+
 - npm 9+
-- Supabase account
-- Mapbox account
+- A Supabase project (auth only)
+- A Cloudinary account (property images)
+- A Google Maps API key (Maps JavaScript API + Places + Geocoding + Elevation enabled)
+- A Railway Postgres database (or any Postgres instance for local dev)
+- For mobile: the Expo Go app on a physical device, or an Android/iOS emulator
 
-### Setup
+### Backend
 
 ```bash
-# 1. Clone
-git clone <repo-url>
-cd STAYNEAR
-
-# 2. Backend
 cd backend
-cp .env.example .env     # fill in your values
+cp .env.example .env     # fill in your values — see comments in the file
 npm install
 npx prisma migrate dev
-npm run dev              # runs on :4000
-
-# 3. Frontend
-cd ../frontend
-cp .env.example .env     # fill in your values
-npm install
-npm run dev              # runs on :5173
+npm run dev               # runs on :4000
 ```
+
+### Frontend (web)
+
+```bash
+cd frontend
+cp .env.example .env      # fill in your values
+npm install
+npm run dev                # runs on :5173
+```
+
+### Mobile
+
+```bash
+cd mobile
+cp .env.example .env       # fill in your values
+npm install
+npm start                   # Expo dev server — scan the QR with Expo Go, or press `a`/`i`
+```
+
+On a physical device, `EXPO_PUBLIC_API_BASE_URL` in `mobile/.env` must be your
+machine's LAN IP (not `localhost`), or run `npx expo start --tunnel`. Read
+`mobile/AGENTS.md` before making mobile changes — Expo SDK conventions move
+fast and differ from what's in general training data.
 
 ---
 
 ## Environment Variables
 
-See `frontend/.env.example` and `backend/.env.example` for required variables.
+See `backend/.env.example`, `frontend/.env.example`, and `mobile/.env.example`
+for the full, annotated list of required variables. `docs/deployment.md` has
+the checklist version.
 
 ---
 
-## MVP Features
+## Feature Overview
+
+Both web and mobile share the same backend API and have reached feature
+parity (see `.claude/architecture.md`'s Feature Completeness Map for the
+exact per-platform breakdown):
 
 **Tenants**
 - Interactive map with property pins and clustering
-- Property detail pages with images and amenities
-- Search and filter (budget, BHK, furnishing, parking)
-- Save listings
+- Property detail pages — images, amenities, Trust/Risk scores, community reviews
+- Search and filter (budget, BHK, furnishing, city/area)
+- Save listings, book appointments, chat with owners
+- Report a listing, review a stay, sign/reject a lease offer
 
 **Owners**
-- List properties with images and exact location
-- Manage listings dashboard
-- Free tier: up to 2 listings
+- List properties with images, exact location, and house rules
+- Manage listings dashboard (free tier: up to 3 active listings)
+- Accept/reject appointment requests, respond to reviews and reports
+- Request ownership verification (earns a Verified Owner badge)
+- Offer leases, track sign/reject/terminate status
+
+**Platform**
+- Real-time chat and notifications (Socket.io, JWT-verified) + push (web + mobile)
+- Trust/Risk scoring computed from reviews, reports, and verification status
+- Admin panel (web-only — admins are platform operators, not app users)
 
 ---
 
 ## Development
 
 ```bash
-# Prisma
-cd backend
+# Prisma (from backend/)
 npx prisma studio        # visual DB browser
 npx prisma migrate dev   # run migrations
 npx prisma db seed       # seed test data
 
-# Type checking
-cd frontend && npm run type-check
+# Linting — must pass 0 errors before merging
+cd frontend && npm run lint
+cd backend && npm run lint
 ```
+
+Mobile has no lint script configured yet; sanity-check changes with
+`npx expo export --platform android` from `mobile/` (fails loudly on import/syntax errors).
 
 ---
 
 ## Deployment
 
-| Service  | Platform       |
-|----------|---------------|
-| Frontend | Vercel         |
-| Backend  | Railway/Render |
-| Database | Supabase       |
+| Service  | Platform          |
+|----------|--------------------|
+| Frontend | Railway            |
+| Backend  | Railway            |
+| Database | Railway Postgres   |
+| Mobile   | Expo / EAS (not yet published to app stores) |
 
-See `docs/deployment.md` for details.
+Auth is Supabase (JWT verification only) and image storage is Cloudinary —
+see `docs/deployment.md` for the full setup and environment checklist.
 
 ---
 
