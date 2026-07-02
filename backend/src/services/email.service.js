@@ -33,7 +33,7 @@ export function appointmentRejectedEmail({ tenantName, propertyTitle, ownerNote 
       <p>Hi ${tenantName},</p>
       <p>Unfortunately, the owner was unable to accept your visit request for <strong>${propertyTitle}</strong>.</p>
       ${ownerNote ? `<p>Reason: <em>${ownerNote}</em></p>` : ''}
-      <p>You can explore other properties on <a href="https://stayonmap.in">StayOnMap</a>.</p>
+      <p>You can explore other properties on <a href="https://stayonmap.com">StayOnMap</a>.</p>
     `,
   }
 }

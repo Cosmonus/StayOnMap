@@ -26,9 +26,9 @@ export const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || null,
   resendApiKey: process.env.RESEND_API_KEY || null,
-  resendFrom: process.env.RESEND_FROM_EMAIL || 'StayOnMap <noreply@stayonmap.in>',
+  resendFrom: process.env.RESEND_FROM_EMAIL || 'StayOnMap <noreply@stayonmap.com>',
   vapidPublicKey:  process.env.VAPID_PUBLIC_KEY  || null,
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || null,
-  vapidSubject:    process.env.VAPID_SUBJECT     || 'mailto:hello@stayonmap.in',
+  vapidSubject:    process.env.VAPID_SUBJECT     || 'mailto:hello@stayonmap.com',
   googleMapsKey:   process.env.GOOGLE_MAPS_KEY   || null,
 }
