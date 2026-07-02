@@ -65,6 +65,13 @@ export async function togglePropertyStatus(req, res, next) {
   } catch (err) { next(err) }
 }
 
+export async function getStats(req, res, next) {
+  try {
+    const stats = await service.getPublicStats()
+    ok(res, stats)
+  } catch (err) { next(err) }
+}
+
 export async function getAmenities(req, res, next) {
   try {
     const amenities = await service.getAllAmenities()

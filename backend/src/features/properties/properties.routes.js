@@ -15,6 +15,7 @@ const router = Router()
 // Public (optionalAuth so visibility filtering can check login state)
 router.get('/',          optionalAuth, controller.listProperties)
 router.get('/pins',      optionalAuth, controller.getPins)
+router.get('/stats',     controller.getStats)
 router.get('/amenities', controller.getAmenities)
 
 // Owner-protected (must be before /:id to prevent 'mine' being matched as an id)
