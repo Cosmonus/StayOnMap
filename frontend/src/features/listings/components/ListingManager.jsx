@@ -3,7 +3,7 @@ import { propertyService } from '@services/property.service'
 import { formatRent } from '@utils/format'
 import PropertyStatusPill from '@components/common/PropertyStatusPill'
 
-function ListingCard({ property, onViewDetails }) {
+function ListingCard({ property, onViewDetails, onOfferLease }) {
   const images = property.images ?? []
 
   return (
@@ -36,22 +36,30 @@ function ListingCard({ property, onViewDetails }) {
         )}
       </div>
 
-      <div className="border-t border-slate-100 px-4 py-2.5">
+      <div className="border-t border-slate-100 px-4 py-2.5 flex gap-2">
         <button
           onClick={() => onViewDetails(property.id)}
-          className="w-full py-1.5 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors flex items-center justify-center gap-1.5"
+          className="flex-1 py-1.5 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors flex items-center justify-center gap-1.5"
         >
           View details
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 18l6-6-6-6" />
           </svg>
         </button>
+        {property.status === 'ACTIVE' && (
+          <button
+            onClick={() => onOfferLease(property)}
+            className="flex-1 py-1.5 text-xs font-bold text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-xl transition-colors"
+          >
+            Offer lease
+          </button>
+        )}
       </div>
     </div>
   )
 }
 
-export default function ListingManager({ onAdd, onViewDetails }) {
+export default function ListingManager({ onAdd, onViewDetails, onOfferLease }) {
   const { data: listings = [], isLoading } = useQuery({
     queryKey: ['my-listings'],
     queryFn: () => propertyService.getMyListings().then(r => r.data),
@@ -80,7 +88,7 @@ export default function ListingManager({ onAdd, onViewDetails }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
       {listings.map(p => (
-        <ListingCard key={p.id} property={p} onViewDetails={onViewDetails} />
+        <ListingCard key={p.id} property={p} onViewDetails={onViewDetails} onOfferLease={onOfferLease} />
       ))}
     </div>
   )

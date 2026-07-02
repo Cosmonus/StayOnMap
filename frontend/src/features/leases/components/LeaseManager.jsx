@@ -30,7 +30,7 @@ function formatDate(d) {
 }
 
 // ── Create lease form ────────────────────────────────────────────────────────
-function CreateLeaseModal({ propertyId, propertyTitle, isOpen, onClose }) {
+export function CreateLeaseModal({ propertyId, propertyTitle, isOpen, onClose }) {
   const qc = useQueryClient()
   const today = new Date().toISOString().slice(0, 10)
   const [form, setForm] = useState({
@@ -249,7 +249,6 @@ function LeaseCard({ lease, currentUserId, isOwner: userIsOwner }) {
 // ── Main ─────────────────────────────────────────────────────────────────────
 export default function LeaseManager() {
   const { user } = useAuth()
-  const [createFor, setCreateFor] = useState(null) // { propertyId, propertyTitle }
 
   const { data: profile } = useQuery({
     queryKey: ['me'],
@@ -317,15 +316,6 @@ export default function LeaseManager() {
               : 'Your owner will send a lease offer after your appointment is confirmed.'}
           </p>
         </div>
-      )}
-
-      {createFor && (
-        <CreateLeaseModal
-          propertyId={createFor.propertyId}
-          propertyTitle={createFor.propertyTitle}
-          isOpen
-          onClose={() => setCreateFor(null)}
-        />
       )}
     </div>
   )

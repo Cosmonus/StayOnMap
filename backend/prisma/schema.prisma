@@ -269,6 +269,7 @@ model User {
   tenantLeases      Lease[] @relation("TenantLeases")
   ownerLeases       Lease[] @relation("OwnerLeases")
   pushSubscriptions PushSubscription[]
+  expoPushTokens    ExpoPushToken[]
   ownerTrustScore   OwnerTrustScore?
 
   createdAt DateTime @default(now())
@@ -288,6 +289,19 @@ model PushSubscription {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Expo push tokens — mobile app (iOS/Android via Expo's push service), kept
+// separate from PushSubscription (browser Web Push, VAPID-keyed) since the
+// two delivery mechanisms use unrelated credential shapes.
+model ExpoPushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@index([userId])

@@ -1,12 +1,14 @@
+// Matches the TrustBadge enum in backend/prisma/schema.prisma exactly —
+// keep in sync with backend/src/features/trust/trust.service.js badge logic.
 const BADGE_CONFIG = {
-  UNRATED:            { label: 'Unrated',              bg: 'bg-slate-100',   text: 'text-slate-600',   dot: 'bg-slate-400'   },
-  TRUSTED:            { label: 'Trusted',              bg: 'bg-brand-100',   text: 'text-brand-800',   dot: 'bg-brand-500'   },
-  WELL_REVIEWED:      { label: 'Well Reviewed',        bg: 'bg-cyan-100',    text: 'text-cyan-800',    dot: 'bg-cyan-500'    },
-  HIGHLY_TRUSTED:     { label: 'Highly Trusted',       bg: 'bg-green-100',   text: 'text-green-800',   dot: 'bg-green-500'   },
-  COMMUNITY_FAVOURITE:{ label: 'Community Favourite',  bg: 'bg-emerald-100', text: 'text-emerald-800', dot: 'bg-emerald-500' },
-  VERIFIED_OWNER:     { label: 'Verified Owner',       bg: 'bg-brand-50',    text: 'text-brand-700',   dot: 'bg-brand-600'   },
-  UNDER_REVIEW:       { label: 'Under Review',         bg: 'bg-yellow-100',  text: 'text-yellow-800',  dot: 'bg-yellow-500'  },
-  FLAGGED:            { label: 'Flagged',              bg: 'bg-red-100',     text: 'text-red-800',     dot: 'bg-red-500'     },
+  VERIFIED_OWNER:        { label: 'Verified Owner',        bg: 'bg-brand-50',    text: 'text-brand-700',   dot: 'bg-brand-600'   },
+  COMMUNITY_TRUSTED:     { label: 'Community Trusted',     bg: 'bg-brand-100',   text: 'text-brand-800',   dot: 'bg-brand-500'   },
+  HIGHLY_RECOMMENDED:    { label: 'Highly Recommended',    bg: 'bg-green-100',   text: 'text-green-800',   dot: 'bg-green-500'   },
+  VERIFIED_NEIGHBORHOOD: { label: 'Verified Neighborhood', bg: 'bg-blue-100',    text: 'text-blue-800',    dot: 'bg-blue-500'    },
+  LOW_COMPLAINT:         { label: 'Low Complaint',         bg: 'bg-slate-100',   text: 'text-slate-600',   dot: 'bg-slate-400'   },
+  UNDER_REVIEW:          { label: 'Under Review',          bg: 'bg-yellow-100',  text: 'text-yellow-800',  dot: 'bg-yellow-500'  },
+  SUSPICIOUS:            { label: 'Suspicious',            bg: 'bg-red-100',     text: 'text-red-900',     dot: 'bg-red-600'     },
+  NEEDS_ATTENTION:       { label: 'Needs Attention',       bg: 'bg-red-100',     text: 'text-red-800',     dot: 'bg-red-500'     },
 }
 
 const SIZE_CLASSES = {
@@ -16,7 +18,6 @@ const SIZE_CLASSES = {
 }
 
 export default function TrustBadge({ badge, size = 'sm' }) {
-  if (!badge || badge === 'UNRATED') return null
   const cfg = BADGE_CONFIG[badge]
   if (!cfg) return null
   return (

@@ -7,6 +7,7 @@ import {
   verificationUpdateEmail,
 } from '../../services/email.service.js'
 import { sendPushToUser } from '../../services/push.service.js'
+import { sendExpoPushToUser } from '../../services/expoPush.service.js'
 
 const EMAIL_TYPES = new Set(['APPOINTMENT_ACCEPTED', 'APPOINTMENT_REJECTED', 'VERIFICATION_UPDATE'])
 const PUSH_TYPES  = new Set(['APPOINTMENT_ACCEPTED', 'APPOINTMENT_REJECTED', 'LEASE_OFFERED', 'LEASE_SIGNED', 'LEASE_REJECTED', 'MESSAGE'])
@@ -17,6 +18,7 @@ export async function notifyUser(userId, { type, title, body, referenceId, refer
 
   if (PUSH_TYPES.has(type)) {
     sendPushToUser(userId, { title, body, url: '/user?tab=notifications' }).catch(() => {})
+    sendExpoPushToUser(userId, { title, body, data: { referenceId, referenceType } }).catch(() => {})
   }
 
   if (EMAIL_TYPES.has(type) && emailMeta) {

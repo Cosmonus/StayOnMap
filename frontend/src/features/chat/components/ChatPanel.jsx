@@ -576,7 +576,7 @@ export default function ChatPanel() {
 
   useEffect(() => {
     if (!user?.id) return
-    connectSocket(user.id)
+    connectSocket()
     const socket = getSocket()
     if (!socket) return
     function onOnline({ userId }) { setOnlineUsers(prev => new Set([...prev, userId])) }
