@@ -81,14 +81,18 @@ export async function getPropertiesByOwner(ownerId) {
   })
 }
 
-const ALLOWED_CITIES = ['Bengaluru', 'Chennai']
+const ALLOWED_CITIES = ['Bengaluru', 'Chennai', 'Hyderabad', 'Delhi']
+
+function assertAllowedCity(city) {
+  if (!ALLOWED_CITIES.includes(city)) {
+    throw Object.assign(new Error(`Listings are only available in ${ALLOWED_CITIES.join(', ')} right now — more cities opening soon`), { statusCode: 403 })
+  }
+}
 
 export async function createProperty(ownerId, data) {
   const { amenityIds = [], images = [], rules, availableFrom, type, ...propertyData } = data
 
-  if (!ALLOWED_CITIES.includes(data.city)) {
-    throw Object.assign(new Error('Listings are only available in Bengaluru and Chennai'), { statusCode: 403 })
-  }
+  assertAllowedCity(data.city)
 
   const property = await prisma.$transaction(async (tx) => {
     return tx.property.create({
@@ -116,6 +120,8 @@ export async function createProperty(ownerId, data) {
 
 export async function updateProperty(id, ownerId, data) {
   const { amenityIds, images, rules, availableFrom, ...propertyData } = data
+
+  if (propertyData.city !== undefined) assertAllowedCity(propertyData.city)
 
   return prisma.$transaction(async (tx) => {
     const existing = await tx.property.findUnique({ where: { id, ownerId } })
@@ -188,6 +194,28 @@ function applyVisibilityFilter(where, userId) {
     // Non-logged-in visitor sees only PUBLIC
     where.owner = { ...where.owner, listingVisibility: 'PUBLIC' }
   }
+}
+
+export async function getPublicStats() {
+  const cacheKey = 'stats:public'
+  const cached = await cacheGet(cacheKey)
+  if (cached) return cached
+
+  const [totalActive, byCityRaw, ownerGroups] = await Promise.all([
+    prisma.property.count({ where: { status: 'ACTIVE' } }),
+    prisma.property.groupBy({ by: ['city'], where: { status: 'ACTIVE' }, _count: { _all: true } }),
+    prisma.property.groupBy({ by: ['ownerId'], where: { status: 'ACTIVE' } }),
+  ])
+
+  const stats = {
+    totalActive,
+    activeOwners: ownerGroups.length,
+    cities: ALLOWED_CITIES.length,
+    byCity: Object.fromEntries(byCityRaw.map((r) => [r.city, r._count._all])),
+  }
+
+  await cacheSet(cacheKey, stats, 300)
+  return stats
 }
 
 export async function getAllAmenities() {
