@@ -45,7 +45,7 @@ export default function LoginPage() {
   const [roles, setRoles]       = useState(['TENANT'])
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
-  const { totalActive, cities } = usePlatformStats()
+  const { totalActive, cities, isLoading } = usePlatformStats()
 
   const quote = QUOTES[Math.floor(Date.now() / 86400000) % QUOTES.length]
 
@@ -99,13 +99,13 @@ export default function LoginPage() {
         <div className="relative z-10">
           <Link to="/" className="no-underline mb-12 block">
             <span className="font-display font-bold text-xl tracking-tight text-white">
-              Stay<span style={{ color: '#12a374' }}>OnMap</span>
+              Stay<span className="text-brand-500">OnMap</span>
             </span>
           </Link>
 
           <h1 className="text-white font-bold text-4xl leading-tight mb-4">
             Find your home.<br />
-            <span style={{ color: '#12a374' }}>No broker.<br />No fee.</span>
+            <span className="text-brand-500">No broker.<br />No fee.</span>
           </h1>
           <p className="text-base leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
             Connect directly with owners across {CITY_LIST_LABEL}.
@@ -122,9 +122,13 @@ export default function LoginPage() {
           </div>
 
           <div className="flex gap-8">
-            {[[`${totalActive}`, 'Verified listings'], ['₹0', 'Brokerage ever'], [`${cities}`, 'Cities covered']].map(([val, lbl]) => (
+            {[[`${totalActive}`, 'Verified listings'], ['₹0', 'Brokerage ever'], [`${cities}`, 'Cities covered']].map(([val, lbl], i) => (
               <div key={lbl}>
-                <div className="text-white font-bold text-xl">{val}</div>
+                {isLoading && i !== 1 ? (
+                  <div className="h-6 w-8 rounded bg-white/10 animate-pulse" />
+                ) : (
+                  <div className="text-white font-bold text-xl">{val}</div>
+                )}
                 <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{lbl}</div>
               </div>
             ))}

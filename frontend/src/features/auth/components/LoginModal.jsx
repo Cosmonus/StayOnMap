@@ -41,7 +41,7 @@ export default function LoginModal({ isOpen, onClose }) {
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
   const [resetSent, setResetSent] = useState(false)
-  const { totalActive, cities } = usePlatformStats()
+  const { totalActive, cities, isLoading: statsLoading } = usePlatformStats()
 
   const quote = QUOTES[Math.floor(Date.now() / 86400000) % QUOTES.length]
 
@@ -118,13 +118,13 @@ export default function LoginModal({ isOpen, onClose }) {
           <div className="relative z-10">
             <div className="mb-8">
               <span className="font-bold text-xl tracking-tight text-white">
-                Stay<span style={{ color: '#12a374' }}>OnMap</span>
+                Stay<span className="text-brand-500">OnMap</span>
               </span>
             </div>
 
             <h2 className="text-white font-bold text-2xl leading-snug mb-3">
               Find your home.<br />
-              <span style={{ color: '#12a374' }}>No broker. No fee.</span>
+              <span className="text-brand-500">No broker. No fee.</span>
             </h2>
             <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
               Connect directly with owners across {CITY_LIST_LABEL}.
@@ -142,9 +142,13 @@ export default function LoginModal({ isOpen, onClose }) {
 
             {/* Mini stats */}
             <div className="flex gap-4">
-              {[[`${totalActive}`, 'Listings'], ['₹0', 'Brokerage'], [`${cities}`, 'Cities']].map(([val, lbl]) => (
+              {[[`${totalActive}`, 'Listings'], ['₹0', 'Brokerage'], [`${cities}`, 'Cities']].map(([val, lbl], i) => (
                 <div key={lbl}>
-                  <div className="text-white font-bold text-base">{val}</div>
+                  {statsLoading && i !== 1 ? (
+                    <div className="h-5 w-6 rounded bg-white/10 animate-pulse" />
+                  ) : (
+                    <div className="text-white font-bold text-base">{val}</div>
+                  )}
                   <div className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{lbl}</div>
                 </div>
               ))}

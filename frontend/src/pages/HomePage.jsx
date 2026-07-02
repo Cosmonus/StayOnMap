@@ -275,7 +275,7 @@ function BrowseByType() {
    VALUE PROP + STATS
    ================================================================ */
 function ValuePropSection() {
-  const { totalActive, activeOwners } = usePlatformStats()
+  const { totalActive, activeOwners, isLoading } = usePlatformStats()
 
   return (
     <section className="bg-slate-50 border-y border-slate-100">
@@ -313,7 +313,7 @@ function ValuePropSection() {
                 <p className="text-sm text-white/70 mt-2">live rentals on the map right now</p>
               </div>
               <div className="relative z-10 flex items-center mt-6">
-                <span className="text-xs text-white/60">Listed directly by {activeOwners} owners — zero brokers</span>
+                <span className="text-xs text-white/60">{isLoading ? 'Zero brokers, always' : `Listed directly by ${activeOwners} owners — zero brokers`}</span>
               </div>
             </div>
           </Reveal>
@@ -453,7 +453,7 @@ const CITY_IMAGE = {
 
 function CityShowcase() {
   const [activeCity, setActiveCity] = useState('')
-  const { byCity } = usePlatformStats()
+  const { byCity, isLoading } = usePlatformStats()
   const filteredCities = activeCity ? CITIES.filter(c => c.name === activeCity) : CITIES
 
   return (
@@ -509,7 +509,11 @@ function CityShowcase() {
                   <p className="text-xs text-white/80">{city.state}</p>
                 </div>
                 <div className="absolute bottom-3 right-4 z-20 bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg">
-                  <p className="text-sm font-bold text-slate-900">{byCity[city.name] ?? 0}</p>
+                  {isLoading ? (
+                    <div className="h-4 w-5 rounded bg-slate-200 animate-pulse" />
+                  ) : (
+                    <p className="text-sm font-bold text-slate-900">{byCity[city.name] ?? 0}</p>
+                  )}
                   <p className="text-[10px] text-slate-500">listings</p>
                 </div>
               </div>
@@ -615,11 +619,14 @@ function OwnerCTA() {
    FAQ
    ================================================================ */
 function FAQSection() {
-  const { totalActive } = usePlatformStats()
+  const { totalActive, isLoading } = usePlatformStats()
+  const citiesAnswer = isLoading
+    ? `We're currently live in ${CITY_LIST_LABEL}. We're opening more cities soon — sign up to get notified when we launch in yours.`
+    : `We're currently live in ${CITY_LIST_LABEL} with ${totalActive} verified listings. We're opening more cities soon — sign up to get notified when we launch in yours.`
   const faqs = [
     { q: 'Is StayOnMap really free for tenants?', a: 'Yes — completely. We don\'t charge tenants any brokerage, service fee, or registration cost. You browse, contact the owner, and move in without paying anyone a commission.' },
     { q: 'How do you verify listings?', a: 'Every listing goes through a manual review. We check the owner\'s identity, verify photos match the property, confirm the location pin, and flag anything suspicious. Listings that fail verification are rejected.' },
-    { q: 'What cities does StayOnMap cover?', a: `We're currently live in ${CITY_LIST_LABEL} with ${totalActive} verified listings. We're opening more cities soon — sign up to get notified when we launch in yours.` },
+    { q: 'What cities does StayOnMap cover?', a: citiesAnswer },
     { q: 'How is this different from other rental platforms?', a: 'Most platforms mix broker and owner listings and charge tenants for "premium" access. StayOnMap is owner-only, map-first, and completely free for tenants. Every listing is pinned on a live map so you can judge the commute before you call.' },
     { q: 'I\'m an owner — how do I list my property?', a: 'Sign up, click "Add Listing" from your dashboard, fill in the details and upload photos. Your listing goes through a quick verification and appears on the map. Listing is free, with no limit on how many properties you can add.' },
   ]
@@ -782,7 +789,7 @@ function AppBanner() {
    CTA BANNER
    ================================================================ */
 function CTABanner() {
-  const { totalActive } = usePlatformStats()
+  const { totalActive, isLoading } = usePlatformStats()
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 xl:py-40">
       <Reveal>
@@ -799,7 +806,7 @@ function CTABanner() {
               Ready to find your next home?
             </h2>
             <p className="text-sm sm:text-base text-slate-400 max-w-lg mx-auto mb-8">
-              {totalActive} verified rentals. Zero brokerage. Map-first search in {CITY_LIST_LABEL}.
+              {isLoading ? 'Zero brokerage.' : `${totalActive} verified rentals. Zero brokerage.`} Map-first search in {CITY_LIST_LABEL}.
             </p>
             <div className="flex items-center justify-center gap-3 flex-wrap">
               <Link to="/properties" className="inline-flex items-center gap-2 px-7 py-3.5 bg-white hover:bg-slate-100 text-[#111111] text-sm font-semibold rounded-xl transition-colors no-underline">
