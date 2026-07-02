@@ -235,6 +235,15 @@ export default function ContactPage() {
                     <p className="text-xs text-slate-400 leading-relaxed mb-4">
                       Cosmonus engineers intelligence. StayOnMap is that intelligence running in production — a broker-free rental platform for India.
                     </p>
+                    <a
+                      href="https://www.cosmonus.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-colors no-underline"
+                    >
+                      Visit Cosmonus
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7M7 7h10v10"/></svg>
+                    </a>
                   </div>
                 </div>
 

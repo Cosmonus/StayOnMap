@@ -143,8 +143,7 @@ function HeroSection() {
         <LiveBadge />
 
         <h1 className="font-display font-bold text-4xl sm:text-5xl text-slate-900 leading-tight tracking-tight mb-4">
-          Scored by intelligence.<br />
-          <span className="text-brand-600">Not guesswork.</span>
+          Rent with <span className="text-brand-600">intelligence</span>.
         </h1>
 
         <p className="text-sm sm:text-base text-slate-500 leading-relaxed mb-7 max-w-xl mx-auto">
