@@ -1,18 +1,21 @@
 ﻿import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { CITY_LIST_LABEL, CITIES } from '@/config/cities'
+import { usePlatformStats } from '@hooks/usePlatformStats'
 
 const SEEN_KEY = 'som_intro_seen'
-
-const STATS = [
-  { icon: '🏠', text: '6,000+', sub: 'verified rentals across 3 cities' },
-  { icon: '₹0', text: 'Zero',   sub: 'brokerage — free for tenants, always' },
-  { icon: '✓',  text: '100%',   sub: 'direct owner listings, no middlemen' },
-]
 
 export default function IntroPopup() {
   const alreadySeen = typeof window !== 'undefined' && localStorage.getItem(SEEN_KEY)
   const [visible, setVisible] = useState(!alreadySeen)
   const navigate = useNavigate()
+  const { totalActive } = usePlatformStats()
+
+  const stats = [
+    { icon: '🏠', text: `${totalActive}`, sub: `verified rentals across ${CITIES.length} cities` },
+    { icon: '₹0', text: 'Zero',   sub: 'brokerage — free for tenants, always' },
+    { icon: '✓',  text: '100%',   sub: 'direct owner listings, no middlemen' },
+  ]
 
   function dismiss() {
     localStorage.setItem(SEEN_KEY, '1')
@@ -62,7 +65,7 @@ export default function IntroPopup() {
           <span className="text-brand-400">No broker. No fee.</span>
         </h2>
         <p className="text-sm leading-relaxed mb-5" style={{ color: 'rgba(255,255,255,0.5)' }}>
-          Direct from owners in Bengaluru, Chennai &amp; Hyderabad. Real listings, real prices.
+          Direct from owners in {CITY_LIST_LABEL}. Real listings, real prices.
         </p>
 
         {/* Stats */}
@@ -70,7 +73,7 @@ export default function IntroPopup() {
           className="rounded-2xl p-4 mb-5 flex flex-col gap-3"
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
         >
-          {STATS.map(({ icon, text, sub }) => (
+          {stats.map(({ icon, text, sub }) => (
             <div key={sub} className="flex items-center gap-3">
               <span className="text-base leading-none w-5 text-center">{icon}</span>
               <span className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
@@ -93,7 +96,7 @@ export default function IntroPopup() {
         <div className="flex gap-2">
           <button
             onClick={() => {
-              const text = `🏠 Found this! StayOnMap — rent directly from owners in Bengaluru, Chennai & Hyderabad. No broker. No commission. Check it out 👉 ${window.location.origin}`
+              const text = `🏠 Found this! StayOnMap — rent directly from owners in ${CITY_LIST_LABEL}. No broker. No commission. Check it out 👉 ${window.location.origin}`
               window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
             }}
             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold text-white bg-[#25D366] hover:bg-[#1ebe5d] transition-colors"

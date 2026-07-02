@@ -5,6 +5,7 @@ import { toast } from '@components/common/Toaster'
 import Toggle from '@components/common/Toggle'
 import ImageUploader from './ImageUploader'
 import LocationPicker from './LocationPicker'
+import { CITIES, CITY_NAMES, CITY_LIST_LABEL } from '@/config/cities'
 
 const STEPS = ['Basic Info', 'Location', 'Photos', 'Amenities & Rules']
 
@@ -137,19 +138,18 @@ function StepLocation({ data, set, errors }) {
         <input value={data.address} onChange={(e) => set('address', e.target.value)} placeholder="5th Cross, Koramangala" className="input" />
       </Field>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="City *" error={errors.city}>
+        <Field label="City *" error={errors.city} hint={`We're live in ${CITY_LIST_LABEL} — more cities opening soon`}>
           <select
             value={data.city}
             onChange={(e) => {
               const city = e.target.value
               set('city', city)
-              set('state', city === 'Bengaluru' ? 'Karnataka' : city === 'Chennai' ? 'Tamil Nadu' : '')
+              set('state', CITIES.find((c) => c.name === city)?.state ?? '')
             }}
             className="input"
           >
             <option value="">Select city</option>
-            <option value="Bengaluru">Bengaluru</option>
-            <option value="Chennai">Chennai</option>
+            {CITY_NAMES.map((name) => <option key={name} value={name}>{name}</option>)}
           </select>
         </Field>
         <Field label="State *" error={errors.state}>
@@ -281,7 +281,7 @@ function validate(step, data) {
   }
   if (step === 1) {
     if (data.address.trim().length < 5)                          e.address = 'Min 5 characters'
-    if (!['Bengaluru', 'Chennai'].includes(data.city))          e.city    = 'Select Bengaluru or Chennai'
+    if (!CITY_NAMES.includes(data.city))                        e.city    = `Select a city — we're live in ${CITY_LIST_LABEL}`
     if (data.state.trim().length < 2)                           e.state   = 'Required'
     if (!/^\d{6}$/.test(data.pincode))   e.pincode = 'Must be 6 digits'
     if (data.lat == null)                e.lat     = 'Pin location on the map'

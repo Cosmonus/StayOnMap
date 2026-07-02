@@ -1,4 +1,5 @@
 ﻿import { Link } from 'react-router-dom'
+import { CITY_LIST_LABEL } from '@/config/cities'
 
 const LINKS = {
   Explore: [
@@ -6,6 +7,7 @@ const LINKS = {
     { label: 'Properties', to: '/properties' },
     { label: 'Rules',      to: '/rules' },
     { label: 'About',      to: '/about' },
+    { label: 'Intelligence', to: '/intelligence' },
     { label: 'Contact',    to: '/contact' },
   ],
   'For Owners': [
@@ -69,7 +71,7 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm text-slate-400 leading-relaxed mb-6 max-w-xs">
-              Owner-direct rentals in Bengaluru, Chennai &amp; Hyderabad. No broker. No commission. Just a home and the person who owns it.
+              Owner-direct rentals in {CITY_LIST_LABEL}. No broker. No commission. Just a home and the person who owns it.
             </p>
 
             {/* Socials */}

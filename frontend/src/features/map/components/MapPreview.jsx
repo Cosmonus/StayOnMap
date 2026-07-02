@@ -1,13 +1,15 @@
 import { useEffect, useRef } from 'react'
 import { googleMapsReady, createHtmlMarker } from '@lib/googleMaps'
 import { CITIES } from '@/config/cities'
+import { usePlatformStats } from '@hooks/usePlatformStats'
 
 export default function MapPreview() {
   const containerRef = useRef(null)
+  const { byCity, totalActive, isLoading } = usePlatformStats()
 
   useEffect(() => {
     const el = containerRef.current
-    if (!el) return
+    if (!el || isLoading) return
 
     let cancelled = false
 
@@ -29,7 +31,8 @@ export default function MapPreview() {
       map.fitBounds(bounds, 100)
 
       // City label pills
-      CITIES.forEach(({ name, lat, lng, listingCount }) => {
+      CITIES.forEach(({ name, lat, lng }) => {
+        const count = byCity[name] ?? 0
         const pill = document.createElement('div')
         pill.style.cssText = `
           background: white;
@@ -49,7 +52,7 @@ export default function MapPreview() {
           </div>
           <div>
             <div style="font-size:10px;font-weight:600;color:#64748b;line-height:1;">${name}</div>
-            <div style="font-size:13px;font-weight:800;color:#111111;line-height:1.4;">${listingCount} <span style="font-size:10px;font-weight:500;color:#f4511e;">prop.</span></div>
+            <div style="font-size:13px;font-weight:800;color:#111111;line-height:1.4;">${count} <span style="font-size:10px;font-weight:500;color:#f4511e;">prop.</span></div>
           </div>
         `
         createHtmlMarker({ element: pill, lat, lng, map })
@@ -57,7 +60,7 @@ export default function MapPreview() {
     })
 
     return () => { cancelled = true }
-  }, [])
+  }, [isLoading, byCity])
 
   return (
     <div className="relative w-full h-96 sm:h-[480px] md:h-[680px]">
@@ -74,7 +77,7 @@ export default function MapPreview() {
       <div className="absolute bottom-3 right-3 md:bottom-5 md:right-5 z-10 pointer-events-none">
         <div className="bg-[#111111] text-white rounded-xl px-4 py-2.5 shadow-lg flex flex-wrap items-center gap-x-4 gap-y-1 max-w-[calc(100vw-1.5rem)]">
           <span className="text-xs text-slate-400 font-medium">Total across all cities</span>
-          <span className="text-sm font-bold text-brand-400">6,000+ rentals</span>
+          <span className="text-sm font-bold text-brand-400">{totalActive} rentals</span>
         </div>
       </div>
     </div>

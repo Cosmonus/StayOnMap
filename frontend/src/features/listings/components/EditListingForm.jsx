@@ -5,6 +5,7 @@ import { toast } from '@components/common/Toaster'
 import Toggle from '@components/common/Toggle'
 import ImageUploader from './ImageUploader'
 import LocationPicker from './LocationPicker'
+import { CITIES, CITY_NAMES, CITY_LIST_LABEL } from '@/config/cities'
 
 const PROPERTY_TYPES  = ['APARTMENT', 'HOUSE', 'VILLA', 'PG', 'INDEPENDENT_HOUSE', 'COMMERCIAL']
 const FURNISHED_OPTS  = ['UNFURNISHED', 'SEMI', 'FULLY']
@@ -92,7 +93,7 @@ function validate(data) {
   if (data.maintenance === '' || data.maintenance === undefined) e.maintenance = 'Required — enter 0 if none'
   else if (Number(data.maintenance) < 0) e.maintenance = 'Must be 0 or more'
   if (data.address.trim().length < 5)                     e.address = 'Min 5 characters'
-  if (data.city.trim().length < 2)                        e.city    = 'Required'
+  if (!CITY_NAMES.includes(data.city))                    e.city    = `Select a city — we're live in ${CITY_LIST_LABEL}`
   if (data.state.trim().length < 2)                       e.state   = 'Required'
   if (!/^\d{6}$/.test(data.pincode))                      e.pincode = 'Must be 6 digits'
   if (data.floor !== '' && data.totalFloors !== '' && Number(data.floor) > Number(data.totalFloors))
@@ -274,11 +275,22 @@ export default function EditListingForm({ property, onSuccess }) {
             <input value={data.address} onChange={e => set('address', e.target.value)} placeholder="5th Cross, Koramangala" className="input" />
           </Field>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="City *" error={errors.city}>
-              <input value={data.city} onChange={e => set('city', e.target.value)} placeholder="Bengaluru" className="input" />
+            <Field label="City *" error={errors.city} hint={`We're live in ${CITY_LIST_LABEL} — more cities opening soon`}>
+              <select
+                value={data.city}
+                onChange={(e) => {
+                  const city = e.target.value
+                  set('city', city)
+                  set('state', CITIES.find((c) => c.name === city)?.state ?? '')
+                }}
+                className="input"
+              >
+                <option value="">Select city</option>
+                {CITY_NAMES.map((name) => <option key={name} value={name}>{name}</option>)}
+              </select>
             </Field>
             <Field label="State *" error={errors.state}>
-              <input value={data.state} onChange={e => set('state', e.target.value)} placeholder="Karnataka" className="input" />
+              <input value={data.state} readOnly placeholder="Auto-filled" className="input bg-slate-50 cursor-not-allowed" />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-4">

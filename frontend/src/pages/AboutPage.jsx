@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { CITY_LIST_LABEL, CITIES } from '@/config/cities'
-import { currencySymbol } from '@utils/format'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
+import { usePlatformStats } from '@hooks/usePlatformStats'
 
 /* ─── Scroll reveal ─────────────────────────────────── */
 function useScrollReveal(threshold = 0.15) {
@@ -68,15 +68,15 @@ const FEATURES = [
   { icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z', label: 'Invoicing', desc: 'Send professional rent invoices to tenants with one click. No spreadsheets.' },
 ]
 
-const MILESTONES = [
-  { label: 'Verified Listings', value: 6000, suffix: '+' },
-  { label: 'Happy Tenants', value: 4200, suffix: '+' },
-  { label: 'Active Owners', value: 1200, suffix: '+' },
-  { label: 'Brokerage Saved', value: 0, prefix: true },
-]
-
 /* ================================================================ */
 export default function AboutPage() {
+  const { totalActive, activeOwners, cities, byCity } = usePlatformStats()
+  const milestones = [
+    { label: 'Live Listings', value: totalActive },
+    { label: 'Active Owners', value: activeOwners },
+    { label: 'Cities Live In', value: cities },
+  ]
+
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
       <SEOMeta
@@ -117,12 +117,12 @@ export default function AboutPage() {
       {/* ── STATS BAR ── */}
       <section className="border-y border-slate-100 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {MILESTONES.map(({ label, value, suffix, prefix }, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+            {milestones.map(({ label, value }, i) => (
               <Reveal key={label} delay={i * 0.08}>
                 <div className="text-center">
                   <p className="font-serif font-bold text-4xl md:text-5xl text-slate-900 leading-none mb-2">
-                    {prefix ? <>{currencySymbol}0</> : <CountUp target={value} suffix={suffix} />}
+                    <CountUp target={value} />
                   </p>
                   <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">{label}</p>
                 </div>
@@ -267,7 +267,7 @@ export default function AboutPage() {
           </div>
         </Reveal>
 
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {CITIES.map((city, i) => (
             <Reveal key={city.name} delay={i * 0.08}>
               <Link to={`/properties?city=${city.name}`} className="no-underline block">
@@ -277,7 +277,7 @@ export default function AboutPage() {
                   </div>
                   <h3 className="text-lg font-bold text-slate-900 mb-1">{city.name}</h3>
                   <p className="text-xs text-slate-400 mb-3">{city.state}</p>
-                  <p className="text-sm font-bold text-brand-600">{city.listingCount} listings</p>
+                  <p className="text-sm font-bold text-brand-600">{byCity[city.name] ?? 0} listings</p>
                   <div className="flex flex-wrap justify-center gap-1.5 mt-3">
                     {city.areas.slice(0, 4).map(area => (
                       <span key={area} className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-50 text-slate-500 border border-slate-100">{area}</span>

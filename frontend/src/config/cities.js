@@ -7,7 +7,6 @@ export const CITIES = [
     state:        'Karnataka',
     lat:          12.9716,
     lng:          77.5946,
-    listingCount: '2,400+',
     areas: [
       'Koramangala', 'Indiranagar', 'HSR Layout', 'Whitefield',
       'BTM Layout', 'JP Nagar', 'Marathahalli', 'Electronic City',
@@ -18,7 +17,6 @@ export const CITIES = [
     state:        'Tamil Nadu',
     lat:          13.0827,
     lng:          80.2707,
-    listingCount: '2,100+',
     areas: [
       'Anna Nagar', 'Adyar', 'T. Nagar', 'Velachery',
       'OMR', 'ECR', 'Porur', 'Guindy',
@@ -29,7 +27,6 @@ export const CITIES = [
     state:        'Telangana',
     lat:          17.3850,
     lng:          78.4867,
-    listingCount: '1,500+',
     areas: [
       'Banjara Hills', 'Jubilee Hills', 'Gachibowli', 'HITEC City',
       'Madhapur', 'Kondapur', 'Kukatpally', 'Begumpet',
@@ -40,7 +37,6 @@ export const CITIES = [
     state:        'Delhi NCR',
     lat:          28.6139,
     lng:          77.2090,
-    listingCount: '1,800+',
     areas: [
       'Dwarka', 'Rohini', 'Lajpat Nagar', 'Saket',
       'Vasant Kunj', 'Karol Bagh', 'Noida', 'Gurgaon',

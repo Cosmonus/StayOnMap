@@ -10,6 +10,7 @@ import HomePage           from '@pages/HomePage'
 const PropertiesPage    = lazy(() => import('@pages/PropertiesPage'))
 const PropertyPage      = lazy(() => import('@pages/PropertyPage'))
 const AboutPage         = lazy(() => import('@pages/AboutPage'))
+const IntelligencePage  = lazy(() => import('@pages/IntelligencePage'))
 const ContactPage       = lazy(() => import('@pages/ContactPage'))
 const RulesPage         = lazy(() => import('@pages/RulesPage'))
 const DashboardPage     = lazy(() => import('@pages/DashboardPage'))
@@ -39,6 +40,7 @@ export default function AppRoutes() {
           <Route path="/properties"   element={<PropertiesPage />} />
           <Route path="/property/:id" element={<PropertyPage />} />
           <Route path="/about"        element={<AboutPage />} />
+          <Route path="/intelligence" element={<IntelligencePage />} />
           <Route path="/contact"      element={<ContactPage />} />
           <Route path="/rules"        element={<RulesPage />} />
           <Route path="/login"        element={<LoginPage />} />
