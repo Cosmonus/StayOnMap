@@ -30,6 +30,8 @@ export const propertyService = {
 
   getAmenities: () => api.get('/properties/amenities'),
 
+  getStats: () => api.get('/properties/stats'),
+
   toggleStatus: (id) => api.patch(`/properties/${id}/status`),
 
   publish: (id) => api.patch(`/properties/${id}/publish`),

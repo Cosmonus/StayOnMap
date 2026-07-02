@@ -10,6 +10,7 @@ import { propertyService } from '@services/property.service'
 import { CITIES, CITY_LIST_LABEL } from '@/config/cities'
 import { currencySymbol, formatCurrency } from '@utils/format'
 import { BRAND, canonical } from '@lib/seo'
+import { usePlatformStats } from '@hooks/usePlatformStats'
 
 /* ─── Hooks ─────────────────────────────────────────── */
 
@@ -107,27 +108,9 @@ const BUDGET_OPTIONS = [
   { value: '60000-999999',  label: `Above ${formatCurrency(60000)}`,                           icon: Icon.rupee },
 ]
 
-const FieldIcon = {
-  city:   <svg width="11" height="11" viewBox="0 0 24 24" fill="#3b6fe8"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>,
-  type:   <svg width="11" height="11" viewBox="0 0 24 24" fill="#64748b"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>,
-  budget: <svg width="11" height="11" viewBox="0 0 24 24" fill="#64748b"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>,
-}
-
 function FieldDivider() {
   return <div className="w-full h-px md:w-px md:h-12 bg-slate-100 shrink-0" />
 }
-
-/* ─── Activity messages for live pulse ───────────────── */
-const ACTIVITY_MESSAGES = [
-  { city: 'Bengaluru', action: 'searching for 2BHK in Koramangala' },
-  { city: 'Chennai', action: 'viewing a villa in Anna Nagar' },
-  { city: 'Hyderabad', action: 'booked a visit in Gachibowli' },
-  { city: 'Bengaluru', action: 'saved a PG in HSR Layout' },
-  { city: 'Chennai', action: 'contacted an owner in T. Nagar' },
-  { city: 'Hyderabad', action: 'searching apartments in Madhapur' },
-  { city: 'Bengaluru', action: 'viewing 3BHK in Whitefield' },
-  { city: 'Chennai', action: 'booked a visit in Velachery' },
-]
 
 /* ================================================================
    SECTION 1 — HERO  (compact, centered, search integrated)
@@ -157,23 +140,23 @@ function HeroSection() {
       </div>
 
       <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 text-center">
-        <LivePulse />
+        <LiveBadge />
 
         <h1 className="font-display font-bold text-4xl sm:text-5xl text-slate-900 leading-tight tracking-tight mb-4">
-          Find your place.<br />
-          <span className="text-brand-600">No brokers.</span>
+          Scored by intelligence.<br />
+          <span className="text-brand-600">Not guesswork.</span>
         </h1>
 
         <p className="text-sm sm:text-base text-slate-500 leading-relaxed mb-7 max-w-xl mx-auto">
-          Real homes from real owners — pinned live on the map across {CITY_LIST_LABEL}.
+          Every home on the live map carries a real-time TrustScore and passes through our fraud-detection engine — real owners, no brokers, across {CITY_LIST_LABEL}.
         </p>
 
         {/* ── Search bar ── */}
         <div className="bg-white rounded-2xl shadow-xl border border-slate-200 mb-5">
           <div className="flex flex-col sm:flex-row sm:items-stretch divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
-            <Dropdown label="City" fieldIcon={FieldIcon.city}   value={city}   onChange={setCity}   options={CITY_OPTIONS}   placeholder="Any city" />
-            <Dropdown label="Type" fieldIcon={FieldIcon.type}   value={type}   onChange={setType}   options={TYPE_OPTIONS}   placeholder="Any type" />
-            <Dropdown label="Budget" fieldIcon={FieldIcon.budget} value={budget} onChange={setBudget} options={BUDGET_OPTIONS} placeholder="Any budget" />
+            <Dropdown value={city}   onChange={setCity}   options={CITY_OPTIONS}   placeholder="Any city" />
+            <Dropdown value={type}   onChange={setType}   options={TYPE_OPTIONS}   placeholder="Any type" />
+            <Dropdown value={budget} onChange={setBudget} options={BUDGET_OPTIONS} placeholder="Any budget" />
             <button
               onClick={handleSearch}
               className="flex items-center justify-center gap-2 px-7 py-4 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-sm font-bold transition-colors rounded-b-2xl sm:rounded-bl-none sm:rounded-r-2xl shrink-0 whitespace-nowrap"
@@ -190,38 +173,23 @@ function HeroSection() {
 }
 
 /* ================================================================
-   LIVE ACTIVITY PULSE
+   LIVE BADGE — real counts only, never simulated activity
    ================================================================ */
-function LivePulse() {
-  const [msgIdx, setMsgIdx] = useState(0)
-  const [fade, setFade] = useState(true)
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setFade(false)
-      setTimeout(() => {
-        setMsgIdx(i => (i + 1) % ACTIVITY_MESSAGES.length)
-        setFade(true)
-      }, 300)
-    }, 3500)
-    return () => clearInterval(id)
-  }, [])
-
-  const msg = ACTIVITY_MESSAGES[msgIdx]
+function LiveBadge() {
+  const { totalActive, isLoading } = usePlatformStats()
 
   return (
-    <div className="inline-flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-full px-4 py-2 mb-6">
+    <Link to="/intelligence" className="inline-flex items-center gap-2 bg-slate-50 border border-slate-100 hover:border-slate-300 rounded-full px-4 py-2 mb-6 no-underline transition-colors">
       <span className="relative flex h-2 w-2">
         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
       </span>
-      <span
-        className="text-xs text-slate-500 transition-opacity duration-300"
-        style={{ opacity: fade ? 1 : 0 }}
-      >
-        Someone in <span className="font-semibold text-slate-700">{msg.city}</span> is {msg.action}
+      <span className="text-xs text-slate-500">
+        {isLoading ? 'Loading live listings…' : (
+          <><span className="font-semibold text-slate-700">{totalActive}</span> homes live on the map — scored by our intelligence engine</>
+        )}
       </span>
-    </div>
+    </Link>
   )
 }
 
@@ -230,10 +198,10 @@ function LivePulse() {
    ================================================================ */
 function TrustBadges() {
   const badges = [
-    { icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', label: 'Verified Owners', desc: 'Every listing checked' },
+    { icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', label: 'Live TrustScore', desc: 'Every listing scored in real time', to: '/intelligence' },
     { icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', label: 'Zero Brokerage', desc: 'Free for tenants' },
     { icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z', label: 'Map-First Search', desc: 'See homes on a live map' },
-    { icon: 'M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0z', label: '24h Support', desc: 'Help when you need it' },
+    { icon: 'M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0z', label: 'Fraud Detection', desc: 'AI agent flags risky listings', to: '/intelligence' },
   ]
 
   return (
@@ -241,17 +209,20 @@ function TrustBadges() {
       <Reveal>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-12 lg:py-16 xl:py-20">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-            {badges.map(({ icon, label, desc }) => (
-              <div key={label} className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-                  <svg className="w-5 h-5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={icon} /></svg>
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-900">{label}</p>
-                  <p className="text-xs text-slate-400">{desc}</p>
-                </div>
-              </div>
-            ))}
+            {badges.map(({ icon, label, desc, to }) => {
+              const Tag = to ? Link : 'div'
+              return (
+                <Tag key={label} {...(to ? { to, className: 'flex items-start gap-3 no-underline group' } : { className: 'flex items-start gap-3' })}>
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 group-hover:border-brand-300 transition-colors">
+                    <svg className="w-5 h-5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={icon} /></svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">{label}</p>
+                    <p className="text-xs text-slate-400">{desc}</p>
+                  </div>
+                </Tag>
+              )
+            })}
           </div>
         </div>
       </Reveal>
@@ -305,21 +276,24 @@ function BrowseByType() {
    VALUE PROP + STATS
    ================================================================ */
 function ValuePropSection() {
+  const { totalActive, activeOwners } = usePlatformStats()
+
   return (
     <section className="bg-slate-50 border-y border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 xl:py-40">
         <Reveal>
           <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center mb-14">
             <div>
+              <p className="text-xs font-bold text-brand-600 uppercase tracking-widest mb-3">Not just another listing site</p>
               <h2 className="font-display font-bold text-3xl md:text-4xl text-slate-900 leading-tight">
-                The honest way to rent a home — no middlemen, no surprises
+                An intelligence engine decides what you see — not a broker&apos;s word
               </h2>
             </div>
             <div>
               <p className="text-sm sm:text-base text-slate-500 leading-relaxed">
-                We built StayOnMap because renting in India shouldn&apos;t cost a month&apos;s salary in brokerage.
-                Every listing is posted by the actual owner, verified by our team, and pinned on a live map so you
-                can judge the neighbourhood before picking up the phone.
+                Every listing is posted by the actual owner, manually verified, and scored live by our TrustScore
+                engine and fraud-detection agent — the same judgment calls a good broker would make, run as software
+                on every home, every time, at a scale no person could match.
               </p>
             </div>
           </div>
@@ -335,18 +309,12 @@ function ValuePropSection() {
               {/* Content */}
               <div className="relative z-10">
                 <p className="font-serif font-bold text-5xl md:text-6xl text-white leading-none">
-                  <CountUp target={4200} suffix="+" />
+                  <CountUp target={totalActive} />
                 </p>
-                <p className="text-sm text-white/70 mt-2">tenants found a home via StayOnMap</p>
+                <p className="text-sm text-white/70 mt-2">live rentals on the map right now</p>
               </div>
               <div className="relative z-10 flex items-center mt-6">
-                {[...'ABCDE'].map((letter, i) => (
-                  <div key={i} className={`w-9 h-9 rounded-full border-2 border-white/20 flex items-center justify-center text-xs font-bold text-white ${i > 0 ? '-ml-2' : ''}`}
-                    style={{ background: ['#f4511e','#3b82f6','#10b981','#8b5cf6','#ec4899'][i] }}>
-                    {letter}
-                  </div>
-                ))}
-                <span className="ml-3 text-xs text-white/60">+4,200 happy tenants</span>
+                <span className="text-xs text-white/60">Listed directly by {activeOwners} owners — zero brokers</span>
               </div>
             </div>
           </Reveal>
@@ -486,6 +454,7 @@ const CITY_IMAGE = {
 
 function CityShowcase() {
   const [activeCity, setActiveCity] = useState('')
+  const { byCity } = usePlatformStats()
   const filteredCities = activeCity ? CITIES.filter(c => c.name === activeCity) : CITIES
 
   return (
@@ -541,7 +510,7 @@ function CityShowcase() {
                   <p className="text-xs text-white/80">{city.state}</p>
                 </div>
                 <div className="absolute bottom-3 right-4 z-20 bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg">
-                  <p className="text-sm font-bold text-slate-900">{city.listingCount}</p>
+                  <p className="text-sm font-bold text-slate-900">{byCity[city.name] ?? 0}</p>
                   <p className="text-[10px] text-slate-500">listings</p>
                 </div>
               </div>
@@ -568,59 +537,12 @@ function CityShowcase() {
 }
 
 /* ================================================================
-   TESTIMONIALS
-   ================================================================ */
-function TestimonialsSection() {
-  const testimonials = [
-    { quote: 'I found a 2BHK in Koramangala within three days — and saved Rs.18,000 in brokerage that I would have paid a middleman. The map made it so easy to check distance to my office.', name: 'Priya Sharma', role: 'Software Engineer, Bengaluru', initial: 'P' },
-    { quote: 'As an owner, I listed my flat and got five genuine inquiries in the first week. No spam calls from agents, no one asking for my listing to share on their portal. Just real tenants.', name: 'Rajesh Menon', role: 'Property Owner, Chennai', initial: 'R' },
-    { quote: 'Moving cities for a new job is stressful enough. StayOnMap let me shortlist homes from Hyderabad while still sitting in Delhi — the verified photos and map pins were incredibly helpful.', name: 'Aisha Khan', role: 'Marketing Manager, Hyderabad', initial: 'A' },
-  ]
-
-  const [idx, setIdx] = useState(0)
-  const t = testimonials[idx]
-
-  return (
-    <section className="bg-slate-50 border-y border-slate-100">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 xl:py-40">
-        <Reveal>
-          <div className="bg-white rounded-2xl border border-slate-100 p-8 md:p-12">
-            <blockquote className="text-lg md:text-xl text-slate-800 leading-relaxed mb-8 font-medium">
-              &ldquo;{t.quote}&rdquo;
-            </blockquote>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-[#111111] text-white flex items-center justify-center text-sm font-bold">
-                  {t.initial}
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-900">{t.name}</p>
-                  <p className="text-xs text-slate-400">{t.role}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400 font-medium mr-2">{String(idx + 1).padStart(2, '0')}/{String(testimonials.length).padStart(2, '0')}</span>
-                <button onClick={() => setIdx(i => (i - 1 + testimonials.length) % testimonials.length)} className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
-                  <svg className="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </button>
-                <button onClick={() => setIdx(i => (i + 1) % testimonials.length)} className="w-10 h-10 rounded-full bg-[#111111] flex items-center justify-center hover:bg-[#2a2a2a] transition-colors">
-                  <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  )
-}
-
-/* ================================================================
    OWNER CTA
    ================================================================ */
 function OwnerCTA() {
+  const { activeOwners, totalActive, cities } = usePlatformStats()
   const benefits = [
-    'List up to 3 properties for free',
+    'List unlimited properties for free',
     'Get verified badge & trust score',
     'Direct tenant inquiries — no agents',
     'Real-time analytics on your listing',
@@ -637,7 +559,7 @@ function OwnerCTA() {
               List your property, find tenants — no broker needed
             </h2>
             <p className="text-sm text-slate-400 leading-relaxed mb-8">
-              Join 1,200+ owners who list directly on StayOnMap. Reach genuine tenants, skip the middlemen, and keep 100% of your rental income.
+              {activeOwners > 0 ? `Join ${activeOwners} owners who list` : 'List'} directly on StayOnMap. Reach genuine tenants, skip the middlemen, and keep 100% of your rental income.
             </p>
             <ul className="space-y-3 mb-8">
               {benefits.map(b => (
@@ -662,21 +584,21 @@ function OwnerCTA() {
             <div className="grid grid-cols-2 gap-6">
               <div className="bg-white rounded-2xl p-6 border border-slate-100">
                 <p className="font-serif font-bold text-4xl text-slate-900 leading-none mb-1">
-                  <CountUp target={1200} suffix="+" />
+                  <CountUp target={activeOwners} />
                 </p>
                 <p className="text-xs text-slate-500">active owners</p>
               </div>
               <div className="bg-white rounded-2xl p-6 border border-slate-100">
                 <p className="font-serif font-bold text-4xl text-slate-900 leading-none mb-1">
-                  <CountUp target={5} suffix="x" />
+                  <CountUp target={totalActive} />
                 </p>
-                <p className="text-xs text-slate-500">faster than brokers</p>
+                <p className="text-xs text-slate-500">live listings</p>
               </div>
               <div className="bg-white rounded-2xl p-6 border border-slate-100">
                 <p className="font-serif font-bold text-4xl text-slate-900 leading-none mb-1">
-                  <CountUp target={24} suffix="h" />
+                  <CountUp target={cities} />
                 </p>
-                <p className="text-xs text-slate-500">listing goes live</p>
+                <p className="text-xs text-slate-500">cities live in</p>
               </div>
               <div className="bg-white rounded-2xl p-6 border border-slate-100">
                 <p className="font-serif font-bold text-4xl text-emerald-600 leading-none mb-1">{currencySymbol}0</p>
@@ -694,12 +616,13 @@ function OwnerCTA() {
    FAQ
    ================================================================ */
 function FAQSection() {
+  const { totalActive } = usePlatformStats()
   const faqs = [
     { q: 'Is StayOnMap really free for tenants?', a: 'Yes — completely. We don\'t charge tenants any brokerage, service fee, or registration cost. You browse, contact the owner, and move in without paying anyone a commission.' },
     { q: 'How do you verify listings?', a: 'Every listing goes through a manual review. We check the owner\'s identity, verify photos match the property, confirm the location pin, and flag anything suspicious. Listings that fail verification are rejected.' },
-    { q: 'What cities does StayOnMap cover?', a: `We're currently live in ${CITY_LIST_LABEL} with 6,000+ verified listings. We're expanding to more cities soon — sign up to get notified when we launch in yours.` },
+    { q: 'What cities does StayOnMap cover?', a: `We're currently live in ${CITY_LIST_LABEL} with ${totalActive} verified listings. We're opening more cities soon — sign up to get notified when we launch in yours.` },
     { q: 'How is this different from other rental platforms?', a: 'Most platforms mix broker and owner listings and charge tenants for "premium" access. StayOnMap is owner-only, map-first, and completely free for tenants. Every listing is pinned on a live map so you can judge the commute before you call.' },
-    { q: 'I\'m an owner — how do I list my property?', a: 'Sign up, click "Add Listing" from your dashboard, fill in the details and upload photos. Your listing goes through a quick verification and appears on the map within 24 hours. The free plan allows up to 3 listings.' },
+    { q: 'I\'m an owner — how do I list my property?', a: 'Sign up, click "Add Listing" from your dashboard, fill in the details and upload photos. Your listing goes through a quick verification and appears on the map. Listing is free, with no limit on how many properties you can add.' },
   ]
 
   const [openIdx, setOpenIdx] = useState(0)
@@ -761,7 +684,7 @@ function FAQSection() {
 function GuidesSection() {
   const guides = [
     { tag: 'For Tenants', title: 'How to Spot a Fake Rental Listing — and What StayOnMap Does About It', excerpt: 'Fake listings cost Indian renters crores every year. Here\'s how to protect yourself and why verified platforms matter.', color: 'bg-brand-600' },
-    { tag: 'Market Trends', title: 'Rental Prices in Bengaluru, Chennai & Hyderabad: 2026 Update', excerpt: 'We analyzed 6,000+ listings to break down average rents by city, area, and BHK. See where you get the best value.', color: 'bg-red-500' },
+    { tag: 'Market Trends', title: `Rental Prices in ${CITY_LIST_LABEL}: 2026 Update`, excerpt: 'A breakdown of average rents by city, area, and BHK — straight from live listing data. See where you get the best value.', color: 'bg-red-500' },
     { tag: 'For Owners', title: 'List Your Property & Get Genuine Tenants — Without Paying a Broker', excerpt: 'Why owner-direct platforms outperform traditional brokers for occupancy rate, tenant quality, and your bottom line.', color: 'bg-blue-500' },
   ]
 
@@ -860,6 +783,7 @@ function AppBanner() {
    CTA BANNER
    ================================================================ */
 function CTABanner() {
+  const { totalActive } = usePlatformStats()
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 xl:py-40">
       <Reveal>
@@ -876,7 +800,7 @@ function CTABanner() {
               Ready to find your next home?
             </h2>
             <p className="text-sm sm:text-base text-slate-400 max-w-lg mx-auto mb-8">
-              6,000+ verified rentals. Zero brokerage. Map-first search in {CITY_LIST_LABEL}.
+              {totalActive} verified rentals. Zero brokerage. Map-first search in {CITY_LIST_LABEL}.
             </p>
             <div className="flex items-center justify-center gap-3 flex-wrap">
               <Link to="/properties" className="inline-flex items-center gap-2 px-7 py-3.5 bg-white hover:bg-slate-100 text-[#111111] text-sm font-semibold rounded-xl transition-colors no-underline">
@@ -903,14 +827,14 @@ const HOME_JSON_LD = {
   name: `${BRAND.name} — ${BRAND.tagline}`,
   url: canonical('/'),
   description:
-    'Find your next rental home without brokers. Search properties on a live map across India — apartments, PGs, villas, and more.',
+    'Every rental on StayOnMap is scored live by a TrustScore engine and fraud-detection agent, not just listed. Search verified homes on a live map across India — apartments, PGs, villas, and more.',
 }
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
       <SEOMeta
-        description="Find your next rental home without brokers. Search properties on a live map across India — apartments, PGs, villas, and more."
+        description="Every rental on StayOnMap is scored live by a TrustScore engine and fraud-detection agent, not just listed. Search verified homes on a live map across India — apartments, PGs, villas, and more."
         canonical={canonical('/')}
         jsonLd={HOME_JSON_LD}
       />
@@ -922,7 +846,6 @@ export default function HomePage() {
       <HowItWorks />
       <CityShowcase />
       <OwnerCTA />
-      <TestimonialsSection />
       <FAQSection />
       <GuidesSection />
       <AppBanner />

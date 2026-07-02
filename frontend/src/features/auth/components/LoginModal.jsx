@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@lib/supabase'
 import { authService } from '@services/auth.service'
+import { CITY_LIST_LABEL } from '@/config/cities'
+import { usePlatformStats } from '@hooks/usePlatformStats'
 
 const QUOTES = [
   { text: 'The ache for home lives in all of us.', author: 'Maya Angelou' },
@@ -39,6 +41,7 @@ export default function LoginModal({ isOpen, onClose }) {
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
   const [resetSent, setResetSent] = useState(false)
+  const { totalActive, cities } = usePlatformStats()
 
   const quote = QUOTES[Math.floor(Date.now() / 86400000) % QUOTES.length]
 
@@ -124,7 +127,7 @@ export default function LoginModal({ isOpen, onClose }) {
               <span style={{ color: '#12a374' }}>No broker. No fee.</span>
             </h2>
             <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              Connect directly with owners across Bengaluru &amp; Chennai.
+              Connect directly with owners across {CITY_LIST_LABEL}.
             </p>
           </div>
 
@@ -139,7 +142,7 @@ export default function LoginModal({ isOpen, onClose }) {
 
             {/* Mini stats */}
             <div className="flex gap-4">
-              {[['6K+', 'Listings'], ['₹0', 'Brokerage'], ['2', 'Cities']].map(([val, lbl]) => (
+              {[[`${totalActive}`, 'Listings'], ['₹0', 'Brokerage'], [`${cities}`, 'Cities']].map(([val, lbl]) => (
                 <div key={lbl}>
                   <div className="text-white font-bold text-base">{val}</div>
                   <div className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{lbl}</div>

@@ -2,8 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 
 export default function Dropdown({
-  label,
-  fieldIcon,
   value,
   onChange,
   options,
@@ -44,12 +42,8 @@ export default function Dropdown({
         onClick={handleToggle}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className={`w-full h-full px-5 py-4 flex flex-col items-start gap-0.5 outline-none transition-colors rounded-2xl ${open ? 'bg-slate-50' : 'hover:bg-slate-50/60'}`}
+        className={`w-full h-full px-5 py-4 flex items-center outline-none transition-colors rounded-2xl ${open ? 'bg-slate-50' : 'hover:bg-slate-50/60'}`}
       >
-        <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-          {fieldIcon}
-          {label}
-        </span>
         <div className="flex items-center justify-between w-full gap-2">
           <span className={`text-sm truncate ${hasValue ? 'font-semibold text-slate-900' : 'font-medium text-slate-400'}`}>
             {hasValue ? selected.label : placeholder}

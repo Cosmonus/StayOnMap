@@ -2,6 +2,8 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '@lib/supabase'
 import { authService } from '@services/auth.service'
+import { CITY_LIST_LABEL } from '@/config/cities'
+import { usePlatformStats } from '@hooks/usePlatformStats'
 
 const QUOTES = [
   { text: 'The ache for home lives in all of us.', author: 'Maya Angelou' },
@@ -20,7 +22,7 @@ function InputField({ label, type = 'text', value, onChange, placeholder, childr
           onChange={onChange}
           placeholder={placeholder}
           required
-          className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#f4511e] focus:border-transparent transition-all bg-slate-50 placeholder:text-slate-400"
+          className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent transition-all bg-slate-50 placeholder:text-slate-400"
         />
         {children}
       </div>
@@ -42,6 +44,7 @@ export default function LoginPage() {
   const [roles, setRoles]       = useState(['TENANT'])
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
+  const { totalActive, cities } = usePlatformStats()
 
   const quote = QUOTES[Math.floor(Date.now() / 86400000) % QUOTES.length]
 
@@ -82,9 +85,9 @@ export default function LoginPage() {
       >
         {/* Gradient orbs */}
         <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-25 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #f4511e 0%, transparent 65%)', transform: 'translate(40%, -40%)' }} />
+          style={{ background: 'radial-gradient(circle, #0d8a5f 0%, transparent 65%)', transform: 'translate(40%, -40%)' }} />
         <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full opacity-15 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #ff8c42 0%, transparent 65%)', transform: 'translate(-30%, 30%)' }} />
+          style={{ background: 'radial-gradient(circle, #12a374 0%, transparent 65%)', transform: 'translate(-30%, 30%)' }} />
 
         {/* Grid texture */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.04]"
@@ -94,16 +97,16 @@ export default function LoginPage() {
         <div className="relative z-10">
           <Link to="/" className="no-underline mb-12 block">
             <span className="font-display font-bold text-xl tracking-tight text-white">
-              Stay<span style={{ color: '#f4511e' }}>OnMap</span>
+              Stay<span style={{ color: '#12a374' }}>OnMap</span>
             </span>
           </Link>
 
           <h1 className="text-white font-bold text-4xl leading-tight mb-4">
             Find your home.<br />
-            <span style={{ color: '#f4511e' }}>No broker.<br />No fee.</span>
+            <span style={{ color: '#12a374' }}>No broker.<br />No fee.</span>
           </h1>
           <p className="text-base leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Connect directly with owners across Bengaluru,<br />Chennai &amp; Hyderabad.
+            Connect directly with owners across {CITY_LIST_LABEL}.
           </p>
         </div>
 
@@ -117,7 +120,7 @@ export default function LoginPage() {
           </div>
 
           <div className="flex gap-8">
-            {[['6,000+', 'Verified listings'], ['₹0', 'Brokerage ever'], ['3', 'Cities covered']].map(([val, lbl]) => (
+            {[[`${totalActive}`, 'Verified listings'], ['₹0', 'Brokerage ever'], [`${cities}`, 'Cities covered']].map(([val, lbl]) => (
               <div key={lbl}>
                 <div className="text-white font-bold text-xl">{val}</div>
                 <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{lbl}</div>
@@ -209,10 +212,10 @@ export default function LoginPage() {
 
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input type="checkbox" className="rounded border-slate-300 accent-[#f4511e]" />
+                    <input type="checkbox" className="rounded border-slate-300 accent-brand-600" />
                     <span className="text-sm text-slate-600">Remember me</span>
                   </label>
-                  <button type="button" className="text-sm font-semibold hover:underline" style={{ color: '#f4511e' }}>
+                  <button type="button" className="text-sm font-semibold text-brand-600 hover:underline">
                     Forgot password?
                   </button>
                 </div>

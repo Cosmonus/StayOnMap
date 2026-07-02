@@ -5,10 +5,11 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 
 
 const NAV_LINKS = [
-  { label: 'Home',       to: '/' },
-  { label: 'Properties', to: '/properties' },
-  { label: 'About',      to: '/about' },
-  { label: 'Contact',    to: '/contact' },
+  { label: 'Home',         to: '/' },
+  { label: 'Properties',   to: '/properties' },
+  { label: 'Intelligence', to: '/intelligence' },
+  { label: 'About',        to: '/about' },
+  { label: 'Contact',      to: '/contact' },
 ]
 
 function UserMenu({ user, signOut }) {
