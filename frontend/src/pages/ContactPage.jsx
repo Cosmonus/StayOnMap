@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { CITIES } from '@/config/cities'
 import { usePlatformStats } from '@hooks/usePlatformStats'
+import SEOMeta from '@components/common/SEOMeta'
+import { canonical } from '@lib/seo'
 
 /* ─── Scroll reveal ─────────────────────────────────── */
 function useScrollReveal(threshold = 0.15) {
@@ -80,6 +82,11 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
+      <SEOMeta
+        title="Contact Us"
+        description="Questions about StayOnMap, a listing to report, or a partnership to discuss? Reach the team directly — no ticket queue, real replies within 24 hours."
+        canonical={canonical('/contact')}
+      />
 
       {/* ── HERO ── */}
       <section className="relative overflow-hidden">

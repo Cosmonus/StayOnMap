@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import SEOMeta from '@components/common/SEOMeta'
+import { canonical } from '@lib/seo'
 
 // ── Data ────────────────────────────────────────────────────────────
 const PERSONAS = [
@@ -53,7 +55,7 @@ const RULES = {
       { text: 'Property managers with written owner authorization may list on their behalf', icon: 'doc' },
       { text: 'Clearly disclose that you are managing on behalf of the owner', icon: 'user' },
       { text: 'Follow all owner rules when acting as an authorized manager', icon: 'check' },
-      { text: 'Contact us at hello@stayonmap.in to register as a property manager', icon: 'mail' },
+      { text: 'Contact us at hello@stayonmap.com to register as a property manager', icon: 'mail' },
     ],
     donts: [
       { text: 'Don\'t list properties you don\'t own or aren\'t authorized to manage', icon: 'block' },
@@ -155,6 +157,11 @@ export default function RulesPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 overflow-x-hidden">
+      <SEOMeta
+        title="Community Rules"
+        description="How owners, tenants, and brokers are expected to behave on StayOnMap — honest listings, zero commission demands, real trust."
+        canonical={canonical('/rules')}
+      />
       <div className="h-16" />
 
       {/* ── Hero ────────────────────────────────────────────────── */}

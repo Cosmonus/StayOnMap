@@ -4,15 +4,15 @@
 
 export const BRAND = {
   name: 'StayOnMap',
-  tagline: 'Find your place.',
-  domain: 'https://stayonmap.in',
+  tagline: 'Rent with intelligence.',
+  domain: 'https://stayonmap.com',
   twitterHandle: '@StayOnMap',
 }
 
 export const DEFAULT_SEO = {
   title: `${BRAND.name} — ${BRAND.tagline}`,
   description:
-    'Every listing is a real home. Every home has a real owner. Find your place on the map — no brokers, no paywalls, no nonsense.',
+    'Every rental on StayOnMap is scored live by a TrustScore engine and fraud-detection agent. Search verified homes on a live map across India.',
   ogImage: `${BRAND.domain}/og-default.jpg`, // ← add a 1200×630 image to /public
 }
 
