@@ -70,7 +70,7 @@ const FEATURES = [
 
 /* ================================================================ */
 export default function AboutPage() {
-  const { totalActive, activeOwners, cities, byCity } = usePlatformStats()
+  const { totalActive, activeOwners, cities, byCity, isLoading } = usePlatformStats()
   const milestones = [
     { label: 'Live Listings', value: totalActive },
     { label: 'Active Owners', value: activeOwners },
@@ -277,7 +277,7 @@ export default function AboutPage() {
                   </div>
                   <h3 className="text-lg font-bold text-slate-900 mb-1">{city.name}</h3>
                   <p className="text-xs text-slate-400 mb-3">{city.state}</p>
-                  <p className="text-sm font-bold text-brand-600">{byCity[city.name] ?? 0} listings</p>
+                  <p className="text-sm font-bold text-brand-600">{isLoading ? '…' : `${byCity[city.name] ?? 0} listings`}</p>
                   <div className="flex flex-wrap justify-center gap-1.5 mt-3">
                     {city.areas.slice(0, 4).map(area => (
                       <span key={area} className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-50 text-slate-500 border border-slate-100">{area}</span>

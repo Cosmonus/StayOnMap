@@ -4,7 +4,7 @@ import { CITIES } from '@/config/cities'
 import { usePlatformStats } from '@hooks/usePlatformStats'
 
 export default function CityDropdown({ value, onChange }) {
-  const { byCity } = usePlatformStats()
+  const { byCity, isLoading } = usePlatformStats()
   const [open, setOpen]     = useState(false)
   const [search, setSearch] = useState('')
   const [pos, setPos]       = useState({ top: 0, left: 0, width: 0 })
@@ -149,7 +149,7 @@ export default function CityDropdown({ value, onChange }) {
                         <span className={`text-sm ${isSelected ? 'font-semibold' : 'font-medium'}`}>{city.name}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-400">{byCity[city.name] ?? 0} listings</span>
+                        <span className="text-xs text-slate-400">{isLoading ? '…' : `${byCity[city.name] ?? 0} listings`}</span>
                         {isSelected && (
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f4511e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="20 6 9 17 4 12"/>

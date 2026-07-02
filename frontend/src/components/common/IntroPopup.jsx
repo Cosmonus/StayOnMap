@@ -9,10 +9,10 @@ export default function IntroPopup() {
   const alreadySeen = typeof window !== 'undefined' && localStorage.getItem(SEEN_KEY)
   const [visible, setVisible] = useState(!alreadySeen)
   const navigate = useNavigate()
-  const { totalActive } = usePlatformStats()
+  const { totalActive, isLoading } = usePlatformStats()
 
   const stats = [
-    { icon: '🏠', text: `${totalActive}`, sub: `verified rentals across ${CITIES.length} cities` },
+    { icon: '🏠', text: `${totalActive}`, sub: `verified rentals across ${CITIES.length} cities`, loading: isLoading },
     { icon: '₹0', text: 'Zero',   sub: 'brokerage — free for tenants, always' },
     { icon: '✓',  text: '100%',   sub: 'direct owner listings, no middlemen' },
   ]
@@ -73,11 +73,13 @@ export default function IntroPopup() {
           className="rounded-2xl p-4 mb-5 flex flex-col gap-3"
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
         >
-          {stats.map(({ icon, text, sub }) => (
+          {stats.map(({ icon, text, sub, loading }) => (
             <div key={sub} className="flex items-center gap-3">
               <span className="text-base leading-none w-5 text-center">{icon}</span>
               <span className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                <strong className="text-white font-bold">{text}</strong>{' '}
+                {loading
+                  ? <span className="inline-block h-3 w-6 rounded bg-white/10 animate-pulse align-middle" />
+                  : <strong className="text-white font-bold">{text}</strong>}{' '}
                 <span style={{ color: 'rgba(255,255,255,0.4)' }}>{sub}</span>
               </span>
             </div>
