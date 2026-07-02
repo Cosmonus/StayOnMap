@@ -144,7 +144,7 @@ export default function NotificationBell({ onViewAll }) {
 
   useEffect(() => {
     if (!user?.id) return
-    connectSocket(user.id)
+    connectSocket()
     const socket = getSocket()
     if (!socket) return
     function onNew(notif) {

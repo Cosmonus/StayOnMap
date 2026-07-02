@@ -20,7 +20,7 @@ import MapView from '@features/map/components/MapView'
 import MapRightPanel from '@features/map/components/MapRightPanel'
 
 import AppointmentManager from '@features/appointments/components/AppointmentManager'
-import LeaseManager from '@features/leases/components/LeaseManager'
+import LeaseManager, { CreateLeaseModal } from '@features/leases/components/LeaseManager'
 import SettingsPanel from '@features/settings/components/SettingsPanel'
 import UnifiedSidebar from '@components/layout/UnifiedSidebar'
 
@@ -464,6 +464,7 @@ export default function DashboardPage() {
   }, [setSearchParams, qc])
 
   const [showForm, setShowForm] = useState(false)
+  const [offerLeaseFor, setOfferLeaseFor] = useState(null)
 
   const { data: profile } = useQuery({
     queryKey: ['me'],
@@ -528,7 +529,19 @@ export default function DashboardPage() {
                 <Icon d={ICONS.plus} size={15} /> Add listing
               </button>
             </div>
-            <ListingManager onAdd={() => setShowForm(true)} onViewDetails={(id) => setSearchParams({ tab: 'my-listings', listing: id }, { replace: true })} />
+            <ListingManager
+              onAdd={() => setShowForm(true)}
+              onViewDetails={(id) => setSearchParams({ tab: 'my-listings', listing: id }, { replace: true })}
+              onOfferLease={setOfferLeaseFor}
+            />
+            {offerLeaseFor && (
+              <CreateLeaseModal
+                propertyId={offerLeaseFor.id}
+                propertyTitle={offerLeaseFor.title}
+                isOpen
+                onClose={() => setOfferLeaseFor(null)}
+              />
+            )}
           </div>
         )
       }
