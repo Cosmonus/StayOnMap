@@ -4,6 +4,7 @@ import { supabase } from '@lib/supabase'
 import { authService } from '@services/auth.service'
 import { CITY_LIST_LABEL } from '@/config/cities'
 import { usePlatformStats } from '@hooks/usePlatformStats'
+import SEOMeta from '@components/common/SEOMeta'
 
 const QUOTES = [
   { text: 'The ache for home lives in all of us.', author: 'Maya Angelou' },
@@ -77,6 +78,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
+      <SEOMeta title="Log In" noindex={true} />
 
       {/* ── Left panel ── */}
       <div

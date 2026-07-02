@@ -826,14 +826,14 @@ const HOME_JSON_LD = {
   name: `${BRAND.name} — ${BRAND.tagline}`,
   url: canonical('/'),
   description:
-    'Every rental on StayOnMap is scored live by a TrustScore engine and fraud-detection agent, not just listed. Search verified homes on a live map across India — apartments, PGs, villas, and more.',
+    'Every rental on StayOnMap is scored live by a TrustScore engine and fraud-detection agent. Search verified homes on a live map across India.',
 }
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
       <SEOMeta
-        description="Every rental on StayOnMap is scored live by a TrustScore engine and fraud-detection agent, not just listed. Search verified homes on a live map across India — apartments, PGs, villas, and more."
+        description="Every rental on StayOnMap is scored live by a TrustScore engine and fraud-detection agent. Search verified homes on a live map across India."
         canonical={canonical('/')}
         jsonLd={HOME_JSON_LD}
       />

@@ -81,7 +81,7 @@ export default function IntelligencePage() {
     <div className="min-h-screen bg-white overflow-x-hidden">
       <SEOMeta
         title="The Intelligence Behind StayOnMap"
-        description="StayOnMap runs on a live TrustScore engine and an AI fraud-detection agent, engineered by Cosmonus — trust computed from signals, not a broker's judgment call."
+        description="StayOnMap runs on a live TrustScore engine and an AI fraud-detection agent, engineered by Cosmonus — trust computed from signals, not guesswork."
         canonical={canonical('/intelligence')}
       />
 
