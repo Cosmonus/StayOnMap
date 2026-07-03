@@ -3,7 +3,7 @@ import { authMiddleware, optionalAuth } from '../../middlewares/auth.middleware.
 import { requireOwner } from '../../middlewares/requireOwner.middleware.js'
 import { validate } from '../../middlewares/validate.middleware.js'
 import * as controller from './properties.controller.js'
-import { createPropertySchema, updatePropertySchema } from './properties.validation.js'
+import { createPropertySchema, updatePropertySchema, pinsQuerySchema } from './properties.validation.js'
 import { propertyAppointmentRouter } from '../appointments/appointments.routes.js'
 import { propertyReviewRouter } from '../reviews/reviews.routes.js'
 import { propertyInsightRouter } from '../insights/insights.routes.js'
@@ -14,7 +14,7 @@ const router = Router()
 
 // Public (optionalAuth so visibility filtering can check login state)
 router.get('/',          optionalAuth, controller.listProperties)
-router.get('/pins',      optionalAuth, controller.getPins)
+router.get('/pins',      optionalAuth, validate(pinsQuerySchema, 'query'), controller.getPins)
 router.get('/stats',     controller.getStats)
 router.get('/amenities', controller.getAmenities)
 
