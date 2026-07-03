@@ -1,0 +1,21 @@
+name: PR Title Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  check-title:
+    name: Enforce "stayonmap - <title>" format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [[ ! "$PR_TITLE" =~ ^stayonmap\ -\ .+ ]]; then
+            echo "::error::PR title must start with 'stayonmap - ', got: \"$PR_TITLE\""
+            echo "Example: stayonmap - Fix appointment scheduling bug"
+            exit 1
+          fi
+          echo "PR title OK: $PR_TITLE"
