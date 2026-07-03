@@ -2,6 +2,59 @@
 
 ---
 
+## 🔍 Manual Walkthrough — Tomorrow (2026-07-05)
+
+Everything below is unresolved as of 2026-07-04. Detailed context for each item
+lives in the dated sections further down this file — this is just the clean
+checklist to work through. Nothing here has been done yet.
+
+### Legal & Compliance
+- [ ] Fill in the 4 placeholders in `/privacy` and `/terms`: legal entity name, registered business address, Grievance Officer name, governing-law jurisdiction city
+- [ ] Get a real lawyer to review both pages before relying on them — Aadhaar/PAN handling carries real regulatory weight under India's DPDP Act 2023
+- [ ] **Visually open `/privacy` and `/terms` in a real browser** — confirmed served (200) and lints/builds clean, but never actually seen rendered (no browser automation available this session)
+- [ ] Confirm no cookie consent banner is needed (auth is pure JWT/Bearer, no tracking cookies — should be moot, but confirm)
+
+### Security
+- [ ] **Rotate the production admin password** — confirmed weak, confirmed it was hardcoded in git history since the initial commit
+- [ ] Decide whether to rewrite git history to fully scrub the old hardcoded password (disruptive — force-push, breaks existing clones/PR refs). Rotating the password already neutralizes the actual risk; this is optional hygiene on top
+- [ ] Check Google Maps API key HTTP referrer restrictions include `stayonmap.com` (may still only list the old Railway subdomain)
+- [ ] Confirm Railway Postgres automated backups are enabled (dashboard setting, not verifiable from code)
+
+### Email
+- [ ] Add a real Resend API key (currently literally the string `"skip"`)
+- [ ] Set `RESEND_FROM_EMAIL` to a real domain-verified sender (currently a personal Gmail address, will not deliver reliably)
+- [ ] Confirm the sending domain shows **Verified** in Resend's dashboard
+- [ ] Once set up: test appointment accepted/rejected + verification-update emails actually arrive
+
+### Deferred integrations
+- [ ] Add Sentry (or similar) error monitoring
+- [ ] Payments (Razorpay — needs an account first)
+- [ ] Subscriptions (depends on payments)
+- [ ] Enable AI fraud detection (`AI_PROVIDER=anthropic`) when ready
+
+### Cleanup
+- [ ] Test data sitting in **production**: one test tenant account, one test owner account, one test property, one test appointment, one test chat conversation — no self-service delete endpoint exists; needs direct DB access, or leave as harmless clutter
+- [ ] Decide what to do with the untracked `"StayOnMap Mobile.pdf"` at the repo root — never touched, never committed
+- [ ] Optional: remove the dead-code duplicate admin-reviews implementation (`reviews.routes.js`'s `adminReviewRouter`, permanently shadowed and unreachable)
+- [ ] Add the missing `frontend/public/og-default.jpg` (1200×630) — referenced in every SEO tag but the file does not exist, so social shares currently show a broken image
+- [ ] Hand-author neighborhood-intelligence profiles for Hyderabad/Delhi (currently zero entries there — Chennai/Bengaluru only)
+
+### Manual browser testing — everything I could only verify at the API layer, not visually
+- [ ] Click through login/signup in the real UI
+- [ ] Confirm the map actually renders pins visually (API layer confirmed working)
+- [ ] Click through appointment booking end-to-end in the UI
+- [ ] Test the image upload UI flow
+- [ ] Test push notifications with a real browser subscription (cannot be done via API calls alone)
+- [ ] Test chat in the real UI (data layer confirmed working via API)
+- [ ] Click through the admin panel UI itself
+
+### Nice to have / longer-term
+- [ ] Submit `sitemap.xml` to Google Search Console
+- [ ] Frontend/mobile automated test coverage (currently zero — backend has 59 tests)
+- [ ] Add an ESLint config to `mobile/` (currently none)
+
+---
+
 ## ✅ Completed
 
 ### UI / Frontend Fixes
