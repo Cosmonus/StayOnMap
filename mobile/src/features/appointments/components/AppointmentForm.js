@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native'
 import { useMutation } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
 import { chatService } from '@services/chat.service'
+import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -68,14 +69,24 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
     return (
       <View style={styles.container}>
         <View style={styles.successBox}>
-          <Text style={styles.successTitle}>Visit requested!</Text>
+          <View style={styles.successRow}>
+            <Icon name="checkCircle" size={18} color="#059669" />
+            <Text style={styles.successTitle}>Visit requested!</Text>
+          </View>
           <Text style={styles.successBody}>The owner will respond within 24 hours.</Text>
         </View>
         <View style={styles.chatNudge}>
           <Text style={styles.chatNudgeTitle}>Want to ask the owner something?</Text>
           <Text style={styles.chatNudgeBody}>Chat directly — get faster answers about the property.</Text>
           <Pressable style={[styles.primaryButton, chatLoading && styles.disabled]} onPress={handleChat} disabled={chatLoading}>
-            {chatLoading ? <ActivityIndicator color={colors.white} size="small" /> : <Text style={styles.primaryButtonText}>Message the owner</Text>}
+            {chatLoading ? (
+              <ActivityIndicator color={colors.white} size="small" />
+            ) : (
+              <>
+                <Icon name="messageCircle" size={14} color={colors.white} />
+                <Text style={styles.primaryButtonText}>Message the owner</Text>
+              </>
+            )}
           </Pressable>
         </View>
       </View>
@@ -84,9 +95,12 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Request a visit</Text>
+      <View style={styles.headingRow}>
+        <Icon name="calendar" size={18} color={colors.slate800} />
+        <Text style={styles.heading}>Request a visit</Text>
+      </View>
 
-      <Text style={styles.label}>Preferred date</Text>
+      <View style={styles.labelRow}><Icon name="calendar" size={12} color={colors.slate500} /><Text style={styles.label}>Preferred date</Text></View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
         {UPCOMING_DATES.map(({ value, label }) => (
           <Pressable
@@ -99,7 +113,7 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
         ))}
       </ScrollView>
 
-      <Text style={styles.label}>Preferred time</Text>
+      <View style={styles.labelRow}><Icon name="clock" size={12} color={colors.slate500} /><Text style={styles.label}>Preferred time</Text></View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
         {slots.map((t) => (
           <Pressable
@@ -113,7 +127,7 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
       </ScrollView>
       {windowStart && windowEnd && <Text style={styles.hint}>Owner available {windowStart}–{windowEnd}</Text>}
 
-      <Text style={styles.label}>Mobile number</Text>
+      <View style={styles.labelRow}><Icon name="phone" size={12} color={colors.slate500} /><Text style={styles.label}>Mobile number</Text></View>
       <TextInput
         style={styles.input}
         value={form.contactNumber}
@@ -124,7 +138,7 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
         maxLength={10}
       />
 
-      <Text style={styles.label}>Message (optional)</Text>
+      <View style={styles.labelRow}><Icon name="messageCircle" size={12} color={colors.slate500} /><Text style={styles.label}>Message (optional)</Text></View>
       <TextInput
         style={[styles.input, styles.textarea]}
         value={form.message}
@@ -142,7 +156,14 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
         onPress={() => mutation.mutate(form)}
         disabled={!isValid || mutation.isPending}
       >
-        {mutation.isPending ? <ActivityIndicator color={colors.white} size="small" /> : <Text style={styles.submitButtonText}>I&apos;m Interested — Request Visit</Text>}
+        {mutation.isPending ? (
+          <ActivityIndicator color={colors.white} size="small" />
+        ) : (
+          <>
+            <Icon name="calendar" size={16} color={colors.white} />
+            <Text style={styles.submitButtonText}>I&apos;m Interested — Request Visit</Text>
+          </>
+        )}
       </Pressable>
     </View>
   )
@@ -150,8 +171,10 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
 
 const styles = StyleSheet.create({
   container: { gap: spacing.sm },
+  headingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   heading: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.lg, color: colors.slate800 },
-  label: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.slate600, marginTop: spacing.sm },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: spacing.sm },
+  label: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.slate600 },
   chipScroll: { gap: spacing.sm, paddingVertical: 4 },
   chip: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.white },
   chipActive: { backgroundColor: colors.brand600, borderColor: colors.brand600 },
@@ -165,15 +188,16 @@ const styles = StyleSheet.create({
   },
   textarea: { minHeight: 72, textAlignVertical: 'top' },
   errorText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.danger },
-  submitButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center', marginTop: spacing.sm },
+  submitButton: { flexDirection: 'row', gap: 6, backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center', justifyContent: 'center', marginTop: spacing.sm },
   submitButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   disabled: { opacity: 0.55 },
   successBox: { backgroundColor: '#ECFDF5', borderWidth: 1, borderColor: '#A7F3D0', borderRadius: radius.md, padding: spacing.md },
+  successRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   successTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: '#065F46' },
   successBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#059669', marginTop: 2 },
   chatNudge: { backgroundColor: colors.brand50, borderWidth: 1, borderColor: colors.brand100, borderRadius: radius.md, padding: spacing.md },
   chatNudgeTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
   chatNudgeBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.brand700, opacity: 0.7, marginTop: 2, marginBottom: spacing.sm },
-  primaryButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center' },
+  primaryButton: { flexDirection: 'row', gap: 6, backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', justifyContent: 'center' },
   primaryButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
 })

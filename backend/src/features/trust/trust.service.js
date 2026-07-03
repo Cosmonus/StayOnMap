@@ -1,11 +1,14 @@
 import { prisma } from '../../lib/prisma.js'
 import { env } from '../../config/env.js'
+import { cacheGet, cacheSet } from '../../lib/redis.js'
 
-// ── In-memory cache for geo-based scores (per ~1km grid cell) ──────────────────
-const geoCache = new Map()
+// ── Geo-based score cache (per ~1km grid cell) ──────────────────────────────
+// Redis-backed when REDIS_URL is set (cacheGet/cacheSet no-op otherwise —
+// falls back to recomputing every time rather than a per-process Map, which
+// wouldn't be shared across horizontally-scaled instances anyway).
 function geoCacheKey(lat, lng, type) {
   const r = (n) => Math.round(Number(n) * 100) / 100
-  return `${type}:${r(lat)},${r(lng)}`
+  return `geo:${type}:${r(lat)},${r(lng)}`
 }
 
 // ── Google Maps API helpers ────────────────────────────────────────────────────
@@ -30,7 +33,8 @@ async function googleElevation(lat, lng) {
 // ── AreaScore (0–10): transit + amenities + safety insights ───────────────────
 async function computeAreaScore(lat, lng, propertyId) {
   const cacheKey = geoCacheKey(lat, lng, 'area')
-  if (geoCache.has(cacheKey)) return geoCache.get(cacheKey)
+  const cached = await cacheGet(cacheKey)
+  if (cached !== null) return cached
 
   const [transit, hospital, school, supermarket, safetyIssues, totalInsights] = await Promise.all([
     googlePlacesCount(lat, lng, 'transit_station', 1000),
@@ -47,8 +51,7 @@ async function computeAreaScore(lat, lng, propertyId) {
   const score = Math.max(0, Math.min(10, transitScore + amenitiesScore + 3 - safetyPenalty))
   const rounded = Math.round(score * 10) / 10
 
-  geoCache.set(cacheKey, rounded)
-  setTimeout(() => geoCache.delete(cacheKey), 24 * 60 * 60 * 1000)
+  await cacheSet(cacheKey, rounded, 24 * 60 * 60)
   return rounded
 }
 
@@ -77,7 +80,8 @@ async function computeWaterScore(propertyId) {
 // ── FloodSafe (0–10): elevation proxy, higher = safer ─────────────────────────
 async function computeFloodSafe(lat, lng) {
   const cacheKey = geoCacheKey(lat, lng, 'flood')
-  if (geoCache.has(cacheKey)) return geoCache.get(cacheKey)
+  const cached = await cacheGet(cacheKey)
+  if (cached !== null) return cached
 
   const elevation = await googleElevation(lat, lng)
   let score = 5
@@ -93,8 +97,7 @@ async function computeFloodSafe(lat, lng) {
     else                     score = 10
   }
 
-  geoCache.set(cacheKey, score)
-  setTimeout(() => geoCache.delete(cacheKey), 7 * 24 * 60 * 60 * 1000)
+  await cacheSet(cacheKey, score, 7 * 24 * 60 * 60)
   return score
 }
 

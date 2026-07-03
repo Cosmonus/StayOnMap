@@ -19,7 +19,7 @@ export function computeClusters(pins, bounds, zoom) {
 
   const points = pins.map((p) => ({
     type: 'Feature',
-    properties: { id: p.id, rent: p.rent, type: p.type },
+    properties: { id: p.id, rent: p.rent, type: p.type, bhk: p.bhk, sharing: p.sharing },
     geometry: { type: 'Point', coordinates: [+p.lng, +p.lat] },
   }))
 

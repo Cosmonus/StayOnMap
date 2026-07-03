@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native'
 import TrustBadge from '@components/common/TrustBadge'
+import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
@@ -11,7 +12,7 @@ function Stars({ score, size = 18 }) {
   return (
     <View style={styles.starRow}>
       {Array.from({ length: 5 }).map((_, i) => (
-        <Text key={i} style={{ fontSize: size, color: i < rounded ? '#F59E0B' : colors.slate200 }}>★</Text>
+        <Icon key={i} name={i < rounded ? 'star' : 'starOutline'} size={size} color={i < rounded ? '#F59E0B' : colors.slate200} />
       ))}
     </View>
   )
@@ -46,6 +47,7 @@ export default function TrustScoreWidget({ trustScore }) {
   if (!trustScore) {
     return (
       <View style={styles.emptyWrap}>
+        <Icon name="star" size={20} color={colors.slate200} />
         <Text style={styles.emptyTitle}>No community data yet</Text>
         <Text style={styles.emptyBody}>Be the first to review this property.</Text>
       </View>
@@ -120,7 +122,7 @@ const styles = StyleSheet.create({
   scoreValueMax: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400 },
   noReviewsBox: { backgroundColor: colors.slate50, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center' },
   noReviewsText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
-  emptyWrap: { alignItems: 'center', paddingVertical: spacing.lg },
+  emptyWrap: { alignItems: 'center', paddingVertical: spacing.lg, gap: 6 },
   emptyTitle: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate600 },
   emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
 })

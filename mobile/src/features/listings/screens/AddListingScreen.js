@@ -9,7 +9,7 @@ export default function AddListingScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>List your home</Text>
+        <Text style={styles.headerTitle}>List your property</Text>
         <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
           <Text style={styles.closeText}>Close</Text>
         </Pressable>

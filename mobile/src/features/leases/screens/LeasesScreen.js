@@ -6,6 +6,7 @@ import { leaseService } from '@services/lease.service'
 import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { formatCurrency } from '@utils/format'
+import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
@@ -130,15 +131,18 @@ function LeaseCard({ lease, currentUserId }) {
           {iAmTenant && lease.status === 'OFFERED' && (
             <>
               <Pressable style={styles.signButton} onPress={() => setShowConfirm('sign')}>
+                <Icon name="check" size={13} color={colors.white} />
                 <Text style={styles.confirmButtonText}>Sign lease</Text>
               </Pressable>
               <Pressable style={styles.rejectButton} onPress={() => setShowConfirm('reject')}>
+                <Icon name="close" size={13} color={colors.danger} />
                 <Text style={styles.rejectButtonText}>Reject</Text>
               </Pressable>
             </>
           )}
           {iAmOwner && lease.status === 'ACTIVE' && (
             <Pressable style={styles.rejectButton} onPress={() => setShowConfirm('terminate')}>
+              <Icon name="close" size={13} color={colors.danger} />
               <Text style={styles.rejectButtonText}>Terminate</Text>
             </Pressable>
           )}
@@ -148,7 +152,7 @@ function LeaseCard({ lease, currentUserId }) {
   )
 }
 
-export default function LeasesScreen() {
+export default function LeasesScreen({ navigation }) {
   const { user } = useAuth()
 
   const { data: profile } = useQuery({
@@ -170,7 +174,15 @@ export default function LeasesScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Leases</Text>
+        <View style={styles.headerTopRow}>
+          <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
+            <Icon name="chevronLeft" size={20} color={colors.slate800} />
+          </Pressable>
+          <View style={styles.headerTitleRow}>
+            <Icon name="document" size={20} color={colors.slate800} />
+            <Text style={styles.headerTitle}>Leases</Text>
+          </View>
+        </View>
         <Text style={styles.headerSub}>Manage rental agreements</Text>
       </View>
 
@@ -194,6 +206,9 @@ export default function LeasesScreen() {
 
           {asOwner.length === 0 && asTenant.length === 0 && (
             <View style={styles.empty}>
+              <View style={styles.emptyIcon}>
+                <Icon name="document" size={22} color={colors.slate400} />
+              </View>
               <Text style={styles.emptyTitle}>No leases yet</Text>
               <Text style={styles.emptyBody}>
                 {isOwner
@@ -212,6 +227,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
   headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2 },
   scroll: { padding: spacing.lg, paddingTop: spacing.xs },
@@ -240,10 +257,11 @@ const styles = StyleSheet.create({
   confirmButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
   cancelButton: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1, borderColor: colors.slate200, alignItems: 'center' },
   cancelButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate600 },
-  signButton: { flex: 1, backgroundColor: '#16A34A', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center' },
-  rejectButton: { flex: 1, borderWidth: 1, borderColor: '#FECACA', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center' },
+  signButton: { flex: 1, flexDirection: 'row', gap: 5, backgroundColor: '#16A34A', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
+  rejectButton: { flex: 1, flexDirection: 'row', gap: 5, borderWidth: 1, borderColor: '#FECACA', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
   rejectButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.danger },
   empty: { alignItems: 'center', paddingVertical: spacing.xxl },
+  emptyIcon: { width: 48, height: 48, borderRadius: radius.full, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700 },
   emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 4, textAlign: 'center', maxWidth: 260 },
 })

@@ -4,6 +4,9 @@ import { ok, created } from '../../utils/response.js'
 export async function register(req, res, next) {
   try {
     const result = await service.registerUser(req.body)
+    if (result.waitlisted) {
+      return ok(res, result, "You're on the waitlist — we'll email you when StayOnMap launches in your city.")
+    }
     created(res, result)
   } catch (err) { next(err) }
 }

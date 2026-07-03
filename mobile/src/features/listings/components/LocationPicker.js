@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native'
 import NativeMapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps'
 import { geocodeAddress } from '@lib/googleGeocoding'
+import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -24,15 +25,18 @@ export default function LocationPicker({ value, onChange }) {
   return (
     <View style={{ gap: spacing.sm }}>
       <View style={styles.searchRow}>
-        <TextInput
-          style={styles.searchInput}
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search area, e.g. Koramangala, Bengaluru"
-          placeholderTextColor={colors.slate400}
-          onSubmitEditing={handleSearch}
-          returnKeyType="search"
-        />
+        <View style={styles.searchInputWrap}>
+          <Icon name="mapPin" size={16} color={colors.slate400} />
+          <TextInput
+            style={styles.searchInput}
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search area, e.g. Koramangala, Bengaluru"
+            placeholderTextColor={colors.slate400}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
+          />
+        </View>
         <Pressable style={styles.searchButton} onPress={handleSearch}>
           <Text style={styles.searchButtonText}>Find</Text>
         </Pressable>
@@ -64,9 +68,12 @@ export default function LocationPicker({ value, onChange }) {
 
 const styles = StyleSheet.create({
   searchRow: { flexDirection: 'row', gap: spacing.sm },
+  searchInputWrap: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.md,
+  },
   searchInput: {
-    flex: 1, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800,
+    flex: 1, paddingVertical: spacing.sm, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800,
   },
   searchButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.lg, alignItems: 'center', justifyContent: 'center' },
   searchButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },

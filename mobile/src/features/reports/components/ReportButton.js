@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { View, Text, TextInput, Pressable, Modal, ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 import { useMutation } from '@tanstack/react-query'
 import { reportService } from '@services/report.service'
+import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
@@ -44,7 +45,8 @@ export default function ReportButton({ propertyId }) {
   return (
     <>
       <Pressable style={styles.trigger} onPress={() => setOpen(true)} hitSlop={8}>
-        <Text style={styles.triggerText}>⚑ Report listing</Text>
+        <Icon name="alertTriangle" size={13} color={colors.danger} />
+        <Text style={styles.triggerText}>Report listing</Text>
       </Pressable>
 
       <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
@@ -52,6 +54,9 @@ export default function ReportButton({ propertyId }) {
           <View style={styles.sheet}>
             {submitted ? (
               <View style={styles.successBox}>
+                <View style={styles.successIcon}>
+                  <Icon name="checkCircle" size={22} color="#059669" />
+                </View>
                 <Text style={styles.successTitle}>Report submitted</Text>
                 <Text style={styles.successBody}>Our team will review it within 24–48 hours.</Text>
                 <Pressable style={styles.closeButton} onPress={close}>
@@ -62,7 +67,7 @@ export default function ReportButton({ propertyId }) {
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.headerRow}>
                   <Text style={styles.title}>Report this listing</Text>
-                  <Pressable onPress={close} hitSlop={8}><Text style={styles.closeX}>✕</Text></Pressable>
+                  <Pressable onPress={close} hitSlop={8}><Icon name="close" size={18} color={colors.slate400} /></Pressable>
                 </View>
 
                 <Text style={styles.label}>Category</Text>
@@ -104,7 +109,7 @@ export default function ReportButton({ propertyId }) {
 
                 <Pressable style={styles.anonRow} onPress={() => setForm((f) => ({ ...f, isAnonymous: !f.isAnonymous }))}>
                   <View style={[styles.checkbox, form.isAnonymous && styles.checkboxChecked]}>
-                    {form.isAnonymous && <Text style={styles.checkmark}>✓</Text>}
+                    {form.isAnonymous && <Icon name="check" size={11} color={colors.white} />}
                   </View>
                   <Text style={styles.anonText}>Submit anonymously</Text>
                 </Pressable>
@@ -120,7 +125,11 @@ export default function ReportButton({ propertyId }) {
                     onPress={() => mutation.mutate(form)}
                     disabled={!isValid || mutation.isPending}
                   >
-                    {mutation.isPending ? <ActivityIndicator color={colors.white} size="small" /> : <Text style={styles.submitButtonText}>Submit Report</Text>}
+                    {mutation.isPending ? (
+                      <ActivityIndicator color={colors.white} size="small" />
+                    ) : (
+                      <Text style={styles.submitButtonText}>Submit Report</Text>
+                    )}
                   </Pressable>
                 </View>
               </ScrollView>
@@ -133,13 +142,12 @@ export default function ReportButton({ propertyId }) {
 }
 
 const styles = StyleSheet.create({
-  trigger: { alignSelf: 'flex-start' },
-  triggerText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate400 },
+  trigger: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start' },
+  triggerText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.danger },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg, maxHeight: '85%' },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
-  closeX: { fontSize: fontSizes.lg, color: colors.slate400 },
   label: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700, marginTop: spacing.md, marginBottom: spacing.xs },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.md, borderWidth: 1, borderColor: colors.slate200 },
@@ -152,7 +160,6 @@ const styles = StyleSheet.create({
   anonRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
   checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1.5, borderColor: colors.slate200, alignItems: 'center', justifyContent: 'center' },
   checkboxChecked: { backgroundColor: colors.brand600, borderColor: colors.brand600 },
-  checkmark: { color: colors.white, fontSize: 11 },
   anonText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate600 },
   errorText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.danger, marginTop: spacing.sm },
   actionRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg, marginBottom: spacing.md },
@@ -162,6 +169,7 @@ const styles = StyleSheet.create({
   submitButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   disabled: { opacity: 0.5 },
   successBox: { alignItems: 'center', paddingVertical: spacing.xl },
+  successIcon: { width: 48, height: 48, borderRadius: radius.full, backgroundColor: '#ECFDF5', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   successTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.lg, color: colors.slate800 },
   successBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: spacing.xs, textAlign: 'center' },
   closeButton: { marginTop: spacing.lg, backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm + 4 },

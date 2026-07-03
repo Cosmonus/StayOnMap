@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, StyleS
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { leaseService } from '@services/lease.service'
+import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
@@ -42,8 +43,13 @@ export default function CreateLeaseScreen({ route, navigation }) {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Offer Lease</Text>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8}><Text style={styles.closeText}>Close</Text></Pressable>
+        <View style={styles.headerTitleRow}>
+          <Icon name="document" size={18} color={colors.slate800} />
+          <Text style={styles.headerTitle}>Offer Lease</Text>
+        </View>
+        <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
+          <Icon name="close" size={18} color={colors.brand600} />
+        </Pressable>
       </View>
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.propertyTitle}>{propertyTitle}</Text>
@@ -95,7 +101,14 @@ export default function CreateLeaseScreen({ route, navigation }) {
         />
 
         <Pressable style={[styles.submitButton, isPending && styles.disabled]} onPress={handleSubmit} disabled={isPending}>
-          {isPending ? <ActivityIndicator color={colors.white} size="small" /> : <Text style={styles.submitButtonText}>Send lease offer</Text>}
+          {isPending ? (
+            <ActivityIndicator color={colors.white} size="small" />
+          ) : (
+            <>
+              <Icon name="send" size={14} color={colors.white} />
+              <Text style={styles.submitButtonText}>Send lease offer</Text>
+            </>
+          )}
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -109,8 +122,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
     borderBottomWidth: 1, borderBottomColor: colors.slate200,
   },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
-  closeText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand600 },
   scroll: { padding: spacing.lg, gap: spacing.xs },
   propertyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600, marginBottom: spacing.sm },
   errorText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.danger, marginBottom: spacing.sm },
@@ -119,7 +132,7 @@ const styles = StyleSheet.create({
   textarea: { minHeight: 60, textAlignVertical: 'top' },
   hint: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400, marginTop: 2 },
   row: { flexDirection: 'row', gap: spacing.sm },
-  submitButton: { backgroundColor: '#111111', borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', marginTop: spacing.lg },
+  submitButton: { flexDirection: 'row', gap: 6, backgroundColor: '#111111', borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', justifyContent: 'center', marginTop: spacing.lg },
   submitButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   disabled: { opacity: 0.6 },
 })

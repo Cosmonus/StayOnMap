@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { authService } from '@services/auth.service'
 import { useAuth } from '../hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
-import { CITY_LIST_LABEL } from '@/config/cities'
+import { CITY_LIST_LABEL, CITY_NAMES } from '@/config/cities'
 import { usePlatformStats } from '@hooks/usePlatformStats'
 
 const QUOTES = [
@@ -43,18 +43,22 @@ export default function LoginModal() {
   const [password, setPassword] = useState('')
   const [showPw, setShowPw]     = useState(false)
   const [role, setRole]         = useState('TENANT')
+  const [city, setCity]         = useState('')
+  const [otherCity, setOtherCity] = useState('')
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
   const [resetSent, setResetSent] = useState(false)
+  const [waitlisted, setWaitlisted] = useState(false)
   const { totalActive, cities, isLoading: statsLoading } = usePlatformStats()
 
   const quote = QUOTES[Math.floor(Date.now() / 86400000) % QUOTES.length]
 
   function reset() {
     setName(''); setEmail(''); setPassword(''); setError(''); setLoading(false); setShowPw(false); setResetSent(false)
+    setCity(''); setOtherCity(''); setWaitlisted(false)
   }
 
-  function switchTab(t) { setTab(t); setError(''); setShowPw(false); setResetSent(false) }
+  function switchTab(t) { setTab(t); setError(''); setShowPw(false); setResetSent(false); setWaitlisted(false) }
 
   function handleClose() { reset(); onClose() }
 
@@ -87,9 +91,16 @@ export default function LoginModal() {
   async function handleSignup(e) {
     e.preventDefault()
     if (!name.trim()) { setError('Name is required'); return }
+    const resolvedCity = city === '__other__' ? otherCity.trim() : city
+    if (!resolvedCity) { setError('Please select your city'); return }
     setLoading(true); setError('')
     try {
-      const res = await authService.register({ name: name.trim(), email, password, role })
+      const res = await authService.register({ name: name.trim(), email, password, city: resolvedCity, role })
+      if (res.data?.waitlisted) {
+        setWaitlisted(true)
+        setLoading(false)
+        return
+      }
       loginSuccess(res.data)
       reset(); onClose(); navigate('/user')
     } catch (err) {
@@ -184,18 +195,20 @@ export default function LoginModal() {
 
           <div className="px-8 pb-8 pt-2 flex flex-col flex-1 justify-center">
             <h3 className="text-xl font-bold text-slate-800 mb-1">
-              {tab === 'login' ? 'Welcome back' : tab === 'signup' ? 'Create account' : 'Reset password'}
+              {tab === 'login' ? 'Welcome back' : tab === 'forgot' ? 'Reset password' : waitlisted ? 'Almost there' : 'Create account'}
             </h3>
             <p className="text-sm text-slate-400 mb-6">
               {tab === 'login'
                 ? 'Sign in to access your saved properties.'
-                : tab === 'signup'
-                ? 'Join thousands finding homes without brokers.'
-                : 'We\'ll send a reset link to your email.'}
+                : tab === 'forgot'
+                ? 'We\'ll send a reset link to your email.'
+                : waitlisted
+                ? 'Thanks for your interest in StayOnMap.'
+                : 'Join thousands finding homes without brokers.'}
             </p>
 
             {/* Tab switcher */}
-            {tab !== 'forgot' && (
+            {tab !== 'forgot' && !waitlisted && (
               <div className="flex p-1 rounded-xl bg-slate-100 mb-6">
                 {[['login', 'Log in'], ['signup', 'Sign up']].map(([t, label]) => (
                   <button
@@ -301,10 +314,59 @@ export default function LoginModal() {
                   </button>
                 </p>
               </form>
+            ) : waitlisted ? (
+              <div className="space-y-5 text-center">
+                <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">You&apos;re on the waitlist</p>
+                  <p className="text-sm text-slate-400 mt-1">
+                    StayOnMap is currently live in {CITY_LIST_LABEL}. We&apos;ll email <span className="font-medium text-slate-600">{email}</span> as soon as we launch near you.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => switchTab('login')}
+                  className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all bg-brand-600 hover:bg-brand-700"
+                >
+                  Back to log in
+                </button>
+              </div>
             ) : (
               <form onSubmit={handleSignup} className="space-y-4">
                 <InputField label="Full name" value={name} onChange={e => setName(e.target.value)} placeholder="Ravi Kumar" />
                 <InputField label="Email address" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">City</label>
+                  <select
+                    value={city}
+                    onChange={e => setCity(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 transition-all bg-slate-50 text-slate-700"
+                  >
+                    <option value="" disabled>Select your city</option>
+                    {CITY_NAMES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    <option value="__other__">My city isn&apos;t listed</option>
+                  </select>
+                  {city === '__other__' && (
+                    <input
+                      type="text"
+                      value={otherCity}
+                      onChange={e => setOtherCity(e.target.value)}
+                      placeholder="Which city are you in?"
+                      required
+                      className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 transition-all bg-slate-50 placeholder:text-slate-400"
+                    />
+                  )}
+                  <p className="text-xs text-slate-400 mt-1">
+                    We&apos;re only live in {CITY_LIST_LABEL} right now — other cities go on our waitlist.
+                  </p>
+                </div>
+
                 <InputField label="Password" type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters">
                   <button
                     type="button"

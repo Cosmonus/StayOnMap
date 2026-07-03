@@ -1,6 +1,7 @@
 import { ScrollView, Pressable, Text, View, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import AppointmentForm from '@features/appointments/components/AppointmentForm'
+import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing } from '@theme/spacing'
@@ -11,9 +12,12 @@ export default function BookViewingScreen({ route, navigation }) {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Book a viewing</Text>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-          <Text style={styles.closeText}>Close</Text>
+        <View style={styles.headerTitleRow}>
+          <Icon name="calendar" size={18} color={colors.slate800} />
+          <Text style={styles.headerTitle}>Book a viewing</Text>
+        </View>
+        <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.closeButton}>
+          <Icon name="close" size={18} color={colors.brand600} />
         </Pressable>
       </View>
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -35,7 +39,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
     borderBottomWidth: 1, borderBottomColor: colors.slate200,
   },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
-  closeText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand600 },
+  closeButton: { padding: 4 },
   scroll: { padding: spacing.lg },
 })

@@ -2,10 +2,15 @@
 import { create } from 'zustand'
 
 const defaultFilters = {
-  city: '', // 'Bengaluru' | 'Chennai' | 'Hyderabad' | 'Delhi' | ''
+  city: '', // one of config/cities.js's CITY_NAMES, or ''
   area: '',
   bhk: [],
   furnished: null,
+  // Area-intelligence toggles — filter pins by their nearest area profile's
+  // score (see features/map/utils/areaMatch.js), not a property field.
+  goodMetro: false,
+  lowTraffic: false,
+  itCorridor: false,
 }
 
 export const useFilterStore = create((set) => ({

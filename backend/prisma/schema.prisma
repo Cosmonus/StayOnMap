@@ -238,6 +238,7 @@ model User {
   email      String   @unique
   name       String
   phone      String?
+  city       String?                          // self-reported at signup — one of config/cities.js's SUPPORTED_CITIES (users outside these go to WaitlistEntry instead of getting an account)
   avatarUrl  String?
   bio        String?
   socialLinks Json?                            // { website, linkedin, instagram, twitter }
@@ -294,6 +295,22 @@ model PasswordResetToken {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Waitlist — signups from cities outside SUPPORTED_CITIES (config/cities.js)
+// get captured here instead of a real User account. Not a User relation —
+// these people never had an account to begin with.
+// ─────────────────────────────────────────────────────────────────
+
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  city      String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 // ─────────────────────────────────────────────────────────────────

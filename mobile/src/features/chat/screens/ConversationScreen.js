@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { chatService } from '@services/chat.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { getSocket } from '@lib/socket'
+import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -121,7 +122,7 @@ export default function ConversationScreen({ route, navigation }) {
           multiline
         />
         <Pressable style={[styles.sendButton, (!input.trim() || isPending) && styles.disabled]} onPress={handleSend} disabled={!input.trim() || isPending}>
-          <Text style={styles.sendButtonText}>Send</Text>
+          <Icon name="send" size={16} color={colors.white} />
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -151,7 +152,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm, maxHeight: 100,
     fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800,
   },
-  sendButton: { backgroundColor: colors.brand600, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2 },
+  sendButton: { width: 40, height: 40, borderRadius: radius.full, backgroundColor: colors.brand600, alignItems: 'center', justifyContent: 'center' },
   disabled: { opacity: 0.5 },
-  sendButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
 })

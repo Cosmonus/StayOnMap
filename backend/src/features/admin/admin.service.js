@@ -77,6 +77,17 @@ export async function getDashboardAnalytics() {
   return result
 }
 
+export async function listWaitlist({ page = 1, limit = 20 }) {
+  const pageNum  = Math.max(1, parseInt(page, 10)  || 1)
+  const limitNum = Math.min(100, parseInt(limit, 10) || 20)
+  const skip = (pageNum - 1) * limitNum
+  const [entries, total] = await Promise.all([
+    prisma.waitlistEntry.findMany({ skip, take: limitNum, orderBy: { createdAt: 'desc' } }),
+    prisma.waitlistEntry.count(),
+  ])
+  return { entries, total, page: pageNum, limit: limitNum }
+}
+
 export async function listUsers({ search, isBlocked, page = 1, limit = 20 }) {
   const pageNum  = Math.max(1, parseInt(page, 10)  || 1)
   const limitNum = Math.min(100, parseInt(limit, 10) || 20)

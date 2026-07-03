@@ -1,19 +1,100 @@
-import Svg, { Path } from 'react-native-svg'
+import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 
-// Stroke-based outline icon paths — same style/viewBox convention as the
-// web app's shared ICONS map (frontend/src/components/layout/UnifiedSidebar.jsx).
-export const ICONS = {
-  explore: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z M15 10a3 3 0 11-6 0 3 3 0 016 0z',
-  search: 'M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35',
-  saved: 'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z',
-  chat: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
-  profile: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z',
+// Semantic name -> [IconFamily, glyph]. Feather is the default (closest to
+// the PDF's thin stroke-outline style); MaterialCommunityIcons fills gaps
+// Feather has no glyph for (bed, rupee, sofa, ruler, shield-check); Ionicons
+// supplies true filled/outline pairs for things that need both states (heart, star).
+const ICONS = {
+  // Tab bar
+  explore: [Feather, 'compass'],
+  search: [Feather, 'search'],
+  saved: [Ionicons, 'heart-outline'],
+  chat: [Feather, 'message-circle'],
+  profile: [Feather, 'user'],
+
+  // Save / favourite
+  heart: [Ionicons, 'heart-outline'],
+  heartFilled: [Ionicons, 'heart'],
+
+  // Ratings
+  star: [Ionicons, 'star'],
+  starOutline: [Ionicons, 'star-outline'],
+
+  // Actions
+  share: [Feather, 'share-2'],
+  camera: [Feather, 'camera'],
+  send: [Feather, 'send'],
+  plus: [Feather, 'plus'],
+  edit: [Feather, 'edit-2'],
+  trash: [Feather, 'trash-2'],
+  compare: [Feather, 'repeat'],
+  logout: [Feather, 'log-out'],
+
+  // Navigation / chrome
+  chevronLeft: [Feather, 'chevron-left'],
+  chevronRight: [Feather, 'chevron-right'],
+  chevronDown: [Feather, 'chevron-down'],
+  close: [Feather, 'x'],
+  filter: [Feather, 'sliders'],
+  list: [Feather, 'list'],
+  grid: [Feather, 'grid'],
+  map: [Feather, 'map'],
+
+  // Status / feedback
+  check: [Feather, 'check'],
+  checkCircle: [Feather, 'check-circle'],
+  alertTriangle: [Feather, 'alert-triangle'],
+  info: [Feather, 'info'],
+  bell: [Feather, 'bell'],
+  shield: [Feather, 'shield'],
+  shieldCheck: [MaterialCommunityIcons, 'shield-check'],
+  clock: [Feather, 'clock'],
+  calendar: [Feather, 'calendar'],
+  eye: [Feather, 'eye'],
+
+  // People / contact
+  users: [Feather, 'users'],
+  phone: [Feather, 'phone'],
+  mail: [Feather, 'mail'],
+  lock: [Feather, 'lock'],
+  key: [Feather, 'key'],
+  messageCircle: [Feather, 'message-circle'],
+  settings: [Feather, 'settings'],
+
+  // Property attributes
+  home: [Feather, 'home'],
+  building: [MaterialCommunityIcons, 'office-building-outline'],
+  mapPin: [Feather, 'map-pin'],
+  bed: [MaterialCommunityIcons, 'bed-outline'],
+  area: [MaterialCommunityIcons, 'ruler-square'],
+  rupee: [MaterialCommunityIcons, 'currency-inr'],
+  sofa: [MaterialCommunityIcons, 'sofa-outline'],
+  box: [Feather, 'package'],
+  wifi: [Feather, 'wifi'],
+  image: [Feather, 'image'],
+  document: [Feather, 'file-text'],
+  link: [Feather, 'link'],
+  arrowRight: [Feather, 'arrow-right'],
+
+  // Amenities
+  elevator: [MaterialCommunityIcons, 'elevator'],
+  gym: [MaterialCommunityIcons, 'dumbbell'],
+  pool: [MaterialCommunityIcons, 'pool'],
+  cctv: [MaterialCommunityIcons, 'cctv'],
+  power: [MaterialCommunityIcons, 'flash'],
+  water: [MaterialCommunityIcons, 'water'],
+  ac: [MaterialCommunityIcons, 'air-conditioner'],
+  fridge: [MaterialCommunityIcons, 'fridge-outline'],
+  washingMachine: [MaterialCommunityIcons, 'washing-machine'],
+  garden: [MaterialCommunityIcons, 'tree'],
+  gate: [MaterialCommunityIcons, 'gate'],
+  parking: [MaterialCommunityIcons, 'parking'],
+  security: [MaterialCommunityIcons, 'security'],
 }
 
-export default function Icon({ name, size = 22, color = '#1E293B', strokeWidth = 2 }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d={ICONS[name]} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  )
+export default function Icon({ name, size = 22, color = '#1E293B' }) {
+  const entry = ICONS[name]
+  if (!entry) return null
+  const [Family, glyph] = entry
+  return <Family name={glyph} size={size} color={color} />
 }

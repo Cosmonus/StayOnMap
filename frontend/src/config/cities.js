@@ -1,15 +1,35 @@
-﻿// Single source of truth for all city data.
+// Single source of truth for all city data.
 // To add a new city: append one entry to CITIES — nothing else needs to change.
 
 export const CITIES = [
   {
-    name:         'Bengaluru',
-    state:        'Karnataka',
-    lat:          12.9716,
-    lng:          77.5946,
+    name:         'Delhi',
+    state:        'Delhi NCR',
+    lat:          28.6139,
+    lng:          77.2090,
     areas: [
-      'Koramangala', 'Indiranagar', 'HSR Layout', 'Whitefield',
-      'BTM Layout', 'JP Nagar', 'Marathahalli', 'Electronic City',
+      'Dwarka', 'Rohini', 'Lajpat Nagar', 'Saket',
+      'Vasant Kunj', 'Karol Bagh', 'Noida', 'Gurgaon',
+    ],
+  },
+  {
+    name:         'Mumbai',
+    state:        'Mumbai Metropolitan Region',
+    lat:          19.0760,
+    lng:          72.8777,
+    areas: [
+      'Bandra', 'Andheri', 'Powai', 'Juhu',
+      'Worli', 'Dadar', 'Malad', 'Thane',
+    ],
+  },
+  {
+    name:         'Kolkata',
+    state:        'West Bengal',
+    lat:          22.5726,
+    lng:          88.3639,
+    areas: [
+      'Salt Lake', 'Park Street', 'Ballygunge', 'New Town',
+      'Alipore', 'Howrah', 'Behala', 'Rajarhat',
     ],
   },
   {
@@ -23,6 +43,16 @@ export const CITIES = [
     ],
   },
   {
+    name:         'Bengaluru',
+    state:        'Karnataka',
+    lat:          12.9716,
+    lng:          77.5946,
+    areas: [
+      'Koramangala', 'Indiranagar', 'HSR Layout', 'Whitefield',
+      'BTM Layout', 'JP Nagar', 'Marathahalli', 'Electronic City',
+    ],
+  },
+  {
     name:         'Hyderabad',
     state:        'Telangana',
     lat:          17.3850,
@@ -33,13 +63,33 @@ export const CITIES = [
     ],
   },
   {
-    name:         'Delhi',
-    state:        'Delhi NCR',
-    lat:          28.6139,
-    lng:          77.2090,
+    name:         'Ahmedabad',
+    state:        'Gujarat',
+    lat:          23.0225,
+    lng:          72.5714,
     areas: [
-      'Dwarka', 'Rohini', 'Lajpat Nagar', 'Saket',
-      'Vasant Kunj', 'Karol Bagh', 'Noida', 'Gurgaon',
+      'Satellite', 'Vastrapur', 'Bopal', 'Prahladnagar',
+      'Navrangpura', 'Maninagar', 'SG Highway', 'Thaltej',
+    ],
+  },
+  {
+    name:         'Pune',
+    state:        'Maharashtra',
+    lat:          18.5204,
+    lng:          73.8567,
+    areas: [
+      'Koregaon Park', 'Baner', 'Hinjewadi', 'Kothrud',
+      'Viman Nagar', 'Aundh', 'Wakad', 'Kharadi',
+    ],
+  },
+  {
+    name:         'Surat',
+    state:        'Gujarat',
+    lat:          21.1702,
+    lng:          72.8311,
+    areas: [
+      'Adajan', 'Vesu', 'Citylight', 'Piplod',
+      'Athwalines', 'Ghod Dod Road', 'Pal', 'Katargam',
     ],
   },
 ]

@@ -1607,6 +1607,58 @@ function UsersSection() {
   )
 }
 
+// ── Section: Waitlist — signups from cities outside SUPPORTED_CITIES ────────
+function WaitlistSection() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-waitlist'],
+    queryFn: () => adminService.waitlist({ limit: 100 }).then(r => r.data),
+  })
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-xl font-bold text-slate-900">Waitlist</h1>
+        <p className="text-sm text-slate-400 mt-0.5">
+          Signups from cities we haven&apos;t launched in yet — {data?.total ?? 0} total.
+        </p>
+      </div>
+
+      {isLoading ? (
+        <div className="h-48 bg-slate-100 rounded-2xl animate-pulse" />
+      ) : (
+        <div className="bg-white border border-slate-100 rounded-2xl overflow-x-auto">
+          <table className="w-full text-sm min-w-[520px]">
+            <thead className="bg-slate-50 border-b border-slate-100">
+              <tr>
+                {['Name', 'Email', 'City', 'Signed up'].map(h => (
+                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {(data?.entries ?? []).map(entry => (
+                <tr key={entry.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-4 py-3 font-medium text-slate-800">{entry.name}</td>
+                  <td className="px-4 py-3 text-slate-500 max-w-48 truncate">{entry.email}</td>
+                  <td className="px-4 py-3">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">{entry.city}</span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-400">
+                    {new Date(entry.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </td>
+                </tr>
+              ))}
+              {(data?.entries ?? []).length === 0 && (
+                <tr><td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-400">No waitlist signups yet.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Section: Reports ───────────────────────────────────────────────────────
 const SEV_COLOR = {
   LOW: 'bg-slate-100 text-slate-600',
@@ -2234,6 +2286,7 @@ export default function AdminPage() {
       case 'admin-properties':return <AdminPropertiesMap />
       case 'review-listings': return <ReviewListingsSection />
       case 'users':           return <UsersSection />
+      case 'waitlist':        return <WaitlistSection />
       case 'reports':         return <ReportsSection />
       case 'reviews':         return <AdminReviewsSection />
       case 'monitor':         return <AdminMonitorSection />

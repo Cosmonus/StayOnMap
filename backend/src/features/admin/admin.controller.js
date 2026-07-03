@@ -7,6 +7,9 @@ export async function login(req, res, next) {
 export async function analytics(req, res, next) {
   try { ok(res, await service.getDashboardAnalytics()) } catch (err) { next(err) }
 }
+export async function waitlist(req, res, next) {
+  try { ok(res, await service.listWaitlist(req.query)) } catch (err) { next(err) }
+}
 export async function users(req, res, next) {
   try { ok(res, await service.listUsers(req.query)) } catch (err) { next(err) }
 }

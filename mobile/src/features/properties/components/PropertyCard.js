@@ -9,8 +9,9 @@ import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-const FURNISHED_LABEL = { FULLY: '🛋️ Furnished', SEMI: '🪑 Semi', UNFURNISHED: '📦 Unfurnished' }
-const TYPE_EMOJI = { APARTMENT: '🏢', HOUSE: '🏠', VILLA: '🏡', PG: '🏘️', INDEPENDENT_HOUSE: '🏠', COMMERCIAL: '🏪' }
+const FURNISHED_LABEL = { FULLY: 'Furnished', SEMI: 'Semi', UNFURNISHED: 'Unfurnished' }
+const FURNISHED_ICON = { FULLY: 'sofa', SEMI: 'sofa', UNFURNISHED: 'box' }
+const TYPE_ICON = { APARTMENT: 'building', HOUSE: 'home', VILLA: 'home', PG: 'building', INDEPENDENT_HOUSE: 'home', COMMERCIAL: 'building' }
 
 // Optimistic save/unsave toggle ported from the WORKING pattern in
 // frontend/src/features/properties/components/PropertyCard.jsx — not the
@@ -36,7 +37,7 @@ export default function PropertyCard({ property, isSaved: initialSaved = false, 
   const cover = property.images?.[0] ? imgUrl(property.images[0]?.url ?? property.images[0], 'card') : null
   const availableNow = isAvailableToday(property.availableFrom)
   const postedAge = formatAge(property.createdAt)
-  const bhkLabel = property.bhk === 0 ? '🛏️ Studio' : property.bhk ? `🛏️ ${property.bhk} BHK` : null
+  const bhkLabel = property.bhk === 0 ? 'Studio' : property.bhk ? `${property.bhk} BHK` : null
 
   return (
     <Pressable style={styles.card} onPress={onPress}>
@@ -58,7 +59,7 @@ export default function PropertyCard({ property, isSaved: initialSaved = false, 
           onPress={handleHeartPress}
           hitSlop={8}
         >
-          <Icon name="saved" size={16} color={saved ? colors.danger : colors.white} strokeWidth={saved ? 0 : 2} />
+          <Icon name={saved ? 'heartFilled' : 'heart'} size={16} color={saved ? colors.danger : colors.white} />
         </Pressable>
       </View>
 
@@ -74,17 +75,19 @@ export default function PropertyCard({ property, isSaved: initialSaved = false, 
         <View style={styles.chipRow}>
           {bhkLabel && (
             <View style={[styles.chip, styles.chipBrand]}>
+              <Icon name="bed" size={11} color={colors.brand700} />
               <Text style={styles.chipTextBrand}>{bhkLabel}</Text>
             </View>
           )}
           {FURNISHED_LABEL[property.furnished] && (
             <View style={styles.chip}>
+              <Icon name={FURNISHED_ICON[property.furnished]} size={11} color={colors.slate600} />
               <Text style={styles.chipText}>{FURNISHED_LABEL[property.furnished]}</Text>
             </View>
           )}
           {property.type && (
             <View style={styles.chip}>
-              <Text style={styles.chipText}>{TYPE_EMOJI[property.type] ?? '🏠'}</Text>
+              <Icon name={TYPE_ICON[property.type] ?? 'home'} size={11} color={colors.slate600} />
             </View>
           )}
         </View>
@@ -121,7 +124,7 @@ const styles = StyleSheet.create({
   priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
   deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: spacing.xs + 2 },
-  chip: { backgroundColor: colors.slate100, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 2 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.slate100, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 2 },
   chipBrand: { backgroundColor: colors.brand50 },
   chipText: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.slate600 },
   chipTextBrand: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.brand700 },

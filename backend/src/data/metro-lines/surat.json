@@ -1,0 +1,176 @@
+{
+  "city": "Surat",
+  "lines": [],
+  "stations": [
+    {
+      "name": "Adajan Gam",
+      "lat": 21.1901059,
+      "lng": 72.7890318
+    },
+    {
+      "name": "Ugat Vaarigruh",
+      "lat": 21.2185073,
+      "lng": 72.7811788
+    },
+    {
+      "name": "Maskati Hospital",
+      "lat": 21.1980723,
+      "lng": 72.833497
+    },
+    {
+      "name": "Varaccha Chopati Garden",
+      "lat": 21.2234482,
+      "lng": 72.8867155
+    },
+    {
+      "name": "Kadarsha Ni Nal",
+      "lat": 21.1870443,
+      "lng": 72.8193423
+    },
+    {
+      "name": "Surat Railway Station",
+      "lat": 21.2038763,
+      "lng": 72.8416751
+    },
+    {
+      "name": "Bharat Cancer Hospital",
+      "lat": 21.1897025,
+      "lng": 72.8796512
+    },
+    {
+      "name": "Central Warehouse",
+      "lat": 21.2059681,
+      "lng": 72.848225
+    },
+    {
+      "name": "Performing Art Centre",
+      "lat": 21.1953202,
+      "lng": 72.7857985
+    },
+    {
+      "name": "Palanpur Road",
+      "lat": 21.2087435,
+      "lng": 72.7825931
+    },
+    {
+      "name": "Botanical Garden",
+      "lat": 21.2214427,
+      "lng": 72.7769411
+    },
+    {
+      "name": "Kapodra",
+      "lat": 21.2164638,
+      "lng": 72.8675472
+    },
+    {
+      "name": "Labheshwar Chowk",
+      "lat": 21.2094807,
+      "lng": 72.8549362
+    },
+    {
+      "name": "Anjana Farm",
+      "lat": 21.1852262,
+      "lng": 72.8492992
+    },
+    {
+      "name": "Majura Gate",
+      "lat": 21.1809637,
+      "lng": 72.8183933
+    },
+    {
+      "name": "LP Savani School",
+      "lat": 21.1996868,
+      "lng": 72.7828411
+    },
+    {
+      "name": "Badri Narayan Temple",
+      "lat": 21.1875752,
+      "lng": 72.800609
+    },
+    {
+      "name": "Rupali Canal",
+      "lat": 21.1708668,
+      "lng": 72.8158508
+    },
+    {
+      "name": "Althan Tenament",
+      "lat": 21.1619549,
+      "lng": 72.8116873
+    },
+    {
+      "name": "Shri Swaminarayan Mandir Kalakunj",
+      "lat": 21.2195656,
+      "lng": 72.8768759
+    },
+    {
+      "name": "Nature Park",
+      "lat": 21.2268945,
+      "lng": 72.8942256
+    },
+    {
+      "name": "Saroli",
+      "lat": 21.1890207,
+      "lng": 72.892983
+    },
+    {
+      "name": "Athwa Chopati",
+      "lat": 21.1846971,
+      "lng": 72.8079714
+    },
+    {
+      "name": "Magob",
+      "lat": 21.1902027,
+      "lng": 72.8685756
+    },
+    {
+      "name": "Chowk Bazar",
+      "lat": 21.1957218,
+      "lng": 72.8191985
+    },
+    {
+      "name": "Convention Center;કન્વેન્શન સેન્ટર",
+      "lat": 21.1220565,
+      "lng": 72.7993591
+    },
+    {
+      "name": "Bhesan",
+      "lat": 21.2197174,
+      "lng": 72.7690064
+    },
+    {
+      "name": "Althan Gam",
+      "lat": 21.1525979,
+      "lng": 72.8079385
+    },
+    {
+      "name": "Bhimrad ભીમરાડ",
+      "lat": 21.1287356,
+      "lng": 72.7981777
+    },
+    {
+      "name": "Surat Women ITI",
+      "lat": 21.1359796,
+      "lng": 72.8008788
+    },
+    {
+      "name": "VIP Road",
+      "lat": 21.1452026,
+      "lng": 72.8050529
+    },
+    {
+      "name": "Dream City",
+      "lat": 21.1111703,
+      "lng": 72.7979275
+    },
+    {
+      "name": "Aquarium",
+      "lat": 21.1861257,
+      "lng": 72.7925147
+    },
+    {
+      "name": "Sarthana",
+      "lat": 21.2315946,
+      "lng": 72.9031155
+    }
+  ]
+}

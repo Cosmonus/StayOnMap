@@ -1,16 +1,20 @@
 import { useState } from 'react'
-import { View, Text, Image, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions } from 'react-native'
+import { View, Text, Image, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions, Share } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
 import { chatService } from '@services/chat.service'
 import { authService } from '@services/auth.service'
+import { savedService } from '@services/saved.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import TrustBadge from '@components/common/TrustBadge'
 import RiskAlert from '@components/common/RiskAlert'
 import TrustScoreWidget from '@features/trust/components/TrustScoreWidget'
+import LocationMapCard from '../components/LocationMapCard'
+import AreaIntelligenceSection from '../components/AreaIntelligenceSection'
 import ReviewsSection from '@features/reviews/components/ReviewsSection'
 import ReportButton from '@features/reports/components/ReportButton'
+import Icon from '@components/common/Icon'
 import { imgUrl, formatCompact } from '@utils/format'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -19,10 +23,24 @@ import { spacing, radius } from '@theme/spacing'
 const FURNISHED_LABEL = { FULLY: 'Fully furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
 const SCREEN_WIDTH = Dimensions.get('window').width
 
+const AMENITY_ICON_RULES = [
+  [/wifi|internet/, 'wifi'], [/lift|elevator/, 'elevator'], [/gym|fitness/, 'gym'],
+  [/pool|swim/, 'pool'], [/cctv|camera|surveillance/, 'cctv'], [/security|guard/, 'security'],
+  [/power|backup|generator/, 'power'], [/water/, 'water'], [/\bac\b|air.?condition/, 'ac'],
+  [/fridge|refrigerator/, 'fridge'], [/washing/, 'washingMachine'], [/garden|park\b/, 'garden'],
+  [/gate/, 'gate'], [/parking/, 'parking'],
+]
+function amenityIcon(name) {
+  const n = name.toLowerCase()
+  const match = AMENITY_ICON_RULES.find(([re]) => re.test(n))
+  return match ? match[1] : 'checkCircle'
+}
+
 export default function PropertyDetailScreen({ route, navigation }) {
   const { propertyId } = route.params
   const [chatLoading, setChatLoading] = useState(false)
   const { user } = useAuth()
+  const qc = useQueryClient()
 
   const { data: property, isLoading, isError } = useQuery({
     queryKey: ['property', propertyId],
@@ -35,6 +53,29 @@ export default function PropertyDetailScreen({ route, navigation }) {
     queryFn: () => authService.getMe().then((r) => r.data),
     enabled: !!user,
   })
+
+  const { data: savedList } = useQuery({
+    queryKey: ['saved'],
+    queryFn: () => savedService.getMySaved().then((r) => r.data),
+    enabled: !!user,
+  })
+  const isSaved = savedList?.some((s) => s.propertyId === propertyId) ?? false
+
+  const saveMutation = useMutation({
+    mutationFn: (isSaving) =>
+      isSaving ? savedService.save(propertyId).then((r) => r.data) : savedService.unsave(propertyId).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['saved'] }),
+  })
+
+  function handleSave() {
+    if (!user) return
+    saveMutation.mutate(!isSaved)
+  }
+
+  function handleShare() {
+    if (!property) return
+    Share.share({ message: `${property.title} — ${formatCompact(Number(property.rent))}/mo in ${property.city}` })
+  }
 
   async function handleMessageOwner() {
     setChatLoading(true)
@@ -50,38 +91,66 @@ export default function PropertyDetailScreen({ route, navigation }) {
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
+      <SafeAreaView style={styles.center} edges={['top']}>
+        <Pressable style={[styles.circleButton, styles.centerBack]} onPress={() => navigation.goBack()} hitSlop={8}>
+          <Icon name="chevronLeft" size={20} color={colors.slate800} />
+        </Pressable>
         <ActivityIndicator color={colors.brand600} size="large" />
-      </View>
+      </SafeAreaView>
     )
   }
 
   if (isError || !property) {
     return (
-      <View style={styles.center}>
+      <SafeAreaView style={styles.center} edges={['top']}>
+        <Pressable style={[styles.circleButton, styles.centerBack]} onPress={() => navigation.goBack()} hitSlop={8}>
+          <Icon name="chevronLeft" size={20} color={colors.slate800} />
+        </Pressable>
         <Text style={styles.emptyText}>This listing isn&apos;t available anymore.</Text>
-      </View>
+      </SafeAreaView>
     )
   }
 
   const bhkLabel = property.bhk === 0 ? 'Studio' : property.bhk ? `${property.bhk} BHK` : property.sharing ? `${property.sharing} Sharing` : null
   const amenities = property.amenities?.map((a) => a.amenity?.name).filter(Boolean) ?? []
   const isOwner = !!profile && profile.id === property.ownerId
+  // Prisma's Decimal(10,7) lat/lng serialize as strings over JSON — every
+  // other map consumer in this app (PropertyPin, clustering.js) coerces with
+  // unary + before using them numerically; react-native-maps crashes with a
+  // native "cannot be cast from String to double" if you don't.
+  const lat = property.lat != null ? +property.lat : null
+  const lng = property.lng != null ? +property.lng : null
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-        <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={styles.gallery}>
-          {(property.images?.length ? property.images : [null]).map((img, i) => (
-            <View key={img?.id ?? i} style={styles.galleryImageWrap}>
-              {img ? (
-                <Image source={{ uri: imgUrl(img.url, 'detail') }} style={styles.galleryImage} resizeMode="cover" />
-              ) : (
-                <View style={[styles.galleryImage, styles.galleryFallback]} />
-              )}
+        <View>
+          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={styles.gallery}>
+            {(property.images?.length ? property.images : [null]).map((img, i) => (
+              <View key={img?.id ?? i} style={styles.galleryImageWrap}>
+                {img ? (
+                  <Image source={{ uri: imgUrl(img.url, 'detail') }} style={styles.galleryImage} resizeMode="cover" />
+                ) : (
+                  <View style={[styles.galleryImage, styles.galleryFallback]} />
+                )}
+              </View>
+            ))}
+          </ScrollView>
+
+          <SafeAreaView edges={['top']} style={styles.galleryHeader} pointerEvents="box-none">
+            <Pressable style={styles.circleButton} onPress={() => navigation.goBack()} hitSlop={8}>
+              <Icon name="chevronLeft" size={20} color={colors.slate800} />
+            </Pressable>
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <Pressable style={styles.circleButton} onPress={handleShare} hitSlop={8}>
+                <Icon name="share" size={18} color={colors.slate800} />
+              </Pressable>
+              <Pressable style={styles.circleButton} onPress={handleSave} hitSlop={8}>
+                <Icon name={isSaved ? 'heartFilled' : 'heart'} size={18} color={isSaved ? colors.danger : colors.slate800} />
+              </Pressable>
             </View>
-          ))}
-        </ScrollView>
+          </SafeAreaView>
+        </View>
 
         <View style={styles.body}>
           {property.riskScore && (
@@ -106,13 +175,22 @@ export default function PropertyDetailScreen({ route, navigation }) {
 
           <View style={styles.chipRow}>
             {bhkLabel && (
-              <View style={[styles.chip, styles.chipBrand]}><Text style={styles.chipTextBrand}>{bhkLabel}</Text></View>
+              <View style={[styles.chip, styles.chipBrand]}>
+                <Icon name="bed" size={13} color={colors.brand700} />
+                <Text style={styles.chipTextBrand}>{bhkLabel}</Text>
+              </View>
             )}
             {FURNISHED_LABEL[property.furnished] && (
-              <View style={styles.chip}><Text style={styles.chipText}>{FURNISHED_LABEL[property.furnished]}</Text></View>
+              <View style={styles.chip}>
+                <Icon name="sofa" size={13} color={colors.slate600} />
+                <Text style={styles.chipText}>{FURNISHED_LABEL[property.furnished]}</Text>
+              </View>
             )}
             {property.area && (
-              <View style={styles.chip}><Text style={styles.chipText}>{Math.round(Number(property.area))} sq.ft</Text></View>
+              <View style={styles.chip}>
+                <Icon name="area" size={13} color={colors.slate600} />
+                <Text style={styles.chipText}>{Math.round(Number(property.area))} sq.ft</Text>
+              </View>
             )}
           </View>
 
@@ -123,12 +201,18 @@ export default function PropertyDetailScreen({ route, navigation }) {
             </View>
           )}
 
+          <LocationMapCard lat={lat} lng={lng} />
+          <AreaIntelligenceSection lat={lat} lng={lng} />
+
           {!!amenities.length && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Amenities</Text>
               <View style={styles.chipRow}>
                 {amenities.map((name) => (
-                  <View key={name} style={styles.chip}><Text style={styles.chipText}>{name}</Text></View>
+                  <View key={name} style={styles.chip}>
+                    <Icon name={amenityIcon(name)} size={13} color={colors.slate600} />
+                    <Text style={styles.chipText}>{name}</Text>
+                  </View>
                 ))}
               </View>
             </View>
@@ -152,8 +236,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Community Reviews</Text>
-            <ReviewsSection propertyId={propertyId} isOwner={isOwner} ownerName={property.owner?.name} />
+            <ReviewsSection title="Community Reviews" propertyId={propertyId} isOwner={isOwner} ownerName={property.owner?.name} />
           </View>
 
           <View style={[styles.section, { alignItems: 'flex-start' }]}>
@@ -162,21 +245,31 @@ export default function PropertyDetailScreen({ route, navigation }) {
         </View>
       </ScrollView>
 
-      <SafeAreaView edges={['bottom']} style={styles.footer}>
-        <Pressable style={styles.messageButton} onPress={handleMessageOwner} disabled={chatLoading}>
-          {chatLoading ? <ActivityIndicator color={colors.brand700} size="small" /> : <Text style={styles.messageButtonText}>Message</Text>}
-        </Pressable>
-        <Pressable
-          style={styles.bookButton}
-          onPress={() => navigation.navigate('BookViewing', {
-            propertyId,
-            windowStart: property.appointmentWindowStart,
-            windowEnd: property.appointmentWindowEnd,
-          })}
-        >
-          <Text style={styles.bookButtonText}>Book a viewing</Text>
-        </Pressable>
-      </SafeAreaView>
+      {!isOwner && (
+        <SafeAreaView edges={['bottom']} style={styles.footer}>
+          <Pressable style={styles.messageButton} onPress={handleMessageOwner} disabled={chatLoading}>
+            {chatLoading ? (
+              <ActivityIndicator color={colors.brand700} size="small" />
+            ) : (
+              <>
+                <Icon name="messageCircle" size={16} color={colors.brand700} />
+                <Text style={styles.messageButtonText}>Message</Text>
+              </>
+            )}
+          </Pressable>
+          <Pressable
+            style={styles.bookButton}
+            onPress={() => navigation.navigate('BookViewing', {
+              propertyId,
+              windowStart: property.appointmentWindowStart,
+              windowEnd: property.appointmentWindowEnd,
+            })}
+          >
+            <Icon name="calendar" size={16} color={colors.white} />
+            <Text style={styles.bookButtonText}>Book a viewing</Text>
+          </Pressable>
+        </SafeAreaView>
+      )}
     </View>
   )
 }
@@ -184,11 +277,22 @@ export default function PropertyDetailScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white },
+  centerBack: { position: 'absolute', top: spacing.sm, left: spacing.md },
   emptyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400 },
   gallery: { height: 260 },
   galleryImageWrap: { width: SCREEN_WIDTH, height: 260 },
   galleryImage: { width: '100%', height: '100%' },
   galleryFallback: { backgroundColor: colors.slate100 },
+  galleryHeader: {
+    position: 'absolute', top: 0, left: 0, right: 0,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: spacing.md, paddingTop: spacing.sm,
+  },
+  circleButton: {
+    width: 36, height: 36, borderRadius: radius.full, backgroundColor: 'rgba(255,255,255,0.92)',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, elevation: 2,
+  },
   body: { padding: spacing.lg },
   priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm, marginBottom: spacing.xs },
   price: { fontFamily: fonts.displayBold, fontSize: fontSizes.xxl, color: colors.slate800 },
@@ -197,7 +301,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.lg, color: colors.slate800, marginTop: spacing.xs },
   location: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2, marginBottom: spacing.md },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chip: { backgroundColor: colors.slate100, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 6 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.slate100, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 6 },
   chipBrand: { backgroundColor: colors.brand50 },
   chipText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.slate600 },
   chipTextBrand: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
@@ -213,8 +317,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', gap: spacing.sm, padding: spacing.md,
     backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.slate200,
   },
-  messageButton: { flex: 1, borderWidth: 1, borderColor: colors.brand600, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.sm + 4 },
+  messageButton: { flex: 1, flexDirection: 'row', gap: 6, borderWidth: 1, borderColor: colors.brand600, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.sm + 4 },
   messageButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand700 },
-  bookButton: { flex: 2, backgroundColor: colors.brand600, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.sm + 4 },
+  bookButton: { flex: 2, flexDirection: 'row', gap: 6, backgroundColor: colors.brand600, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.sm + 4 },
   bookButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
 })

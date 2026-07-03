@@ -6,6 +6,7 @@ import { chatService } from '@services/chat.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { getSocket } from '@lib/socket'
 import { imgUrl } from '@utils/format'
+import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -46,6 +47,9 @@ export default function ConversationListScreen({ navigation }) {
   if (!conversations.length) {
     return (
       <SafeAreaView style={styles.emptyContainer}>
+        <View style={styles.emptyIcon}>
+          <Icon name="messageCircle" size={26} color={colors.brand600} />
+        </View>
         <Text style={styles.emptyTitle}>No conversations yet</Text>
         <Text style={styles.emptyBody}>Start a chat from a property&apos;s detail page.</Text>
       </SafeAreaView>
@@ -112,6 +116,7 @@ export default function ConversationListScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white },
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg, backgroundColor: colors.white },
+  emptyIcon: { width: 52, height: 52, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate700 },
   emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: spacing.xs, textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.slate100 },

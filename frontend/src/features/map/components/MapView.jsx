@@ -107,7 +107,7 @@ export default function MapView({ contained = false }) {
 
     searchMarker.current?.remove()
     searchMarker.current = null
-    if (!searchedPlace) return
+    if (!searchedPlace || pins.length === 0) return
 
     const el = document.createElement('div')
     el.style.filter = 'drop-shadow(0 3px 6px rgba(244,81,30,0.55))'
@@ -124,7 +124,7 @@ export default function MapView({ contained = false }) {
       lng: searchedPlace.lng,
       map,
     })
-  }, [searchedPlace])
+  }, [searchedPlace, pins])
 
   const locationLabel = area || city || null
 

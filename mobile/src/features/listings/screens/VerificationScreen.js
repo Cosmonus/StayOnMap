@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, StyleS
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { verificationService } from '@services/verification.service'
+import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
@@ -84,7 +85,10 @@ export default function VerificationScreen({ route }) {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.headerTitle}>Get Verified</Text>
+        <View style={styles.headerTitleRow}>
+          <Icon name="shieldCheck" size={20} color={colors.slate800} />
+          <Text style={styles.headerTitle}>Get Verified</Text>
+        </View>
 
         <View style={styles.propertyBox}>
           <Text style={styles.propertyBoxLabel}>Verifying ownership for</Text>
@@ -100,14 +104,20 @@ export default function VerificationScreen({ route }) {
 
             {verification.status === 'VERIFIED' && (
               <View style={styles.verifiedBox}>
-                <Text style={styles.verifiedTitle}>You&apos;re verified!</Text>
+                <View style={styles.boxTitleRow}>
+                  <Icon name="shieldCheck" size={15} color="#166534" />
+                  <Text style={styles.verifiedTitle}>You&apos;re verified!</Text>
+                </View>
                 <Text style={styles.verifiedBody}>Your listing now shows the Verified Owner badge to renters.</Text>
               </View>
             )}
 
             {verification.status === 'REJECTED' && verification.adminNote && (
               <View style={styles.rejectedBox}>
-                <Text style={styles.rejectedTitle}>Reason for rejection</Text>
+                <View style={styles.boxTitleRow}>
+                  <Icon name="alertTriangle" size={13} color="#B91C1C" />
+                  <Text style={styles.rejectedTitle}>Reason for rejection</Text>
+                </View>
                 <Text style={styles.rejectedBody}>{verification.adminNote}</Text>
               </View>
             )}
@@ -118,6 +128,7 @@ export default function VerificationScreen({ route }) {
                 <View style={{ gap: spacing.xs }}>
                   {verification.documents.map((doc) => (
                     <View key={doc.id} style={styles.docRow}>
+                      <Icon name="document" size={13} color={colors.slate500} />
                       <Text style={styles.docType}>{DOC_TYPES.find((d) => d.value === doc.type)?.label ?? doc.type}</Text>
                       <Text style={styles.docUrl} numberOfLines={1}>{doc.url}</Text>
                     </View>
@@ -128,20 +139,37 @@ export default function VerificationScreen({ route }) {
 
             {verification.status === 'REJECTED' && (
               <Pressable style={styles.darkButton} onPress={() => submitMutation.mutate()} disabled={submitMutation.isPending}>
-                {submitMutation.isPending ? <ActivityIndicator color={colors.white} size="small" /> : <Text style={styles.darkButtonText}>Resubmit for review</Text>}
+                {submitMutation.isPending ? (
+                  <ActivityIndicator color={colors.white} size="small" />
+                ) : (
+                  <>
+                    <Icon name="shieldCheck" size={15} color={colors.white} />
+                    <Text style={styles.darkButtonText}>Resubmit for review</Text>
+                  </>
+                )}
               </Pressable>
             )}
           </View>
         ) : (
           <View style={{ gap: spacing.md }}>
             <View style={styles.whyBox}>
-              <Text style={styles.whyTitle}>Why get verified?</Text>
+              <View style={styles.boxTitleRow}>
+                <Icon name="shieldCheck" size={15} color={colors.brand900} />
+                <Text style={styles.whyTitle}>Why get verified?</Text>
+              </View>
               <Text style={styles.whyItem}>• Earn the Verified Owner badge on your listing</Text>
               <Text style={styles.whyItem}>• Builds trust with potential tenants</Text>
               <Text style={styles.whyItem}>• Increases appointment requests</Text>
             </View>
             <Pressable style={styles.darkButton} onPress={() => submitMutation.mutate()} disabled={submitMutation.isPending}>
-              {submitMutation.isPending ? <ActivityIndicator color={colors.white} size="small" /> : <Text style={styles.darkButtonText}>Start verification</Text>}
+              {submitMutation.isPending ? (
+                <ActivityIndicator color={colors.white} size="small" />
+              ) : (
+                <>
+                  <Icon name="shieldCheck" size={15} color={colors.white} />
+                  <Text style={styles.darkButtonText}>Start verification</Text>
+                </>
+              )}
             </Pressable>
           </View>
         )}
@@ -171,7 +199,14 @@ export default function VerificationScreen({ route }) {
             {urlError && <Text style={styles.errorText}>{urlError}</Text>}
 
             <Pressable style={[styles.submitDocButton, !docUrl && styles.disabled]} onPress={handleAddDoc} disabled={!docUrl || docMutation.isPending}>
-              {docMutation.isPending ? <ActivityIndicator color={colors.white} size="small" /> : <Text style={styles.submitDocButtonText}>Add document</Text>}
+              {docMutation.isPending ? (
+                <ActivityIndicator color={colors.white} size="small" />
+              ) : (
+                <>
+                  <Icon name="plus" size={14} color={colors.white} />
+                  <Text style={styles.submitDocButtonText}>Add document</Text>
+                </>
+              )}
             </Pressable>
           </View>
         )}
@@ -184,7 +219,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: spacing.lg, gap: spacing.md },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
+  boxTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
   propertyBox: { backgroundColor: colors.slate50, borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.slate100 },
   propertyBoxLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
   propertyBoxTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, marginTop: 2 },
@@ -203,7 +240,7 @@ const styles = StyleSheet.create({
   docRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate100, borderRadius: radius.sm },
   docType: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700, flexShrink: 0 },
   docUrl: { fontFamily: fonts.body, fontSize: 11, color: colors.brand600, flex: 1 },
-  darkButton: { backgroundColor: '#111111', borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center' },
+  darkButton: { flexDirection: 'row', gap: 6, backgroundColor: '#111111', borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', justifyContent: 'center' },
   darkButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   whyBox: { backgroundColor: colors.brand50, borderWidth: 1, borderColor: colors.brand100, borderRadius: radius.md, padding: spacing.md, gap: 4 },
   whyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand900 },
@@ -218,7 +255,7 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800 },
   inputError: { borderColor: colors.danger },
   errorText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.danger },
-  submitDocButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center' },
+  submitDocButton: { flexDirection: 'row', gap: 6, backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', justifyContent: 'center' },
   submitDocButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   disabled: { opacity: 0.5 },
 })

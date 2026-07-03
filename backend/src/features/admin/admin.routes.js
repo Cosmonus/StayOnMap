@@ -13,6 +13,7 @@ router.post('/login', strictLimiter, validate(adminLoginSchema), ctrl.login)
 // Protected
 router.use(adminAuthMiddleware)
 router.get('/analytics', ctrl.analytics)
+router.get('/waitlist', ctrl.waitlist)
 router.get('/users', ctrl.users)
 router.get('/users/:userId', ctrl.userDetail)
 router.patch('/users/:userId/block', ctrl.blockUser)

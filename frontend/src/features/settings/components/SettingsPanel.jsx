@@ -208,7 +208,7 @@ export default function SettingsPanel() {
 
   if (isLoading || !form) {
     return (
-      <div className="grid grid-cols-2 gap-4 animate-pulse">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
         {[1, 2, 3, 4].map(i => <div key={i} className="h-64 bg-slate-100 rounded-2xl" />)}
       </div>
     )
@@ -244,7 +244,7 @@ export default function SettingsPanel() {
       </div>
 
       {/* ── Row 1: Profile + Social ──────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
         {/* Profile */}
         <Card icon={ICONS.user} title="Profile">
@@ -281,7 +281,7 @@ export default function SettingsPanel() {
           </div>
 
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Name">
                 <input type="text" value={form.name} onChange={e => set('name', e.target.value)} className={INPUT} />
               </Field>
@@ -343,7 +343,7 @@ export default function SettingsPanel() {
       </div>
 
       {/* ── Row 2: Privacy + Notifications & Security ──────────────── */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
         {/* Privacy & Visibility */}
         <Card icon={ICONS.eye} title="Privacy &amp; Visibility">

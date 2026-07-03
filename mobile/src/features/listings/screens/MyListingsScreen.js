@@ -5,6 +5,7 @@ import { propertyService } from '@services/property.service'
 import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { formatRent } from '@utils/format'
+import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -36,6 +37,9 @@ function BecomeOwnerPrompt() {
 
   return (
     <View style={styles.promptContainer}>
+      <View style={styles.promptIcon}>
+        <Icon name="home" size={24} color={colors.brand600} />
+      </View>
       <Text style={styles.promptTitle}>List your property</Text>
       <Text style={styles.promptBody}>Become an owner to list rentals and manage appointments.</Text>
       <Pressable style={[styles.promptButton, mutation.isPending && styles.disabled]} onPress={() => mutation.mutate()} disabled={mutation.isPending}>
@@ -74,7 +78,8 @@ export default function MyListingsScreen({ navigation }) {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My listings</Text>
         <Pressable style={styles.addButton} onPress={() => navigation.navigate('AddListing')}>
-          <Text style={styles.addButtonText}>+ Add</Text>
+          <Icon name="plus" size={14} color={colors.white} />
+          <Text style={styles.addButtonText}>Add</Text>
         </Pressable>
       </View>
 
@@ -89,6 +94,9 @@ export default function MyListingsScreen({ navigation }) {
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <Pressable style={styles.emptyState} onPress={() => navigation.navigate('AddListing')}>
+              <View style={styles.emptyIcon}>
+                <Icon name="plus" size={20} color={colors.brand600} />
+              </View>
               <Text style={styles.emptyTitle}>No listings yet</Text>
               <Text style={styles.emptyBody}>Tap to add your first listing</Text>
             </Pressable>
@@ -111,6 +119,7 @@ export default function MyListingsScreen({ navigation }) {
                   style={styles.cardActionButton}
                   onPress={() => navigation.navigate('Verification', { propertyId: item.id, propertyTitle: item.title })}
                 >
+                  <Icon name="shieldCheck" size={11} color={colors.slate600} />
                   <Text style={styles.cardActionText}>Verify</Text>
                 </Pressable>
                 {item.status === 'ACTIVE' && (
@@ -118,6 +127,7 @@ export default function MyListingsScreen({ navigation }) {
                     style={styles.cardActionButton}
                     onPress={() => navigation.navigate('CreateLease', { propertyId: item.id, propertyTitle: item.title })}
                   >
+                    <Icon name="document" size={11} color={colors.slate600} />
                     <Text style={styles.cardActionText}>Offer Lease</Text>
                   </Pressable>
                 )}
@@ -135,7 +145,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  addButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  addButton: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   addButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   list: { padding: spacing.lg, gap: spacing.md },
   card: { flex: 1, backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, overflow: 'hidden', marginBottom: spacing.md },
@@ -146,15 +156,17 @@ const styles = StyleSheet.create({
   statusPillText: { fontFamily: fonts.bodySemiBold, fontSize: 9 },
   cardBody: { padding: spacing.sm },
   cardActions: { flexDirection: 'row', gap: 6, paddingHorizontal: spacing.sm, paddingBottom: spacing.sm },
-  cardActionButton: { flex: 1, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.sm, paddingVertical: 5, alignItems: 'center' },
+  cardActionButton: { flex: 1, flexDirection: 'row', gap: 3, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.sm, paddingVertical: 5, alignItems: 'center', justifyContent: 'center' },
   cardActionText: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.slate600 },
   cardTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate800 },
   cardRent: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand600, marginTop: 2 },
   cardCity: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 2 },
   emptyState: { padding: spacing.xxl, borderWidth: 1, borderColor: colors.slate200, borderStyle: 'dashed', borderRadius: radius.lg, alignItems: 'center', width: '100%' },
+  emptyIcon: { width: 44, height: 44, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
   emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
   promptContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
+  promptIcon: { width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
   promptTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800, marginBottom: spacing.xs },
   promptBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, textAlign: 'center', marginBottom: spacing.lg, maxWidth: 260 },
   promptButton: { backgroundColor: '#111111', borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.md },

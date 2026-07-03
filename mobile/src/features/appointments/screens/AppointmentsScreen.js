@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { View, Text, Image, TextInput, Pressable, FlatList, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, Text, Image, TextInput, Pressable, FlatList, Modal, ActivityIndicator, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
 import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { imgUrl } from '@utils/format'
+import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -38,6 +39,45 @@ function personName(u) {
   return 'User'
 }
 
+function FilterDropdown({ value, options, onChange }) {
+  const [open, setOpen] = useState(false)
+  const selected = options.find(([key]) => key === value)
+
+  return (
+    <View>
+      <Pressable style={styles.filterTrigger} onPress={() => setOpen(true)}>
+        <Text style={styles.filterTriggerText}>{selected?.[1] ?? 'All'}</Text>
+        <Icon name="chevronDown" size={14} color={colors.slate500} />
+      </Pressable>
+
+      <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.dropdownBackdrop} onPress={() => setOpen(false)}>
+          <Pressable style={styles.dropdownSheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.dropdownSheetHeader}>
+              <Text style={styles.dropdownSheetTitle}>Filter by status</Text>
+              <Pressable onPress={() => setOpen(false)} hitSlop={8}>
+                <Icon name="close" size={18} color={colors.slate400} />
+              </Pressable>
+            </View>
+            <FlatList
+              data={options}
+              keyExtractor={([key]) => key}
+              ItemSeparatorComponent={() => <View style={styles.dropdownSeparator} />}
+              renderItem={({ item: [key, label] }) => (
+                <Pressable style={styles.dropdownOption} onPress={() => { onChange(key); setOpen(false) }}>
+                  <Text style={[styles.dropdownOptionText, key === value && styles.dropdownOptionTextActive]}>{label}</Text>
+                  {key === value && <Icon name="check" size={16} color={colors.brand600} />}
+                </Pressable>
+              )}
+            />
+            <SafeAreaView edges={['bottom']} />
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
+  )
+}
+
 function StatusPill({ status }) {
   const s = STATUS[status] ?? STATUS.PENDING
   return (
@@ -67,7 +107,10 @@ function OwnerCard({ appt, onAction }) {
           </View>
           <View style={{ flexShrink: 1 }}>
             <Text style={styles.personName} numberOfLines={1}>{personName(appt.tenant)}</Text>
-            <Text style={styles.personSub}>{appt.contactNumber}</Text>
+            <View style={styles.personSubRow}>
+              <Icon name="phone" size={10} color={colors.slate400} />
+              <Text style={styles.personSub}>{appt.contactNumber}</Text>
+            </View>
           </View>
         </View>
         <StatusPill status={appt.status} />
@@ -91,9 +134,11 @@ function OwnerCard({ appt, onAction }) {
       {isPending && !rejecting && (
         <View style={styles.actionRow}>
           <Pressable style={styles.acceptButton} onPress={() => onAction(appt.id, 'ACCEPTED')}>
+            <Icon name="check" size={14} color={colors.white} />
             <Text style={styles.acceptButtonText}>Accept</Text>
           </Pressable>
           <Pressable style={styles.rejectButton} onPress={() => setRejecting(true)}>
+            <Icon name="close" size={14} color="#DC2626" />
             <Text style={styles.rejectButtonText}>Reject</Text>
           </Pressable>
         </View>
@@ -148,13 +193,16 @@ function TenantCard({ appt }) {
 function EmptyState({ message }) {
   return (
     <View style={styles.empty}>
+      <View style={styles.emptyIcon}>
+        <Icon name="calendar" size={22} color={colors.slate400} />
+      </View>
       <Text style={styles.emptyTitle}>No appointments</Text>
       <Text style={styles.emptyBody}>{message}</Text>
     </View>
   )
 }
 
-export default function AppointmentsScreen() {
+export default function AppointmentsScreen({ navigation }) {
   const { user } = useAuth()
   const qc = useQueryClient()
 
@@ -192,7 +240,15 @@ export default function AppointmentsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Appointments</Text>
+        <View style={styles.headerTopRow}>
+          <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
+            <Icon name="chevronLeft" size={20} color={colors.slate800} />
+          </Pressable>
+          <View style={styles.headerTitleRow}>
+            <Icon name="calendar" size={20} color={colors.slate800} />
+            <Text style={styles.headerTitle}>Appointments</Text>
+          </View>
+        </View>
         <Text style={styles.headerSub}>Manage incoming requests and track your visits</Text>
       </View>
 
@@ -218,11 +274,7 @@ export default function AppointmentsScreen() {
           contentContainerStyle={styles.list}
           ListHeaderComponent={
             <View style={styles.filterRow}>
-              {OWNER_FILTERS.map(([key, label]) => (
-                <Pressable key={key} style={[styles.filterChip, filter === key && styles.filterChipActive]} onPress={() => setFilter(key)}>
-                  <Text style={[styles.filterChipText, filter === key && styles.filterChipTextActive]}>{label}</Text>
-                </Pressable>
-              ))}
+              <FilterDropdown value={filter} options={OWNER_FILTERS} onChange={setFilter} />
             </View>
           }
           ListEmptyComponent={<EmptyState message="Tenant visit requests will appear here." />}
@@ -246,6 +298,8 @@ export default function AppointmentsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
   headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2 },
   tabRow: { flexDirection: 'row', gap: 4, backgroundColor: colors.slate100, borderRadius: radius.md, padding: 4, margin: spacing.lg, alignSelf: 'flex-start' },
@@ -255,11 +309,21 @@ const styles = StyleSheet.create({
   tabButtonTextActive: { color: colors.slate800 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: spacing.lg, gap: spacing.md },
-  filterRow: { flexDirection: 'row', gap: spacing.xs, marginBottom: spacing.md },
-  filterChip: { paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radius.md },
-  filterChipActive: { backgroundColor: '#111111' },
-  filterChipText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate500 },
-  filterChipTextActive: { color: colors.white },
+  filterRow: { marginBottom: spacing.md, alignItems: 'flex-start' },
+  filterTrigger: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
+    borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2, backgroundColor: colors.white,
+  },
+  filterTriggerText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
+  dropdownBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  dropdownSheet: { backgroundColor: colors.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, maxHeight: '70%' },
+  dropdownSheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.slate100 },
+  dropdownSheetTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
+  dropdownOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  dropdownOptionText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate700 },
+  dropdownOptionTextActive: { color: colors.brand700, fontFamily: fonts.bodySemiBold },
+  dropdownSeparator: { height: 1, backgroundColor: colors.slate100, marginHorizontal: spacing.lg },
   card: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, padding: spacing.md, marginBottom: spacing.sm },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   personRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },
@@ -267,6 +331,7 @@ const styles = StyleSheet.create({
   avatarImg: { width: '100%', height: '100%' },
   avatarInitial: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
   personName: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
+  personSubRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   personSub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.full },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
@@ -282,15 +347,16 @@ const styles = StyleSheet.create({
   replyNote: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#2563EB', marginBottom: spacing.sm, lineHeight: 18 },
   replyNoteLabel: { fontFamily: fonts.bodyMedium, color: '#60A5FA' },
   actionRow: { flexDirection: 'row', gap: spacing.sm },
-  acceptButton: { flex: 1, backgroundColor: '#111111', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center' },
+  acceptButton: { flex: 1, flexDirection: 'row', gap: 5, backgroundColor: '#111111', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
   acceptButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
-  rejectButton: { flex: 1, backgroundColor: '#FEF2F2', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center' },
+  rejectButton: { flex: 1, flexDirection: 'row', gap: 5, backgroundColor: '#FEF2F2', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
   rejectButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: '#DC2626' },
   rejectInput: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, padding: spacing.sm, fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate800, minHeight: 48, textAlignVertical: 'top' },
   cancelButton: { flex: 1, backgroundColor: colors.slate100, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center' },
   cancelButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate600 },
   confirmRejectButton: { flex: 1, backgroundColor: colors.danger, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center' },
   empty: { alignItems: 'center', paddingVertical: spacing.xxl },
+  emptyIcon: { width: 48, height: 48, borderRadius: radius.full, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700 },
   emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2, textAlign: 'center', maxWidth: 240 },
 })
