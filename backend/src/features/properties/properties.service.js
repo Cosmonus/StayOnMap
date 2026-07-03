@@ -4,6 +4,7 @@ import { recalculateRiskScore, recalculateTrustScore } from '../trust/trust.serv
 import { runFraudScan } from '../ai/ai.service.js'
 import { generatePropertyDisplayId } from '../../utils/idGenerator.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
+import { SUPPORTED_CITIES } from '../../config/cities.js'
 
 const FULL_INCLUDE = {
   images:    { orderBy: { order: 'asc' } },
@@ -33,7 +34,10 @@ export async function getPinsInBounds(bounds, filters, userId = null) {
     neLat: bounds.neLat != null ? Math.ceil(Number(bounds.neLat)  * 100) / 100 : null,
     neLng: bounds.neLng != null ? Math.ceil(Number(bounds.neLng)  * 100) / 100 : null,
   } : {}
-  const cacheKey = `pins:${JSON.stringify({ b: roundedBounds, city: filters?.city ?? '', bhk: filters?.bhk ?? '', furnished: filters?.furnished ?? '' })}`
+  // auth included: applyVisibilityFilter() below shows LOGGED_IN-only listings
+  // to authenticated users — without this, one bucket's cached result could
+  // leak into the other (e.g. an anon visitor served a logged-in-only listing)
+  const cacheKey = `pins:${JSON.stringify({ b: roundedBounds, city: filters?.city ?? '', bhk: filters?.bhk ?? '', furnished: filters?.furnished ?? '', auth: !!userId })}`
 
   const cached = await cacheGet(cacheKey)
   if (cached) return cached
@@ -46,7 +50,7 @@ export async function getPinsInBounds(bounds, filters, userId = null) {
   applyVisibilityFilter(where, userId)
   const pins = await prisma.property.findMany({
     where,
-    select: { id: true, lat: true, lng: true, rent: true, type: true, trustScore: { select: { badge: true } } },
+    select: { id: true, lat: true, lng: true, rent: true, type: true, bhk: true, sharing: true, trustScore: { select: { badge: true } } },
     take: 200,
   })
 
@@ -81,12 +85,11 @@ export async function getPropertiesByOwner(ownerId) {
   })
 }
 
-const ALLOWED_CITIES = ['Bengaluru', 'Chennai', 'Hyderabad', 'Delhi']
 const MAX_LISTINGS_PER_OWNER = 3
 
 function assertAllowedCity(city) {
-  if (!ALLOWED_CITIES.includes(city)) {
-    throw Object.assign(new Error(`Listings are only available in ${ALLOWED_CITIES.join(', ')} right now — more cities opening soon`), { statusCode: 403 })
+  if (!SUPPORTED_CITIES.includes(city)) {
+    throw Object.assign(new Error(`Listings are only available in ${SUPPORTED_CITIES.join(', ')} right now — more cities opening soon`), { statusCode: 403 })
   }
 }
 
@@ -216,7 +219,7 @@ export async function getPublicStats() {
   const stats = {
     totalActive,
     activeOwners: ownerGroups.length,
-    cities: ALLOWED_CITIES.length,
+    cities: SUPPORTED_CITIES.length,
     byCity: Object.fromEntries(byCityRaw.map((r) => [r.city, r._count._all])),
   }
 

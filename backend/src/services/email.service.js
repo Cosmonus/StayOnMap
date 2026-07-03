@@ -9,8 +9,10 @@ export async function sendEmail({ to, subject, html }) {
   if (!env.resendApiKey) return
   try {
     await getResend().emails.send({ from: env.resendFrom, to, subject, html })
-  } catch {
-    // email is best-effort — never crash the main flow
+  } catch (err) {
+    // Best-effort — never crash the main flow, but a silent catch here is how
+    // a bad RESEND_API_KEY/RESEND_FROM_EMAIL went unnoticed in production before.
+    console.error('[email] send failed:', err.message)
   }
 }
 

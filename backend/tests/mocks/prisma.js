@@ -24,6 +24,29 @@ export const prismaMock = {
   },
   user: {
     findUnique: vi.fn(),
+    update:     vi.fn(),
+    create:     vi.fn(),
+  },
+  appointment: {
+    findUnique:   vi.fn(),
+    findFirst:    vi.fn(),
+    findMany:     vi.fn(),
+    create:       vi.fn(),
+    update:       vi.fn(),
+    updateMany:   vi.fn(),
+  },
+  lease: {
+    findUnique: vi.fn(),
+    create:     vi.fn(),
+    update:     vi.fn(),
+  },
+  waitlistEntry: {
+    create: vi.fn(),
+  },
+  passwordResetToken: {
+    create:     vi.fn(),
+    findUnique: vi.fn(),
+    update:     vi.fn(),
   },
   fraudSignal: {
     createMany: vi.fn(),
@@ -35,9 +58,13 @@ export const prismaMock = {
     upsert: vi.fn(),
   },
   ownerTrustScore: undefined, // not yet in schema — tested services check typeof before calling
-  $transaction: vi.fn((callback) => {
+  // Supports both Prisma $transaction forms: array-of-promises (lease.service.js)
+  // and callback (properties.service.js) — real Prisma treats them differently,
+  // but for mocking purposes both just need to resolve in order.
+  $transaction: vi.fn((arg) => {
+    if (Array.isArray(arg)) return Promise.all(arg)
     // Populate txMock lazily so it mirrors prismaMock at call time
     Object.assign(txMock, prismaMock)
-    return callback(txMock)
+    return arg(txMock)
   }),
 }

@@ -9,9 +9,20 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 import compression from 'compression'
 import { initSocket } from './lib/socket.js'
+import { corsOriginHandler } from './lib/corsOrigin.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const publicDir = path.join(__dirname, '../../public')
+
+// Node terminates the process on any unhandled rejection by default (since v15) —
+// without this, one stray promise anywhere (a missed await, a third-party lib
+// edge case) takes the whole server down instead of just failing that one
+// operation. uncaughtException is intentionally left to crash — Node's own
+// guidance is that process state may be corrupted past that point, and the
+// hosting platform (Railway) restarts a crashed process automatically.
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason)
+})
 
 import { errorMiddleware } from './middlewares/error.middleware.js'
 import { defaultLimiter, strictLimiter, adminLimiter } from './middlewares/rateLimit.middleware.js'
@@ -27,8 +38,10 @@ import chatRoutes         from './features/chat/chat.routes.js'
 import leaseRoutes        from './features/leases/lease.routes.js'
 import pushRoutes         from './features/push/push.routes.js'
 import trustRoutes        from './features/trust/trust.routes.js'
+import placeRoutes        from './features/places/places.routes.js'
 import aiRoutes          from './features/ai/ai.routes.js'
 import areaRoutes        from './features/areas/areas.routes.js'
+import metroRoutes       from './features/metro/metro.routes.js'
 import adminRoutes       from './features/admin/admin.routes.js'
 import { adminReviewRouter }       from './features/reviews/reviews.routes.js'
 import { adminReportRouter }       from './features/reports/reports.routes.js'
@@ -40,20 +53,8 @@ const PORT = process.env.PORT ?? 4000
 app.use(compression())
 app.use(helmet())
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
-const PROD_ORIGINS = ['https://stayonmap.com', 'https://www.stayonmap.com']
 
-app.use(cors({
-  origin: (origin, cb) => {
-    const allowed = process.env.FRONTEND_URL ?? 'http://localhost:5173'
-    const isDev = process.env.NODE_ENV !== 'production'
-    if (!origin || origin === allowed || PROD_ORIGINS.includes(origin) || (isDev && /^http:\/\/localhost:\d+$/.test(origin))) {
-      cb(null, true)
-    } else {
-      cb(new Error('Not allowed by CORS'))
-    }
-  },
-  credentials: true,
-}))
+app.use(cors({ origin: corsOriginHandler, credentials: true }))
 app.use(express.json({ limit: '2mb' }))
 app.use(defaultLimiter)
 
@@ -72,6 +73,8 @@ app.use('/api/v1/chat',          chatRoutes)
 app.use('/api/v1/leases',        leaseRoutes)
 app.use('/api/v1/push',          pushRoutes)
 app.use('/api/v1/areas',         areaRoutes)
+app.use('/api/v1/places',        placeRoutes)
+app.use('/api/v1/metro',         metroRoutes)
 
 // Admin routes — high limit so moderation actions are never throttled
 app.use('/api/v1/admin',               adminLimiter, adminRoutes)
