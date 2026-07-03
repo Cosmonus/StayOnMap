@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native'
+import Icon from '@components/common/Icon'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
 
@@ -15,9 +16,20 @@ const BADGE_CONFIG = {
   NEEDS_ATTENTION:       { label: 'Needs Attention',      bg: '#FEF2F2', text: '#DC2626', dot: '#F87171' },
 }
 
+const BADGE_ICON = {
+  VERIFIED_OWNER: 'shieldCheck',
+  COMMUNITY_TRUSTED: 'shieldCheck',
+  HIGHLY_RECOMMENDED: 'star',
+  VERIFIED_NEIGHBORHOOD: 'shieldCheck',
+  LOW_COMPLAINT: 'checkCircle',
+  UNDER_REVIEW: 'clock',
+  SUSPICIOUS: 'alertTriangle',
+  NEEDS_ATTENTION: 'alertTriangle',
+}
+
 const SIZE_STYLES = {
-  sm: { paddingHorizontal: spacing.sm, paddingVertical: 3, fontSize: 11 },
-  md: { paddingHorizontal: spacing.md, paddingVertical: 5, fontSize: fontSizes.xs },
+  sm: { paddingHorizontal: spacing.sm, paddingVertical: 3, fontSize: 11, iconSize: 11 },
+  md: { paddingHorizontal: spacing.md, paddingVertical: 5, fontSize: fontSizes.xs, iconSize: 13 },
 }
 
 export default function TrustBadge({ badge, size = 'sm' }) {
@@ -27,7 +39,7 @@ export default function TrustBadge({ badge, size = 'sm' }) {
 
   return (
     <View style={[styles.badge, { backgroundColor: cfg.bg, paddingHorizontal: sizeStyle.paddingHorizontal, paddingVertical: sizeStyle.paddingVertical }]}>
-      <View style={[styles.dot, { backgroundColor: cfg.dot }]} />
+      <Icon name={BADGE_ICON[badge] ?? 'checkCircle'} size={sizeStyle.iconSize} color={cfg.text} />
       <Text style={[styles.label, { color: cfg.text, fontSize: sizeStyle.fontSize }]}>{cfg.label}</Text>
     </View>
   )
@@ -35,6 +47,5 @@ export default function TrustBadge({ badge, size = 'sm' }) {
 
 const styles = StyleSheet.create({
   badge: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: radius.full, alignSelf: 'flex-start' },
-  dot: { width: 6, height: 6, borderRadius: 3 },
   label: { fontFamily: fonts.bodySemiBold },
 })

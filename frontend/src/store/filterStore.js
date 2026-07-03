@@ -2,7 +2,7 @@
 import { create } from 'zustand'
 
 const defaultFilters = {
-  city:      '',   // 'Bengaluru' | 'Chennai' | 'Hyderabad' | 'Delhi' | ''
+  city:      '',   // one of config/cities.js's CITY_NAMES, or ''
   area:      '',   // free-text area / landmark
   bhk:       [],   // e.g. [1, 2, 3]
   furnished: null,

@@ -39,6 +39,7 @@ const ADMIN_NAV = [
   { id: 'admin-properties',label: 'All Properties',   icon: 'properties' },
   { id: 'review-listings', label: 'Review Listings',  icon: 'queue' },
   { id: 'users',           label: 'Users',            icon: 'users' },
+  { id: 'waitlist',        label: 'Waitlist',         icon: 'users' },
   { id: 'reports',         label: 'Reports',          icon: 'reports' },
   { id: 'reviews',         label: 'Reviews',          icon: 'reviews' },
   { id: 'monitor',         label: 'System Monitor',   icon: 'monitor' },

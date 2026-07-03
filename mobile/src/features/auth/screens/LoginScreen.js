@@ -3,25 +3,36 @@ import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Pla
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import Icon from '@components/common/Icon'
+import Dropdown from '@components/common/Dropdown'
+import { CITY_NAMES } from '@config/cities'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-const ROLES = [
-  ['TENANT', '🔑', 'Tenant / Renter'],
-  ['OWNER', '🏠', 'Property Owner'],
+const CITY_DROPDOWN_OPTIONS = [
+  ...CITY_NAMES.map((name) => ({ value: name, label: name })),
+  { value: '__other__', label: "My city isn't listed" },
 ]
 
-function Field({ label, ...props }) {
+const ROLES = [
+  ['TENANT', 'key', 'Tenant / Renter'],
+  ['OWNER', 'home', 'Property Owner'],
+]
+
+function Field({ label, icon, style, ...props }) {
   return (
     <View style={{ marginBottom: spacing.md }}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={styles.input}
-        placeholderTextColor={colors.slate400}
-        autoCapitalize="none"
-        {...props}
-      />
+      <View style={styles.inputWrap}>
+        <Icon name={icon} size={16} color={colors.slate400} />
+        <TextInput
+          style={[styles.input, style]}
+          placeholderTextColor={colors.slate400}
+          autoCapitalize="none"
+          {...props}
+        />
+      </View>
     </View>
   )
 }
@@ -33,14 +44,18 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState('TENANT')
+  const [city, setCity] = useState('')
+  const [otherCity, setOtherCity] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [resetSent, setResetSent] = useState(false)
+  const [waitlisted, setWaitlisted] = useState(false)
 
   function switchTab(t) {
     setTab(t)
     setError('')
     setResetSent(false)
+    setWaitlisted(false)
   }
 
   async function handleLogin() {
@@ -72,10 +87,16 @@ export default function LoginScreen() {
 
   async function handleSignup() {
     if (!name.trim()) { setError('Name is required'); return }
+    const resolvedCity = city === '__other__' ? otherCity.trim() : city
+    if (!resolvedCity) { setError('Please select your city'); return }
     setLoading(true)
     setError('')
     try {
-      const res = await authService.register({ name: name.trim(), email, password, role })
+      const res = await authService.register({ name: name.trim(), email, password, city: resolvedCity, role })
+      if (res.data?.waitlisted) {
+        setWaitlisted(true)
+        return
+      }
       await loginSuccess(res.data)
     } catch (err) {
       setError(err?.message ?? 'Could not create account')
@@ -89,17 +110,19 @@ export default function LoginScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <Text style={styles.heading}>
-            {tab === 'login' ? 'Welcome back' : tab === 'signup' ? 'Create account' : 'Reset password'}
+            {tab === 'login' ? 'Welcome back' : tab === 'forgot' ? 'Reset password' : waitlisted ? 'Almost there' : 'Create account'}
           </Text>
           <Text style={styles.subheading}>
             {tab === 'login'
               ? 'Log in to access your saved homes and messages.'
-              : tab === 'signup'
-              ? 'Join thousands finding homes without brokers.'
-              : "We'll send a reset link to your email."}
+              : tab === 'forgot'
+              ? "We'll send a reset link to your email."
+              : waitlisted
+              ? 'Thanks for your interest in StayOnMap.'
+              : 'Join thousands finding homes without brokers.'}
           </Text>
 
-          {tab !== 'forgot' && (
+          {tab !== 'forgot' && !waitlisted && (
             <View style={styles.tabSwitcher}>
               {[['login', 'Log In'], ['signup', 'Sign Up']].map(([t, label]) => (
                 <Pressable key={t} style={[styles.tabButton, tab === t && styles.tabButtonActive]} onPress={() => switchTab(t)}>
@@ -126,7 +149,7 @@ export default function LoginScreen() {
               </View>
             ) : (
               <>
-                <Field label="Email address" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" />
+                <Field icon="mail" label="Email address" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" />
                 <Pressable
                   style={[styles.primaryButton, (loading || !email) && styles.disabled]}
                   onPress={handleForgot}
@@ -141,8 +164,8 @@ export default function LoginScreen() {
             )
           ) : tab === 'login' ? (
             <>
-              <Field label="Email address" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" />
-              <Field label="Password" value={password} onChangeText={setPassword} placeholder="••••••••" secureTextEntry />
+              <Field icon="mail" label="Email address" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" />
+              <Field icon="lock" label="Password" value={password} onChangeText={setPassword} placeholder="••••••••" secureTextEntry />
               <Pressable onPress={() => switchTab('forgot')} style={{ alignSelf: 'flex-end', marginBottom: spacing.md }}>
                 <Text style={styles.linkText}>Forgot password?</Text>
               </Pressable>
@@ -150,22 +173,47 @@ export default function LoginScreen() {
                 <Text style={styles.primaryButtonText}>{loading ? 'Signing in…' : 'Sign in'}</Text>
               </Pressable>
             </>
+          ) : waitlisted ? (
+            <View style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
+              <Text style={styles.confirmTitle}>You&apos;re on the waitlist</Text>
+              <Text style={styles.confirmBody}>
+                StayOnMap is currently live in {CITY_NAMES.join(', ')}. We&apos;ll email {email} as soon as we launch near you.
+              </Text>
+              <Pressable style={[styles.primaryButton, { marginTop: spacing.lg, alignSelf: 'stretch' }]} onPress={() => switchTab('login')}>
+                <Text style={styles.primaryButtonText}>Back to log in</Text>
+              </Pressable>
+            </View>
           ) : (
             <>
-              <Field label="Full name" value={name} onChangeText={setName} placeholder="Ravi Kumar" />
-              <Field label="Email address" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" />
-              <Field label="Password" value={password} onChangeText={setPassword} placeholder="Min. 8 characters" secureTextEntry />
+              <Field icon="users" label="Full name" value={name} onChangeText={setName} placeholder="Ravi Kumar" />
+              <Field icon="mail" label="Email address" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" />
+
+              <Text style={styles.label}>City</Text>
+              <Dropdown
+                label="City"
+                value={city}
+                options={CITY_DROPDOWN_OPTIONS}
+                onChange={setCity}
+                placeholder="Select your city"
+              />
+              {city === '__other__' && (
+                <Field icon="building" label="Which city are you in?" value={otherCity} onChangeText={setOtherCity} placeholder="Type your city" />
+              )}
+              <Text style={styles.hint}>We&apos;re only live in {CITY_NAMES.join(', ')} right now — other cities go on our waitlist.</Text>
+
+              <Field icon="lock" label="Password" value={password} onChangeText={setPassword} placeholder="Min. 8 characters" secureTextEntry />
 
               <Text style={styles.label}>I am a</Text>
               <View style={styles.roleRow}>
-                {ROLES.map(([value, emoji, label]) => (
+                {ROLES.map(([value, icon, label]) => (
                   <Pressable
                     key={value}
                     style={[styles.roleButton, role === value && styles.roleButtonActive]}
                     onPress={() => setRole(value)}
                   >
+                    <Icon name={icon} size={16} color={role === value ? colors.white : colors.slate500} />
                     <Text style={[styles.roleButtonText, role === value && styles.roleButtonTextActive]}>
-                      {emoji} {label}
+                      {label}
                     </Text>
                   </Pressable>
                 ))}
@@ -193,12 +241,19 @@ const styles = StyleSheet.create({
   tabButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate400 },
   tabButtonTextActive: { color: colors.white },
   label: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate600, marginBottom: spacing.xs },
-  input: {
+  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: -spacing.sm + 2, marginBottom: spacing.md },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
     borderWidth: 1,
     borderColor: colors.slate200,
     backgroundColor: colors.slate50,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
+  },
+  input: {
+    flex: 1,
     paddingVertical: spacing.sm + 4,
     fontFamily: fonts.body,
     fontSize: fontSizes.base,
@@ -215,11 +270,14 @@ const styles = StyleSheet.create({
   roleRow: { flexDirection: 'row', gap: spacing.sm },
   roleButton: {
     flex: 1,
+    flexDirection: 'row',
+    gap: 6,
     borderWidth: 2,
     borderColor: colors.slate200,
     borderRadius: radius.md,
     paddingVertical: spacing.sm + 2,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   roleButtonActive: { borderColor: colors.brand600, backgroundColor: colors.brand600 },
   roleButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },

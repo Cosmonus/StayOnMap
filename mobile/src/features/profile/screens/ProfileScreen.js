@@ -3,15 +3,27 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { authService } from '@services/auth.service'
+import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-function MenuItem({ label, onPress }) {
+const MENU_ITEMS = [
+  ['MyListings', 'building', 'My Listings'],
+  ['Appointments', 'calendar', 'Appointments'],
+  ['Leases', 'document', 'Leases'],
+  ['Notifications', 'bell', 'Notifications'],
+  ['Settings', 'settings', 'Settings'],
+]
+
+function MenuItem({ icon, label, onPress }) {
   return (
     <Pressable style={styles.menuItem} onPress={onPress}>
+      <View style={styles.menuItemIcon}>
+        <Icon name={icon} size={16} color={colors.brand600} />
+      </View>
       <Text style={styles.menuItemText}>{label}</Text>
-      <Text style={styles.menuItemChevron}>›</Text>
+      <Icon name="chevronRight" size={16} color={colors.slate400} />
     </Pressable>
   )
 }
@@ -49,6 +61,7 @@ export default function ProfileScreen({ navigation }) {
             <Text style={styles.name}>{profile?.name || 'StayOnMap user'}</Text>
             <Text style={styles.email}>{user?.email}</Text>
             <View style={styles.roleBadge}>
+              <Icon name={profile?.role === 'OWNER' ? 'home' : 'key'} size={11} color={colors.brand700} />
               <Text style={styles.roleBadgeText}>{profile?.role ?? 'TENANT'}</Text>
             </View>
           </>
@@ -56,13 +69,13 @@ export default function ProfileScreen({ navigation }) {
       </View>
 
       <View style={styles.menu}>
-        <MenuItem label="My Listings" onPress={() => navigation.navigate('MyListings')} />
-        <MenuItem label="Appointments" onPress={() => navigation.navigate('Appointments')} />
-        <MenuItem label="Leases" onPress={() => navigation.navigate('Leases')} />
-        <MenuItem label="Notifications" onPress={() => navigation.navigate('Notifications')} />
+        {MENU_ITEMS.map(([route, icon, label]) => (
+          <MenuItem key={route} icon={icon} label={label} onPress={() => navigation.navigate(route)} />
+        ))}
       </View>
 
       <Pressable style={styles.signOutButton} onPress={signOut}>
+        <Icon name="logout" size={16} color={colors.danger} />
         <Text style={styles.signOutText}>Sign out</Text>
       </Pressable>
     </SafeAreaView>
@@ -85,6 +98,7 @@ const styles = StyleSheet.create({
   name: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
   email: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: spacing.xs },
   roleBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
     marginTop: spacing.sm,
     backgroundColor: colors.brand50,
     borderRadius: radius.full,
@@ -94,12 +108,13 @@ const styles = StyleSheet.create({
   roleBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
   menu: { borderTopWidth: 1, borderTopColor: colors.slate100 },
   menuItem: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.slate100,
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    paddingVertical: spacing.sm + 2, borderBottomWidth: 1, borderBottomColor: colors.slate100,
   },
-  menuItemText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate800 },
-  menuItemChevron: { fontSize: fontSizes.lg, color: colors.slate400 },
+  menuItemIcon: { width: 34, height: 34, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center' },
+  menuItemText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate800 },
   signOutButton: {
+    flexDirection: 'row', gap: 6, justifyContent: 'center',
     marginTop: 'auto',
     borderWidth: 1,
     borderColor: colors.slate200,

@@ -135,6 +135,37 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
     })
   }
 
+  function handleKeyDown(e) {
+    if (e.key !== 'Enter') return
+    e.preventDefault()
+
+    if (suggestions.length > 0) {
+      pick(suggestions[0])
+      return
+    }
+
+    // No autocomplete suggestion picked yet — geocode the typed text directly
+    if (!query.trim() || !window.google?.maps) return
+    const geocoder = new window.google.maps.Geocoder()
+    const address  = city ? `${query}, ${city}, India` : `${query}, India`
+    geocoder.geocode({ address, region: 'in' }, (results, status) => {
+      if (status !== 'OK' || !results?.[0]) return
+      const loc   = results[0].geometry.location
+      const lat   = loc.lat()
+      const lng   = loc.lng()
+      const label = results[0].address_components?.[0]?.long_name || query
+
+      setOpen(false)
+      saveRecentArea(label)
+      if (onPlacePicked) {
+        onPlacePicked({ name: label, lat, lng })
+      } else {
+        useMapStore.getState().flyTo?.({ center: [lng, lat], zoom: 16, duration: 800 })
+        useMapStore.getState().setSearchedPlace({ name: label, lat, lng })
+      }
+    })
+  }
+
   function clear() {
     queryRef.current    = ''
     suppressRef.current = true
@@ -163,6 +194,7 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
           type="text"
           value={query}
           onChange={handleType}
+          onKeyDown={handleKeyDown}
           onFocus={() => {
             const r = getRecentAreas()
             setRecents(r)

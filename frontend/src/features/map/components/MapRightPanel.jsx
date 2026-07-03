@@ -16,6 +16,8 @@ const BHK_OPTIONS = [
   { label: '4+',    value: 4 },
 ]
 
+const BHK_QUERY_RE = /^\s*(\d+)\s*\+?\s*bhk\.?\s*$/i
+
 const LAYERS = [
   { key: 'metro',       label: 'Metro lines',  sub: 'Stations & routes',    color: '#7c3aed' },
   { key: 'itCorridors', label: 'IT corridors', sub: 'Tech parks & hubs',    color: '#2563eb' },
@@ -104,20 +106,43 @@ function FilterBody({ draft, setDraft, activeFilterCount, onApply, onReset }) {
       bhk: d.bhk.includes(val) ? d.bhk.filter((v) => v !== val) : [...d.bhk, val],
     }))
   }
+
+  // City selection zooms the map right away, instead of waiting for "Show matches"
+  function handleCityChange(val) {
+    setDraft((d) => ({ ...d, city: val, area: '' }))
+    useFilterStore.getState().setFilter('city', val)
+    useFilterStore.getState().setFilter('area', '')
+  }
+
+  // "2bhk" typed into the area box isn't a place — treat it as a Bedrooms filter instead
+  function handleAreaChange(val) {
+    const bhkMatch = val.match(BHK_QUERY_RE)
+    if (bhkMatch) {
+      const bhkValue = Math.min(Number(bhkMatch[1]), 4)
+      setDraft((d) => ({
+        ...d,
+        area: '',
+        bhk: d.bhk.includes(bhkValue) ? d.bhk : [...d.bhk, bhkValue],
+      }))
+      return
+    }
+    setDraft((d) => ({ ...d, area: val }))
+  }
+
   return (
     <div className="px-4 pt-4 pb-4 flex flex-col gap-4">
       <div>
         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">City</label>
         <CityDropdown
           value={draft.city}
-          onChange={(val) => setDraft((d) => ({ ...d, city: val, area: '' }))}
+          onChange={handleCityChange}
         />
       </div>
 
       <AreaInput
         value={draft.area}
         city={draft.city}
-        onChange={(val) => setDraft((d) => ({ ...d, area: val }))}
+        onChange={handleAreaChange}
       />
 
       <div>

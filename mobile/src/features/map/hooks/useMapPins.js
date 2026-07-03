@@ -45,10 +45,26 @@ export function useMapPins() {
 
   // Filter changes refetch immediately against the last known viewport,
   // mirroring web's behavior instead of waiting for the next pan/zoom.
+  // Deliberately excludes `filters.area` — area is never sent to the pins
+  // query (only bhk/furnished/city are, see property.service.js), and a
+  // location search always follows with MapView's flyTo() moving the map,
+  // which refetches pins for the new viewport itself (see MapView.js).
+  // Refetching here too would race against that one using the stale
+  // pre-fly viewport, and could resolve after it and overwrite the correct
+  // pins with wrong-location ones.
   useEffect(() => {
     if (lastRegionRef.current) fetchPins(lastRegionRef.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters])
+  }, [filters.bhk, filters.furnished, filters.city])
+
+  // Initial fetch on mount — MapView's onMapReady triggers a non-animated
+  // fitToCoordinates() to frame all cities, and on Android that programmatic
+  // move does not reliably fire onRegionChangeComplete. Without this, pins
+  // never load until the user manually pans/zooms the map.
+  useEffect(() => {
+    if (!lastRegionRef.current) fetchPins(useMapStore.getState().region)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => () => clearTimeout(debounceRef.current), [])
 

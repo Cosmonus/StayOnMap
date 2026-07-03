@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { SUPPORTED_CITIES } from '../../config/cities.js'
 
 const SUPABASE_STORAGE_URL = process.env.SUPABASE_URL
   ? `${process.env.SUPABASE_URL}/storage/v1/object/public/`
@@ -17,7 +18,7 @@ export const createPropertySchema = z.object({
 
   // Location
   address:  z.string().min(5).max(300).trim(),
-  city:     z.enum(['Bengaluru', 'Chennai'], { errorMap: () => ({ message: 'Listings are only available in Bengaluru and Chennai' }) }),
+  city:     z.enum(SUPPORTED_CITIES, { errorMap: () => ({ message: `Listings are only available in ${SUPPORTED_CITIES.join(', ')}` }) }),
   state:    z.string().min(2).max(100).trim(),
   pincode:  z.string().regex(/^\d{6}$/, 'Invalid pincode'),
   landmark: z.string().max(200).trim().optional(),
@@ -87,7 +88,7 @@ export const updatePropertySchema = z.object({
   type:               z.enum(['APARTMENT', 'HOUSE', 'VILLA', 'PG', 'INDEPENDENT_HOUSE', 'COMMERCIAL']).optional(),
   furnished:          z.enum(['FULLY', 'SEMI', 'UNFURNISHED']).optional(),
   address:            z.string().min(5).max(300).trim().optional(),
-  city:               z.enum(['Bengaluru', 'Chennai']).optional(),
+  city:               z.enum(SUPPORTED_CITIES).optional(),
   state:              z.string().min(2).max(100).trim().optional(),
   pincode:            z.string().regex(/^\d{6}$/).optional(),
   landmark:           z.string().max(200).trim().optional(),

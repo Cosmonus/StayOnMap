@@ -9,6 +9,7 @@ export const adminService = {
   // All other calls use the admin JWT
   analytics:     ()             => adminApi.get('/admin/analytics'),
   users:         (params)       => adminApi.get('/admin/users', { params }),
+  waitlist:      (params)       => adminApi.get('/admin/waitlist', { params }),
   userDetail:    (id)           => adminApi.get(`/admin/users/${id}`),
   blockUser:     (id, data)     => adminApi.patch(`/admin/users/${id}/block`, data),
   properties:    (params)       => adminApi.get('/admin/properties', { params }),

@@ -4,7 +4,6 @@ import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import ExploreScreen from '@features/discover/screens/ExploreScreen'
-import SearchFiltersScreen from '@features/search/screens/SearchFiltersScreen'
 import SavedScreen from '@features/saved/screens/SavedScreen'
 import ConversationListScreen from '@features/chat/screens/ConversationListScreen'
 import ConversationScreen from '@features/chat/screens/ConversationScreen'
@@ -18,11 +17,12 @@ import AddListingScreen from '@features/listings/screens/AddListingScreen'
 import VerificationScreen from '@features/listings/screens/VerificationScreen'
 import LeasesScreen from '@features/leases/screens/LeasesScreen'
 import CreateLeaseScreen from '@features/leases/screens/CreateLeaseScreen'
+import SettingsScreen from '@features/profile/screens/SettingsScreen'
 
 const Tab = createBottomTabNavigator()
 
 // Each tab is its own native-stack so PropertyDetail/BookViewing can be
-// pushed on top of Explore/Search/Saved without leaving the tab.
+// pushed on top of Explore/Saved/etc. without leaving the tab.
 function makeStack(screens) {
   const Stack = createNativeStackNavigator()
   return function StackScreen() {
@@ -37,17 +37,12 @@ function makeStack(screens) {
 }
 
 const BOOKING_SCREENS = [
-  { name: 'PropertyDetail', component: PropertyDetailScreen, options: { title: 'Property' } },
+  { name: 'PropertyDetail', component: PropertyDetailScreen, options: { headerShown: false } },
   { name: 'BookViewing', component: BookViewingScreen, options: { headerShown: false, presentation: 'modal' } },
 ]
 
 const ExploreStack = makeStack([
   { name: 'ExploreHome', component: ExploreScreen, options: { headerShown: false } },
-  ...BOOKING_SCREENS,
-])
-
-const SearchStack = makeStack([
-  { name: 'SearchHome', component: SearchFiltersScreen, options: { headerShown: false } },
   ...BOOKING_SCREENS,
 ])
 
@@ -70,12 +65,12 @@ const ProfileStack = makeStack([
   { name: 'Verification', component: VerificationScreen, options: { headerShown: false } },
   { name: 'Leases', component: LeasesScreen, options: { headerShown: false } },
   { name: 'CreateLease', component: CreateLeaseScreen, options: { headerShown: false, presentation: 'modal' } },
+  { name: 'Settings', component: SettingsScreen, options: { headerShown: false } },
   ...BOOKING_SCREENS,
 ])
 
 const TABS = [
   ['Explore', ExploreStack, 'explore'],
-  ['Search', SearchStack, 'search'],
   ['Saved', SavedStack, 'saved'],
   ['Chat', ChatStack, 'chat'],
   ['Profile', ProfileStack, 'profile'],

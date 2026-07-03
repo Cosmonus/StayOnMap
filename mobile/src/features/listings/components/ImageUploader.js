@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { View, Text, Image, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { uploadService } from '@services/upload.service'
+import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -56,14 +57,21 @@ export default function ImageUploader({ value, onChange }) {
               <View style={styles.coverBadge}><Text style={styles.coverBadgeText}>Cover</Text></View>
             )}
             <Pressable style={styles.removeButton} onPress={() => removeAt(i)}>
-              <Text style={styles.removeButtonText}>×</Text>
+              <Icon name="close" size={12} color={colors.white} />
             </Pressable>
           </View>
         ))}
 
         {value.length < MAX_IMAGES && (
           <Pressable style={styles.addButton} onPress={handlePick} disabled={uploading}>
-            {uploading ? <ActivityIndicator color={colors.brand600} /> : <Text style={styles.addButtonText}>+ Add</Text>}
+            {uploading ? (
+              <ActivityIndicator color={colors.brand600} />
+            ) : (
+              <>
+                <Icon name="camera" size={18} color={colors.brand600} />
+                <Text style={styles.addButtonText}>Add</Text>
+              </>
+            )}
           </Pressable>
         )}
       </View>
@@ -80,8 +88,7 @@ const styles = StyleSheet.create({
   coverBadge: { position: 'absolute', bottom: 4, left: 4, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
   coverBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 9, color: colors.white },
   removeButton: { position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
-  removeButtonText: { color: colors.white, fontSize: 14, lineHeight: 16 },
-  addButton: { width: 88, height: 88, borderRadius: radius.md, borderWidth: 1, borderColor: colors.slate200, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.slate50 },
+  addButton: { width: 88, height: 88, borderRadius: radius.md, borderWidth: 1, borderColor: colors.slate200, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: colors.slate50 },
   addButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand600 },
   error: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.danger, marginTop: spacing.sm },
   hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: spacing.sm },

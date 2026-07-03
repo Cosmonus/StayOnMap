@@ -5,6 +5,7 @@ import { prisma } from '../../lib/prisma.js'
 import { env } from '../../config/env.js'
 import { generateUserDisplayId } from '../../utils/idGenerator.js'
 import { sendEmail, passwordResetEmail } from '../../services/email.service.js'
+import { SUPPORTED_CITIES } from '../../config/cities.js'
 
 function signUserToken(user) {
   return jwt.sign(
@@ -19,7 +20,14 @@ function stripPasswordHash(user) {
   return rest
 }
 
-export async function registerUser({ name, email, password, role }) {
+export async function registerUser({ name, email, password, city, role }) {
+  // Cities outside SUPPORTED_CITIES never get a real account — captured on
+  // the waitlist instead, so there's nothing for them to log into later.
+  if (!SUPPORTED_CITIES.includes(city)) {
+    await prisma.waitlistEntry.create({ data: { name, email, city } })
+    return { waitlisted: true }
+  }
+
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) throw Object.assign(new Error('An account with this email already exists'), { statusCode: 409 })
 
@@ -29,6 +37,7 @@ export async function registerUser({ name, email, password, role }) {
       displayId: generateUserDisplayId(name, email),
       email,
       name,
+      city,
       passwordHash,
       role: role ?? 'TENANT',
     },
