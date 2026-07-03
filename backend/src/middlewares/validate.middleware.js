@@ -1,9 +1,10 @@
 // Zod schema validation middleware factory
 // Usage: router.post('/route', validate(schema), controller)
+// Usage: router.get('/route', validate(schema, 'query'), controller)
 
-export function validate(schema) {
+export function validate(schema, target = 'body') {
   return (req, res, next) => {
-    const result = schema.safeParse(req.body)
+    const result = schema.safeParse(req[target])
     if (!result.success) {
       return res.status(400).json({
         success: false,
@@ -12,7 +13,7 @@ export function validate(schema) {
         statusCode: 400,
       })
     }
-    req.body = result.data
+    req[target] = result.data
     next()
   }
 }

@@ -145,3 +145,16 @@ export const listQuerySchema = z.object({
   neLat:     z.coerce.number().optional(),
   neLng:     z.coerce.number().optional(),
 })
+
+// Bounds are required here (unlike listQuerySchema above) — /pins always
+// comes from a map viewport, and without this, missing/malformed bounds
+// reached Prisma as NaN and 500'd instead of a clean 400.
+export const pinsQuerySchema = z.object({
+  swLat:     z.coerce.number().min(6).max(38),
+  swLng:     z.coerce.number().min(68).max(98),
+  neLat:     z.coerce.number().min(6).max(38),
+  neLng:     z.coerce.number().min(68).max(98),
+  bhk:       z.string().regex(/^[\d,]+$/).optional(),
+  furnished: z.enum(['FULLY', 'SEMI', 'UNFURNISHED']).optional(),
+  city:      z.string().max(100).optional(),
+})
