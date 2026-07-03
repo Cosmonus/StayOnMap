@@ -13,6 +13,8 @@ const AboutPage         = lazy(() => import('@pages/AboutPage'))
 const IntelligencePage  = lazy(() => import('@pages/IntelligencePage'))
 const ContactPage       = lazy(() => import('@pages/ContactPage'))
 const RulesPage         = lazy(() => import('@pages/RulesPage'))
+const PrivacyPolicyPage    = lazy(() => import('@pages/PrivacyPolicyPage'))
+const TermsOfServicePage   = lazy(() => import('@pages/TermsOfServicePage'))
 const DashboardPage     = lazy(() => import('@pages/DashboardPage'))
 const NotFoundPage      = lazy(() => import('@pages/NotFoundPage'))
 const AdminLoginPage    = lazy(() => import('@pages/AdminLoginPage'))
@@ -40,6 +42,8 @@ export default function AppRoutes() {
           <Route path="/intelligence" element={<IntelligencePage />} />
           <Route path="/contact"      element={<ContactPage />} />
           <Route path="/rules"        element={<RulesPage />} />
+          <Route path="/privacy"      element={<PrivacyPolicyPage />} />
+          <Route path="/terms"        element={<TermsOfServicePage />} />
 
           {/* Authenticated user */}
           <Route path="/user"         element={<UserGuard><DashboardPage /></UserGuard>} />

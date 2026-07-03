@@ -118,9 +118,17 @@ export default function Footer() {
 
       {/* Bottom bar */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <p className="text-xs text-slate-500 text-center sm:text-left">
-          © {new Date().getFullYear()} StayOnMap. All rights reserved.
-        </p>
+        <div className="flex items-center gap-4">
+          <p className="text-xs text-slate-500 text-center sm:text-left">
+            © {new Date().getFullYear()} StayOnMap. All rights reserved.
+          </p>
+          <Link to="/privacy" className="text-xs text-slate-500 hover:text-white transition-colors duration-150 no-underline">
+            Privacy Policy
+          </Link>
+          <Link to="/terms" className="text-xs text-slate-500 hover:text-white transition-colors duration-150 no-underline">
+            Terms of Service
+          </Link>
+        </div>
         <p className="text-xs text-slate-600 text-center sm:text-right">
           Built by{' '}
           <a
