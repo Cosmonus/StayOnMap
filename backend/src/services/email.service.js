@@ -52,6 +52,18 @@ export function adminPasswordChangedEmail({ adminName, adminEmail }) {
   }
 }
 
+export function passwordResetEmail({ name, link }) {
+  return {
+    subject: 'Reset your StayOnMap password',
+    html: `
+      <p>Hi ${name},</p>
+      <p>We received a request to reset your StayOnMap password. Click the link below to choose a new one:</p>
+      <p><a href="${link}">${link}</a></p>
+      <p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email — your password will not be changed.</p>
+    `,
+  }
+}
+
 export function verificationUpdateEmail({ ownerName, propertyTitle, status, adminNote }) {
   const statusLabel = status === 'VERIFIED' ? 'approved' : status === 'REJECTED' ? 'rejected' : 'updated'
   return {

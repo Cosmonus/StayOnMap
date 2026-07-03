@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import AuthGuard          from '@features/auth/components/AuthGuard'
+import UserGuard           from '@features/auth/UserGuard'
 import AdminGuard         from '@features/auth/AdminGuard'
 
 // Eagerly loaded — needed immediately on first paint
@@ -14,7 +14,6 @@ const IntelligencePage  = lazy(() => import('@pages/IntelligencePage'))
 const ContactPage       = lazy(() => import('@pages/ContactPage'))
 const RulesPage         = lazy(() => import('@pages/RulesPage'))
 const DashboardPage     = lazy(() => import('@pages/DashboardPage'))
-const LoginPage         = lazy(() => import('@pages/LoginPage'))
 const NotFoundPage      = lazy(() => import('@pages/NotFoundPage'))
 const AdminLoginPage    = lazy(() => import('@pages/AdminLoginPage'))
 const AdminPage         = lazy(() => import('@pages/AdminPage'))
@@ -41,12 +40,11 @@ export default function AppRoutes() {
           <Route path="/intelligence" element={<IntelligencePage />} />
           <Route path="/contact"      element={<ContactPage />} />
           <Route path="/rules"        element={<RulesPage />} />
-          <Route path="/login"        element={<LoginPage />} />
 
           {/* Authenticated user */}
-          <Route path="/user"         element={<AuthGuard><DashboardPage /></AuthGuard>} />
+          <Route path="/user"         element={<UserGuard><DashboardPage /></UserGuard>} />
 
-          {/* Password reset — public, token in URL hash */}
+          {/* Password reset — public, token in URL query param */}
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Admin — login is public, everything else guarded */}

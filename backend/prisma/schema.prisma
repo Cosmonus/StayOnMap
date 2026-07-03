@@ -228,11 +228,12 @@ model Admin {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// User (Supabase UID as primary key)
+// User (custom JWT auth — not Supabase)
 // ─────────────────────────────────────────────────────────────────
 
 model User {
-  id         String   @id                     // Supabase Auth UID
+  id           String   @id @default(cuid())
+  passwordHash String
   displayId  String?  @unique                 // Human-readable ID: SRI-1234567890123456
   email      String   @unique
   name       String
@@ -271,9 +272,28 @@ model User {
   pushSubscriptions PushSubscription[]
   expoPushTokens    ExpoPushToken[]
   ownerTrustScore   OwnerTrustScore?
+  passwordResetTokens PasswordResetToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Password Reset Tokens
+// ─────────────────────────────────────────────────────────────────
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 // ─────────────────────────────────────────────────────────────────

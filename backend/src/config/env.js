@@ -12,6 +12,7 @@ const required = [
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
   'ADMIN_JWT_SECRET',
+  'JWT_SECRET',
 ]
 
 for (const key of required) {
@@ -22,7 +23,7 @@ export const env = {
   port: Number(process.env.PORT) || 4000,
   nodeEnv: process.env.NODE_ENV || 'development',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
-  jwtSecret: process.env.JWT_SECRET || 'dev-secret',
+  jwtSecret: process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || null,
   resendApiKey: process.env.RESEND_API_KEY || null,

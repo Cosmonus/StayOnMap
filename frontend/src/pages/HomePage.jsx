@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useUiStore } from '@store/uiStore'
 import MapPreview from '@features/map/components/MapPreview'
 import PropertyCard from '@features/properties/components/PropertyCard'
 import Dropdown from '@components/common/Dropdown'
@@ -540,6 +541,7 @@ function CityShowcase() {
    ================================================================ */
 function OwnerCTA() {
   const { activeOwners, totalActive, cities } = usePlatformStats()
+  const openLoginModal = useUiStore((s) => s.openLoginModal)
   const benefits = [
     'List unlimited properties for free',
     'Get verified badge & trust score',
@@ -570,10 +572,10 @@ function OwnerCTA() {
                 </li>
               ))}
             </ul>
-            <Link to="/login" className="inline-flex items-center gap-2 px-7 py-3.5 bg-white hover:bg-slate-100 text-[#111111] text-sm font-bold rounded-xl transition-colors no-underline self-start">
+            <button onClick={openLoginModal} className="inline-flex items-center gap-2 px-7 py-3.5 bg-white hover:bg-slate-100 text-[#111111] text-sm font-bold rounded-xl transition-colors self-start">
               Start Listing Free
               {Icon.arrow}
-            </Link>
+            </button>
           </div>
         </Reveal>
 
@@ -786,6 +788,7 @@ function AppBanner() {
    ================================================================ */
 function CTABanner() {
   const { totalActive, isLoading } = usePlatformStats()
+  const openLoginModal = useUiStore((s) => s.openLoginModal)
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24 lg:py-32 xl:py-40">
       <Reveal>
@@ -809,9 +812,9 @@ function CTABanner() {
                 Browse Rentals
                 {Icon.arrow}
               </Link>
-              <Link to="/login" className="inline-flex items-center gap-2 px-7 py-3.5 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold rounded-xl transition-colors no-underline border border-white/10">
+              <button onClick={openLoginModal} className="inline-flex items-center gap-2 px-7 py-3.5 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold rounded-xl transition-colors border border-white/10">
                 List Your Property
-              </Link>
+              </button>
             </div>
           </div>
         </div>

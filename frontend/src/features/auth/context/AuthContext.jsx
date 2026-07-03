@@ -1,5 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react'
-import { supabase } from '@lib/supabase'
+import { createContext, useContext, useState, useEffect } from 'react'
 import { authService } from '@services/auth.service'
 import { toast } from '@components/common/Toaster'
 
@@ -8,39 +7,31 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
   const [loading, setLoading] = useState(true)
-  const hadUser = useRef(false)
 
   useEffect(() => {
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        setUser(session?.user ?? null)
-        hadUser.current = !!session?.user
-      })
-      .catch(() => {})
+    const token = localStorage.getItem('user_token')
+    if (!token) { setLoading(false); return }
+
+    authService.getMe()
+      .then((res) => setUser(res.data))
+      .catch(() => localStorage.removeItem('user_token'))
       .finally(() => setLoading(false))
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null)
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-        // Pass user_metadata so backend can pick up name even on listener-triggered syncs
-        const meta = session.user.user_metadata ?? {}
-        authService.syncProfile({ name: meta.name }).catch(() => {})
-        if (!hadUser.current) toast.success('Welcome', `Signed in as ${meta.name || session.user.email}`)
-        hadUser.current = true
-      }
-      if (event === 'SIGNED_OUT') {
-        hadUser.current = false
-        toast.info('Signed out', 'You have been logged out')
-      }
-    })
-
-    return () => subscription.unsubscribe()
   }, [])
 
-  const signOut = () => supabase.auth.signOut()
+  function loginSuccess({ token, user: loggedInUser }) {
+    localStorage.setItem('user_token', token)
+    setUser(loggedInUser)
+    toast.success('Welcome', `Signed in as ${loggedInUser.name || loggedInUser.email}`)
+  }
+
+  function signOut() {
+    localStorage.removeItem('user_token')
+    setUser(null)
+    toast.info('Signed out', 'You have been logged out')
+  }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signOut, loginSuccess }}>
       {children}
     </AuthContext.Provider>
   )

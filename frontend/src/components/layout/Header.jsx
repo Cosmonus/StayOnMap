@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import { useUiStore } from '@store/uiStore'
 
 
 
@@ -14,7 +15,7 @@ const NAV_LINKS = [
 
 function UserMenu({ user, signOut }) {
   const [open, setOpen] = useState(false)
-  const initial = user.user_metadata?.name?.[0] ?? user.email?.[0]?.toUpperCase() ?? 'U'
+  const initial = user.name?.[0] ?? user.email?.[0]?.toUpperCase() ?? 'U'
 
   return (
     <div className="relative">
@@ -26,7 +27,7 @@ function UserMenu({ user, signOut }) {
           {initial}
         </span>
         <span className="hidden md:block text-sm font-medium text-slate-700 max-w-[120px] truncate">
-          {user.user_metadata?.name ?? user.email}
+          {user.name ?? user.email}
         </span>
         <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -57,11 +58,11 @@ function UserMenu({ user, signOut }) {
 
 export default function Header() {
   const { pathname } = useLocation()
-  const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const { user, signOut } = useAuth()
+  const openLoginModal = useUiStore((s) => s.openLoginModal)
 
-  function goToLogin() { navigate('/login') }
+  function goToLogin() { openLoginModal() }
 
   function resolveLink(to) {
     if (user && to === '/properties') return '/user?tab=properties'

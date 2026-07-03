@@ -486,9 +486,9 @@ export default function DashboardPage() {
 
   const isFullBleed = section === 'properties' || section === 'messages' || (section === 'my-listings' && !!listingId)
 
-  const userName = profile?.name ?? user?.user_metadata?.name ?? ''
+  const userName = profile?.name ?? user?.name ?? ''
   const userEmail = user?.email ?? ''
-  const userAvatar = profile?.avatarUrl ?? user?.user_metadata?.avatar_url ?? ''
+  const userAvatar = profile?.avatarUrl ?? user?.avatarUrl ?? ''
 
   function renderSection() {
     switch (section) {
