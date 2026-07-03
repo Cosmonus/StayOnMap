@@ -1,5 +1,5 @@
 import { io } from 'socket.io-client'
-import { supabase } from './supabase'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 let socket = null
 
@@ -9,12 +9,12 @@ export function connectSocket() {
   const url = process.env.EXPO_PUBLIC_API_BASE_URL?.replace('/api/v1', '')
 
   socket = io(url, {
-    // Re-read the session on every (re)connect attempt so a refreshed token
-    // is always used — the server verifies this token in an io.use()
+    // Re-read the token on every (re)connect attempt so a freshly-issued
+    // token is always used — the server verifies this token in an io.use()
     // middleware, it never trusts a client-supplied userId.
     auth: async (cb) => {
-      const { data: { session } } = await supabase.auth.getSession()
-      cb({ token: session?.access_token })
+      const token = await AsyncStorage.getItem('user_token')
+      cb({ token })
     },
     transports: ['websocket'],
     reconnection: true,
