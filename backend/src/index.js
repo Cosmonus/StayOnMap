@@ -40,11 +40,13 @@ const PORT = process.env.PORT ?? 4000
 app.use(compression())
 app.use(helmet())
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
+const PROD_ORIGINS = ['https://stayonmap.com', 'https://www.stayonmap.com']
+
 app.use(cors({
   origin: (origin, cb) => {
     const allowed = process.env.FRONTEND_URL ?? 'http://localhost:5173'
     const isDev = process.env.NODE_ENV !== 'production'
-    if (!origin || origin === allowed || (isDev && /^http:\/\/localhost:\d+$/.test(origin))) {
+    if (!origin || origin === allowed || PROD_ORIGINS.includes(origin) || (isDev && /^http:\/\/localhost:\d+$/.test(origin))) {
       cb(null, true)
     } else {
       cb(new Error('Not allowed by CORS'))
