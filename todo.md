@@ -96,8 +96,9 @@ Mobile was missing 5 features that exist on web. Built all of them against the r
 - [x] Fixed a process-crash-on-boot bug: Socket.io's duplicated Redis pub/sub clients inherited cache-tuned options (`enableOfflineQueue: false`) that don't work for pub/sub — crashed the whole server on startup the instant `REDIS_URL` was set
 - [x] Added a global `unhandledRejection` handler (`index.js`) — Node kills the whole process on one by default
 - [x] Added `Cache-Control` headers to `/areas/*` and `/metro` (fully public, non-user-varying); added `connection_limit`/`pool_timeout` to `DATABASE_URL` (bounds Prisma's pool per instance ahead of running multiple backend instances)
+- [x] Set `REDIS_URL` + `connection_limit`/`FRONTEND_URL` in Railway **production** env vars, committed + pushed all local fixes (2 commits: pre-existing P7 feature work, then today's Redis/CORS/test/CI hardening), redeployed `stayonmap-backend`
+- [x] **Found a 4th bug from actually deploying, not just local testing**: `rateLimit.middleware.js` used the same fail-fast cache client for `rate-limit-redis`'s `RedisStore`, which loads Lua scripts synchronously at import time — same `enableOfflineQueue`/`lazyConnect` crash as the Socket.io adapter, causing intermittent 500s on `/health` right after boot. Only reproduces with `NODE_ENV=production` (dev short-circuits rate limiting entirely), so no local boot test caught it — only checking Railway's actual runtime logs after deploying did. Fixed the same way: a dedicated `enableOfflineQueue: true, lazyConnect: false` duplicate client. Verified locally with `NODE_ENV=production` and redeployed.
 - [x] Full writeup: `docs/redis-and-scaling.md`
-- [ ] Still needs `REDIS_URL` + `connection_limit` added to Railway's **production** env vars — only local `.env` has them so far
 
 ### Dependency & Test Hardening (2026-07-03)
 - [x] `npm audit fix` — frontend now 0 vulnerabilities; backend fixed the high-severity `ws`/`engine.io`/`socket.io-adapter` issue (6 dev-only `vitest`/`vite`/`esbuild` advisories remain, no production runtime exposure, fixing requires forcing a breaking `vitest` v3→v4 bump — deliberately left alone)
