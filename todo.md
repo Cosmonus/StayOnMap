@@ -59,6 +59,37 @@
 - [x] Trimmed meta descriptions that exceeded Google's ~155–160 char truncation limit (Home, Intelligence, Rules pages)
 - [x] Updated `BRAND.tagline` and homepage title/OG/Twitter tags to match the new "Rent with intelligence" positioning
 
+### CLAUDE.md Compliance Pass
+- [x] Replaced hardcoded hex color (`#12a374`) with the `brand-500` Tailwind token on the StayOnMap wordmark and headline highlight in `LoginPage`/`LoginModal` — was violating the "no hardcoded hex" rule
+- [x] Fixed loading-state flash across all plain-text `usePlatformStats()` renders (IntroPopup, login mini-stats, Contact/Home CTA copy, FAQ answer, per-city listing counts) — a brief "0" no longer shows before the real count loads
+- [x] Confirmed `npm run lint` passes 0 errors in both `frontend/` and `backend/`
+
+### Mobile App — Socket Security + Push Notifications (2026-07-02)
+- [x] Hardened Socket.io auth on web + mobile: handshake now sends a Supabase JWT re-read on every (re)connect, verified server-side via `supabase.auth.getUser()` in an `io.use()` middleware — previously trusted a client-supplied `userId`, a spoofing hole letting anyone join another user's chat/notification room
+- [x] Added Expo push notifications: `ExpoPushToken` model + migration, `expoPush.service.js`, `/push/register-device` + `/push/unregister-device` routes, wired into `notifyUser()` alongside the existing web-push path
+- [x] Built out a full Expo/React Native mobile app (`mobile/`) — auth, map, listings, appointments, chat, notifications, saved, search, push registration on login/logout
+
+### Mobile Feature Parity Pass (2026-07-02)
+Mobile was missing 5 features that exist on web. Built all of them against the real backend contracts (not the stale skill docs — see doc fixes below):
+- [x] Trust/Risk scores — `TrustBadge`, `RiskAlert`, `TrustScoreWidget` ported to RN, wired into `PropertyDetailScreen`
+- [x] Community reviews — `review.service.js` + `ReviewsSection` (12-category rating form, recommend/anonymous toggles, owner reply)
+- [x] Property reports — `report.service.js` + `ReportButton` (category/severity picker, description, anonymous toggle)
+- [x] Ownership verification — `verification.service.js` + `VerificationScreen`, reachable from a "Verify" action on each card in My Listings
+- [x] Lease management — `lease.service.js` + `LeasesScreen` (sign/reject/terminate) + `CreateLeaseScreen`, reachable from Profile → Leases and an "Offer Lease" action on ACTIVE listings in My Listings
+- [x] Added `slate500`/`slate700` to the mobile color palette — several existing screens already referenced these keys but they were never defined, so text silently rendered without the intended color
+- [x] Fixed two latent web bugs found while porting: `TrustBadge.jsx`'s config used a made-up 8-value set that didn't match the real `TrustBadge` DB enum (real values like `HIGHLY_RECOMMENDED`/`SUSPICIOUS` rendered nothing); and `LeaseManager.jsx` had no UI trigger to actually open the "offer lease" modal — owners couldn't create a lease from the web at all. Fixed by adding an "Offer lease" action to `ListingManager.jsx`, with the modal's open/close state owned by `DashboardPage.jsx` (features must not cross-import each other's components)
+- [x] Corrected stale info across `.claude/*.md` skill docs (wrong enum values in `database.md`, missing Leases/push/owner-response routes and a mis-documented "public" verification endpoint in `backend.md`, wrong `TrustBadge` states in `ui-ux.md`) and rewrote the entire `docs/` folder, which still described a pre-Google-Maps, pre-Railway, pre-reviews/reports/trust/leases/mobile MVP snapshot
+- [x] Ran `graphify update .` to refresh the knowledge graph (1735 nodes, 2088 edges, 233 communities) after the mobile app + doc changes
+- [x] Rewrote `README.md` for a new dev onboarding onto all three apps (was still Mapbox/Vercel/2-listing-limit era)
+
+### Karpathy Cleanup Pass (2026-07-03)
+- [x] Fixed all 14 pre-existing frontend lint warnings (unused imports/vars, one `react-hooks/exhaustive-deps` in `AdminPage.jsx`'s map-init cleanup)
+- [x] Deleted 18 fully orphaned files — a cluster of never-wired scaffolding from the original pre-MVP pass, all confirmed zero-importer via grep: `PropertyPin.jsx`, `ClusterMarker.jsx`, `PropertyDetail.jsx`, `PropertyDetailModal.jsx` (350 lines, fully superseded by `/property/:id`), `PropertyImages.jsx`, `NearbyEssentials.jsx`, `AmenitiesList.jsx`, `FilterPanel.jsx`, `FilterChips.jsx`, `SavedList.jsx`, `useListing.js`, `useProperties.js`, `useProperty.js`, `useSaved.js`, `useSearch.js`, `property.helpers.js`, plus the standalone `AppointmentsPage.jsx` and `SavedPage.jsx` pages
+- [x] **Fixed a live bug**: the `/saved` route (`SavedPage.jsx`) was a fake "coming soon" stub, but the Footer's "Saved Homes" link pointed at it — real saved-listings functionality has lived at `/user?tab=wishlist` all along. Repointed the Footer link and removed the dead `/saved` and orphaned `/appointments` routes (both pages were superseded by `DashboardPage`'s tab system; `/appointments` had zero inbound links anywhere)
+- [x] Removed a stale resolved TODO in `lib/seo.js` ("update BRAND_NAME once finalised" — it already was)
+- [x] Removed 2 unused imports in mobile (`View` in `PlaceholderScreen.js`, `useState` in `MyListingsScreen.js`) via a heuristic scan (mobile has no ESLint config yet)
+- [x] Verified: frontend lint 0/0, frontend build succeeds, backend lint 0/0 (was already clean), mobile bundles cleanly via `expo export`
+
 ---
 
 ## ⏳ Pending

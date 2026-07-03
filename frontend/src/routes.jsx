@@ -14,8 +14,6 @@ const IntelligencePage  = lazy(() => import('@pages/IntelligencePage'))
 const ContactPage       = lazy(() => import('@pages/ContactPage'))
 const RulesPage         = lazy(() => import('@pages/RulesPage'))
 const DashboardPage     = lazy(() => import('@pages/DashboardPage'))
-const SavedPage         = lazy(() => import('@pages/SavedPage'))
-const AppointmentsPage  = lazy(() => import('@pages/AppointmentsPage'))
 const LoginPage         = lazy(() => import('@pages/LoginPage'))
 const NotFoundPage      = lazy(() => import('@pages/NotFoundPage'))
 const AdminLoginPage    = lazy(() => import('@pages/AdminLoginPage'))
@@ -47,8 +45,6 @@ export default function AppRoutes() {
 
           {/* Authenticated user */}
           <Route path="/user"         element={<AuthGuard><DashboardPage /></AuthGuard>} />
-          <Route path="/saved"        element={<AuthGuard><SavedPage /></AuthGuard>} />
-          <Route path="/appointments" element={<AuthGuard><AppointmentsPage /></AuthGuard>} />
 
           {/* Password reset — public, token in URL hash */}
           <Route path="/reset-password" element={<ResetPasswordPage />} />

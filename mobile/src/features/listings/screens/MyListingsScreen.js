@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { View, Text, Image, FlatList, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'

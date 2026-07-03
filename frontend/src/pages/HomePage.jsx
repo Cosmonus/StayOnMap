@@ -108,10 +108,6 @@ const BUDGET_OPTIONS = [
   { value: '60000-999999',  label: `Above ${formatCurrency(60000)}`,                           icon: Icon.rupee },
 ]
 
-function FieldDivider() {
-  return <div className="w-full h-px md:w-px md:h-12 bg-slate-100 shrink-0" />
-}
-
 /* ================================================================
    SECTION 1 — HERO  (compact, centered, search integrated)
    ================================================================ */

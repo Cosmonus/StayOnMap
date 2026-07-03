@@ -7,9 +7,8 @@ import { authService } from '@services/auth.service'
 import { savedService } from '@services/saved.service'
 import { chatService } from '@services/chat.service'
 import { notificationService } from '@services/notification.service'
-import PropertyCard from '@features/properties/components/PropertyCard'
 import { AmenityIcon } from '@components/common/AmenityIcon'
-import { imgUrl, formatRent, formatCurrency } from '@utils/format'
+import { formatRent, formatCurrency } from '@utils/format'
 import Modal from '@components/common/Modal'
 import ListingManager from '@features/listings/components/ListingManager'
 import ListingDetailContent from '@features/listings/components/ListingDetailContent'
@@ -230,9 +229,7 @@ function WishlistStars({ score }) {
 }
 
 function WishlistCard({ property }) {
-  const navigate = useNavigate()
   const qc = useQueryClient()
-  const thumb = property.images?.[0]?.url
 
   const unsave = useMutation({
     mutationFn: () => savedService.unsave(property.id),

@@ -18,7 +18,7 @@ const LINKS = {
   ],
   'For Tenants': [
     { label: 'Browse Rentals', to: '/properties' },
-    { label: 'Saved Homes',    to: '/saved' },
+    { label: 'Saved Homes',    to: '/user?tab=wishlist' },
     { label: 'How It Works',   to: '/about' },
     { label: 'Get in Touch',   to: '/contact' },
   ],

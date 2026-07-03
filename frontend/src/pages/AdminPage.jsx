@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Doughnut, Bar, Line } from 'react-chartjs-2'
+import { Doughnut, Line } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
   ArcElement, Tooltip, Legend,
@@ -269,43 +269,6 @@ function OverviewSection() {
   )
 }
 
-/* ── Property card (for All Properties grid) ── */
-function PropertyCard({ property }) {
-  const img = property.images?.[0]?.url
-  const rent = Number(property.rent)
-  const ownerName = property.owner?.name || property.owner?.email?.split('@')[0] || '—'
-
-  return (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md hover:border-slate-200 transition-all">
-      <div className="relative aspect-[16/10] bg-slate-100">
-        {img ? (
-          <img src={img} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-300">
-            <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-          </div>
-        )}
-        <span className="absolute top-2 left-2"><PropertyStatusPill status={property.status} size="sm" /></span>
-      </div>
-      <div className="p-3.5 space-y-1.5">
-        <p className="text-sm font-bold text-slate-800 truncate">{property.title}</p>
-        {property.displayId && (
-          <p className="text-[10px] font-mono text-slate-400">{property.displayId}</p>
-        )}
-        <p className="text-xs text-slate-500">
-          ₹{rent >= 1000 ? `${(rent / 1000).toFixed(rent % 1000 === 0 ? 0 : 1)}K` : rent}/mo
-          {property.city ? ` · ${property.city}` : ''}
-          {property.bhk ? ` · ${property.bhk} BHK` : ''}
-        </p>
-        <div className="flex items-center gap-2">
-          <Avatar name={property.owner?.name} email={property.owner?.email} avatarUrl={property.owner?.avatarUrl} />
-          <span className="text-xs text-slate-600 font-medium truncate">{ownerName}</span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ── Pin helpers (same style as user map) ──────────────────────────────────
 const TYPE_SHORT = {
   APARTMENT: 'Apt', HOUSE: 'House', VILLA: 'Villa',
@@ -568,6 +531,7 @@ function AdminPropertiesMap() {
     const el = containerRef.current
     if (!el) return
     let cancelled = false
+    const markers = markersRef.current
     googleMapsReady.then(() => {
       if (cancelled || mapRef.current) return
       const map = new window.google.maps.Map(el, {
@@ -592,8 +556,8 @@ function AdminPropertiesMap() {
     })
     return () => {
       cancelled = true
-      for (const m of markersRef.current.values()) m.remove()
-      markersRef.current.clear()
+      for (const m of markers.values()) m.remove()
+      markers.clear()
       searchMarkerRef.current?.remove()
       searchMarkerRef.current = null
       mapRef.current = null
@@ -856,16 +820,6 @@ function Avatar({ name, email, avatarUrl, size = 6 }) {
   )
 }
 
-function PersonChip({ name, email, avatarUrl }) {
-  const display = name || email?.split('@')[0] || '—'
-  return (
-    <div className="flex items-center gap-2 min-w-0">
-      <Avatar name={name} email={email} avatarUrl={avatarUrl} />
-      <span className="text-xs text-slate-700 font-medium truncate">{display}</span>
-    </div>
-  )
-}
-
 /* ── Helper: aggregate unique users from appointments + conversations ── */
 function aggregatePropertyUsers(property) {
   const userMap = new Map()
@@ -1043,17 +997,6 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
   const userReports = selectedUserId ? (property.reports ?? []).filter(r => r.reporterId === selectedUserId) : []
   const userConversation = selectedUserId ? (property.conversations ?? []).find(c => c.tenant?.id === selectedUserId || c.tenantId === selectedUserId) : null
   const userMessages = userConversation ? [...(userConversation.messages ?? [])].reverse() : []
-
-  // Build detail chips — only show fields that have data
-  const detailChips = [
-    property.bhk && { icon: '🏠', label: `${property.bhk} BHK` },
-    { icon: '🏷️', label: property.type?.replace(/_/g, ' ') },
-    { icon: '🛋️', label: property.furnished === 'FULLY' ? 'Furnished' : property.furnished === 'SEMI' ? 'Semi-Furnished' : 'Unfurnished' },
-    property.area && { icon: '📐', label: `${Number(property.area)} sq.ft` },
-    property.floor != null && { icon: '🏢', label: `Floor ${property.floor}${property.totalFloors ? ` of ${property.totalFloors}` : ''}` },
-    property.facingDirection && { icon: '🧭', label: `${property.facingDirection} facing` },
-    property.sharing && { icon: '👥', label: `${property.sharing}-sharing` },
-  ].filter(Boolean)
 
   return (
     <div className="flex flex-col h-[100vh] -mx-8 -my-8">

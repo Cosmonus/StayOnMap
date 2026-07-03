@@ -393,8 +393,6 @@ export default function ListingDetailContent({ propertyId, onBack }) {
     retry: 1,
   })
 
-  const appointments = contacts.appointments ?? []
-
   const { mutate: publish, isPending: publishing } = useMutation({
     mutationFn: () => propertyService.publish(propertyId),
     onSuccess: () => {
