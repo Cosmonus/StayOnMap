@@ -127,7 +127,7 @@ export function CreateLeaseModal({ propertyId, propertyTitle, isOpen, onClose })
 }
 
 // ── Lease card ───────────────────────────────────────────────────────────────
-function LeaseCard({ lease, currentUserId, isOwner: userIsOwner }) {
+function LeaseCard({ lease, currentUserId }) {
   const qc = useQueryClient()
   const [note, setNote] = useState('')
   const [showConfirm, setShowConfirm] = useState(null) // 'sign' | 'reject' | 'terminate'
@@ -288,7 +288,7 @@ export default function LeaseManager() {
         <section className="space-y-3">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Leases you&apos;ve offered</p>
           {asOwner.map(l => (
-            <LeaseCard key={l.id} lease={l} currentUserId={user?.id} isOwner={isOwner} />
+            <LeaseCard key={l.id} lease={l} currentUserId={user?.id} />
           ))}
         </section>
       )}
@@ -297,7 +297,7 @@ export default function LeaseManager() {
         <section className="space-y-3">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Your lease agreements</p>
           {asTenant.map(l => (
-            <LeaseCard key={l.id} lease={l} currentUserId={user?.id} isOwner={isOwner} />
+            <LeaseCard key={l.id} lease={l} currentUserId={user?.id} />
           ))}
         </section>
       )}

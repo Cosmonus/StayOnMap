@@ -34,8 +34,6 @@ function InputField({ label, type = 'text', value, onChange, placeholder, childr
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const from = location.state?.from ?? '/'
-
   const initialTab = location.state?.tab ?? 'login'
   const [tab, setTab]           = useState(initialTab)
   const [name, setName]         = useState('')

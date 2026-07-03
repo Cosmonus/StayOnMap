@@ -1,5 +1,4 @@
 // ── Brand & SEO config ───────────────────────────────────────────────────────
-// TODO: Update BRAND_NAME once the name is finalised.
 // Every title, description, and OG tag pulls from here — one change updates all.
 
 export const BRAND = {

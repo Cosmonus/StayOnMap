@@ -228,7 +228,7 @@ export function useMapLayers(mapRef) {
 
   // Reload all city-scoped layers when city changes
   useEffect(() => {
-    const { metro, itCorridors, floodZones } = layers.current
+    const { metro, itCorridors } = layers.current
     if (!metro) return
 
     reloadMetro(metro, city)
