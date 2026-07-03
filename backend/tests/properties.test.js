@@ -239,7 +239,7 @@ describe('createProperty', () => {
   }
 
   it('throws 403 for a city that is not in the allowed list', async () => {
-    const badCityData = { ...validData, city: 'Mumbai' }
+    const badCityData = { ...validData, city: 'Goa' }
 
     await expect(createProperty('owner-1', badCityData)).rejects.toMatchObject({
       statusCode: 403,
@@ -250,8 +250,8 @@ describe('createProperty', () => {
     expect(prismaMock.$transaction).not.toHaveBeenCalled()
   })
 
-  it('throws 403 for Pune (another disallowed city — cities expand over time)', async () => {
-    await expect(createProperty('owner-1', { ...validData, city: 'Pune' })).rejects.toMatchObject({
+  it('throws 403 for Jaipur (another disallowed city — cities expand over time)', async () => {
+    await expect(createProperty('owner-1', { ...validData, city: 'Jaipur' })).rejects.toMatchObject({
       statusCode: 403,
     })
   })

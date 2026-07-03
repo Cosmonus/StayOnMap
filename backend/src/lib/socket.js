@@ -3,21 +3,26 @@ import { createAdapter } from '@socket.io/redis-adapter'
 import jwt from 'jsonwebtoken'
 import { redis } from './redis.js'
 import { env } from '../config/env.js'
+import { corsOriginHandler } from './corsOrigin.js'
 
 let io = null
 
 export function initSocket(httpServer) {
   io = new Server(httpServer, {
-    cors: {
-      origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
-      credentials: true,
-    },
+    cors: { origin: corsOriginHandler, credentials: true },
   })
 
   // Scale Socket.io across multiple Node processes when Redis is available
   if (redis) {
-    const pubClient = redis.duplicate()
-    const subClient = redis.duplicate()
+    // Override the main client's cache-tuned options: pub/sub needs to queue
+    // commands while connecting (enableOfflineQueue: true) and connect eagerly
+    // (lazyConnect: false) — the adapter subscribes synchronously on
+    // construction, before a lazy connection would be ready, which otherwise
+    // throws "Stream isn't writeable" and crashes the whole process on boot.
+    const pubClient = redis.duplicate({ enableOfflineQueue: true, lazyConnect: false })
+    const subClient = redis.duplicate({ enableOfflineQueue: true, lazyConnect: false })
+    pubClient.on('error', (err) => console.error('[redis:pub]', err.message))
+    subClient.on('error', (err) => console.error('[redis:sub]', err.message))
     io.adapter(createAdapter(pubClient, subClient))
   }
 

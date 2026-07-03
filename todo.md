@@ -90,11 +90,30 @@ Mobile was missing 5 features that exist on web. Built all of them against the r
 - [x] Removed 2 unused imports in mobile (`View` in `PlaceholderScreen.js`, `useState` in `MyListingsScreen.js`) via a heuristic scan (mobile has no ESLint config yet)
 - [x] Verified: frontend lint 0/0, frontend build succeeds, backend lint 0/0 (was already clean), mobile bundles cleanly via `expo export`
 
+### Redis Activation + Scaling Prep (2026-07-03)
+- [x] Provisioned Upstash Redis, set `REDIS_URL` (backend/.env) — activates pin/analytics/trust-score caching, Redis-backed rate limiting, and the Socket.io cross-instance adapter (all previously wired but no-op)
+- [x] Fixed a data-exposure bug: map-pins cache key didn't vary by login state, but results do (`LOGGED_IN`-only listing visibility) — an anon visitor could've been served a logged-in user's cached response
+- [x] Fixed a process-crash-on-boot bug: Socket.io's duplicated Redis pub/sub clients inherited cache-tuned options (`enableOfflineQueue: false`) that don't work for pub/sub — crashed the whole server on startup the instant `REDIS_URL` was set
+- [x] Added a global `unhandledRejection` handler (`index.js`) — Node kills the whole process on one by default
+- [x] Added `Cache-Control` headers to `/areas/*` and `/metro` (fully public, non-user-varying); added `connection_limit`/`pool_timeout` to `DATABASE_URL` (bounds Prisma's pool per instance ahead of running multiple backend instances)
+- [x] Full writeup: `docs/redis-and-scaling.md`
+- [ ] Still needs `REDIS_URL` + `connection_limit` added to Railway's **production** env vars — only local `.env` has them so far
+
+### Dependency & Test Hardening (2026-07-03)
+- [x] `npm audit fix` — frontend now 0 vulnerabilities; backend fixed the high-severity `ws`/`engine.io`/`socket.io-adapter` issue (6 dev-only `vitest`/`vite`/`esbuild` advisories remain, no production runtime exposure, fixing requires forcing a breaking `vitest` v3→v4 bump — deliberately left alone)
+- [x] Extended backend tests 26 → 59: added `appointments.test.js`, `lease.test.js`, `auth.test.js` covering ownership/conflict rules, one-way role upgrade, and city-gated waitlist signup
+- [x] Fixed 2 pre-existing stale tests (`properties.test.js`) that asserted Mumbai/Pune were disallowed cities — both were promoted to `SUPPORTED_CITIES` in the P7 city expansion and nobody updated the tests
+
 ---
 
 ## ⏳ Pending
 
-### Testing on Production
+### 🔴 Legal & Compliance — not started, likely the real blocker for launch
+- [ ] Privacy Policy page — **none exists**. Verification flow collects Aadhaar/PAN document uploads plus name/email/phone at signup; operating without a published privacy policy is a real compliance gap under India's DPDP Act 2023, not just best practice
+- [ ] Terms of Service page — none exists
+- [ ] Cookie consent — check whether anything client-side actually sets cookies/tracking first; may be moot (auth is pure Bearer-token, no cookies used per `.claude/auth.md`)
+
+### Testing on Production (in progress 2026-07-03)
 - [ ] Test login / signup
 - [ ] Test map loads with pins
 - [ ] Test appointment booking end-to-end
@@ -103,10 +122,25 @@ Mobile was missing 5 features that exist on web. Built all of them against the r
 - [ ] Test chat between owner and tenant
 - [ ] Test admin panel at `/admin`
 
-### Email
-- [ ] Set up proper Resend account and verify sending domain
-- [ ] Test appointment accepted / rejected emails
-- [ ] Test verification update emails
+### Email — confirmed broken in production (2026-07-03), fix deferred by user
+- [x] Checked Railway prod env vars directly (via `railway variables`) — `RESEND_API_KEY` is literally the string `"skip"`, not a real key; `RESEND_FROM_EMAIL` is a personal Gmail address, not a domain Resend can verify. Every transactional email (appointment accepted/rejected, verification updates, password reset) has been failing silently.
+- [x] Fixed the silent failure: `sendEmail()`'s catch block now logs the error (`email.service.js`) instead of swallowing it with no trace
+- [ ] **User will add a real Resend API key + verified sending domain later** — deferred, not blocking other work
+- [ ] Once added: test appointment accepted/rejected and verification-update emails actually arrive
+
+### Ops / CI hardening
+- [x] Set `REDIS_URL` and appended `?connection_limit=5&pool_timeout=10` to `DATABASE_URL` in Railway production (`stayonmap-backend` service) — set with `--skip-deploys`, takes effect on the next deploy
+- [x] Custom domain **is already live** — `stayonmap.com`/`www.stayonmap.com` are configured as custom domains on the `stayonmap-frontend` Railway service (confirmed via `railway status`). `.claude/roadmap.md`'s P5 note claiming it was still pending was stale — corrected.
+- [x] **Found and fixed a real live bug**: Socket.io's CORS config only checked `FRONTEND_URL` directly, which was still the old Railway subdomain in production — Express's CORS already allow-listed `stayonmap.com` via a hardcoded array, but Socket.io didn't, so chat/notifications were silently broken for anyone visiting the real production domain. Fixed by extracting a shared `corsOriginHandler` (`backend/src/lib/corsOrigin.js`) used by both; verified with a live curl test (`stayonmap.com` origin now gets `Access-Control-Allow-Origin` back, `evil.com` doesn't).
+- [x] Corrected `FRONTEND_URL` in Railway production to `https://stayonmap.com` (was the old subdomain — also used directly by password-reset email links, not just CORS)
+- [ ] Check Google Maps API key HTTP referrer restrictions include `stayonmap.com` (may still only list the Railway subdomain)
+- [ ] Add `npm audit` as a CI gate (`.github/workflows/ci.yml` currently only runs lint + test/build — the `ws` vulnerability fixed today could silently regress on the next `npm install` with nothing to catch it)
+- [ ] Confirm Railway Postgres automated backups are enabled (dashboard setting, not verifiable from code)
+- [ ] Add Sentry or similar error monitoring — **user will add later**, deferred
+
+### Security follow-ups
+- [x] Confirmed `ADMIN_SEED_PASSWORD` is not set in Railway production env vars at all (only ever used for the local one-time seed script) — but this doesn't confirm what the actual production admin account's password is, since that's a bcrypt hash already in the DB from whenever it was originally seeded
+- [ ] If unsure whether production's real admin password was ever set to the weak local value, just log into `/admin` and change it directly — safer than trying to inspect the DB
 
 ### Pending Features
 - [ ] Payment integration (Razorpay — on hold, needs account)
@@ -115,5 +149,6 @@ Mobile was missing 5 features that exist on web. Built all of them against the r
 
 ### Nice to Have
 - [ ] SEO — submit sitemap.xml to Google Search Console
-- [ ] Add more cities (Mumbai, Pune, Kolkata)
+- [ ] Hand-authored neighborhood-intelligence profiles for Hyderabad/Delhi (currently zero entries — degrades silently, not broken)
 - [ ] Add the missing `frontend/public/og-default.jpg` (1200×630 social share image) — referenced everywhere in SEO tags but the file doesn't exist, so every social share is currently showing a broken image
+- [ ] Frontend/mobile automated test coverage (currently zero — backend has 59 tests as of 2026-07-03)

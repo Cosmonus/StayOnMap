@@ -23,6 +23,12 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      # --omit=dev: only fail CI on vulnerabilities that ship to production —
+      # dev-only tooling (vitest/vite/esbuild chain) is tracked separately in
+      # todo.md and needs a breaking major-version bump to fully resolve.
+      # --audit-level=high: moderate advisories are common enough across the
+      # ecosystem that gating on them would cause constant unrelated CI noise.
+      - run: npm audit --omit=dev --audit-level=high
 
   frontend:
     name: Frontend (lint + build)
@@ -45,6 +51,7 @@ jobs:
           VITE_GOOGLE_MAPS_API_KEY: ci-placeholder
           VITE_VAPID_PUBLIC_KEY: ci-placeholder
           VITE_APP_ENV: ci
+      - run: npm audit --omit=dev --audit-level=high
 
   mobile:
     name: Mobile (bundle smoke check)
