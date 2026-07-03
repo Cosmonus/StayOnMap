@@ -7,6 +7,15 @@ const isDev = process.env.NODE_ENV !== 'production'
 // In development all requests share the same IP (localhost) — skip limiting to avoid false 429s
 const noop = (_req, _res, next) => next()
 
+// A dedicated connection, not the shared fail-fast cache client: RedisStore's
+// constructor loads Lua scripts (loadGetScript/loadIncrementScript)
+// synchronously at import time, before the main client's lazy connection is
+// ready — with enableOfflineQueue: false that throws "Stream isn't writeable"
+// on every boot (same root cause as the Socket.io adapter crash — see
+// lib/socket.js and docs/redis-and-scaling.md).
+const rateLimitRedis = redis ? redis.duplicate({ enableOfflineQueue: true, lazyConnect: false }) : null
+if (rateLimitRedis) rateLimitRedis.on('error', (err) => console.error('[redis:ratelimit]', err.message))
+
 // Without this, express-rate-limit's default MemoryStore counts hits
 // per-process — correct on a single instance, but once the backend runs as
 // multiple horizontally-scaled instances (see roadmap.md), each instance
@@ -15,10 +24,10 @@ const noop = (_req, _res, next) => next()
 // in-memory store (same as before) if REDIS_URL isn't set, so this is a
 // no-op change for local dev.
 function redisStore(prefix) {
-  if (!redis) return undefined
+  if (!rateLimitRedis) return undefined
   return new RedisStore({
     prefix,
-    sendCommand: (...args) => redis.call(...args),
+    sendCommand: (...args) => rateLimitRedis.call(...args),
   })
 }
 
