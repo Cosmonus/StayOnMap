@@ -4,10 +4,8 @@
   - Added the required column `passwordHash` to the `User` table without a default value. This is not possible if the table is not empty.
 
 */
--- AlterTable (three-step: add nullable → backfill → set NOT NULL)
-ALTER TABLE "User" ADD COLUMN "passwordHash" TEXT;
-UPDATE "User" SET "passwordHash" = '$2a$12$placeholder.needs.reset.00000000000000000000000000000' WHERE "passwordHash" IS NULL;
-ALTER TABLE "User" ALTER COLUMN "passwordHash" SET NOT NULL;
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "passwordHash" TEXT NOT NULL;
 
 -- CreateTable
 CREATE TABLE "PasswordResetToken" (
