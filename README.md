@@ -21,8 +21,8 @@ A map-first rental platform for India where tenants discover homes visually and 
 | Backend   | Node.js + Express.js + Prisma            |
 | Database  | PostgreSQL (Railway)                     |
 | Maps      | Google Maps JavaScript API (web), native map view (mobile) |
-| Image storage | Cloudinary                          |
-| Auth      | Supabase Auth (JWT verification only — not the database) |
+| Image storage | Supabase Storage                    |
+| Auth      | Custom JWT (bcrypt + jsonwebtoken) — separate secrets for users and admins, see `.claude/auth.md` |
 | Real-time | Socket.io (chat, notifications) — JWT-verified handshake |
 | Push      | Web Push/VAPID (web), Expo push service (mobile) |
 
@@ -48,8 +48,7 @@ STAYONMAP/
 
 - Node.js 18+
 - npm 9+
-- A Supabase project (auth only)
-- A Cloudinary account (property images)
+- A Supabase project (image storage only — auth does not use Supabase)
 - A Google Maps API key (Maps JavaScript API + Places + Geocoding + Elevation enabled)
 - A Railway Postgres database (or any Postgres instance for local dev)
 - For mobile: the Expo Go app on a physical device, or an Android/iOS emulator
@@ -142,6 +141,32 @@ Mobile has no lint script configured yet; sanity-check changes with
 
 ---
 
+## Contributing
+
+`master` is protected — all changes land via pull request, not direct push.
+
+**PR title format (required, CI-enforced):**
+```
+stayonmap - <your title>
+```
+e.g. `stayonmap - Fix appointment scheduling bug`. A PR with a title that
+doesn't match this exactly will fail the `PR Title Check` status check.
+
+**CI (`.github/workflows/`) runs automatically on every push and PR to `master`:**
+
+| Check | What it does |
+|-------|--------------|
+| `Backend (lint + test)` | `npm run lint` + `npm test` in `backend/` — tests run fully mocked, no live DB needed |
+| `Frontend (lint + build)` | `npm run lint` + `npm run build` in `frontend/` |
+| `Mobile (bundle smoke check)` | `npx expo export --platform android` in `mobile/` — catches import/syntax errors |
+| `PR Title Check` | Validates the PR title against the format above |
+
+All four must pass before a PR can merge. Run the backend/frontend commands
+locally before pushing (see [Development](#development) above) to catch
+failures early instead of waiting on CI.
+
+---
+
 ## Deployment
 
 | Service  | Platform          |
@@ -151,8 +176,9 @@ Mobile has no lint script configured yet; sanity-check changes with
 | Database | Railway Postgres   |
 | Mobile   | Expo / EAS (not yet published to app stores) |
 
-Auth is Supabase (JWT verification only) and image storage is Cloudinary —
-see `docs/deployment.md` for the full setup and environment checklist.
+Auth is custom JWT (bcrypt + jsonwebtoken, no third-party auth service) and
+image storage is Supabase Storage — see `docs/deployment.md` for the full
+setup and environment checklist.
 
 ---
 
