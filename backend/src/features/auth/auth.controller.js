@@ -1,20 +1,38 @@
 import * as service from './auth.service.js'
 import { ok, created } from '../../utils/response.js'
 
-export async function syncProfile(req, res, next) {
+export async function register(req, res, next) {
   try {
-    const user = await service.syncOrCreateUser(req.user, req.body)
-    created(res, user)
+    const result = await service.registerUser(req.body)
+    created(res, result)
+  } catch (err) { next(err) }
+}
+
+export async function login(req, res, next) {
+  try {
+    const result = await service.loginUser(req.body.email, req.body.password)
+    ok(res, result)
+  } catch (err) { next(err) }
+}
+
+export async function forgotPassword(req, res, next) {
+  try {
+    await service.requestPasswordReset(req.body.email)
+    ok(res, { sent: true })
+  } catch (err) { next(err) }
+}
+
+export async function resetPassword(req, res, next) {
+  try {
+    await service.resetPassword(req.body.token, req.body.newPassword)
+    ok(res, { reset: true })
   } catch (err) { next(err) }
 }
 
 export async function getMe(req, res, next) {
   try {
     const user = await service.getUserById(req.user.id)
-    if (!user) {
-      // User authenticated with Supabase but hasn't synced their DB profile yet
-      return res.status(404).json({ success: false, error: 'PROFILE_NOT_FOUND', message: 'Call POST /auth/sync to create your profile' })
-    }
+    if (!user) return res.status(404).json({ success: false, error: 'NOT_FOUND', message: 'User not found' })
     ok(res, user)
   } catch (err) { next(err) }
 }

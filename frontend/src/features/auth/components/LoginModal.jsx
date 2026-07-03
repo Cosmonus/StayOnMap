@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '@lib/supabase'
 import { authService } from '@services/auth.service'
+import { useAuth } from '../hooks/useAuth'
+import { useUiStore } from '@store/uiStore'
 import { CITY_LIST_LABEL } from '@/config/cities'
 import { usePlatformStats } from '@hooks/usePlatformStats'
 
@@ -9,6 +10,7 @@ const QUOTES = [
   { text: 'The ache for home lives in all of us.', author: 'Maya Angelou' },
   { text: 'Home is not a place — it\'s a feeling.', author: 'Cecelia Ahern' },
   { text: 'A house is made of bricks. A home is made of love.', author: 'Proverb' },
+  { text: 'We find you houses. It\'s your responsibility to make it a home.', author: 'StayOnMap' },
 ]
 
 function InputField({ label, type = 'text', value, onChange, placeholder, children }) {
@@ -30,7 +32,10 @@ function InputField({ label, type = 'text', value, onChange, placeholder, childr
   )
 }
 
-export default function LoginModal({ isOpen, onClose }) {
+export default function LoginModal() {
+  const isOpen  = useUiStore((s) => s.loginModalOpen)
+  const onClose = useUiStore((s) => s.closeLoginModal)
+  const { loginSuccess } = useAuth()
   const navigate = useNavigate()
   const [tab, setTab]           = useState('login')
   const [name, setName]         = useState('')
@@ -56,34 +61,41 @@ export default function LoginModal({ isOpen, onClose }) {
   async function handleLogin(e) {
     e.preventDefault()
     setLoading(true); setError('')
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-    if (err) { setError(err.message); setLoading(false); return }
-    reset(); onClose(); navigate('/user')
+    try {
+      const res = await authService.login({ email, password })
+      loginSuccess(res.data)
+      reset(); onClose(); navigate('/user')
+    } catch (err) {
+      setError(err?.message ?? 'Invalid email or password')
+      setLoading(false)
+    }
   }
 
   async function handleForgot(e) {
     e.preventDefault()
     setLoading(true); setError('')
-    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
-    setLoading(false)
-    if (err) { setError(err.message); return }
-    setResetSent(true)
+    try {
+      await authService.requestPasswordReset({ email })
+      setResetSent(true)
+    } catch (err) {
+      setError(err?.message ?? 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleSignup(e) {
     e.preventDefault()
     if (!name.trim()) { setError('Name is required'); return }
     setLoading(true); setError('')
-    const { error: err } = await supabase.auth.signUp({ email, password, options: { data: { name: name.trim() } } })
-    if (err) { setError(err.message); setLoading(false); return }
     try {
-      await authService.syncProfile({ name: name.trim(), role })
-    } catch {
-      // best-effort
+      const res = await authService.register({ name: name.trim(), email, password, role })
+      loginSuccess(res.data)
+      reset(); onClose(); navigate('/user')
+    } catch (err) {
+      setError(err?.message ?? 'Could not create account')
+      setLoading(false)
     }
-    reset(); onClose(); navigate('/user')
   }
 
   if (!isOpen) return null
@@ -293,7 +305,7 @@ export default function LoginModal({ isOpen, onClose }) {
               <form onSubmit={handleSignup} className="space-y-4">
                 <InputField label="Full name" value={name} onChange={e => setName(e.target.value)} placeholder="Ravi Kumar" />
                 <InputField label="Email address" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
-                <InputField label="Password" type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 6 characters">
+                <InputField label="Password" type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters">
                   <button
                     type="button"
                     onClick={() => setShowPw(v => !v)}

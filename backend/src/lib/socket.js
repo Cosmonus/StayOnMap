@@ -1,7 +1,8 @@
 import { Server } from 'socket.io'
 import { createAdapter } from '@socket.io/redis-adapter'
+import jwt from 'jsonwebtoken'
 import { redis } from './redis.js'
-import { supabase } from './supabase.js'
+import { env } from '../config/env.js'
 
 let io = null
 
@@ -20,18 +21,20 @@ export function initSocket(httpServer) {
     io.adapter(createAdapter(pubClient, subClient))
   }
 
-  // Verify the Supabase JWT before allowing a connection — same check as authMiddleware.
+  // Verify the user JWT before allowing a connection — same check as authMiddleware.
   // Never trust a client-supplied userId; a spoofed id would let anyone join another
   // user's room and read their chat messages / notifications.
-  io.use(async (socket, next) => {
+  io.use((socket, next) => {
     const token = socket.handshake.auth?.token
     if (!token) return next(new Error('Unauthorized'))
 
-    const { data: { user }, error } = await supabase.auth.getUser(token)
-    if (error || !user) return next(new Error('Unauthorized'))
-
-    socket.userId = user.id
-    next()
+    try {
+      const payload = jwt.verify(token, env.jwtSecret)
+      socket.userId = payload.sub
+      next()
+    } catch {
+      next(new Error('Unauthorized'))
+    }
   })
 
   // Track which users are online

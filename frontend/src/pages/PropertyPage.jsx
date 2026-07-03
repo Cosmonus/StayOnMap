@@ -17,7 +17,7 @@ import ReportButton       from '@features/reports/components/ReportButton'
 import UnifiedSidebar     from '@components/layout/UnifiedSidebar'
 import Header             from '@components/layout/Header'
 import Footer             from '@components/layout/Footer'
-import LoginModal         from '@features/auth/components/LoginModal'
+import { useUiStore }     from '@store/uiStore'
 import { AmenityIcon }   from '@components/common/AmenityIcon'
 import { savedService }  from '@services/saved.service'
 import SEOMeta             from '@components/common/SEOMeta'
@@ -665,11 +665,11 @@ export default function PropertyPage() {
   const { id }   = useParams()
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
+  const openLoginModal = useUiStore((s) => s.openLoginModal)
   const qc = useQueryClient()
   const [lightboxIdx, setLightboxIdx] = useState(null)
   const [saved, setSaved] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [loginOpen, setLoginOpen] = useState(false)
 
   const { data: property, isLoading, error } = useQuery({
     queryKey: ['property', id],
@@ -714,14 +714,13 @@ export default function PropertyPage() {
       <Header />
       <div className="flex-1 pt-16">{children}</div>
       <Footer />
-      <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
     </div>
   )
 
   // Logged-in layout wrapper (sidebar only, no header/footer)
-  const userName = user?.user_metadata?.name ?? ''
+  const userName = user?.name ?? ''
   const userEmail = user?.email ?? ''
-  const userAvatar = user?.user_metadata?.avatar_url ?? ''
+  const userAvatar = user?.avatarUrl ?? ''
 
   const DashShell = ({ children }) => (
     <div className="flex h-screen bg-slate-50">
@@ -845,7 +844,7 @@ export default function PropertyPage() {
               {copied ? 'Copied!' : 'Share'}
             </button>
             <button
-              onClick={() => user ? saveMutation.mutate(!saved) : setLoginOpen(true)}
+              onClick={() => user ? saveMutation.mutate(!saved) : openLoginModal()}
               className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all border ${saved ? 'bg-red-50 text-red-600 border-red-200' : 'text-slate-600 hover:bg-white hover:shadow-sm border-transparent hover:border-slate-200'}`}
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -1201,7 +1200,7 @@ export default function PropertyPage() {
                     </>
                   ) : (
                     <div className="border-t border-slate-100 pt-4">
-                      <LoginGate onLogin={() => setLoginOpen(true)} />
+                      <LoginGate onLogin={openLoginModal} />
                     </div>
                   )}
                 </div>
@@ -1230,7 +1229,7 @@ export default function PropertyPage() {
             </button>
           ) : (
             <button
-              onClick={() => setLoginOpen(true)}
+              onClick={openLoginModal}
               className="px-6 py-2.5 rounded-xl bg-[#111111] text-white text-sm font-semibold hover:bg-[#2a2a2a] transition-colors"
             >
               Sign in to contact

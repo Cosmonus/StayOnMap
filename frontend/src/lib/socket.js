@@ -1,5 +1,4 @@
 import { io } from 'socket.io-client'
-import { supabase } from './supabase'
 
 let socket = null
 
@@ -9,12 +8,11 @@ export function connectSocket() {
   const url = import.meta.env.VITE_API_URL?.replace('/api/v1', '') ?? 'http://localhost:4000'
 
   socket = io(url, {
-    // Re-read the session on every (re)connect attempt so a refreshed token
-    // is always used — the server verifies this token, it never trusts a
-    // client-supplied userId.
-    auth: async (cb) => {
-      const { data: { session } } = await supabase.auth.getSession()
-      cb({ token: session?.access_token })
+    // Re-read the token on every (re)connect attempt so a freshly-issued
+    // token is always used — the server verifies this token, it never
+    // trusts a client-supplied userId.
+    auth: (cb) => {
+      cb({ token: localStorage.getItem('user_token') })
     },
     transports: ['websocket', 'polling'],
     reconnection: true,

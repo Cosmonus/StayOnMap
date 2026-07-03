@@ -1,11 +1,13 @@
-// Auth API calls — wraps Supabase Auth
-// Note: most auth is handled via Supabase client directly (AuthContext)
-// These are for backend-side profile sync
+// Auth API calls — custom JWT (see @features/auth/context/AuthContext for
+// where the token/user state lives on the frontend)
 
 import { api } from '@lib/api'
 
 export const authService = {
-  syncProfile: (data) => api.post('/auth/sync', data),
+  register: (data) => api.post('/auth/register', data),
+  login: (data) => api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
   upgradeRole: () => api.patch('/auth/role', { role: 'OWNER' }),
+  requestPasswordReset: (data) => api.post('/auth/forgot-password', data),
+  confirmPasswordReset: (data) => api.post('/auth/reset-password', data),
 }

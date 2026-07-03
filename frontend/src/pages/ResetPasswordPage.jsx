@@ -1,33 +1,34 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { supabase } from '@lib/supabase'
+import { useState } from 'react'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { authService } from '@services/auth.service'
+import { useUiStore } from '@store/uiStore'
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate()
-  const [password, setPassword]       = useState('')
-  const [confirm, setConfirm]         = useState('')
-  const [showPw, setShowPw]           = useState(false)
-  const [loading, setLoading]         = useState(false)
-  const [error, setError]             = useState('')
-  const [sessionReady, setSessionReady] = useState(false)
+  const [searchParams] = useSearchParams()
+  const token = searchParams.get('token')
+  const openLoginModal = useUiStore((s) => s.openLoginModal)
 
-  useEffect(() => {
-    // Supabase detects the recovery token from the URL hash and fires onAuthStateChange
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setSessionReady(true)
-    })
-    return () => subscription.unsubscribe()
-  }, [])
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm]   = useState('')
+  const [showPw, setShowPw]     = useState(false)
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState('')
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (password.length < 6) { setError('Password must be at least 6 characters'); return }
+    if (password.length < 8) { setError('Password must be at least 8 characters'); return }
     if (password !== confirm) { setError('Passwords do not match'); return }
     setLoading(true); setError('')
-    const { error: err } = await supabase.auth.updateUser({ password })
-    setLoading(false)
-    if (err) { setError(err.message); return }
-    navigate('/user')
+    try {
+      await authService.confirmPasswordReset({ token, newPassword: password })
+      navigate('/')
+      openLoginModal()
+    } catch (err) {
+      setError(err?.message ?? 'This reset link is invalid or has expired')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -36,18 +37,17 @@ export default function ResetPasswordPage() {
         {/* Logo */}
         <Link to="/" className="no-underline flex items-center gap-2 mb-8">
           <span className="font-bold text-xl tracking-tight text-slate-900">
-            Stay<span className="text-brand-600">Near</span>
+            Stay<span className="text-brand-600">OnMap</span>
           </span>
         </Link>
 
-        {!sessionReady ? (
+        {!token ? (
           <div className="text-center py-8">
-            <div className="w-10 h-10 border-2 border-slate-200 border-t-slate-600 rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-sm text-slate-500">Verifying your reset link…</p>
-            <p className="text-xs text-slate-400 mt-2">
-              If this takes too long,{' '}
-              <Link to="/" className="text-brand-600 hover:underline">go back home</Link>
-              {' '}and request a new link.
+            <p className="text-sm font-semibold text-slate-800">Invalid reset link</p>
+            <p className="text-sm text-slate-400 mt-2">
+              This link is missing or malformed.{' '}
+              <Link to="/" className="text-brand-600 hover:underline">Go back home</Link>
+              {' '}and request a new one.
             </p>
           </div>
         ) : (
@@ -69,7 +69,7 @@ export default function ResetPasswordPage() {
                     type={showPw ? 'text' : 'password'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    placeholder="Min. 6 characters"
+                    placeholder="Min. 8 characters"
                     required
                     className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-slate-50 placeholder:text-slate-400"
                   />

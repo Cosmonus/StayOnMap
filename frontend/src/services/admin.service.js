@@ -2,8 +2,8 @@ import { adminApi } from '@lib/api'
 
 export const adminService = {
   // Login: no token needed yet, but must stay on adminApi — the user-facing
-  // `api` instance is coupled to the Supabase client and admins are not
-  // Supabase users (see .claude/architecture.md)
+  // `api` instance carries the tenant/owner JWT and admins are a separate
+  // auth system entirely (see .claude/architecture.md)
   login:         (data)         => adminApi.post('/admin/login', data),
 
   // All other calls use the admin JWT

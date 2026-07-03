@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/prisma.js'
-import { supabase } from '../../lib/supabase.js'
+import { requestPasswordReset } from '../auth/auth.service.js'
 
 export async function getUserById(id) {
   return prisma.user.findUnique({ where: { id } })
@@ -41,17 +41,11 @@ export async function getSettings(id) {
 }
 
 export async function changePassword(email) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.FRONTEND_URL}/reset-password`,
-  })
-  if (error) throw Object.assign(new Error('Failed to send reset email'), { statusCode: 500 })
+  await requestPasswordReset(email)
 }
 
 export async function deleteAccount(id) {
   await prisma.user.delete({ where: { id } })
-  const { error } = await supabase.auth.admin.deleteUser(id)
-  if (error) {
-    // Prisma record already deleted — log but don't throw, account is effectively removed
-    console.error('Supabase deleteUser error (non-fatal):', error.message)
-  }
+  // All owned rows (properties, appointments, reviews, etc.) cascade-delete
+  // via the existing onDelete: Cascade relations in schema.prisma.
 }
