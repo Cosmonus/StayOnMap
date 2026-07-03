@@ -197,9 +197,15 @@ async function main() {
   }
   console.log(`✓ ${AMENITIES.length} amenities seeded`)
 
-  // 2. Seed admin account
-  const adminEmail    = process.env.ADMIN_SEED_EMAIL    ?? 'srigokulkrishnan@gmail.com'
-  const adminPassword = process.env.ADMIN_SEED_PASSWORD ?? 'sgokulk@1234'
+  // 2. Seed admin account — no hardcoded fallback password; a real credential
+  //    baked into source is exactly the kind of thing that ends up leaked in
+  //    git history, so this must come from the environment every time.
+  const adminEmail    = process.env.ADMIN_SEED_EMAIL
+  const adminPassword = process.env.ADMIN_SEED_PASSWORD
+  if (!adminEmail || !adminPassword) {
+    console.error('✗ ADMIN_SEED_EMAIL and ADMIN_SEED_PASSWORD must both be set in the environment — no default is provided')
+    process.exit(1)
+  }
   const passwordHash  = await bcrypt.hash(adminPassword, 12)
   await prisma.admin.upsert({
     where:  { email: adminEmail },
