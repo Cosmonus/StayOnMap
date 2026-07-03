@@ -105,6 +105,16 @@ Mobile was missing 5 features that exist on web. Built all of them against the r
 - [x] Extended backend tests 26 → 59: added `appointments.test.js`, `lease.test.js`, `auth.test.js` covering ownership/conflict rules, one-way role upgrade, and city-gated waitlist signup
 - [x] Fixed 2 pre-existing stale tests (`properties.test.js`) that asserted Mumbai/Pune were disallowed cities — both were promoted to `SUPPORTED_CITIES` in the P7 city expansion and nobody updated the tests
 
+### Manual Production Testing Pass (2026-07-03)
+Tested directly against production (`stayonmap-backend-production.up.railway.app`
++ `stayonmap.com`), not local dev — via real API calls, not just reading code.
+- [x] **Login/signup** — register (success, duplicate-email 409, password validation), login (success, wrong-password 401), `/auth/me` (with/without token). All correct. Minor cosmetic-only finding: every error response's `error` field defaults to generic `"INTERNAL_ERROR"` (`error.middleware.js`'s `err.code || 'INTERNAL_ERROR'`) since nothing sets `.code` — `statusCode`/`message` are always correct and that's what the frontend actually branches on, so not fixed, just noted.
+- [x] **Map/pins** — found and fixed the `/properties/pins` 500-on-missing-bounds bug (see Ops/CI hardening above). Confirmed empty-array response is correct behavior for real (non-fake) data, not a bug: **there are currently zero real properties in the production database.**
+- [x] **Appointment booking + chat, full synthetic flow** — created a test owner account, uploaded a real test image via `/uploads/property-image` (confirmed real Supabase URL, UUID filename per the documented security pattern), created a property, published it, approved it to ACTIVE via the admin API, booked an appointment as a separate test tenant account, confirmed the chat conversation auto-creates with an appointment-summary message, accepted the appointment as owner, confirmed both an `APPOINTMENT_ACCEPTED` notification and a chat-message notification fired for the tenant. **Everything in this chain worked correctly, no bugs found.**
+- [x] **Admin panel** — confirmed admin login, users list, waitlist, property moderation (PENDING→ACTIVE) all work. **Confirmed the production admin password really is the weak local seed value** (`sgokulk@1234`) — tested `POST /admin/login` directly against production with it, succeeded. Not hypothetical. **User will rotate it themselves.** Also found and corrected stale admin route docs in `.claude/backend.md` (`/dashboard`→`/analytics`, `/activity`→`/logs`, a documented `GET /admin/trust-scores` that doesn't exist, wrong HTTP method on the AI fraud-scan route) plus a confirmed-dead-code finding: `reviews.routes.js`'s `adminReviewRouter` is permanently unreachable, shadowed by `admin.routes.js`'s own `/reviews` handlers registered first — not fixed (not urgent, the reachable copy is the one already in use), just documented so nobody edits the dead copy by mistake.
+- [x] **Push notifications** — confirmed the public VAPID key endpoint responds correctly. Full subscribe/receive flow needs a real browser push subscription, not testable via API calls alone — left for actual browser use.
+- [ ] **Test data now sitting in production**, no self-service delete endpoint exists for any of it: test tenant account (`claude-test-verify-20260703@example.com`), test owner account (`claude-test-owner-20260703@example.com`), one test property ("Claude Test Property Verification", Chennai), one test appointment, one test chat conversation + 2 messages. Needs cleanup via direct DB access or left as harmless clutter — user's call.
+
 ---
 
 ## ⏳ Pending
@@ -135,13 +145,14 @@ Mobile was missing 5 features that exist on web. Built all of them against the r
 - [x] **Found and fixed a real live bug**: Socket.io's CORS config only checked `FRONTEND_URL` directly, which was still the old Railway subdomain in production — Express's CORS already allow-listed `stayonmap.com` via a hardcoded array, but Socket.io didn't, so chat/notifications were silently broken for anyone visiting the real production domain. Fixed by extracting a shared `corsOriginHandler` (`backend/src/lib/corsOrigin.js`) used by both; verified with a live curl test (`stayonmap.com` origin now gets `Access-Control-Allow-Origin` back, `evil.com` doesn't).
 - [x] Corrected `FRONTEND_URL` in Railway production to `https://stayonmap.com` (was the old subdomain — also used directly by password-reset email links, not just CORS)
 - [ ] Check Google Maps API key HTTP referrer restrictions include `stayonmap.com` (may still only list the Railway subdomain)
-- [ ] Add `npm audit` as a CI gate (`.github/workflows/ci.yml` currently only runs lint + test/build — the `ws` vulnerability fixed today could silently regress on the next `npm install` with nothing to catch it)
+- [x] Added `npm audit` as a CI gate (`.github/workflows/ci.yml`, `--omit=dev --audit-level=high` on both backend/frontend) — verified it passes cleanly today
 - [ ] Confirm Railway Postgres automated backups are enabled (dashboard setting, not verifiable from code)
 - [ ] Add Sentry or similar error monitoring — **user will add later**, deferred
+- [x] **Found a live 500 via manual testing**: `GET /properties/pins` with missing/malformed bounds crashed with a 500 (NaN reaching Prisma) instead of a 400 — the query-validation schema that would've caught this (`listQuerySchema`) was defined but never actually wired up anywhere, and the `validate()` middleware never supported query validation at all despite `.claude/backend.md` documenting it as a real pattern. Fixed: `validate()` now takes a `target` param, added a dedicated `pinsQuerySchema` (bounds required, unlike the general list endpoint), verified against production.
 
 ### Security follow-ups
-- [x] Confirmed `ADMIN_SEED_PASSWORD` is not set in Railway production env vars at all (only ever used for the local one-time seed script) — but this doesn't confirm what the actual production admin account's password is, since that's a bcrypt hash already in the DB from whenever it was originally seeded
-- [ ] If unsure whether production's real admin password was ever set to the weak local value, just log into `/admin` and change it directly — safer than trying to inspect the DB
+- [x] **CONFIRMED (not hypothetical): production's real admin password is `sgokulk@1234`** — tested `POST /admin/login` against production directly with the weak local seed credentials, it succeeded. This is a live vulnerability, not a "might be" — the seed script was evidently run against production using those same local `.env` values.
+- [ ] **User will rotate the admin password themselves** via `/admin` — deferred, but this should not sit for long given it's confirmed live, not theoretical
 
 ### Pending Features
 - [ ] Payment integration (Razorpay — on hold, needs account)
