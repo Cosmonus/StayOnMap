@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
-import { supabase } from '@lib/supabase'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { authService } from '@services/auth.service'
 import { connectSocket, disconnectSocket } from '@lib/socket'
 import { registerForPushNotifications, unregisterPushNotifications } from '@services/push.service'
@@ -12,40 +12,40 @@ export function AuthProvider({ children }) {
   const hadUser = useRef(false)
 
   useEffect(() => {
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        setUser(session?.user ?? null)
-        hadUser.current = !!session?.user
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null)
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
-        // Pass user_metadata so backend can pick up name even on listener-triggered syncs
-        const meta = session.user.user_metadata ?? {}
-        authService.syncProfile({ name: meta.name }).catch(() => {})
-        if (!hadUser.current) {
+    AsyncStorage.getItem('user_token')
+      .then((token) => {
+        if (!token) return null
+        return authService.getMe().then((res) => {
+          setUser(res.data)
+          hadUser.current = true
           connectSocket()
           registerForPushNotifications().catch(() => {})
-        }
-        hadUser.current = true
-      }
-      if (event === 'SIGNED_OUT') {
-        hadUser.current = false
-        unregisterPushNotifications().catch(() => {})
-        disconnectSocket()
-      }
-    })
-
-    return () => subscription.unsubscribe()
+        })
+      })
+      .catch(() => AsyncStorage.removeItem('user_token'))
+      .finally(() => setLoading(false))
   }, [])
 
-  const signOut = () => supabase.auth.signOut()
+  async function loginSuccess({ token, user: loggedInUser }) {
+    await AsyncStorage.setItem('user_token', token)
+    setUser(loggedInUser)
+    if (!hadUser.current) {
+      connectSocket()
+      registerForPushNotifications().catch(() => {})
+    }
+    hadUser.current = true
+  }
+
+  async function signOut() {
+    await AsyncStorage.removeItem('user_token')
+    setUser(null)
+    hadUser.current = false
+    unregisterPushNotifications().catch(() => {})
+    disconnectSocket()
+  }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signOut, loginSuccess }}>
       {children}
     </AuthContext.Provider>
   )

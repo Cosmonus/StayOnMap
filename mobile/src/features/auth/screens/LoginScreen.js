@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { supabase } from '@lib/supabase'
 import { authService } from '@services/auth.service'
+import { useAuth } from '@features/auth/hooks/useAuth'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -27,6 +27,7 @@ function Field({ label, ...props }) {
 }
 
 export default function LoginScreen() {
+  const { loginSuccess } = useAuth()
   const [tab, setTab] = useState('login') // 'login' | 'signup' | 'forgot'
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -45,39 +46,42 @@ export default function LoginScreen() {
   async function handleLogin() {
     setLoading(true)
     setError('')
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-    setLoading(false)
-    if (err) setError(err.message)
-    // On success, RootNavigator swaps to AppTabs automatically via useAuth()
+    try {
+      const res = await authService.login({ email, password })
+      await loginSuccess(res.data)
+      // On success, RootNavigator swaps to AppTabs automatically via useAuth()
+    } catch (err) {
+      setError(err?.message ?? 'Invalid email or password')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleForgot() {
     setLoading(true)
     setError('')
-    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'stayonmap://reset-password',
-    })
-    setLoading(false)
-    if (err) { setError(err.message); return }
-    setResetSent(true)
+    try {
+      await authService.requestPasswordReset({ email })
+      setResetSent(true)
+    } catch (err) {
+      setError(err?.message ?? 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleSignup() {
     if (!name.trim()) { setError('Name is required'); return }
     setLoading(true)
     setError('')
-    const { error: err } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name: name.trim() } },
-    })
-    if (err) { setError(err.message); setLoading(false); return }
     try {
-      await authService.syncProfile({ name: name.trim(), role })
-    } catch {
-      // best-effort — AuthContext's onAuthStateChange listener retries this too
+      const res = await authService.register({ name: name.trim(), email, password, role })
+      await loginSuccess(res.data)
+    } catch (err) {
+      setError(err?.message ?? 'Could not create account')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
@@ -150,7 +154,7 @@ export default function LoginScreen() {
             <>
               <Field label="Full name" value={name} onChangeText={setName} placeholder="Ravi Kumar" />
               <Field label="Email address" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" />
-              <Field label="Password" value={password} onChangeText={setPassword} placeholder="Min. 6 characters" secureTextEntry />
+              <Field label="Password" value={password} onChangeText={setPassword} placeholder="Min. 8 characters" secureTextEntry />
 
               <Text style={styles.label}>I am a</Text>
               <View style={styles.roleRow}>
