@@ -250,8 +250,8 @@ describe('createProperty', () => {
     expect(prismaMock.$transaction).not.toHaveBeenCalled()
   })
 
-  it('throws 403 for Delhi (another disallowed city)', async () => {
-    await expect(createProperty('owner-1', { ...validData, city: 'Delhi' })).rejects.toMatchObject({
+  it('throws 403 for Pune (another disallowed city — cities expand over time)', async () => {
+    await expect(createProperty('owner-1', { ...validData, city: 'Pune' })).rejects.toMatchObject({
       statusCode: 403,
     })
   })
