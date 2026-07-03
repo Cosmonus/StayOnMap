@@ -82,6 +82,7 @@ export async function getPropertiesByOwner(ownerId) {
 }
 
 const ALLOWED_CITIES = ['Bengaluru', 'Chennai', 'Hyderabad', 'Delhi']
+const MAX_LISTINGS_PER_OWNER = 3
 
 function assertAllowedCity(city) {
   if (!ALLOWED_CITIES.includes(city)) {
@@ -95,6 +96,11 @@ export async function createProperty(ownerId, data) {
   assertAllowedCity(data.city)
 
   const property = await prisma.$transaction(async (tx) => {
+    const activeCount = await tx.property.count({ where: { ownerId, status: 'ACTIVE' } })
+    if (activeCount >= MAX_LISTINGS_PER_OWNER) {
+      throw Object.assign(new Error(`Maximum of ${MAX_LISTINGS_PER_OWNER} active listings reached — deactivate a listing to add another`), { statusCode: 403 })
+    }
+
     return tx.property.create({
       data: {
         ...propertyData,
