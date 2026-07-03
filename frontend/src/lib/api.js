@@ -41,7 +41,8 @@ let redirectingToLogin = false
 adminApi.interceptors.response.use(
   (res) => res.data,
   (err) => {
-    if (err.response?.status === 401 && !redirectingToLogin) {
+    const isLoginRequest = err.config?.url?.includes('/admin/login')
+    if (err.response?.status === 401 && !isLoginRequest && !redirectingToLogin) {
       redirectingToLogin = true
       localStorage.removeItem('admin_token')
       window.location.href = '/admin/login'
