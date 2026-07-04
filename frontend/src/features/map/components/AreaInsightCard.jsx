@@ -75,7 +75,7 @@ export default function AreaInsightCard() {
   if (!selectedArea) return null
 
   return (
-    <div className="absolute top-20 right-4 z-20 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+    <div className="absolute top-20 md:top-32 right-4 z-20 w-72 bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
 
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-slate-100">

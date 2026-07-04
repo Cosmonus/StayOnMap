@@ -11,7 +11,7 @@ export default function App() {
 
   const hideChrome = pathname.startsWith('/user') || pathname.startsWith('/admin') || pathname.startsWith('/property/') || pathname === '/design-system'
   const showHeader = !hideChrome
-  const showFooter = !hideChrome && pathname !== '/properties'
+  const showFooter = !hideChrome
 
   return (
     <>

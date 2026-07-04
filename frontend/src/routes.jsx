@@ -9,6 +9,7 @@ import HomePage           from '@pages/HomePage'
 // Lazy loaded — not needed until user navigates there
 const PropertiesPage    = lazy(() => import('@pages/PropertiesPage'))
 const PropertyPage      = lazy(() => import('@pages/PropertyPage'))
+const ServicesPage      = lazy(() => import('@pages/ServicesPage'))
 const AboutPage         = lazy(() => import('@pages/AboutPage'))
 const IntelligencePage  = lazy(() => import('@pages/IntelligencePage'))
 const ContactPage       = lazy(() => import('@pages/ContactPage'))
@@ -37,6 +38,7 @@ export default function AppRoutes() {
           {/* Public */}
           <Route path="/"             element={<HomePage />} />
           <Route path="/properties"   element={<PropertiesPage />} />
+          <Route path="/services"     element={<ServicesPage />} />
           <Route path="/property/:id" element={<PropertyPage />} />
           <Route path="/about"        element={<AboutPage />} />
           <Route path="/intelligence" element={<IntelligencePage />} />

@@ -74,6 +74,7 @@ checklist to work through. Nothing here has been done yet.
 - [x] Added India image to "Coming Soon — StayOnMap in your pocket" section
 - [x] Improved homepage dropdown UX (portal-based, bigger hit targets, smooth animation)
 - [x] Fixed Avatar crash in ListingDetailContent (empty name string bug)
+
 - [x] Added backimg.jpg as background for 4,200+ stats card
 - [x] Custom 404 page (`NotFoundPage`, noindexed, wired in `routes.jsx`)
 - [x] Performance — heavy route components are lazy-loaded (14 of 15 routes; only `HomePage` is eager, intentionally, for first paint)
