@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminService } from '@services/admin.service'
 import TrustBadge from '@components/common/TrustBadge'
+import Select from '@components/common/Select'
 
 const STATUS_OPTIONS = ['DRAFT','PENDING','ACTIVE','INACTIVE','SUSPENDED','REJECTED']
 const STATUS_COLORS  = { ACTIVE: 'text-green-700 bg-green-50', PENDING: 'text-yellow-700 bg-yellow-50', SUSPENDED: 'text-red-700 bg-red-50', REJECTED: 'text-red-700 bg-red-50', DRAFT: 'text-slate-600 bg-slate-50', INACTIVE: 'text-slate-600 bg-slate-50' }
@@ -19,12 +20,16 @@ export default function AdminPropertiesPage() {
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold text-slate-800">Properties</h1>
-      <div className="flex gap-3 flex-wrap">
-        <select value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value, page: 1 }))} className="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
-          <option value="">All statuses</option>
-          {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <input value={filters.city} onChange={e => setFilters(f => ({ ...f, city: e.target.value, page: 1 }))} placeholder="Filter by city" className="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+      <div className="flex gap-3 flex-wrap items-start">
+        <div className="w-44">
+          <Select
+            value={filters.status}
+            onChange={status => setFilters(f => ({ ...f, status, page: 1 }))}
+            placeholder="All statuses"
+            options={[{ value: '', label: 'All statuses' }, ...STATUS_OPTIONS.map(s => ({ value: s, label: s }))]}
+          />
+        </div>
+        <input value={filters.city} onChange={e => setFilters(f => ({ ...f, city: e.target.value, page: 1 }))} placeholder="Filter by city" className="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 h-[42px]" />
       </div>
       {isLoading ? (
         <div className="h-48 bg-slate-50 rounded-xl animate-pulse" />
@@ -46,15 +51,13 @@ export default function AdminPropertiesPage() {
                   <td className="px-4 py-3 text-slate-700">₹{Number(p.rent).toLocaleString('en-IN')}</td>
                   <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[p.status] ?? ''}`}>{p.status}</span></td>
                   <td className="px-4 py-3">{p.trustScore?.badge ? <TrustBadge badge={p.trustScore.badge} /> : <span className="text-slate-300 text-xs">—</span>}</td>
-                  <td className="px-4 py-3">
-                    <select
-                      defaultValue=""
-                      onChange={e => { if (e.target.value) mutation.mutate({ id: p.id, status: e.target.value }); e.target.value = '' }}
-                      className="border border-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500"
-                    >
-                      <option value="">Change status</option>
-                      {STATUS_OPTIONS.filter(s => s !== p.status).map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                  <td className="px-4 py-3 w-40">
+                    <Select
+                      value=""
+                      onChange={status => mutation.mutate({ id: p.id, status })}
+                      placeholder="Change status"
+                      options={STATUS_OPTIONS.filter(s => s !== p.status).map(s => ({ value: s, label: s }))}
+                    />
                   </td>
                 </tr>
               ))}

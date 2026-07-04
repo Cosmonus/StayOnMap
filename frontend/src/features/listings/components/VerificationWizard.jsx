@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { verificationService } from '@services/verification.service'
 import { toast } from '@components/common/Toaster'
+import Select from '@components/common/Select'
 
 const DOC_TYPES = [
   { value: 'AADHAAR',           label: 'Aadhaar Card' },
@@ -166,15 +167,7 @@ export default function VerificationWizard({ propertyId, propertyTitle }) {
           <p className="text-xs text-slate-400">Upload your document to Google Drive / Dropbox and paste the public link here.</p>
 
           <div className="space-y-2">
-            <select
-              value={docType}
-              onChange={e => setDocType(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white"
-            >
-              {DOC_TYPES.map(d => (
-                <option key={d.value} value={d.value}>{d.label}</option>
-              ))}
-            </select>
+            <Select value={docType} onChange={setDocType} options={DOC_TYPES} />
 
             <input
               type="url"

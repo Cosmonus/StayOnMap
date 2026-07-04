@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
 import { toast } from '@components/common/Toaster'
 import Toggle from '@components/common/Toggle'
+import Select from '@components/common/Select'
 import ImageUploader from './ImageUploader'
 import LocationPicker from './LocationPicker'
 import { CITIES, CITY_NAMES, CITY_LIST_LABEL } from '@/config/cities'
@@ -212,14 +213,10 @@ export default function EditListingForm({ property, onSuccess }) {
 
           <div className="grid grid-cols-2 gap-4">
             <Field label="Type *" error={errors.type}>
-              <select value={data.type} onChange={e => set('type', e.target.value)} className="input">
-                {PROPERTY_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
-              </select>
+              <Select value={data.type} onChange={v => set('type', v)} options={PROPERTY_TYPES.map(t => ({ value: t, label: t.replace('_', ' ') }))} />
             </Field>
             <Field label="Furnished *" error={errors.furnished}>
-              <select value={data.furnished} onChange={e => set('furnished', e.target.value)} className="input">
-                {FURNISHED_OPTS.map(f => <option key={f} value={f}>{FURNISHED_LABEL[f]}</option>)}
-              </select>
+              <Select value={data.furnished} onChange={v => set('furnished', v)} options={FURNISHED_OPTS.map(f => ({ value: f, label: FURNISHED_LABEL[f] }))} />
             </Field>
           </div>
 
@@ -246,10 +243,12 @@ export default function EditListingForm({ property, onSuccess }) {
               <input type="number" min="1" max="200" value={data.totalFloors} onChange={e => set('totalFloors', e.target.value)} placeholder="10" className="input" />
             </Field>
             <Field label="House Facing" error={errors.facingDirection}>
-              <select value={data.facingDirection} onChange={e => set('facingDirection', e.target.value)} className="input">
-                <option value="">Not specified</option>
-                {FACING_OPTS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
-              </select>
+              <Select
+                value={data.facingDirection}
+                onChange={v => set('facingDirection', v)}
+                placeholder="Not specified"
+                options={[{ value: '', label: 'Not specified' }, ...FACING_OPTS]}
+              />
             </Field>
           </div>
 
@@ -276,18 +275,15 @@ export default function EditListingForm({ property, onSuccess }) {
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="City *" error={errors.city} hint={`We're live in ${CITY_LIST_LABEL} — more cities opening soon`}>
-              <select
+              <Select
                 value={data.city}
-                onChange={(e) => {
-                  const city = e.target.value
+                onChange={(city) => {
                   set('city', city)
                   set('state', CITIES.find((c) => c.name === city)?.state ?? '')
                 }}
-                className="input"
-              >
-                <option value="">Select city</option>
-                {CITY_NAMES.map((name) => <option key={name} value={name}>{name}</option>)}
-              </select>
+                placeholder="Select city"
+                options={CITY_NAMES.map((name) => ({ value: name, label: name }))}
+              />
             </Field>
             <Field label="State *" error={errors.state}>
               <input value={data.state} readOnly placeholder="Auto-filled" className="input bg-slate-50 cursor-not-allowed" />
@@ -349,19 +345,24 @@ export default function EditListingForm({ property, onSuccess }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">From</label>
-                <select value={data.appointmentWindowStart} onChange={e => set('appointmentWindowStart', e.target.value)} className="input">
-                  <option value="">Any time</option>
-                  {WINDOW_SLOTS.map(t => <option key={t} value={t}>{WindowSlotLabel(t)}</option>)}
-                </select>
+                <Select
+                  value={data.appointmentWindowStart}
+                  onChange={v => set('appointmentWindowStart', v)}
+                  placeholder="Any time"
+                  options={[{ value: '', label: 'Any time' }, ...WINDOW_SLOTS.map(t => ({ value: t, label: WindowSlotLabel(t) }))]}
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">To</label>
-                <select value={data.appointmentWindowEnd} onChange={e => set('appointmentWindowEnd', e.target.value)} className="input">
-                  <option value="">Any time</option>
-                  {WINDOW_SLOTS.filter(t => !data.appointmentWindowStart || t > data.appointmentWindowStart).map(t => (
-                    <option key={t} value={t}>{WindowSlotLabel(t)}</option>
-                  ))}
-                </select>
+                <Select
+                  value={data.appointmentWindowEnd}
+                  onChange={v => set('appointmentWindowEnd', v)}
+                  placeholder="Any time"
+                  options={[
+                    { value: '', label: 'Any time' },
+                    ...WINDOW_SLOTS.filter(t => !data.appointmentWindowStart || t > data.appointmentWindowStart).map(t => ({ value: t, label: WindowSlotLabel(t) })),
+                  ]}
+                />
               </div>
             </div>
           </div>

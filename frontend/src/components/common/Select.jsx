@@ -1,32 +1,120 @@
-// Native select wrapper matching Input style
-// Props: label, error, options [{ value, label }], placeholder
+// Custom dropdown — replaces a native <select> (whose open option list can't
+// be styled at all, just renders the OS/browser default). Portal-based, same
+// visual language as CityDropdown.jsx's floating panel.
+// Props: label, error, options [{ value, label }], placeholder, value, onChange(value), disabled
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 export default function Select({
   label,
   error,
   options = [],
-  placeholder,
+  placeholder = 'Select…',
+  value,
+  onChange,
+  disabled = false,
   className = '',
-  ...props
 }) {
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 })
+  const triggerRef = useRef(null)
+  const panelRef = useRef(null)
+
+  useEffect(() => {
+    if (open && triggerRef.current) {
+      const r = triggerRef.current.getBoundingClientRect()
+      setPos({ top: r.bottom + 6, left: r.left, width: r.width })
+    }
+  }, [open])
+
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') setOpen(false) }
+    function onOutside(e) {
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target) &&
+        panelRef.current   && !panelRef.current.contains(e.target)
+      ) setOpen(false)
+    }
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('mousedown', onOutside)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('mousedown', onOutside)
+    }
+  }, [])
+
+  const selected = options.find((o) => o.value === value)
+
+  function handlePick(optionValue) {
+    onChange(optionValue)
+    setOpen(false)
+  }
+
   return (
     <div className="flex flex-col gap-1">
       {label && <label className="text-sm font-medium text-slate-700">{label}</label>}
-      <select
-        className={`w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2 pr-8 text-sm text-slate-800 focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 transition-colors ${error ? 'border-red-400' : ''} ${className}`}
-        {...props}
-      >
-        {placeholder && (
-          <option value="" disabled>
-            {placeholder}
-          </option>
+      <div ref={triggerRef}>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => setOpen((v) => !v)}
+          className={[
+            'w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all duration-150',
+            disabled
+              ? 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
+              : open
+                ? 'border-brand-600 bg-white ring-2 ring-brand-500/20'
+                : 'border-slate-300 bg-white hover:border-slate-400',
+            error ? 'border-red-400' : '',
+            className,
+          ].join(' ')}
+        >
+          <span className={`truncate text-left ${selected ? 'text-slate-800' : 'text-slate-400'}`}>
+            {selected ? selected.label : placeholder}
+          </span>
+          <svg
+            className={`shrink-0 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+
+        {open && createPortal(
+          <div
+            ref={panelRef}
+            style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999 }}
+            className="bg-white rounded-xl shadow-float border border-slate-200 overflow-hidden max-h-64 overflow-y-auto"
+          >
+            {options.map((opt) => {
+              const isSelected = opt.value === value
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => handlePick(opt.value)}
+                  className={[
+                    'w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm text-left transition-colors',
+                    isSelected ? 'bg-brand-50 text-brand-700 font-semibold' : 'text-slate-700 hover:bg-slate-50 font-medium',
+                  ].join(' ')}
+                >
+                  <span className="truncate">{opt.label}</span>
+                  {isSelected && (
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  )}
+                </button>
+              )
+            })}
+            {options.length === 0 && (
+              <p className="px-3 py-4 text-xs text-slate-400 text-center">No options</p>
+            )}
+          </div>,
+          document.body
         )}
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+      </div>
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   )

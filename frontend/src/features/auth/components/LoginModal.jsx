@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
 import { CITY_LIST_LABEL, CITY_NAMES } from '@/config/cities'
 import { usePlatformStats } from '@hooks/usePlatformStats'
+import Select from '@components/common/Select'
 
 const QUOTES = [
   { text: 'The ache for home lives in all of us.', author: 'Maya Angelou' },
@@ -341,17 +342,16 @@ export default function LoginModal() {
                 <InputField label="Email address" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">City</label>
-                  <select
+                  <Select
+                    label="City"
                     value={city}
-                    onChange={e => setCity(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 transition-all bg-slate-50 text-slate-700"
-                  >
-                    <option value="" disabled>Select your city</option>
-                    {CITY_NAMES.map((c) => <option key={c} value={c}>{c}</option>)}
-                    <option value="__other__">My city isn&apos;t listed</option>
-                  </select>
+                    onChange={setCity}
+                    placeholder="Select your city"
+                    options={[
+                      ...CITY_NAMES.map((c) => ({ value: c, label: c })),
+                      { value: '__other__', label: "My city isn't listed" },
+                    ]}
+                  />
                   {city === '__other__' && (
                     <input
                       type="text"

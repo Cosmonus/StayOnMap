@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, Modal, FlatList, StyleSheet } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, StyleSheet } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
 import { CITIES } from '@config/cities'
 import LocationPicker from './LocationPicker'
 import ImageUploader from './ImageUploader'
 import Icon from '@components/common/Icon'
+import SharedDropdown from '@components/common/Dropdown'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -70,44 +70,15 @@ function Chip({ label, active, onPress }) {
   )
 }
 
-function Dropdown({ label, value, options, onChange, placeholder = 'Select', edgeMargin = spacing.lg }) {
-  const [open, setOpen] = useState(false)
-  const selected = options.find((o) => o.value === value)
-
+// Thin wrapper over the shared Dropdown — this wizard renders its own
+// persistent label above the trigger (unlike MapFiltersSheet.js, which
+// renders the label separately itself), so it's composed here rather than
+// changed in the shared component and affecting every other caller.
+function Dropdown({ label, edgeMargin = spacing.lg, ...props }) {
   return (
-    <View style={{ marginBottom: spacing.md }}>
-      {!!label && <Text style={[styles.dropdownLabel, { marginHorizontal: edgeMargin }]}>{label}</Text>}
-      <Pressable style={[styles.dropdownTrigger, { marginHorizontal: edgeMargin }]} onPress={() => setOpen(true)}>
-        <Text style={[styles.dropdownTriggerText, !selected && styles.dropdownPlaceholder]} numberOfLines={1}>
-          {selected?.label ?? placeholder}
-        </Text>
-        <Icon name="chevronDown" size={16} color={colors.slate400} />
-      </Pressable>
-
-      <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.dropdownBackdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.dropdownSheet} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.dropdownSheetHeader}>
-              <Text style={styles.dropdownSheetTitle}>{label ?? placeholder}</Text>
-              <Pressable onPress={() => setOpen(false)} hitSlop={8}>
-                <Icon name="close" size={18} color={colors.slate400} />
-              </Pressable>
-            </View>
-            <FlatList
-              data={options}
-              keyExtractor={(o) => String(o.value)}
-              ItemSeparatorComponent={() => <View style={styles.dropdownSeparator} />}
-              renderItem={({ item }) => (
-                <Pressable style={styles.dropdownOption} onPress={() => { onChange(item.value); setOpen(false) }}>
-                  <Text style={[styles.dropdownOptionText, item.value === value && styles.dropdownOptionTextActive]}>{item.label}</Text>
-                  {item.value === value && <Icon name="check" size={16} color={colors.brand600} />}
-                </Pressable>
-              )}
-            />
-            <SafeAreaView edges={['bottom']} />
-          </Pressable>
-        </Pressable>
-      </Modal>
+    <View style={{ marginHorizontal: edgeMargin, marginBottom: spacing.md }}>
+      {!!label && <Text style={styles.dropdownLabel}>{label}</Text>}
+      <SharedDropdown label={label} {...props} />
     </View>
   )
 }
@@ -344,21 +315,6 @@ const styles = StyleSheet.create({
   error: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.danger, marginHorizontal: spacing.lg, marginTop: spacing.sm },
   timeRow: { flexDirection: 'row', gap: spacing.sm, marginHorizontal: spacing.lg },
   dropdownLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate600, marginBottom: spacing.xs },
-  dropdownTrigger: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4, backgroundColor: colors.white,
-  },
-  dropdownTriggerText: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.base, color: colors.slate800 },
-  dropdownPlaceholder: { color: colors.slate400 },
-  dropdownBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  dropdownSheet: { backgroundColor: colors.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, maxHeight: '70%' },
-  dropdownSheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.slate100 },
-  dropdownSheetTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
-  dropdownOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  dropdownOptionText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate700 },
-  dropdownOptionTextActive: { color: colors.brand700, fontFamily: fonts.bodySemiBold },
-  dropdownSeparator: { height: 1, backgroundColor: colors.slate100, marginHorizontal: spacing.lg },
   footer: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, marginTop: spacing.md },
   backButton: { flex: 1, flexDirection: 'row', gap: 4, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   backButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },

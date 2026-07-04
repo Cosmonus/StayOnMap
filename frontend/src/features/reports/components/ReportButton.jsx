@@ -1,6 +1,14 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { reportService } from '@services/report.service'
+import Select from '@components/common/Select'
+
+const SEVERITIES = [
+  { value: 'LOW',      label: 'Low' },
+  { value: 'MEDIUM',   label: 'Medium' },
+  { value: 'HIGH',     label: 'High' },
+  { value: 'CRITICAL', label: 'Critical' },
+]
 
 const CATEGORIES = [
   { value: 'FRAUD',                label: 'Fraud / Scam' },
@@ -53,22 +61,19 @@ export default function ReportButton({ propertyId }) {
               <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
             </div>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
-                <select value={form.category} onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
-                  <option value="">Select category</option>
-                  {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Severity</label>
-                <select value={form.severity} onChange={(e) => setForm(f => ({ ...f, severity: e.target.value }))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HIGH">High</option>
-                  <option value="CRITICAL">Critical</option>
-                </select>
-              </div>
+              <Select
+                label="Category"
+                value={form.category}
+                onChange={(category) => setForm(f => ({ ...f, category }))}
+                placeholder="Select category"
+                options={CATEGORIES}
+              />
+              <Select
+                label="Severity"
+                value={form.severity}
+                onChange={(severity) => setForm(f => ({ ...f, severity }))}
+                options={SEVERITIES}
+              />
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
                 <textarea value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} rows={4} placeholder="Describe the issue in detail (min 20 characters)" className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
