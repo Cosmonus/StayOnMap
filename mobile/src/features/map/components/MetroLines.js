@@ -8,6 +8,12 @@ const STATION_SHOW_ZOOM = 13 // stations only render zoomed-in — up to ~280 of
 // sourced from OpenStreetMap via the backend's /api/v1/metro proxy — see
 // docs/features/map.md. Lines always render when a network exists for the
 // city (cheap, at most ~13 for Delhi); station dots are zoom-gated.
+//
+// Each station carries a precomputed `lines` array (indices into
+// network.lines, proximity-matched — see .claude/roadmap.md Addendum 6):
+// 2+ entries means a genuine interchange (tight <400m match on both lines),
+// 1 entry colors the dot to match its line, 0 means it doesn't yet
+// reconcile with any line in this file (falls back to the default color).
 export default function MetroLines({ network, zoom }) {
   if (!network) return null
 
@@ -24,16 +30,26 @@ export default function MetroLines({ network, zoom }) {
         />
       ))}
 
-      {showStations && network.stations.map((station) => (
-        <Marker
-          key={station.name}
-          coordinate={{ latitude: station.lat, longitude: station.lng }}
-          anchor={{ x: 0.5, y: 0.5 }}
-          tracksViewChanges={false}
-        >
-          <View style={styles.stationDot} />
-        </Marker>
-      ))}
+      {showStations && network.stations.map((station) => {
+        const matchedLines = (station.lines ?? []).map((i) => network.lines[i]).filter(Boolean)
+        const isInterchange = matchedLines.length > 1
+        const dotColor = matchedLines[0]?.color || colors.slate600
+
+        return (
+          <Marker
+            key={station.name}
+            coordinate={{ latitude: station.lat, longitude: station.lng }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
+          >
+            <View style={[
+              styles.stationDot,
+              { borderColor: dotColor },
+              isInterchange && styles.stationDotInterchange,
+            ]} />
+          </Marker>
+        )
+      })}
     </>
   )
 }
@@ -41,6 +57,9 @@ export default function MetroLines({ network, zoom }) {
 const styles = StyleSheet.create({
   stationDot: {
     width: 8, height: 8, borderRadius: 4,
-    backgroundColor: colors.white, borderWidth: 2, borderColor: colors.slate600,
+    backgroundColor: colors.white, borderWidth: 2,
+  },
+  stationDotInterchange: {
+    width: 11, height: 11, borderRadius: 5.5, borderWidth: 2.5,
   },
 })

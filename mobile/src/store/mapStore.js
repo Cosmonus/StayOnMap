@@ -25,6 +25,12 @@ export const useMapStore = create((set) => ({
   flyTo: null, // (opts: {latitude, longitude, zoom}) => void — set once MapView mounts
   searchedPlace: null, // { lat, lng }
 
+  // Map overlay layers — off by default, user opts in. Mirrors
+  // frontend/src/store/mapStore.js's activeLayers/toggleLayer (metro/
+  // itCorridors/traffic only here — web's floodZones flag has no UI toggle
+  // anywhere yet, so it's not mirrored until that's actually built).
+  activeLayers: { metro: false, itCorridors: false, traffic: false },
+
   setRegion: (region) => set({ region }),
   setBounds: (bounds) => set({ bounds }),
   setPins: (pins) => set({ pins }),
@@ -33,4 +39,7 @@ export const useMapStore = create((set) => ({
   setSelectedAreaSlug: (slug) => set({ selectedAreaSlug: slug, selectedPinId: null }),
   setFlyTo: (fn) => set({ flyTo: fn }),
   setSearchedPlace: (place) => set({ searchedPlace: place }),
+  toggleLayer: (name) => set((s) => ({
+    activeLayers: { ...s.activeLayers, [name]: !s.activeLayers[name] },
+  })),
 }))

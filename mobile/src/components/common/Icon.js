@@ -36,6 +36,7 @@ const ICONS = {
   chevronDown: [Feather, 'chevron-down'],
   close: [Feather, 'x'],
   filter: [Feather, 'sliders'],
+  layers: [Feather, 'layers'],
   list: [Feather, 'list'],
   grid: [Feather, 'grid'],
   map: [Feather, 'map'],

@@ -6,11 +6,6 @@ const defaultFilters = {
   area: '',
   bhk: [],
   furnished: null,
-  // Area-intelligence toggles — filter pins by their nearest area profile's
-  // score (see features/map/utils/areaMatch.js), not a property field.
-  goodMetro: false,
-  lowTraffic: false,
-  itCorridor: false,
 }
 
 export const useFilterStore = create((set) => ({

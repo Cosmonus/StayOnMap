@@ -1,19 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { View, StyleSheet } from 'react-native'
-import NativeMapView, { PROVIDER_GOOGLE } from 'react-native-maps'
+import NativeMapView, { PROVIDER_GOOGLE, Circle } from 'react-native-maps'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
 import { useMapPins } from '../hooks/useMapPins'
 import { useAreaProfiles } from '../hooks/useAreaProfiles'
 import { useMetroNetwork } from '../hooks/useMetroNetwork'
+import { useItCorridors } from '../hooks/useItCorridors'
 import { computeClusters, getExpansionZoom } from '../utils/clustering'
-import { passesAreaFilters } from '../utils/areaMatch'
 import { zoomToDelta, regionToZoom } from '../utils/regionZoom'
 import { CITIES } from '@config/cities'
 import PropertyPin from './PropertyPin'
 import ClusterMarker from './ClusterMarker'
 import AreaLabel from './AreaLabel'
 import MetroLines from './MetroLines'
+
+const IT_CORRIDOR_COLORS = { major: '#2563eb', moderate: '#60a5fa' }
 
 const CITY_ZOOM = 12
 const AREA_ZOOM = 15
@@ -48,12 +50,11 @@ export default function MapView({ onPinPress, onDeselect }) {
 
   const city = useFilterStore((s) => s.filters.city)
   const area = useFilterStore((s) => s.filters.area)
-  const goodMetro = useFilterStore((s) => s.filters.goodMetro)
-  const lowTraffic = useFilterStore((s) => s.filters.lowTraffic)
-  const itCorridor = useFilterStore((s) => s.filters.itCorridor)
+  const activeLayers = useMapStore((s) => s.activeLayers)
 
   const { data: areaProfiles = [] } = useAreaProfiles()
   const { data: metroNetwork } = useMetroNetwork(city)
+  const { data: itCorridors } = useItCorridors(city)
 
   // Every programmatic camera move funnels through here instead of calling
   // animateToRegion directly. react-native-maps' onRegionChangeComplete is
@@ -127,16 +128,10 @@ export default function MapView({ onPinPress, onDeselect }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [area, searchedPlace, mapReady])
 
-  const areaFilters = useMemo(
-    () => ({ goodMetro, lowTraffic, itCorridor }),
-    [goodMetro, lowTraffic, itCorridor]
-  )
-
   const clusters = useMemo(() => {
     if (!bounds) return []
-    const filteredPins = pins.filter((p) => passesAreaFilters(p, areaProfiles, areaFilters))
-    return computeClusters(filteredPins, bounds, regionToZoom(region))
-  }, [pins, bounds, region, areaProfiles, areaFilters])
+    return computeClusters(pins, bounds, regionToZoom(region))
+  }, [pins, bounds, region])
 
   const zoom = regionToZoom(region)
   const visibleAreaLabels = zoom >= AREA_LABEL_SHOW_ZOOM ? areaProfiles : []
@@ -182,9 +177,25 @@ export default function MapView({ onPinPress, onDeselect }) {
         onPress={handleMapPress}
         showsUserLocation
         showsMyLocationButton={false}
+        showsTraffic={activeLayers.traffic}
         customMapStyle={MAP_STYLE}
       >
-        <MetroLines network={metroNetwork} zoom={zoom} />
+        {activeLayers.metro && <MetroLines network={metroNetwork} zoom={zoom} />}
+
+        {activeLayers.itCorridors && itCorridors?.features.map((feature) => {
+          const [lng, lat] = feature.geometry.coordinates
+          const color = IT_CORRIDOR_COLORS[feature.properties.level] ?? IT_CORRIDOR_COLORS.moderate
+          return (
+            <Circle
+              key={feature.properties.name}
+              center={{ latitude: lat, longitude: lng }}
+              radius={feature.properties.radiusMeters}
+              strokeColor={color}
+              fillColor={`${color}22`}
+              strokeWidth={1.5}
+            />
+          )
+        })}
 
         {clusters.map((feature) => {
           const [lng, lat] = feature.geometry.coordinates
