@@ -14,23 +14,6 @@ export async function getPropertyReviews(propertyId) {
   return prisma.communityReview.findMany({ where: { propertyId, status: 'APPROVED' }, include: { reviewer: { select: { id: true, name: true, avatarUrl: true } } }, orderBy: { createdAt: 'desc' } })
 }
 
-export async function adminListReviews({ status, page = 1, limit = 20 }) {
-  const where = {}
-  if (status) where.status = status
-  const skip = (page - 1) * limit
-  const [reviews, total] = await Promise.all([
-    prisma.communityReview.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' }, include: { property: { select: { id: true, title: true } }, reviewer: { select: { id: true, name: true } } } }),
-    prisma.communityReview.count({ where }),
-  ])
-  return { reviews, total, page, limit }
-}
-
-export async function adminSetReviewStatus(reviewId, status) {
-  const review = await prisma.communityReview.update({ where: { id: reviewId }, data: { status } })
-  await recalculateTrustScore(review.propertyId)
-  return review
-}
-
 export async function respondToReview(ownerId, propertyId, reviewId, response) {
   const property = await prisma.property.findUnique({ where: { id: propertyId }, select: { ownerId: true } })
   if (!property) throw Object.assign(new Error('Property not found'), { statusCode: 404 })

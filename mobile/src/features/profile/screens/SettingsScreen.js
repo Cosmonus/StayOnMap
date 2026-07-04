@@ -1,4 +1,4 @@
-import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, Text, Pressable, ActivityIndicator, StyleSheet, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userService } from '@services/user.service'
@@ -58,6 +58,26 @@ export default function SettingsScreen({ navigation }) {
           <View style={[styles.switchThumb, pushNotifs && styles.switchThumbActive]} />
         </Pressable>
       </View>
+
+      <Text style={styles.sectionLabel}>Legal</Text>
+      <Pressable style={styles.row} onPress={() => Linking.openURL('https://stayonmap.com/privacy')}>
+        <View style={styles.rowIconLabel}>
+          <View style={styles.rowIcon}>
+            <Icon name="document" size={16} color={colors.brand600} />
+          </View>
+          <Text style={styles.rowLabel}>Privacy Policy</Text>
+        </View>
+        <Icon name="chevronRight" size={16} color={colors.slate400} />
+      </Pressable>
+      <Pressable style={styles.row} onPress={() => Linking.openURL('https://stayonmap.com/terms')}>
+        <View style={styles.rowIconLabel}>
+          <View style={styles.rowIcon}>
+            <Icon name="document" size={16} color={colors.brand600} />
+          </View>
+          <Text style={styles.rowLabel}>Terms of Service</Text>
+        </View>
+        <Icon name="chevronRight" size={16} color={colors.slate400} />
+      </Pressable>
     </SafeAreaView>
   )
 }
@@ -67,6 +87,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
   heading: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
+  sectionLabel: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: spacing.lg, marginBottom: spacing.xs },
   row: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.slate100,

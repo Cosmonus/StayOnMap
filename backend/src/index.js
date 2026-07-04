@@ -43,7 +43,6 @@ import aiRoutes          from './features/ai/ai.routes.js'
 import areaRoutes        from './features/areas/areas.routes.js'
 import metroRoutes       from './features/metro/metro.routes.js'
 import adminRoutes       from './features/admin/admin.routes.js'
-import { adminReviewRouter }       from './features/reviews/reviews.routes.js'
 import { adminReportRouter }       from './features/reports/reports.routes.js'
 import { adminVerificationRouter } from './features/verification/verification.routes.js'
 
@@ -78,7 +77,6 @@ app.use('/api/v1/metro',         metroRoutes)
 
 // Admin routes — high limit so moderation actions are never throttled
 app.use('/api/v1/admin',               adminLimiter, adminRoutes)
-app.use('/api/v1/admin/reviews',       adminLimiter, adminReviewRouter)
 app.use('/api/v1/admin/reports',       adminLimiter, adminReportRouter)
 app.use('/api/v1/admin/verifications', adminLimiter, adminVerificationRouter)
 app.use('/api/v1/admin/trust-scores',  adminLimiter, trustRoutes)
