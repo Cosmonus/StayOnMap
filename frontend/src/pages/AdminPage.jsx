@@ -20,6 +20,7 @@ ChartJS.register(
   CategoryScale, LinearScale, BarElement,
   LineElement, PointElement, Filler,
 )
+import Select           from '@components/common/Select'
 import TrustBadge       from '@components/common/TrustBadge'
 import TrustScoreWidget from '@features/trust/components/TrustScoreWidget'
 import ReviewsSection   from '@features/reviews/components/ReviewsSection'
@@ -1717,14 +1718,14 @@ function ReportsSection() {
                   <p className="text-sm text-slate-700 mt-2 line-clamp-2">{r.description}</p>
                   {r.property && <p className="text-xs text-slate-400 mt-1">{r.property.title} · {r.property.city}</p>}
                 </div>
-                <select
-                  defaultValue=""
-                  onChange={e => { if (e.target.value) mutation.mutate({ id: r.id, action: e.target.value }); e.target.value = '' }}
-                  className="border border-slate-200 rounded-lg px-2 py-1 text-xs bg-white flex-shrink-0 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                >
-                  <option value="">Action</option>
-                  {REPORT_ACTIONS.map(a => <option key={a} value={a}>{a.replace('_', ' ')}</option>)}
-                </select>
+                <div className="w-36 shrink-0">
+                  <Select
+                    value=""
+                    onChange={action => mutation.mutate({ id: r.id, action })}
+                    placeholder="Action"
+                    options={REPORT_ACTIONS.map(a => ({ value: a, label: a.replace('_', ' ') }))}
+                  />
+                </div>
               </div>
             </div>
           ))}

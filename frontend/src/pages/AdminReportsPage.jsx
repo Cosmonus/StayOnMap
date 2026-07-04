@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminService } from '@services/admin.service'
+import Select from '@components/common/Select'
 
 const SEV_COLOR = { LOW: 'bg-slate-100 text-slate-600', MEDIUM: 'bg-yellow-100 text-yellow-800', HIGH: 'bg-orange-100 text-orange-800', CRITICAL: 'bg-red-100 text-red-800' }
 const ACTIONS = ['APPROVE','REJECT','SUSPEND','INVESTIGATE','DISMISS','WARN_OWNER']
@@ -42,10 +43,14 @@ export default function AdminReportsPage() {
                     </div>
                   )}
                 </div>
-                <select defaultValue="" onChange={e => { if (e.target.value) mutation.mutate({ id: r.id, action: e.target.value }); e.target.value = '' }} className="border border-slate-200 rounded-lg px-2 py-1 text-xs flex-shrink-0 focus:outline-none focus:ring-1 focus:ring-brand-500">
-                  <option value="">Action</option>
-                  {ACTIONS.map(a => <option key={a} value={a}>{a.replace('_',' ')}</option>)}
-                </select>
+                <div className="w-36 shrink-0">
+                  <Select
+                    value=""
+                    onChange={action => mutation.mutate({ id: r.id, action })}
+                    placeholder="Action"
+                    options={ACTIONS.map(a => ({ value: a, label: a.replace('_', ' ') }))}
+                  />
+                </div>
               </div>
             </div>
           ))}

@@ -4,29 +4,7 @@ import { useMutation } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
 import { chatService } from '@services/chat.service'
 import { toast } from '@components/common/Toaster'
-
-function ThemedSelect({ value, onChange, children, hasValue }) {
-  return (
-    <div className="relative">
-      <select
-        value={value}
-        onChange={onChange}
-        className={`w-full appearance-none border rounded-xl px-3 py-2.5 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-400 bg-white cursor-pointer transition-colors ${
-          hasValue
-            ? 'border-brand-200 text-slate-800'
-            : 'border-slate-200 text-slate-400'
-        }`}
-      >
-        {children}
-      </select>
-      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={hasValue ? 'text-brand-500' : 'text-slate-400'}>
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </div>
-    </div>
-  )
-}
+import Select from '@components/common/Select'
 
 const ALL_SLOTS = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30',
   '13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30',
@@ -85,6 +63,7 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
   )
 
   const set = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }))
+  const setValue = (key) => (value) => setForm(f => ({ ...f, [key]: value }))
   const isValid = form.requestedDate && form.requestedTime && /^[6-9]\d{9}$/.test(form.contactNumber)
 
   if (submitted) {
@@ -134,23 +113,25 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Preferred Date</label>
-          <ThemedSelect value={form.requestedDate} onChange={set('requestedDate')} hasValue={!!form.requestedDate}>
-            <option value="">Select date</option>
-            {UPCOMING_DATES.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </ThemedSelect>
+          <Select
+            value={form.requestedDate}
+            onChange={setValue('requestedDate')}
+            placeholder="Select date"
+            options={UPCOMING_DATES}
+          />
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Preferred Time</label>
-          <ThemedSelect value={form.requestedTime} onChange={set('requestedTime')} hasValue={!!form.requestedTime}>
-            <option value="">Select time</option>
-            {slots.map(t => {
+          <Select
+            value={form.requestedTime}
+            onChange={setValue('requestedTime')}
+            placeholder="Select time"
+            options={slots.map(t => {
               const [h, m] = t.split(':').map(Number)
               const display = `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
-              return <option key={t} value={t}>{display}</option>
+              return { value: t, label: display }
             })}
-          </ThemedSelect>
+          />
           {windowStart && windowEnd && (
             <p className="text-[10px] text-slate-400 mt-1">
               Owner available {windowStart.replace(/^0/, '')} – {windowEnd.replace(/^0/, '')}
