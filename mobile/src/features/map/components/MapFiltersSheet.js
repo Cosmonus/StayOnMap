@@ -20,14 +20,6 @@ const FURNISHED_DROPDOWN_OPTIONS = [
 ]
 const CITY_DROPDOWN_OPTIONS = [{ value: '', label: 'Any city' }, ...CITY_NAMES.map((name) => ({ value: name, label: name }))]
 
-// Filter keys (filterStore) → label + icon for the neighborhood-intelligence
-// toggles. Actual thresholds live in features/map/utils/areaMatch.js.
-const AREA_TOGGLES = [
-  ['goodMetro', 'Good metro access', 'mapPin'],
-  ['lowTraffic', 'Low traffic', 'clock'],
-  ['itCorridor', 'IT corridor', 'building'],
-]
-
 // Bottom sheet for the filters that aren't a location (BHK/Furnished/City) —
 // the location half of search lives in MapSearchBar right above the map.
 export default function MapFiltersSheet({ visible, onClose }) {
@@ -87,21 +79,6 @@ export default function MapFiltersSheet({ visible, onClose }) {
               placeholder="Any"
             />
 
-            <Text style={[styles.label, { marginTop: spacing.md }]}>Neighborhood intelligence</Text>
-            <View style={styles.toggleGroup}>
-              {AREA_TOGGLES.map(([key, label, icon]) => (
-                <Pressable key={key} style={styles.toggleRow} onPress={() => setFilter(key, !filters[key])}>
-                  <View style={styles.toggleLabelRow}>
-                    <Icon name={icon} size={15} color={colors.slate500} />
-                    <Text style={styles.toggleLabel}>{label}</Text>
-                  </View>
-                  <View style={[styles.switchTrack, filters[key] && styles.switchTrackActive]}>
-                    <View style={[styles.switchThumb, filters[key] && styles.switchThumbActive]} />
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-
             <Pressable style={styles.resetButton} onPress={resetFilters}>
               <Text style={styles.resetButtonText}>Clear all filters</Text>
             </Pressable>
@@ -124,14 +101,6 @@ const styles = StyleSheet.create({
   heading: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.sm, marginTop: spacing.md },
   label: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
-  toggleGroup: { marginTop: spacing.sm },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.sm },
-  toggleLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  toggleLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate700 },
-  switchTrack: { width: 40, height: 24, borderRadius: 12, backgroundColor: colors.slate200, padding: 2 },
-  switchTrackActive: { backgroundColor: colors.brand600 },
-  switchThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.white },
-  switchThumbActive: { transform: [{ translateX: 16 }] },
   resetButton: { marginTop: spacing.xl, marginBottom: spacing.md, alignItems: 'center' },
   resetButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate400 },
   applyButton: { marginTop: spacing.md, backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center' },

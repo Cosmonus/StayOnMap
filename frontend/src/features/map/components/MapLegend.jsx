@@ -7,7 +7,8 @@ const ENTRIES = {
     { swatch: 'dot',  color: '#ffffff', border: '#7c3aed', label: 'Station' },
   ],
   itCorridors: [
-    { swatch: 'area', color: '#3b82f6', label: 'IT / tech zone' },
+    { swatch: 'circle', color: '#2563eb', label: 'Major IT zone' },
+    { swatch: 'circle', color: '#60a5fa', label: 'IT zone' },
   ],
   floodZones: [
     { swatch: 'area', color: '#ef4444', label: 'High flood risk' },
@@ -37,6 +38,19 @@ function Swatch({ swatch, color, border }) {
           width: 8, height: 8, display: 'inline-block',
           background: color,
           border: `2px solid ${border ?? color}`,
+        }}
+      />
+    )
+  }
+  if (swatch === 'circle') {
+    return (
+      <span
+        className="shrink-0 rounded-full"
+        style={{
+          width: 12, height: 12, display: 'inline-block',
+          background: color,
+          opacity: 0.6,
+          border: `1.5px solid ${color}`,
         }}
       />
     )

@@ -5,6 +5,7 @@ import metroData from '@/data/layers/metro-lines.json'
 import itData    from '@/data/layers/it-corridors.json'
 
 const METRO_LINE_COLORS = { 1: '#7c3aed', 2: '#059669', 3: '#ca8a04' }
+const IT_CORRIDOR_COLORS = { major: '#2563eb', moderate: '#60a5fa' }
 
 // Prefer per-feature color from GeoJSON; fall back to line-number palette
 function metroColor(feature) {
@@ -67,15 +68,32 @@ function styleMetroFeature(feature) {
   }
 }
 
-function styleItFeature(feature, hovered = false) {
+// IT corridors render as real-radius circles (google.maps.Circle), not a
+// Data layer — a Data layer's Point icon is a fixed pixel size that doesn't
+// scale with zoom the way a real geographic radius (metres) should.
+function itCorridorCircleOptions(properties, hovered = false) {
+  const color = IT_CORRIDOR_COLORS[properties.level] ?? IT_CORRIDOR_COLORS.moderate
   return {
-    strokeColor: '#2563eb',
+    strokeColor: color,
     strokeWeight: hovered ? 2.5 : 1.5,
     strokeOpacity: 0.8,
-    fillColor: '#3b82f6',
+    fillColor: color,
     fillOpacity: hovered ? 0.18 : 0.08,
-    cursor: 'pointer',
+    clickable: true,
   }
+}
+
+function tooltipHtml({ name, level }) {
+  const label = level === 'major' ? 'Major IT zone' : 'IT zone'
+  const color = IT_CORRIDOR_COLORS[level] ?? IT_CORRIDOR_COLORS.moderate
+  return `
+    <div style="font-weight:700;margin-bottom:2px">${name}</div>
+    <div style="display:flex;align-items:center;gap:5px">
+      <span style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0"></span>
+      <span style="color:${color};font-weight:600">${label}</span>
+    </div>
+    <div style="color:#94a3b8;font-size:10px;margin-top:4px">Click for full area profile</div>
+  `
 }
 
 // ─── Tooltip DOM helper ───────────────────────────────────────────
@@ -117,19 +135,6 @@ function positionTooltip(el, x, y) {
   el.style.top  = `${top}px`
 }
 
-function tooltipHtml(feature) {
-  const name  = feature.getProperty('name')
-  const level = feature.getProperty('level') === 'major' ? 'Major IT zone' : 'IT zone'
-  return `
-    <div style="font-weight:700;margin-bottom:2px">${name}</div>
-    <div style="display:flex;align-items:center;gap:5px">
-      <span style="width:7px;height:7px;border-radius:50%;background:#2563eb;flex-shrink:0"></span>
-      <span style="color:#2563eb;font-weight:600">${level}</span>
-    </div>
-    <div style="color:#94a3b8;font-size:10px;margin-top:4px">Click for full area profile</div>
-  `
-}
-
 function filterByCity(geojson, city) {
   if (!city) return geojson
   return {
@@ -149,9 +154,9 @@ export function useMapLayers(mapRef) {
   const activeLayers    = useMapStore((s) => s.activeLayers)
   const setSelectedArea = useMapStore((s) => s.setSelectedArea)
   const mapReady        = useMapStore((s) => s.flyTo !== null)
-  const city            = useFilterStore((s) => s.filters.city)
+  const city             = useFilterStore((s) => s.filters.city)
 
-  const layers     = useRef({ metro: null, itCorridors: null, traffic: null })
+  const layers     = useRef({ metro: null, itCorridorCircles: [], traffic: null })
   const tooltipEl  = useRef(null)
   const mouseMoveRef = useRef(null)
 
@@ -164,61 +169,67 @@ export function useMapLayers(mapRef) {
     }
   }, [])
 
+  function rebuildItCorridorCircles(map, cityFilter) {
+    layers.current.itCorridorCircles.forEach((c) => c.setMap(null))
+
+    const mapDiv = map.getDiv()
+    layers.current.itCorridorCircles = filterByCity(itData, cityFilter).features.map((f) => {
+      const [lng, lat] = f.geometry.coordinates
+      const circle = new window.google.maps.Circle({
+        center: { lat, lng },
+        radius: f.properties.radiusMeters,
+        map: activeLayers.itCorridors ? map : null,
+        ...itCorridorCircleOptions(f.properties),
+      })
+
+      circle.addListener('click', () => {
+        if (f.properties.areaSlug) setSelectedArea({ slug: f.properties.areaSlug })
+      })
+
+      circle.addListener('mouseover', (event) => {
+        const tt = tooltipEl.current
+        if (!tt) return
+        circle.setOptions(itCorridorCircleOptions(f.properties, true))
+        const move = (e) => positionTooltip(tt, e.clientX, e.clientY)
+        mapDiv.addEventListener('mousemove', move)
+        mouseMoveRef.current = move
+        const domEvent = event.domEvent
+        showTooltip(tt, domEvent.clientX, domEvent.clientY, tooltipHtml(f.properties))
+      })
+
+      circle.addListener('mouseout', () => {
+        if (tooltipEl.current) tooltipEl.current.style.display = 'none'
+        if (mouseMoveRef.current) {
+          mapDiv.removeEventListener('mousemove', mouseMoveRef.current)
+          mouseMoveRef.current = null
+        }
+        circle.setOptions(itCorridorCircleOptions(f.properties, false))
+      })
+
+      return circle
+    })
+  }
+
   // Init Data layers once map is ready
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
 
-    layers.current.metro       = new window.google.maps.Data()
-    layers.current.itCorridors = new window.google.maps.Data()
-    layers.current.traffic     = new window.google.maps.TrafficLayer()
+    layers.current.metro   = new window.google.maps.Data()
+    layers.current.traffic = new window.google.maps.TrafficLayer()
 
     const initCity = useFilterStore.getState().filters.city
     layers.current.metro.addGeoJson(smoothLineStrings(filterByCity(metroData, initCity)))
-    layers.current.itCorridors.addGeoJson(filterByCity(itData, initCity))
-
     layers.current.metro.setStyle(styleMetroFeature)
-    layers.current.itCorridors.setStyle((f) => styleItFeature(f))
 
-    // ── Click → open area insight card ──
-    const handleClick = (event) => {
-      const slug = event.feature.getProperty('areaSlug')
-      if (slug) setSelectedArea({ slug })
-    }
-    layers.current.itCorridors.addListener('click', handleClick)
-
-    // ── Hover → tooltip + fill brightening ──
-    const mapDiv = map.getDiv()
-
-    function onItMouseOver(event) {
-      const tt = tooltipEl.current
-      if (!tt) return
-      const feature = event.feature
-      layers.current.itCorridors.overrideStyle(feature, styleItFeature(feature, true))
-      const move = (e) => positionTooltip(tt, e.clientX, e.clientY)
-      mapDiv.addEventListener('mousemove', move)
-      mouseMoveRef.current = move
-      const domEvent = event.domEvent
-      showTooltip(tt, domEvent.clientX, domEvent.clientY, tooltipHtml(feature))
-    }
-
-    function onItMouseOut(event) {
-      if (tooltipEl.current) tooltipEl.current.style.display = 'none'
-      if (mouseMoveRef.current) {
-        mapDiv.removeEventListener('mousemove', mouseMoveRef.current)
-        mouseMoveRef.current = null
-      }
-      layers.current.itCorridors.revertStyle(event.feature)
-    }
-
-    layers.current.itCorridors.addListener('mouseover', onItMouseOver)
-    layers.current.itCorridors.addListener('mouseout',  onItMouseOut)
+    rebuildItCorridorCircles(map, initCity)
 
     const currentLayers = layers.current
+    const mapDiv = map.getDiv()
     return () => {
-      Object.values(currentLayers).forEach((l) => {
-        if (l && l.setMap) l.setMap(null)
-      })
+      if (currentLayers.metro?.setMap) currentLayers.metro.setMap(null)
+      if (currentLayers.traffic?.setMap) currentLayers.traffic.setMap(null)
+      currentLayers.itCorridorCircles.forEach((c) => c.setMap(null))
       if (mouseMoveRef.current) {
         mapDiv.removeEventListener('mousemove', mouseMoveRef.current)
         mouseMoveRef.current = null
@@ -228,24 +239,21 @@ export function useMapLayers(mapRef) {
 
   // Reload all city-scoped layers when city changes
   useEffect(() => {
-    const { metro, itCorridors } = layers.current
-    if (!metro) return
+    const map = mapRef.current
+    const { metro } = layers.current
+    if (!map || !metro) return
 
     reloadMetro(metro, city)
-
-    if (itCorridors) {
-      itCorridors.forEach((f) => itCorridors.remove(f))
-      itCorridors.addGeoJson(filterByCity(itData, city))
-    }
+    rebuildItCorridorCircles(map, city)
   }, [city]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Toggle each layer on/off
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    const { metro, itCorridors, traffic } = layers.current
-    if (metro)       metro.setMap(activeLayers.metro        ? map : null)
-    if (itCorridors) itCorridors.setMap(activeLayers.itCorridors ? map : null)
-    if (traffic)     traffic.setMap(activeLayers.traffic    ? map : null)
+    const { metro, itCorridorCircles, traffic } = layers.current
+    if (metro)   metro.setMap(activeLayers.metro ? map : null)
+    if (traffic) traffic.setMap(activeLayers.traffic ? map : null)
+    itCorridorCircles.forEach((c) => c.setMap(activeLayers.itCorridors ? map : null))
   }, [activeLayers, mapReady]) // eslint-disable-line react-hooks/exhaustive-deps
 }

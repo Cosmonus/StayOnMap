@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import MapView from '@features/map/components/MapView'
 import MapSearchBar from '@features/map/components/MapSearchBar'
 import MapFiltersSheet from '@features/map/components/MapFiltersSheet'
+import MapLayersSheet from '@features/map/components/MapLayersSheet'
 import AreaInsightCard from '@features/map/components/AreaInsightCard'
 import PinPreviewCard from '../components/PinPreviewCard'
 import Logo from '@components/common/Logo'
@@ -21,13 +22,15 @@ export default function ExploreScreen({ navigation }) {
   const selectedAreaSlug = useMapStore((s) => s.selectedAreaSlug)
   const clearSelection = useMapStore((s) => s.clearSelection)
   const filters = useFilterStore((s) => s.filters)
+  const activeLayers = useMapStore((s) => s.activeLayers)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [layersOpen, setLayersOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const searchBarRef = useRef(null)
 
   const activeFilterCount =
-    (filters.city ? 1 : 0) + (filters.bhk.length ? 1 : 0) + (filters.furnished ? 1 : 0) +
-    (filters.goodMetro ? 1 : 0) + (filters.lowTraffic ? 1 : 0) + (filters.itCorridor ? 1 : 0)
+    (filters.city ? 1 : 0) + (filters.bhk.length ? 1 : 0) + (filters.furnished ? 1 : 0)
+  const activeLayerCount = Object.values(activeLayers).filter(Boolean).length
 
   // Search starts collapsed to just the header icon — MapSearchBar (with its
   // full input + Go button) only mounts once opened, so focus it right after
@@ -62,6 +65,15 @@ export default function ExploreScreen({ navigation }) {
                 </View>
               )}
             </Pressable>
+            <Pressable style={styles.filterButton} onPress={() => setLayersOpen(true)}>
+              <Icon name="layers" size={16} color={colors.slate700} />
+              <Text style={styles.filterButtonText}>Layers</Text>
+              {activeLayerCount > 0 && (
+                <View style={[styles.filterBadge, styles.layerBadge]}>
+                  <Text style={styles.filterBadgeText}>{activeLayerCount}</Text>
+                </View>
+              )}
+            </Pressable>
           </View>
         </SafeAreaView>
         {searchOpen && (
@@ -80,6 +92,7 @@ export default function ExploreScreen({ navigation }) {
       )}
 
       <MapFiltersSheet visible={filtersOpen} onClose={() => setFiltersOpen(false)} />
+      <MapLayersSheet visible={layersOpen} onClose={() => setLayersOpen(false)} />
     </View>
   )
 }
@@ -112,6 +125,7 @@ const styles = StyleSheet.create({
     minWidth: 16, height: 16, borderRadius: 8, backgroundColor: colors.danger,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
   },
+  layerBadge: { backgroundColor: '#7c3aed' },
   filterBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.white },
   searchWrap: {
     marginHorizontal: spacing.md, marginTop: spacing.sm,
