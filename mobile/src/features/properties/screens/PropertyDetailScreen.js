@@ -12,6 +12,7 @@ import RiskAlert from '@components/common/RiskAlert'
 import TrustScoreWidget from '@features/trust/components/TrustScoreWidget'
 import LocationMapCard from '../components/LocationMapCard'
 import AreaIntelligenceSection from '../components/AreaIntelligenceSection'
+import CommuteCalculator from '../components/CommuteCalculator'
 import ReviewsSection from '@features/reviews/components/ReviewsSection'
 import ReportButton from '@features/reports/components/ReportButton'
 import Icon from '@components/common/Icon'
@@ -34,6 +35,20 @@ function amenityIcon(name) {
   const n = name.toLowerCase()
   const match = AMENITY_ICON_RULES.find(([re]) => re.test(n))
   return match ? match[1] : 'checkCircle'
+}
+
+// Uses only our own listings data — no external API. Requires at least 3
+// comparable listings (same city + BHK/sharing) so a lone other listing
+// can't masquerade as "the area average" (see properties.service.js).
+function rentBenchmarkLabel(rent, benchmark) {
+  if (!benchmark) return null
+  const diff = Math.round(((rent - benchmark.avgRent) / benchmark.avgRent) * 100)
+  if (diff === 0) return { text: 'Right at the average for similar homes nearby', color: colors.slate400 }
+  const below = diff < 0
+  return {
+    text: `${Math.abs(diff)}% ${below ? 'below' : 'above'} the average for similar homes nearby`,
+    color: below ? colors.success : colors.warning,
+  }
 }
 
 export default function PropertyDetailScreen({ route, navigation }) {
@@ -164,6 +179,11 @@ export default function PropertyDetailScreen({ route, navigation }) {
             {property.deposit > 0 && <Text style={styles.deposit}>{formatCompact(Number(property.deposit))} deposit</Text>}
           </View>
 
+          {(() => {
+            const bench = rentBenchmarkLabel(Number(property.rent), property.rentBenchmark)
+            return bench && <Text style={[styles.benchmark, { color: bench.color }]}>{bench.text}</Text>
+          })()}
+
           <Text style={styles.title}>{property.title}</Text>
           <Text style={styles.location}>{property.address}, {property.city}</Text>
 
@@ -203,6 +223,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
 
           <LocationMapCard lat={lat} lng={lng} />
           <AreaIntelligenceSection lat={lat} lng={lng} />
+          <CommuteCalculator lat={lat} lng={lng} />
 
           {!!amenities.length && (
             <View style={styles.section}>
@@ -298,6 +319,7 @@ const styles = StyleSheet.create({
   price: { fontFamily: fonts.displayBold, fontSize: fontSizes.xxl, color: colors.slate800 },
   priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400 },
   deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  benchmark: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, marginBottom: spacing.xs },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.lg, color: colors.slate800, marginTop: spacing.xs },
   location: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2, marginBottom: spacing.md },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },

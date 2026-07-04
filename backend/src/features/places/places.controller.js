@@ -28,3 +28,16 @@ export async function areaIntelligence(req, res, next) {
     ok(res, data)
   } catch (err) { next(err) }
 }
+
+export async function commute(req, res, next) {
+  try {
+    const lat = parseFloat(req.query.lat)
+    const lng = parseFloat(req.query.lng)
+    const destination = req.query.destination
+    if (Number.isNaN(lat) || Number.isNaN(lng) || !destination?.trim()) {
+      return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'lat, lng, and destination are required', statusCode: 400 })
+    }
+    const data = await intelligence.computeCommute(lat, lng, destination)
+    ok(res, data)
+  } catch (err) { next(err) }
+}
