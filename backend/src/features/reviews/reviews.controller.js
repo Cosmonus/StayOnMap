@@ -7,12 +7,6 @@ export async function submit(req, res, next) {
 export async function list(req, res, next) {
   try { ok(res, await service.getPropertyReviews(req.params.propertyId)) } catch (err) { next(err) }
 }
-export async function adminList(req, res, next) {
-  try { ok(res, await service.adminListReviews(req.query)) } catch (err) { next(err) }
-}
-export async function adminSetStatus(req, res, next) {
-  try { ok(res, await service.adminSetReviewStatus(req.params.id, req.body.status)) } catch (err) { next(err) }
-}
 export async function vote(req, res, next) {
   try { ok(res, await service.voteRecommendation(req.user.id, req.params.propertyId, req.body.recommend)) } catch (err) { next(err) }
 }
