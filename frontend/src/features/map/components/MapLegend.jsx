@@ -80,7 +80,7 @@ export default function MapLegend() {
 
   return (
     <div
-      className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-2xl shadow-md px-4 py-2.5 flex flex-wrap items-center gap-x-5 gap-y-2 max-w-[90vw]"
+      className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-2xl shadow-sm px-4 py-2.5 flex flex-wrap items-center gap-x-5 gap-y-2 max-w-[90vw]"
       style={{ transition: 'opacity 0.2s' }}
     >
       {active.map((key) =>

@@ -73,8 +73,11 @@ function saveRecentArea(label) {
  *                   When omitted, falls back to flying the shared user mapStore.
  *   onClear      – called when user clears the input (no args).
  *                   When omitted, clears the user mapStore searchedPlace.
+ *   bare         – when true, renders without its own border/background —
+ *                  for embedding flush inside another control (e.g. a search pill)
+ *                  instead of as a standalone form field.
  */
-export default function AreaInput({ value, city, onChange, onPlacePicked, onClear, showLabel = true }) {
+export default function AreaInput({ value, city, onChange, onPlacePicked, onClear, showLabel = true, bare = false }) {
   const [query, setQuery]     = useState(value)
   const [open, setOpen]       = useState(false)
   const [recents, setRecents] = useState([])
@@ -126,6 +129,7 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
       if (status !== 'OK' || !place?.geometry?.location) return
       const lat = place.geometry.location.lat()
       const lng = place.geometry.location.lng()
+      useMapStore.getState().clearSelection()
       if (onPlacePicked) {
         onPlacePicked({ name: label, lat, lng })
       } else {
@@ -157,6 +161,7 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
 
       setOpen(false)
       saveRecentArea(label)
+      useMapStore.getState().clearSelection()
       if (onPlacePicked) {
         onPlacePicked({ name: label, lat, lng })
       } else {
@@ -180,13 +185,16 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
   }
 
   return (
-    <div ref={wrapRef}>
+    <div ref={wrapRef} className="relative">
       {showLabel && (
         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
           Area or landmark
         </label>
       )}
-      <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 focus-within:border-[#111111] focus-within:ring-2 focus-within:ring-black/8 transition overflow-hidden">
+      <div className={bare
+        ? 'flex items-center gap-2 px-2 py-1'
+        : 'flex items-center gap-2 px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 focus-within:border-[#111111] focus-within:ring-2 focus-within:ring-black/8 transition overflow-hidden'
+      }>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
         </svg>
@@ -218,7 +226,7 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
       </div>
 
       {open && (suggestions.length > 0 || (!query && recents.length > 0)) && (
-        <div className="mt-1.5 bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden z-50 relative">
+        <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden z-50">
           {!query && recents.length > 0 && (
             <>
               <p className="px-3 pt-2 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Recent</p>

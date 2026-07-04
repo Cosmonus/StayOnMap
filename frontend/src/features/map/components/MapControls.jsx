@@ -1,4 +1,4 @@
-// Floating layer-toggle panel — bottom-right of the map
+// Floating layer-toggle panel — top-left of the map
 import { useMapStore } from '@store/mapStore'
 
 const LAYERS = [
@@ -42,10 +42,7 @@ export default function MapControls() {
   const toggleLayer  = useMapStore((s) => s.toggleLayer)
 
   return (
-    <div
-      className="absolute z-10 hidden md:flex flex-col gap-1.5"
-      style={{ bottom: '90px', right: '10px' }}
-    >
+    <div className="absolute z-10 flex flex-col gap-1.5 top-4 left-4">
       {LAYERS.map(({ key, label, icon }) => {
         const active = activeLayers[key]
         return (
@@ -55,7 +52,7 @@ export default function MapControls() {
             title={label}
             className={[
               'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold',
-              'shadow-md transition-all duration-150 whitespace-nowrap',
+              'shadow-sm transition-all duration-150 whitespace-nowrap',
               active
                 ? ACTIVE_COLORS[key]
                 : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400',

@@ -7,20 +7,20 @@ import { createHtmlMarker } from '@lib/googleMaps'
 import { useMapStore } from '@store/mapStore'
 import { computeClusters, getExpansionZoom } from '../utils/clustering'
 
-const TYPE_SHORT = {
-  APARTMENT:         'Apt',
-  HOUSE:             'House',
-  VILLA:             'Villa',
-  PG:                'PG',
-  INDEPENDENT_HOUSE: 'Indep.',
-  COMMERCIAL:        'Comm.',
+// BHK is the more useful at-a-glance signal for renters scanning the map —
+// shown instead of the property type (Apt/House/Villa etc.)
+function bhkShort(pin) {
+  if (pin.type === 'PG') return pin.sharing ? `${pin.sharing}-Sharing` : 'PG'
+  if (pin.bhk === 0) return 'Studio'
+  if (pin.bhk) return `${pin.bhk} BHK`
+  return ''
 }
 
 // ── Individual pin (white pill with rent label) ───────────────────
 function makePinEl(pin, selected) {
   const rent  = `₹${(Number(pin.rent) / 1000).toFixed(0)}K`
-  const type  = TYPE_SHORT[pin.type] ?? ''
-  const label = type ? `${rent} · ${type}` : rent
+  const bhk   = bhkShort(pin)
+  const label = bhk ? `${rent} · ${bhk}` : rent
 
   const el = document.createElement('div')
   el.setAttribute('aria-label', `Property at ${rent}/mo`)

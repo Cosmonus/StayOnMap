@@ -5,36 +5,6 @@ import { appointmentService } from '@services/appointment.service'
 import { useMapStore } from '@store/mapStore'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { formatRent, formatCurrency } from '@utils/format'
-import { AmenityIcon } from '@components/common/AmenityIcon'
-
-function Stars({ score }) {
-  const clamped = Math.max(0, Math.min(5, score ?? 0))
-  return (
-    <div className="flex gap-0.5 items-center">
-      {Array.from({ length: 5 }).map((_, i) => {
-        const filled = clamped >= i + 1
-        const half   = !filled && clamped >= i + 0.5
-        const id     = `hs-${i}`
-        return (
-          <svg key={i} width="14" height="14" viewBox="0 0 24 24">
-            {half && (
-              <defs>
-                <linearGradient id={id} x1="0" x2="1" y1="0" y2="0">
-                  <stop offset="50%" stopColor="#f59e0b"/>
-                  <stop offset="50%" stopColor="#e2e8f0"/>
-                </linearGradient>
-              </defs>
-            )}
-            <path
-              fill={half ? `url(#${id})` : filled ? '#f59e0b' : '#e2e8f0'}
-              d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-            />
-          </svg>
-        )
-      })}
-    </div>
-  )
-}
 
 function Pill({ children, color = 'slate' }) {
   const styles = {
@@ -118,10 +88,6 @@ export default function PropertyPopup() {
   const typeLabel = property?.type
     ? `${TYPE_EMOJI[property.type] ?? '🏠'} ${property.type.replace(/_/g, ' ').charAt(0) + property.type.replace(/_/g, ' ').slice(1).toLowerCase()}`
     : null
-
-  const score       = Number(property?.trustScore?.overallScore ?? 0)
-  const reviewCount = property?.trustScore?.totalReviews ?? 0
-  const amenities   = property?.amenities ?? []
 
   return (
     <div
@@ -230,53 +196,6 @@ export default function PropertyPopup() {
             />
           )}
         </div>
-
-        {/* Amenities */}
-        {amenities.length > 0 && (
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Amenities</p>
-            <div className="flex flex-wrap gap-1.5">
-              {amenities.slice(0, 10).map((a) => (
-                <span
-                  key={a.amenityId ?? a.amenity?.name}
-                  className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-slate-100 rounded-lg text-[11px] text-slate-600 font-medium"
-                >
-                  <span className="text-slate-400 shrink-0">
-                    <AmenityIcon name={a.amenity?.name} size={13} />
-                  </span>
-                  {a.amenity?.name}
-                </span>
-              ))}
-              {amenities.length > 10 && (
-                <span className="px-2 py-1 text-[11px] text-slate-400 bg-slate-50 border border-slate-100 rounded-lg">
-                  +{amenities.length - 10}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Stay Score */}
-        {!isLoading && (
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-100">
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-1">Stay Score</p>
-              <div className="flex items-center gap-2">
-                <Stars score={score} />
-                <span className="text-sm font-bold text-slate-800">
-                  {score > 0 ? score.toFixed(1) : '—'}
-                  <span className="text-xs font-normal text-slate-400">/5</span>
-                </span>
-                {reviewCount > 0 && (
-                  <span className="text-[11px] text-slate-400">({reviewCount})</span>
-                )}
-              </div>
-            </div>
-            {score === 0 && (
-              <span className="text-xs text-amber-600 font-medium">No reviews yet</span>
-            )}
-          </div>
-        )}
 
         {/* CTA */}
         {!isLoading && property?.id && (

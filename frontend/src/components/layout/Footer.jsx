@@ -3,8 +3,9 @@ import { CITY_LIST_LABEL } from '@/config/cities'
 
 const LINKS = {
   Explore: [
-    { label: 'Home',       to: '/' },
+    { label: 'Map',        to: '/' },
     { label: 'Properties', to: '/properties' },
+    { label: 'Services',   to: '/services' },
     { label: 'Rules',      to: '/rules' },
     { label: 'About',      to: '/about' },
     { label: 'Intelligence', to: '/intelligence' },

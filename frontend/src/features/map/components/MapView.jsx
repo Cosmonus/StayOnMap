@@ -126,8 +126,6 @@ export default function MapView({ contained = false }) {
     })
   }, [searchedPlace, pins])
 
-  const locationLabel = area || city || null
-
   return (
     <div style={contained
       ? { position: 'absolute', inset: 0, zIndex: 0 }
@@ -137,21 +135,6 @@ export default function MapView({ contained = false }) {
 
       {/* Layer toggles */}
       {mapReady && <MapControls />}
-
-      {/* Listing count pill */}
-      {pins.length > 0 && (
-        <div
-          className="absolute top-20 left-1/2 -translate-x-1/2 z-10 pointer-events-none animate-fade-in"
-        >
-          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/90 backdrop-blur-sm shadow-md border border-slate-100">
-            <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-            <span className="text-xs font-semibold text-slate-700">
-              {pins.length} listing{pins.length !== 1 ? 's' : ''}
-              {locationLabel ? ` in ${locationLabel}` : ''}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -7,15 +7,17 @@ import { savedService } from '@services/saved.service'
 import { imgUrl, formatCompact, formatAge, isAvailableToday } from '@utils/format'
 import TrustBadge from '@components/common/TrustBadge'
 
+// Plain text, no emoji/color — Airbnb's restraint: one muted line under the
+// title carries all the spec info, instead of a row of colored chips.
 const FURNISHED_LABEL = {
-  FULLY: '🛋️ Furnished',
-  SEMI: '🪑 Semi',
-  UNFURNISHED: '📦 Unfurnished',
+  FULLY: 'Furnished',
+  SEMI: 'Semi furnished',
+  UNFURNISHED: 'Unfurnished',
 }
 
-const TYPE_EMOJI = {
-  APARTMENT: '🏢', HOUSE: '🏠', VILLA: '🏡',
-  PG: '🏘️', INDEPENDENT_HOUSE: '🏠', COMMERCIAL: '🏪',
+const TYPE_LABEL = {
+  APARTMENT: 'Apartment', HOUSE: 'House', VILLA: 'Villa',
+  PG: 'PG', INDEPENDENT_HOUSE: 'Independent house', COMMERCIAL: 'Commercial',
 }
 
 function HeartIcon({ filled }) {
@@ -57,15 +59,21 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
 
   const availableNow = isAvailableToday(property.availableFrom)
   const postedAge = formatAge(property.createdAt)
-  const bhkLabel = property.bhk === 0 ? '🛏️ Studio' : property.bhk ? `🛏️ ${property.bhk} BHK` : null
+  const bhkLabel = property.bhk === 0 ? 'Studio' : property.bhk ? `${property.bhk} BHK` : null
+  const specLine = [
+    bhkLabel,
+    FURNISHED_LABEL[property.furnished],
+    property.type && TYPE_LABEL[property.type],
+    property.area && `${Math.round(Number(property.area))} sq.ft`,
+  ].filter(Boolean).join(' · ')
 
   return (
     <div
       onClick={() => navigate(`/property/${property.id}`)}
-      className="group cursor-pointer rounded-2xl overflow-hidden bg-white shadow-card border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 h-full flex flex-col"
+      className="group cursor-pointer h-full flex flex-col"
     >
-      {/* Image */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+      {/* Image — borderless, photo-forward; the only feedback is a soft lift on hover */}
+      <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-100 shadow-sm group-hover:shadow-lg transition-shadow duration-200">
         {images[imgIdx] ? (
           <img
             src={images[imgIdx]}
@@ -123,10 +131,10 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
         )}
       </div>
 
-      {/* Body */}
-      <div className="p-4 flex-1 flex flex-col">
-        {/* Price — primary decision variable */}
-        <div className="flex items-baseline justify-between gap-2 mb-2.5">
+      {/* Body — no card chrome, just typography hierarchy on plain background */}
+      <div className="pt-3 flex-1 flex flex-col">
+        {/* Price — primary decision variable for a rental search */}
+        <div className="flex items-baseline justify-between gap-2 mb-1">
           <p className="text-xl font-bold text-slate-900 font-mono leading-none">
             {formatCompact(Number(property.rent))}
             <span className="text-xs font-normal text-slate-400 ml-1">/mo</span>
@@ -138,37 +146,18 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
           )}
         </div>
 
-        {/* Spec chips */}
-        <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
-          {bhkLabel && (
-            <span className="px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 text-xs font-semibold">
-              {bhkLabel}
-            </span>
-          )}
-          {FURNISHED_LABEL[property.furnished] && (
-            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium">
-              {FURNISHED_LABEL[property.furnished]}
-            </span>
-          )}
-          {property.type && (
-            <span className="px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 text-xs font-medium">
-              {TYPE_EMOJI[property.type] ?? '🏠'} {property.type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
-            </span>
-          )}
-          {property.area && (
-            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-xs font-medium">
-              {Math.round(Number(property.area))} sq.ft
-            </span>
-          )}
-        </div>
-
         {/* Title */}
-        <h3 className="text-sm font-semibold text-slate-800 leading-snug line-clamp-1 mb-1.5">
+        <h3 className="text-sm font-semibold text-slate-800 leading-snug line-clamp-1 mb-1">
           {property.title}
         </h3>
 
+        {/* Specs — one muted line instead of colored chips */}
+        {specLine && (
+          <p className="text-xs text-slate-500 truncate mb-1.5">{specLine}</p>
+        )}
+
         {/* Location + posted age — pinned to bottom */}
-        <div className="flex items-center justify-between gap-2 mt-auto pt-2">
+        <div className="flex items-center justify-between gap-2 mt-auto pt-1">
           <p className="text-xs text-slate-400 flex items-center gap-1 min-w-0">
             <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" className="shrink-0">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />

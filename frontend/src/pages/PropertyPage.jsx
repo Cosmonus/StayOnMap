@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { propertyService } from '@services/property.service'
 import { formatRent, formatCurrency, imgUrl } from '@utils/format'
+import Avatar             from '@components/common/Avatar'
 import TrustBadge         from '@components/common/TrustBadge'
 import RiskAlert          from '@components/common/RiskAlert'
 import TrustScoreWidget   from '@features/trust/components/TrustScoreWidget'
@@ -1080,17 +1081,7 @@ export default function PropertyPage() {
             {property.owner && (
               <SectionCard title="Posted by">
                 <div className="flex items-start gap-4">
-                  {property.owner.avatarUrl ? (
-                    <img
-                      src={property.owner.avatarUrl}
-                      alt=""
-                      className="w-14 h-14 rounded-2xl object-cover shrink-0 border border-slate-100"
-                    />
-                  ) : (
-                    <div className="w-14 h-14 rounded-2xl bg-slate-800 text-white text-xl font-bold flex items-center justify-center shrink-0">
-                      {(property.owner.name || 'O')[0].toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar src={property.owner.avatarUrl} name={property.owner.name || 'Owner'} size="lg" className="shrink-0 border border-slate-100" />
                   <div className="min-w-0 flex-1">
                     <p className="text-base font-bold text-slate-900 truncate">
                       {property.owner.name ?? 'Owner'}

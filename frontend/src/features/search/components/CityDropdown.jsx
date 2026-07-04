@@ -89,6 +89,7 @@ export default function CityDropdown({ value, onChange }) {
       {open && createPortal(
         <div
           ref={panelRef}
+          data-dropdown-portal
           style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999 }}
           className="bg-white rounded-xl shadow-float border border-slate-200 overflow-hidden"
         >
