@@ -23,6 +23,8 @@ import { savedService }  from '@services/saved.service'
 import SEOMeta             from '@components/common/SEOMeta'
 import { BRAND, canonical } from '@lib/seo'
 import PropertyAreaInsight from '@features/areas/components/PropertyAreaInsight'
+import AreaIntelligenceCard from '@features/areas/components/AreaIntelligenceCard'
+import CommuteCalculator from '@features/areas/components/CommuteCalculator'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function ordinal(n) {
@@ -59,6 +61,20 @@ function formatFurnished(f) {
   if (!f) return ''
   const map = { FULLY: 'Fully Furnished', SEMI: 'Semi Furnished', UNFURNISHED: 'Unfurnished' }
   return map[f] ?? f
+}
+
+// Uses only our own listings data — no external API. Requires at least 3
+// comparable listings (same city + BHK/sharing) so a lone other listing
+// can't masquerade as "the area average" (see properties.service.js).
+function rentBenchmarkLabel(rent, benchmark) {
+  if (!benchmark) return null
+  const diff = Math.round(((rent - benchmark.avgRent) / benchmark.avgRent) * 100)
+  if (diff === 0) return { text: 'Right at the average for similar homes nearby', className: 'text-slate-400' }
+  const below = diff < 0
+  return {
+    text: `${Math.abs(diff)}% ${below ? 'below' : 'above'} the average for similar homes nearby`,
+    className: below ? 'text-emerald-600' : 'text-amber-600',
+  }
 }
 
 // ── SVG Icons (inline, no deps) ──────────────────────────────────────────────
@@ -919,6 +935,10 @@ export default function PropertyPage() {
               {property.deposit > 0 && (
                 <p className="text-sm text-slate-400 mt-0.5">Deposit: {formatCurrency(Number(property.deposit))}</p>
               )}
+              {(() => {
+                const bench = rentBenchmarkLabel(Number(property.rent), property.rentBenchmark)
+                return bench && <p className={`text-xs font-medium mt-1 ${bench.className}`}>{bench.text}</p>
+              })()}
             </div>
           </div>
         </div>
@@ -1144,10 +1164,16 @@ export default function PropertyPage() {
                 </div>
               </div>
 
-              {/* 3 — Area insight */}
+              {/* 3 — Live neighborhood intelligence (any coordinate) */}
+              <AreaIntelligenceCard lat={property.lat} lng={property.lng} />
+
+              {/* 4 — Commute calculator (tenant-supplied destination) */}
+              <CommuteCalculator lat={property.lat} lng={property.lng} />
+
+              {/* 5 — Hand-authored area insight (named neighborhoods only) */}
               <PropertyAreaInsight city={property.city} landmark={property.landmark} />
 
-              {/* 4 — Owner: Interested people / Tenant: price + appointment form */}
+              {/* 6 — Owner: Interested people / Tenant: price + appointment form */}
               {isOwner ? (
                 <div className="bg-white rounded-2xl border border-slate-100 p-5">
                   <div className="flex items-center justify-between mb-4">

@@ -99,15 +99,20 @@ export async function computeTransit(lat, lng) {
   })
 }
 
-// ── Nearby essentials: raw counts, no scoring — UI decides how to show these ──
+// ── Nearby essentials: count + nearest of each — UI decides how to show these ──
+// 'police' included alongside hospital/pharmacy as a safety-relevant signal,
+// not just convenience amenities like school/supermarket/atm.
 export async function computeEssentials(lat, lng) {
   const key = cacheKey(lat, lng, 'essentials')
   const cached = await getCached(key)
   if (cached !== undefined) return cached
 
-  const types = ['hospital', 'school', 'supermarket', 'pharmacy', 'atm']
+  const types = ['hospital', 'police', 'pharmacy', 'school', 'supermarket', 'atm']
   const results = await Promise.all(types.map((type) => nearbySearch(lat, lng, { type, radius: 1500 })))
-  const essentials = Object.fromEntries(types.map((type, i) => [type, results[i].length]))
+  const essentials = Object.fromEntries(types.map((type, i) => [
+    type,
+    { count: results[i].length, nearest: nearestOf(lat, lng, results[i]) },
+  ]))
 
   return cacheSet(key, essentials)
 }
@@ -156,6 +161,43 @@ export async function computeTraffic(lat, lng) {
     return cacheSet(key, { score, ratio: Math.round(ratio * 100) / 100 })
   } catch {
     return cacheSet(key, null, 60 * 60)
+  }
+}
+
+// ── Commute: live Distance Matrix to a tenant-supplied destination address —
+// unlike computeTraffic's fixed short probe hop, this is a real user query,
+// so it's cached per (grid cell, destination text) for a short 1h TTL rather
+// than the 24h used elsewhere, since it's driven by ad-hoc user input rather
+// than a fixed signal we always want warm.
+export async function computeCommute(lat, lng, destination) {
+  const normalized = destination.trim().toLowerCase()
+  const key = cacheKey(lat, lng, `commute:${normalized}`)
+  const cached = await getCached(key)
+  if (cached !== undefined) return cached
+  if (!env.googleMapsKey) return cacheSet(key, null, 60 * 60)
+
+  const params = new URLSearchParams({
+    origins: `${lat},${lng}`,
+    destinations: destination,
+    departure_time: 'now',
+    region: 'in',
+    key: env.googleMapsKey,
+  })
+
+  try {
+    const data = await fetch(`${DISTANCE_MATRIX_URL}?${params.toString()}`).then((r) => r.json())
+    const el = data.rows?.[0]?.elements?.[0]
+    if (data.status !== 'OK' || el?.status !== 'OK') {
+      return cacheSet(key, null, 15 * 60) // short TTL — likely "couldn't find that place", worth letting the tenant retry sooner
+    }
+    return cacheSet(key, {
+      destinationAddress: data.destination_addresses?.[0] ?? destination,
+      distanceText: el.distance?.text ?? null,
+      durationText: el.duration?.text ?? null,
+      durationInTrafficText: el.duration_in_traffic?.text ?? null,
+    }, 60 * 60)
+  } catch {
+    return cacheSet(key, null, 15 * 60)
   }
 }
 

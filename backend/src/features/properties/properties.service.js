@@ -72,9 +72,28 @@ export async function getPropertyById(id, userId = null) {
     property.owner.ownerTrustScore = await prisma.ownerTrustScore.findUnique({ where: { ownerId: property.owner.id } }).catch(() => null)
   }
 
+  property.rentBenchmark = await getRentBenchmark(property).catch(() => null)
+
   if (userId && property.ownerId === userId) return property
   if (property.status !== 'ACTIVE') return null
   return property
+}
+
+// Average rent across other ACTIVE listings of the same city + type + size
+// (BHK count, or sharing for PGs) — free, uses only our own DB data. Requires
+// at least 3 comparables so a lone other listing can't masquerade as "the
+// area average".
+async function getRentBenchmark(property) {
+  const where = {
+    status: 'ACTIVE',
+    city: property.city,
+    type: property.type,
+    id: { not: property.id },
+    ...(property.type === 'PG' ? { sharing: property.sharing } : { bhk: property.bhk }),
+  }
+  const agg = await prisma.property.aggregate({ where, _avg: { rent: true }, _count: true })
+  if (!agg._avg.rent || agg._count < 3) return null
+  return { avgRent: Math.round(Number(agg._avg.rent)), sampleSize: agg._count }
 }
 
 export async function getPropertiesByOwner(ownerId) {

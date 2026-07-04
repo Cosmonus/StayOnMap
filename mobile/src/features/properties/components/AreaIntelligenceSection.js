@@ -1,42 +1,70 @@
 import { useQuery } from '@tanstack/react-query'
 import { View, Text, StyleSheet } from 'react-native'
 import { placeIntelligenceService } from '@services/placeIntelligence.service'
-import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-function scoreColor(score) {
-  if (score >= 7) return colors.success
-  if (score >= 4) return colors.warning
-  return colors.danger
+// Higher score = better access (metro/rail/bus/IT corridor proximity)
+function accessLabel(score) {
+  if (score == null) return null
+  if (score <= 2) return { label: 'Bad', color: colors.danger }
+  if (score <= 5) return { label: 'Moderate', color: colors.warning }
+  if (score <= 8) return { label: 'Good', color: colors.success }
+  return { label: 'Very good', color: colors.brand600 }
 }
 
-function ScoreRow({ icon, label, score, nearest }) {
+// Inverted: a high traffic score means heavier congestion, so it maps to the
+// worse label — unlike accessLabel, where a high score is a good thing.
+function trafficLabel(score) {
+  if (score == null) return null
+  if (score <= 2) return { label: 'Very good', color: colors.brand600 }
+  if (score <= 5) return { label: 'Good', color: colors.success }
+  if (score <= 8) return { label: 'Moderate', color: colors.warning }
+  return { label: 'Bad', color: colors.danger }
+}
+
+function formatDistance(m) {
+  return m < 1000 ? `${m}m` : `${(m / 1000).toFixed(1)}km`
+}
+
+function ScoreRow({ label, score, nearest, labelFn = accessLabel, isLast }) {
+  const cfg = labelFn(score)
+  if (!cfg) return null
   return (
-    <View style={styles.scoreRow}>
-      <View style={styles.scoreHeader}>
-        <Icon name={icon} size={15} color={colors.slate500} />
-        <Text style={styles.scoreLabel}>{label}</Text>
-        <View style={[styles.scorePill, { backgroundColor: scoreColor(score) + '1A' }]}>
-          <Text style={[styles.scorePillText, { color: scoreColor(score) }]}>{score}/10</Text>
-        </View>
+    <View style={[styles.row, isLast && styles.rowLast]}>
+      <View style={styles.rowText}>
+        <Text style={styles.rowLabel}>{label}</Text>
+        {!!nearest && (
+          <Text style={styles.rowNearest} numberOfLines={1}>
+            {nearest.name} · {formatDistance(nearest.distanceM)}
+          </Text>
+        )}
       </View>
-      {!!nearest && (
-        <Text style={styles.nearestText} numberOfLines={1}>
-          Nearest: {nearest.name} · {nearest.distanceM < 1000 ? `${nearest.distanceM}m` : `${(nearest.distanceM / 1000).toFixed(1)}km`}
-        </Text>
-      )}
+      <View style={[styles.rowBadge, { backgroundColor: cfg.color + '1A' }]}>
+        <Text style={[styles.rowBadgeText, { color: cfg.color }]}>{cfg.label}</Text>
+      </View>
     </View>
   )
 }
 
 const ESSENTIAL_LABELS = {
-  hospital: ['Hospitals', 'checkCircle'],
-  school: ['Schools', 'checkCircle'],
-  supermarket: ['Supermarkets', 'checkCircle'],
-  pharmacy: ['Pharmacies', 'checkCircle'],
-  atm: ['ATMs', 'checkCircle'],
+  hospital: 'Nearest hospital',
+  police: 'Nearest police station',
+  pharmacy: 'Nearest pharmacy',
+  school: 'Nearest school',
+  supermarket: 'Nearest supermarket',
+  atm: 'Nearest ATM',
+}
+
+function EssentialRow({ label, nearest, isLast }) {
+  if (!nearest) return null
+  return (
+    <View style={[styles.row, isLast && styles.rowLast]}>
+      <Text style={styles.rowLabel}>{label}</Text>
+      <Text style={styles.essentialDistance}>{formatDistance(nearest.distanceM)}</Text>
+    </View>
+  )
 }
 
 // Live, per-property intelligence computed from Google Places/Distance
@@ -63,7 +91,18 @@ export default function AreaIntelligenceSection({ lat, lng }) {
   }
 
   const { transit, essentials, itCorridor, traffic } = data
-  const essentialEntries = Object.entries(essentials ?? {}).filter(([, count]) => count > 0)
+  const nearbyEssentials = Object.entries(essentials ?? {}).filter(([, v]) => v.nearest)
+
+  // Omitted entirely (not shown as "unavailable") when Distance Matrix API
+  // isn't enabled on the backend key — a row that only ever says
+  // "unavailable" is chrome, not information.
+  const rows = [
+    { label: 'Metro access', score: transit.metroScore, nearest: transit.nearestMetro },
+    { label: 'Rail access', score: transit.railScore, nearest: transit.nearestRail },
+    { label: 'Bus access', score: transit.busScore, nearest: transit.nearestBus },
+    { label: 'IT corridor', score: itCorridor.itScore, nearest: itCorridor.nearestItPark },
+    ...(traffic ? [{ label: 'Traffic', score: traffic.score, labelFn: trafficLabel }] : []),
+  ]
 
   return (
     <View style={styles.section}>
@@ -71,23 +110,20 @@ export default function AreaIntelligenceSection({ lat, lng }) {
       <Text style={styles.sectionHint}>Live, computed from this property&apos;s exact location</Text>
 
       <View style={styles.card}>
-        <ScoreRow icon="mapPin" label="Metro access" score={transit.metroScore} nearest={transit.nearestMetro} />
-        <ScoreRow icon="mapPin" label="Rail access" score={transit.railScore} nearest={transit.nearestRail} />
-        <ScoreRow icon="mapPin" label="Bus access" score={transit.busScore} nearest={transit.nearestBus} />
-        <ScoreRow icon="building" label="IT corridor" score={itCorridor.itScore} nearest={itCorridor.nearestItPark} />
-        {/* Omitted entirely (not shown as "unavailable") when Distance Matrix
-            API isn't enabled on the backend key — a row that only ever says
-            "unavailable" is chrome, not information. */}
-        {!!traffic && <ScoreRow icon="clock" label="Traffic (local probe)" score={traffic.score} />}
+        {rows.map((r, i) => (
+          <ScoreRow key={r.label} {...r} isLast={i === rows.length - 1} />
+        ))}
       </View>
 
-      {essentialEntries.length > 0 && (
-        <View style={styles.essentialsRow}>
-          {essentialEntries.map(([type, count]) => (
-            <View key={type} style={styles.essentialChip}>
-              <Text style={styles.essentialCount}>{count}</Text>
-              <Text style={styles.essentialLabel}>{ESSENTIAL_LABELS[type]?.[0] ?? type}</Text>
-            </View>
+      {nearbyEssentials.length > 0 && (
+        <View style={[styles.card, styles.essentialsCard]}>
+          {nearbyEssentials.map(([type, v], i) => (
+            <EssentialRow
+              key={type}
+              label={ESSENTIAL_LABELS[type] ?? type}
+              nearest={v.nearest}
+              isLast={i === nearbyEssentials.length - 1}
+            />
           ))}
         </View>
       )}
@@ -101,20 +137,19 @@ const styles = StyleSheet.create({
   sectionHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2, marginBottom: spacing.sm },
   skeleton: { height: 140, backgroundColor: colors.slate100, borderRadius: radius.lg },
   card: {
-    backgroundColor: colors.slate50, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm,
+    backgroundColor: colors.slate50, borderRadius: radius.lg, padding: spacing.md,
     borderWidth: 1, borderColor: colors.slate100,
   },
-  scoreRow: { gap: 2 },
-  scoreHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  scoreLabel: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate700 },
-  scorePill: { borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 2 },
-  scorePillText: { fontFamily: fonts.bodySemiBold, fontSize: 11 },
-  nearestText: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginLeft: 23 },
-  essentialsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
-  essentialChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: colors.brand50, borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 4,
+  row: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm,
+    paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.slate100,
   },
-  essentialCount: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
-  essentialLabel: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.brand700 },
+  rowLast: { borderBottomWidth: 0 },
+  rowText: { flex: 1, minWidth: 0 },
+  rowLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.slate600 },
+  rowNearest: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400, marginTop: 2 },
+  rowBadge: { borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 2 },
+  rowBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11 },
+  essentialsCard: { marginTop: spacing.sm },
+  essentialDistance: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate500 },
 })
