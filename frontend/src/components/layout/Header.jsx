@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
+import { chatService } from '@services/chat.service'
+import { authService } from '@services/auth.service'
 import MapFilterBar from '@features/map/components/MapFilterBar'
 
 const iconProps = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }
@@ -30,77 +33,93 @@ const NAV_TABS = [
   },
 ]
 
-function MenuDropdown() {
-  const { pathname } = useLocation()
-  const { user, signOut } = useAuth()
-  const openLoginModal = useUiStore((s) => s.openLoginModal)
-  const [open, setOpen] = useState(false)
+const HOST_NAV_TABS = [
+  { key: 'dashboard',    label: 'Dashboard',    to: '/user?tab=dashboard' },
+  { key: 'messages',     label: 'Inbox',        to: '/user?tab=messages' },
+  { key: 'appointments', label: 'Appointments', to: '/user?tab=appointments' },
+  { key: 'calendar',     label: 'Calendar',     to: '/user?tab=calendar' },
+  { key: 'my-listing',   label: 'My Listing',   to: '/list' },
+]
 
-  const isActive = (to) =>
-    pathname === to || (to === '/properties' && pathname.startsWith('/properties'))
+function Badge({ count }) {
+  if (!count) return null
+  return (
+    <span className="min-w-[16px] h-4 px-1 flex items-center justify-center text-[10px] font-bold rounded-full bg-red-500 text-white">
+      {count > 9 ? '9+' : count}
+    </span>
+  )
+}
 
-  function resolveLink(to) {
-    if (user && to === '/properties') return '/user?tab=properties'
-    return to
-  }
+function HamburgerIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
+  )
+}
 
+function AvatarCircle({ user, size = 'w-7 h-7' }) {
   const initial = user?.name?.[0] ?? user?.email?.[0]?.toUpperCase() ?? null
+  if (user?.avatarUrl) {
+    return <img src={user.avatarUrl} alt="" className={`${size} rounded-full object-cover shrink-0`} />
+  }
+  return (
+    <span className={`${size} rounded-full bg-slate-600 text-white text-xs font-semibold flex items-center justify-center overflow-hidden shrink-0`}>
+      {initial ?? (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 12c2.7 0 4.9-2.2 4.9-4.9S14.7 2.2 12 2.2 7.1 4.4 7.1 7.1 9.3 12 12 12zm0 2.5c-3.3 0-9.8 1.6-9.8 4.9v2.4h19.6v-2.4c0-3.3-6.5-4.9-9.8-4.9z" />
+        </svg>
+      )}
+    </span>
+  )
+}
+
+// Generic dropdown shell — trigger + item list. Reused by all three nav variants
+// instead of three copies of the same open/close/backdrop chrome.
+function DropdownMenu({ trigger, triggerClassName, items }) {
+  const [open, setOpen] = useState(false)
 
   return (
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Open menu"
-        className="flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-full border border-slate-200 hover:shadow-md transition-shadow"
+        className={triggerClassName ?? 'flex items-center justify-center w-7 h-7 rounded-full hover:bg-slate-100 transition-colors shrink-0'}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
-        </svg>
-        <span className="w-7 h-7 rounded-full bg-slate-600 text-white text-xs font-semibold flex items-center justify-center overflow-hidden">
-          {initial ?? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 12c2.7 0 4.9-2.2 4.9-4.9S14.7 2.2 12 2.2 7.1 4.4 7.1 7.1 9.3 12 12 12zm0 2.5c-3.3 0-9.8 1.6-9.8 4.9v2.4h19.6v-2.4c0-3.3-6.5-4.9-9.8-4.9z" />
-            </svg>
-          )}
-        </span>
+        {trigger}
       </button>
 
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 z-40 w-52 bg-white rounded-xl shadow-panel border border-slate-200 py-2">
-            {NAV_TABS.map(({ label, to }) => (
-              <Link
-                key={to}
-                to={resolveLink(to)}
-                onClick={() => setOpen(false)}
-                className={`block px-4 py-2.5 text-sm no-underline ${
-                  isActive(to) ? 'text-brand-600 font-semibold bg-brand-50' : 'text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                {label}
-              </Link>
-            ))}
-            <div className="border-t border-slate-200 my-1" />
-            {user ? (
-              <>
-                <Link to="/user" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-100 no-underline">
-                  Dashboard
-                </Link>
-                <button
-                  onClick={() => { signOut(); setOpen(false) }}
-                  className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50"
+          <div className="absolute right-0 top-full mt-2 z-40 w-56 bg-white rounded-xl shadow-panel border border-slate-200 py-2">
+            {items.map((item) =>
+              item.divider ? (
+                <div key={item.key} className="border-t border-slate-200 my-1" />
+              ) : item.to ? (
+                <Link
+                  key={item.key}
+                  to={item.to}
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center justify-between gap-2 px-4 py-2.5 text-sm no-underline ${
+                    item.danger ? 'text-red-500 hover:bg-red-50' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
                 >
-                  Log out
+                  {item.label}
+                  <Badge count={item.badge} />
+                </Link>
+              ) : (
+                <button
+                  key={item.key}
+                  onClick={() => { setOpen(false); item.onClick() }}
+                  className={`w-full flex items-center justify-between gap-2 text-left px-4 py-2.5 text-sm ${
+                    item.danger ? 'text-red-500 hover:bg-red-50' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  {item.label}
+                  <Badge count={item.badge} />
                 </button>
-              </>
-            ) : (
-              <button
-                onClick={() => { openLoginModal(); setOpen(false) }}
-                className="w-full text-left px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-              >
-                Login / Sign up
-              </button>
+              )
             )}
           </div>
         </>
@@ -109,37 +128,174 @@ function MenuDropdown() {
   )
 }
 
-function NavTabs() {
-  const { pathname } = useLocation()
-  const isActive = (to) =>
-    to === '/' ? pathname === '/' : pathname.startsWith(to)
-
+function NavTabs({ tabs }) {
   return (
     <nav className="hidden md:flex items-center gap-1">
-      {NAV_TABS.map(({ label, to, icon }) => {
-        const active = isActive(to)
-        return (
-          <Link
-            key={to}
-            to={to}
-            className={`relative flex items-center gap-2 px-3 py-2 rounded-full text-sm no-underline transition-colors ${
-              active ? 'text-slate-900 font-semibold' : 'text-slate-500 font-medium hover:text-slate-900'
-            }`}
-          >
-            <span className={active ? 'text-brand-600' : 'text-slate-400'}>{icon}</span>
-            {label}
-            {active && <span className="absolute -bottom-0.5 left-3 right-3 h-0.5 rounded-full bg-slate-900" />}
-          </Link>
-        )
-      })}
+      {tabs.map(({ key, label, to, icon, active, badge }) => (
+        <Link
+          key={key ?? to}
+          to={to}
+          className={`relative flex items-center gap-2 px-3 py-2 rounded-full text-sm no-underline transition-colors ${
+            active ? 'text-slate-900 font-semibold' : 'text-slate-500 font-medium hover:text-slate-900'
+          }`}
+        >
+          {icon && <span className={active ? 'text-brand-600' : 'text-slate-400'}>{icon}</span>}
+          {label}
+          <Badge count={badge} />
+          {active && <span className="absolute -bottom-0.5 left-3 right-3 h-0.5 rounded-full bg-slate-900" />}
+        </Link>
+      ))}
     </nav>
+  )
+}
+
+// ── Guest — unchanged from the original single-variant Header ──────────────
+function GuestActions() {
+  const { pathname } = useLocation()
+  const openLoginModal = useUiStore((s) => s.openLoginModal)
+
+  const isActive = (to) => (to === '/' ? pathname === '/' : pathname.startsWith(to))
+  const tabs = NAV_TABS.map((t) => ({ ...t, active: isActive(t.to) }))
+
+  const menuItems = [
+    ...NAV_TABS.map((t) => ({ key: t.to, label: t.label, to: t.to })),
+    { key: 'divider', divider: true },
+    { key: 'login', label: 'Login / Sign up', onClick: openLoginModal },
+  ]
+
+  return (
+    <>
+      <div className="flex-1 flex justify-center min-w-0">
+        <NavTabs tabs={tabs} />
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <DropdownMenu trigger={<HamburgerIcon />} items={menuItems} />
+        <button onClick={openLoginModal} aria-label="Log in" className="shrink-0">
+          <AvatarCircle user={null} />
+        </button>
+      </div>
+    </>
+  )
+}
+
+// ── Traveler — logged in, not hosting ───────────────────────────────────────
+function TravelerActions({ unreadMessages, onBecomeHost, profile }) {
+  const { pathname } = useLocation()
+  const { signOut } = useAuth()
+  const navigate = useNavigate()
+
+  const isActive = (to) => (to === '/' ? pathname === '/' : pathname.startsWith(to))
+  const tabs = NAV_TABS.map((t) => ({ ...t, active: isActive(t.to) }))
+
+  const menuItems = [
+    { key: 'wishlist',      label: 'Wishlist',      to: '/user?tab=wishlist' },
+    { key: 'appointments',  label: 'Appointments',  to: '/user?tab=appointments' },
+    { key: 'leases',        label: 'Rented',        to: '/user?tab=leases' },
+    { key: 'messages',      label: 'Messages',      to: '/user?tab=messages', badge: unreadMessages },
+    { key: 'profile',       label: 'Profile',       to: '/user?tab=settings' },
+    { key: 'notifications', label: 'Notifications', to: '/user?tab=notifications' },
+    { key: 'account',       label: 'Account',       to: '/user?tab=settings' },
+    { key: 'support',       label: 'Support',       to: '/user?tab=support' },
+    { key: 'divider',       divider: true },
+    { key: 'become-host',   label: 'Become a host', onClick: onBecomeHost },
+    { key: 'logout',        label: 'Log out', danger: true, onClick: () => { signOut(); navigate('/') } },
+  ]
+
+  return (
+    <>
+      <div className="flex-1 flex justify-center min-w-0">
+        <NavTabs tabs={tabs} />
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <button
+          onClick={onBecomeHost}
+          className="hidden sm:inline-block text-sm font-semibold text-slate-700 hover:bg-slate-100 px-3 py-2 rounded-full transition-colors"
+        >
+          Become a host
+        </button>
+        <DropdownMenu trigger={<HamburgerIcon />} items={menuItems} />
+        <Link to="/user?tab=settings" aria-label="Your account" className="shrink-0">
+          <AvatarCircle user={profile} />
+        </Link>
+      </div>
+    </>
+  )
+}
+
+// ── Host mode — persistent, replaces the traveler nav everywhere ───────────
+function HostActions({ unreadMessages, onSwitchToTraveling, profile }) {
+  const { pathname, search } = useLocation()
+  const { signOut } = useAuth()
+  const navigate = useNavigate()
+
+  const currentTab = new URLSearchParams(search).get('tab') ?? 'dashboard'
+  const tabs = HOST_NAV_TABS.map((t) => ({
+    ...t,
+    active: t.key === 'my-listing' ? pathname.startsWith('/list') : pathname === '/user' && currentTab === t.key,
+    badge: t.key === 'messages' ? unreadMessages : 0,
+  }))
+
+  const menuItems = [
+    { key: 'notifications',      label: 'Notifications',      to: '/user?tab=notifications' },
+    { key: 'account',            label: 'Account',             to: '/user?tab=settings' },
+    { key: 'support',            label: 'Support',             to: '/user?tab=support' },
+    { key: 'divider',            divider: true },
+    { key: 'switch-to-traveling', label: 'Switch to traveling', onClick: onSwitchToTraveling },
+    { key: 'logout',             label: 'Log out', danger: true, onClick: () => { signOut(); navigate('/') } },
+  ]
+
+  return (
+    <>
+      <div className="flex-1 flex justify-center min-w-0">
+        <NavTabs tabs={tabs} />
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <button
+          onClick={onSwitchToTraveling}
+          className="hidden sm:inline-block text-sm font-semibold text-slate-700 hover:bg-slate-100 px-3 py-2 rounded-full transition-colors"
+        >
+          Exit hosting
+        </button>
+        <DropdownMenu trigger={<HamburgerIcon />} items={menuItems} />
+        <Link to="/user?tab=settings" aria-label="Your account" className="shrink-0">
+          <AvatarCircle user={profile} />
+        </Link>
+      </div>
+    </>
   )
 }
 
 export default function Header() {
   const { pathname } = useLocation()
-  const openLoginModal = useUiStore((s) => s.openLoginModal)
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const hostMode = useUiStore((s) => s.hostMode)
+  const setHostMode = useUiStore((s) => s.setHostMode)
   const isMapPage = pathname === '/' || pathname.startsWith('/properties')
+
+  const { data: unreadMessages = 0 } = useQuery({
+    queryKey: ['chat-unread'],
+    queryFn: () => chatService.unreadCount().then((r) => r.data?.count ?? 0),
+    enabled: !!user,
+    refetchInterval: 30000,
+  })
+
+  const { data: profile } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => authService.getMe().then((r) => r.data),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  function handleBecomeHost() {
+    setHostMode(true)
+    navigate('/list')
+  }
+
+  function handleSwitchToTraveling() {
+    setHostMode(false)
+    navigate('/')
+  }
 
   const lastY = useRef(0)
   const [hidden, setHidden] = useState(false)
@@ -163,19 +319,13 @@ export default function Header() {
           </span>
         </Link>
 
-        <div className="flex-1 flex justify-center min-w-0">
-          <NavTabs />
-        </div>
-
-        <div className="flex items-center gap-3 shrink-0">
-          <button
-            onClick={openLoginModal}
-            className="hidden sm:inline-block text-sm font-semibold text-slate-700 hover:bg-slate-100 px-3 py-2 rounded-full transition-colors"
-          >
-            List your property
-          </button>
-          <MenuDropdown />
-        </div>
+        {!user ? (
+          <GuestActions />
+        ) : hostMode ? (
+          <HostActions unreadMessages={unreadMessages} onSwitchToTraveling={handleSwitchToTraveling} profile={profile ?? user} />
+        ) : (
+          <TravelerActions unreadMessages={unreadMessages} onBecomeHost={handleBecomeHost} profile={profile ?? user} />
+        )}
       </div>
 
       {isMapPage && (

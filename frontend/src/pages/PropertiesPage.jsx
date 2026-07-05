@@ -34,7 +34,7 @@ export default function PropertiesPage() {
   const filters = useFilterStore((s) => s.filters)
 
   const params = useMemo(() => {
-    const p = { limit: 60 }
+    const p = { limit: 50 }
     if (filters.city)       p.city = filters.city
     if (filters.furnished)  p.furnished = filters.furnished
     if (filters.bhk?.length) p.bhk = filters.bhk.join(',')

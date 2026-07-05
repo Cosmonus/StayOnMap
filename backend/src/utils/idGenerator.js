@@ -10,6 +10,8 @@ const PROPERTY_PREFIX = {
   PG:               'PGG',
   INDEPENDENT_HOUSE:'IND',
   COMMERCIAL:       'COM',
+  LAND:             'LND',
+  SHORT_STAY:       'STY',
 }
 
 /**

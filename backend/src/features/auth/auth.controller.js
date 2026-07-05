@@ -46,3 +46,10 @@ export async function updateRole(req, res, next) {
     ok(res, user)
   } catch (err) { next(err) }
 }
+
+export async function upgradeBusiness(req, res, next) {
+  try {
+    const user = await service.upgradeToBusiness(req.user.id)
+    ok(res, user)
+  } catch (err) { next(err) }
+}

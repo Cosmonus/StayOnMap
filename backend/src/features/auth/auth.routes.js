@@ -13,5 +13,6 @@ router.post('/reset-password',  validate(resetPasswordSchema),  controller.reset
 
 router.get('/me', authMiddleware, controller.getMe)
 router.patch('/role', authMiddleware, validate(updateRoleSchema), controller.updateRole)
+router.patch('/business', authMiddleware, controller.upgradeBusiness)
 
 export default router

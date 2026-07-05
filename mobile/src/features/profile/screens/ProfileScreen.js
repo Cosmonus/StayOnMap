@@ -3,33 +3,25 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { authService } from '@services/auth.service'
+import { useUiStore } from '@store/uiStore'
+import MenuItem from '@features/profile/components/MenuItem'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
 const MENU_ITEMS = [
-  ['MyListings', 'building', 'My Listings'],
   ['Appointments', 'calendar', 'Appointments'],
-  ['Leases', 'document', 'Leases'],
+  ['Leases', 'document', 'Rented'],
   ['Notifications', 'bell', 'Notifications'],
   ['Settings', 'settings', 'Settings'],
+  ['Support', 'info', 'Support'],
 ]
-
-function MenuItem({ icon, label, onPress }) {
-  return (
-    <Pressable style={styles.menuItem} onPress={onPress}>
-      <View style={styles.menuItemIcon}>
-        <Icon name={icon} size={16} color={colors.brand600} />
-      </View>
-      <Text style={styles.menuItemText}>{label}</Text>
-      <Icon name="chevronRight" size={16} color={colors.slate400} />
-    </Pressable>
-  )
-}
 
 export default function ProfileScreen({ navigation }) {
   const { user, signOut } = useAuth()
+  const setHostMode = useUiStore((s) => s.setHostMode)
+  const setHostEntryTab = useUiStore((s) => s.setHostEntryTab)
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['me'],
@@ -72,6 +64,11 @@ export default function ProfileScreen({ navigation }) {
         {MENU_ITEMS.map(([route, icon, label]) => (
           <MenuItem key={route} icon={icon} label={label} onPress={() => navigation.navigate(route)} />
         ))}
+        <MenuItem
+          icon="home"
+          label={profile?.role === 'OWNER' ? 'Manage listings' : 'Become a host'}
+          onPress={() => { setHostEntryTab('MyListing'); setHostMode(true) }}
+        />
       </View>
 
       <Pressable style={styles.signOutButton} onPress={signOut}>
@@ -107,12 +104,6 @@ const styles = StyleSheet.create({
   },
   roleBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
   menu: { borderTopWidth: 1, borderTopColor: colors.slate100 },
-  menuItem: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    paddingVertical: spacing.sm + 2, borderBottomWidth: 1, borderBottomColor: colors.slate100,
-  },
-  menuItemIcon: { width: 34, height: 34, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center' },
-  menuItemText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate800 },
   signOutButton: {
     flexDirection: 'row', gap: 6, justifyContent: 'center',
     marginTop: 'auto',

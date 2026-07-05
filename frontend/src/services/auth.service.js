@@ -8,6 +8,7 @@ export const authService = {
   login: (data) => api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
   upgradeRole: () => api.patch('/auth/role', { role: 'OWNER' }),
+  upgradeBusiness: () => api.patch('/auth/business'),
   requestPasswordReset: (data) => api.post('/auth/forgot-password', data),
   confirmPasswordReset: (data) => api.post('/auth/reset-password', data),
 }

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { authService } from '@services/auth.service'
 import { toast } from '@components/common/Toaster'
+import { useUiStore } from '@store/uiStore'
 
 const AuthContext = createContext(null)
 
@@ -14,7 +15,10 @@ export function AuthProvider({ children }) {
 
     authService.getMe()
       .then((res) => setUser(res.data))
-      .catch(() => localStorage.removeItem('user_token'))
+      .catch(() => {
+        localStorage.removeItem('user_token')
+        useUiStore.getState().setHostMode(false)
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -27,6 +31,7 @@ export function AuthProvider({ children }) {
   function signOut() {
     localStorage.removeItem('user_token')
     setUser(null)
+    useUiStore.getState().setHostMode(false)
     toast.info('Signed out', 'You have been logged out')
   }
 

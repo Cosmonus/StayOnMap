@@ -202,7 +202,7 @@ function EmptyState({ message }) {
   )
 }
 
-export default function AppointmentsScreen({ navigation }) {
+export default function AppointmentsScreen({ navigation, route }) {
   const { user } = useAuth()
   const qc = useQueryClient()
 
@@ -213,7 +213,7 @@ export default function AppointmentsScreen({ navigation }) {
   })
   const isOwner = profile?.role === 'OWNER'
 
-  const [tab, setTab] = useState('my-requests')
+  const [tab, setTab] = useState(route?.params?.initialTab ?? 'my-requests')
   const [filter, setFilter] = useState('all')
 
   const { data: ownerAppts = [], isLoading: loadingOwner } = useQuery({
@@ -241,9 +241,11 @@ export default function AppointmentsScreen({ navigation }) {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
-          <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-            <Icon name="chevronLeft" size={20} color={colors.slate800} />
-          </Pressable>
+          {navigation.canGoBack() && (
+            <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
+              <Icon name="chevronLeft" size={20} color={colors.slate800} />
+            </Pressable>
+          )}
           <View style={styles.headerTitleRow}>
             <Icon name="calendar" size={20} color={colors.slate800} />
             <Text style={styles.headerTitle}>Appointments</Text>

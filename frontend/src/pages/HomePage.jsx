@@ -4,13 +4,14 @@ import MapView from '@features/map/components/MapView'
 import MapLegend from '@features/map/components/MapLegend'
 import AreaInsightCard from '@features/map/components/AreaInsightCard'
 import MapRightPanel from '@features/map/components/MapRightPanel'
+import MapPropertiesList from '@features/map/components/MapPropertiesList'
 import PropertyCard from '@features/properties/components/PropertyCard'
 import SEOMeta from '@components/common/SEOMeta'
 import { propertyService } from '@services/property.service'
 import { useFilterStore } from '@store/filterStore'
 import { useUiStore } from '@store/uiStore'
+import { useAuth } from '@features/auth/hooks/useAuth'
 import { BRAND, canonical } from '@lib/seo'
-import { CITIES } from '@/config/cities'
 import { usePlatformStats } from '@hooks/usePlatformStats'
 
 const HOW_IT_WORKS_STEPS = [
@@ -77,72 +78,73 @@ function AppComingSoonCard() {
 function MapHeroSection() {
   const { totalActive, activeOwners, cities, isLoading } = usePlatformStats()
   const openLoginModal = useUiStore((s) => s.openLoginModal)
+  const { user } = useAuth()
 
   return (
-    <section className="w-full pt-20 md:pt-40 pb-4 md:pb-6 px-4 md:px-6 flex flex-col md:flex-row items-start gap-4 md:gap-6">
-      <div className="relative h-[60vh] md:h-[calc(100vh-10rem)] min-h-[420px] w-full md:w-[70%] rounded-3xl overflow-hidden border border-slate-200 shadow-sm">
+    <section className={`w-full pt-20 md:pt-[166px] pb-4 md:pb-6 px-4 md:px-6 flex flex-col md:flex-row items-start gap-4 ${user ? 'md:gap-0' : 'md:gap-6'}`}>
+      <div className={`relative h-[60vh] md:h-[calc(100vh-190px)] min-h-[420px] w-full ${user ? 'md:w-[85%]' : 'md:w-[70%]'} rounded-3xl overflow-hidden border border-slate-200 shadow-sm`}>
         <MapView contained />
         <MapLegend />
         <AreaInsightCard />
         <MapRightPanel contained topClass="top-5" />
       </div>
 
-      <div className="w-full md:w-[30%] py-8 md:py-10">
-        <p className="text-xs font-bold text-brand-600 uppercase tracking-widest mb-3">
-          About StayOnMap
-        </p>
-        <h1 className="font-display font-bold text-3xl md:text-4xl text-slate-900 leading-tight tracking-tight mb-3">
-          Rent with <span className="text-brand-600">intelligence</span>.
-        </h1>
-        <p className="text-sm text-slate-500 leading-relaxed max-w-sm">
-          Every home on the live map carries a real-time TrustScore and passes through our
-          fraud-detection engine — real owners, no brokers.
-        </p>
-
-        <div className="flex flex-wrap gap-2 mt-4">
-          {CITIES.map((c) => (
-            <span key={c.name} className="text-xs font-medium text-slate-800 bg-slate-50 border border-slate-100 rounded-full px-3 py-1.5">
-              {c.name}
-            </span>
-          ))}
+      {user && (
+        <div className="w-full md:w-[15%]">
+          <MapPropertiesList />
         </div>
+      )}
 
-        <div className="flex items-center gap-2 flex-wrap mt-7">
-          <Link to="/properties" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 transition-colors no-underline">
-            Browse rentals
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-          </Link>
-          <button onClick={openLoginModal} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-700 border border-slate-200 hover:border-slate-400 transition-colors">
-            List your property
-          </button>
-        </div>
+      {!user && (
+        <div className="w-full md:w-[30%] py-8 md:py-10">
+          <p className="text-xs font-bold text-brand-600 uppercase tracking-widest mb-3">
+            About StayOnMap
+          </p>
+          <h1 className="font-display font-bold text-3xl md:text-4xl text-slate-900 leading-tight tracking-tight mb-3">
+            Rent with <span className="text-brand-600">intelligence</span>.
+          </h1>
+          <p className="text-sm text-slate-500 leading-relaxed max-w-sm">
+            Every home on the live map carries a real-time TrustScore and passes through our
+            fraud-detection engine — real owners, no brokers.
+          </p>
 
-        <div className="grid grid-cols-2 gap-3 mt-8">
-          <MetricCard value="₹0" label="Brokerage, always" />
-          <MetricCard value={isLoading ? '—' : cities} label="Cities live in" />
-          <MetricCard value={isLoading ? '—' : totalActive} label="Live listings" />
-          <MetricCard value={isLoading ? '—' : activeOwners} label="Active owners" />
-        </div>
+          <div className="flex items-center gap-2 flex-wrap mt-7">
+            <Link to="/properties" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 transition-colors no-underline">
+              Browse rentals
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+            </Link>
+            <button onClick={openLoginModal} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-700 border border-slate-200 hover:border-slate-400 transition-colors">
+              List your property
+            </button>
+          </div>
 
-        <h2 className="font-display font-bold text-lg text-slate-900 leading-snug mt-10 mb-5">
-          How it works
-        </h2>
-        <div className="flex flex-col gap-6">
-          {HOW_IT_WORKS_STEPS.map(({ num, title, description }) => (
-            <div key={num} className="flex gap-4 items-start">
-              <span className="shrink-0 w-[30px] h-[30px] rounded-full bg-slate-900 text-white font-mono text-xs font-semibold flex items-center justify-center">
-                {num}
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-slate-800 mb-0.5">{title}</p>
-                <p className="text-xs text-slate-500 leading-relaxed max-w-xs">{description}</p>
+          <div className="grid grid-cols-2 gap-3 mt-8">
+            <MetricCard value="₹0" label="Brokerage, always" />
+            <MetricCard value={isLoading ? '—' : cities} label="Cities live in" />
+            <MetricCard value={isLoading ? '—' : totalActive} label="Live listings" />
+            <MetricCard value={isLoading ? '—' : activeOwners} label="Active owners" />
+          </div>
+
+          <h2 className="font-display font-bold text-lg text-slate-900 leading-snug mt-10 mb-5">
+            How it works
+          </h2>
+          <div className="flex flex-col gap-6">
+            {HOW_IT_WORKS_STEPS.map(({ num, title, description }) => (
+              <div key={num} className="flex gap-4 items-start">
+                <span className="shrink-0 w-[30px] h-[30px] rounded-full bg-slate-900 text-white font-mono text-xs font-semibold flex items-center justify-center">
+                  {num}
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800 mb-0.5">{title}</p>
+                  <p className="text-xs text-slate-500 leading-relaxed max-w-xs">{description}</p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <AppComingSoonCard />
-      </div>
+          <AppComingSoonCard />
+        </div>
+      )}
     </section>
   )
 }
@@ -224,6 +226,8 @@ const HOME_JSON_LD = {
 }
 
 export default function HomePage() {
+  const { user } = useAuth()
+
   return (
     <div className="bg-white overflow-x-hidden">
       <SEOMeta
@@ -232,7 +236,7 @@ export default function HomePage() {
         jsonLd={HOME_JSON_LD}
       />
       <MapHeroSection />
-      <FeaturedListings />
+      {!user && <FeaturedListings />}
     </div>
   )
 }

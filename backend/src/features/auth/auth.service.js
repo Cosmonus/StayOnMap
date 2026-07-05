@@ -81,6 +81,15 @@ export async function updateUserRole(id, role) {
   return stripPasswordHash(await prisma.user.update({ where: { id }, data: { role: 'OWNER' } }))
 }
 
+// Stub upgrade — no payment gateway yet (see roadmap.md P3.2/P3.3), just flips
+// the flag immediately so PG/COMMERCIAL/SHORT_STAY listing creation unlocks.
+export async function upgradeToBusiness(id) {
+  const user = await prisma.user.findUnique({ where: { id }, select: { isBusiness: true } })
+  if (!user) throw Object.assign(new Error('User not found'), { statusCode: 404 })
+  if (user.isBusiness) throw Object.assign(new Error('Already a Business account'), { statusCode: 400 })
+  return stripPasswordHash(await prisma.user.update({ where: { id }, data: { isBusiness: true, businessSince: new Date() } }))
+}
+
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000 // 1 hour
 
 export async function requestPasswordReset(email) {

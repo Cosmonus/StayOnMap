@@ -12,6 +12,16 @@ const AMENITIES = [
   'Kitchen', 'Washing Machine', 'Pet Friendly', 'Furnished', 'Security Guard',
   'Swimming Pool', 'Club House', 'Play Area', 'Garden', 'Intercom',
   'Solar Water Heater', 'Rainwater Harvesting', 'Gas Pipeline', 'Gated Security',
+  // Added for the land/pg/shop/stay host-onboarding feature chips
+  // (frontend/src/features/listings/config/onboarding.js) — WiFi/AC/Lift/
+  // Power Backup/Gym/Security Guard/Gas Pipeline/Garden/Solar Water Heater/
+  // Parking/Kitchen/Swimming Pool/Washing Machine/Pet Friendly above are
+  // reused as-is for the equivalent chips in those types.
+  'Covered Parking', 'Modular Kitchen', 'Balcony', 'Terrace', 'Gated Community',
+  'Borewell', 'Servant Room', 'Corner Plot', 'Boundary Wall', 'East Facing',
+  'Near Main Road', 'Ready to Build', 'Breakfast', 'Lunch', 'Dinner', 'Laundry',
+  'Housekeeping', 'Study Desk', 'Attached Bath', 'Washroom', '3-Phase Power',
+  'Roll-down Shutter', 'Mezzanine', 'Signage Space', 'TV', 'Workspace', 'Beachfront',
 ]
 
 // ─── Sample Properties ────────────────────────────────────────────

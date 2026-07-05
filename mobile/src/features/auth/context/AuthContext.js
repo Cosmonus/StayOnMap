@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { authService } from '@services/auth.service'
 import { connectSocket, disconnectSocket } from '@lib/socket'
 import { registerForPushNotifications, unregisterPushNotifications } from '@services/push.service'
+import { useUiStore, HOST_MODE_KEY } from '@store/uiStore'
 
 const AuthContext = createContext(null)
 
@@ -12,8 +13,9 @@ export function AuthProvider({ children }) {
   const hadUser = useRef(false)
 
   useEffect(() => {
-    AsyncStorage.getItem('user_token')
-      .then((token) => {
+    Promise.all([AsyncStorage.getItem('user_token'), AsyncStorage.getItem(HOST_MODE_KEY)])
+      .then(([token, hostMode]) => {
+        useUiStore.getState()._setHostModeSilent(hostMode === 'true')
         if (!token) return null
         return authService.getMe().then((res) => {
           setUser(res.data)
@@ -22,7 +24,10 @@ export function AuthProvider({ children }) {
           registerForPushNotifications().catch(() => {})
         })
       })
-      .catch(() => AsyncStorage.removeItem('user_token'))
+      .catch(() => {
+        AsyncStorage.removeItem('user_token')
+        useUiStore.getState().setHostMode(false)
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -40,6 +45,7 @@ export function AuthProvider({ children }) {
     await AsyncStorage.removeItem('user_token')
     setUser(null)
     hadUser.current = false
+    useUiStore.getState().setHostMode(false)
     unregisterPushNotifications().catch(() => {})
     disconnectSocket()
   }
