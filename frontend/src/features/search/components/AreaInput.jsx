@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { MapPin, Search, X, Clock } from 'lucide-react'
 import { useMapStore } from '@store/mapStore'
 import { CITIES } from '@/config/cities'
 import { googleMapsReady } from '@lib/googleMaps'
@@ -195,9 +196,7 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
         ? 'flex items-center gap-2 px-2 py-1'
         : 'flex items-center gap-2 px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 focus-within:border-[#111111] focus-within:ring-2 focus-within:ring-black/8 transition overflow-hidden'
       }>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-        </svg>
+        <Search size={13} stroke="#94a3b8" strokeWidth={2} className="shrink-0" />
         <input
           type="text"
           value={query}
@@ -218,9 +217,7 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
             onMouseDown={(e) => { e.preventDefault(); clear() }}
             className="shrink-0 flex items-center justify-center w-4 h-4 rounded-full bg-slate-200 hover:bg-slate-300 transition-colors"
           >
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
+            <X size={8} stroke="#64748b" strokeWidth={3} />
           </button>
         )}
       </div>
@@ -244,9 +241,7 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
                   }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 transition-colors text-left"
                 >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
-                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                  </svg>
+                  <Clock size={13} stroke="#94a3b8" strokeWidth={2} className="shrink-0 mt-0.5" />
                   <p className="text-sm text-slate-700 truncate">{label}</p>
                 </button>
               ))}
@@ -263,9 +258,7 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
                 onMouseDown={(e) => { e.preventDefault(); pick(feature) }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 transition-colors text-left"
               >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="#f4511e" className="shrink-0 mt-0.5">
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                </svg>
+                <MapPin size={13} fill="#f4511e" stroke="none" className="shrink-0 mt-0.5" />
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-800 truncate">{name}</p>
                   {context && <p className="text-xs text-slate-400 truncate">{context}</p>}

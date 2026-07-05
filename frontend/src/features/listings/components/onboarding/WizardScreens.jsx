@@ -1,3 +1,4 @@
+import { Check, Home } from 'lucide-react'
 import Select from '@components/common/Select'
 import Toggle from '@components/common/Toggle'
 import ImageUploader from '../ImageUploader'
@@ -258,9 +259,7 @@ export function VerifyScreen({ categoryKey, draft, setDraft }) {
                   className="w-full mt-1.5 px-3 py-2 rounded-lg border border-slate-200 text-xs outline-none focus:border-slate-400"
                 />
               </div>
-              {existing && (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M20 6 9 17l-5-5" /></svg>
-              )}
+              {existing && <Check size={18} color="#0284c7" strokeWidth={2.5} className="shrink-0" />}
             </div>
           )
         })}
@@ -286,9 +285,7 @@ export function ReviewScreen({ categoryKey, draft }) {
       <div className="max-w-lg bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         <div className="flex items-center gap-4 p-5 border-b border-slate-100">
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${cat.tier === 'biz' ? 'bg-slate-900' : 'bg-brand-50'}`}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={cat.tier === 'biz' ? '#fff' : '#0284c7'} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6" />
-            </svg>
+            <Home size={22} color={cat.tier === 'biz' ? '#fff' : '#0284c7'} strokeWidth={1.7} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-slate-900 truncate">{draft.title || `New ${cat.label} listing`}</p>

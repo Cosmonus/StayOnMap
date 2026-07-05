@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
+import { Tag } from 'lucide-react'
 import PropertyCard from '@features/properties/components/PropertyCard'
 import { propertyService } from '@services/property.service'
 import { useFilterStore } from '@store/filterStore'
@@ -17,15 +18,6 @@ function CardSkeleton() {
         <div className="h-3 w-28 bg-slate-100 rounded" />
       </div>
     </div>
-  )
-}
-
-function TagIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-      <path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-      <circle cx="7" cy="7" r="1.2" fill="currentColor" stroke="none" />
-    </svg>
   )
 }
 
@@ -81,7 +73,7 @@ export default function MapPropertiesList() {
           {heading}
         </h2>
         <span className="flex items-center gap-1.5 text-xs font-semibold text-brand-600 shrink-0">
-          <TagIcon />
+          <Tag size={14} className="shrink-0" />
           No broker fees
         </span>
       </div>

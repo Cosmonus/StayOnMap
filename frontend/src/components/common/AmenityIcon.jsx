@@ -1,61 +1,58 @@
+import {
+  Wifi, SquareParking, Wind, ArrowUpDown, Dumbbell, Camera, Zap, CookingPot,
+  WashingMachine, PawPrint, ShieldCheck, Waves, Flame, Droplet, DoorOpen, Trees,
+  Building2, PhoneCall, Droplets, CloudRain, Filter, Container, Baby, Footprints,
+  ShieldAlert, Tv, Refrigerator, Sofa, Bed, DoorClosed, UtensilsCrossed, Microwave,
+  Sun, BatteryCharging, Fan, HelpCircle,
+} from 'lucide-react'
+
 const ICONS = {
-  'WiFi':                 'M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01',
-  'Parking':              'M5 17H3a2 2 0 01-2-2V9l2-4h14l2 4v6a2 2 0 01-2 2h-2m-8 0a2 2 0 100 4 2 2 0 000-4zm8 0a2 2 0 100 4 2 2 0 000-4z',
-  'AC':                   'M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07',
-  'Lift':                 'M7 2h10a2 2 0 012 2v16a2 2 0 01-2 2H7a2 2 0 01-2-2V4a2 2 0 012-2zm3 5l2-2 2 2M10 17l2 2 2-2',
-  'Gym':                  'M6.5 6.5h1m9 0h1m-11.5 0v11m10.5-11v11M4 9.5a2.5 2.5 0 01-2.5-2.5V5.5M4 9.5v5M2.5 14.5A2.5 2.5 0 004 17M20 9.5a2.5 2.5 0 002.5-2.5V5.5M20 9.5v5M21.5 14.5A2.5 2.5 0 0120 17',
-  'CCTV':                 'M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2zM12 17a4 4 0 100-8 4 4 0 000 8z',
-  'Power Backup':         'M5 8h14a1 1 0 011 1v8a1 1 0 01-1 1H5a1 1 0 01-1-1V9a1 1 0 011-1zm14-2h-1V4h-2v2H8V4H6v2H5a3 3 0 00-3 3v8a3 3 0 003 3h14a3 3 0 003-3V9a3 3 0 00-3-3zm-7 5v-2l3 3-3 3v-2H9v-2h3z',
-  'Kitchen':              'M8 3v12M8 3c0 4 4 5 4 9M12 3c0 4-4 5-4 9M16 3v7a4 4 0 01-8 0M16 8v13',
-  'Washing Machine':      'M3 3h18a2 2 0 012 2v14a2 2 0 01-2 2H3a2 2 0 01-2-2V5a2 2 0 012-2zm9 5a5 5 0 100 10A5 5 0 0012 8zm-2.5 5a2.5 2.5 0 015 0',
-  'Pet Friendly':         'M10 5.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm7 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM4 9.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm15 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM12 10c-4 0-7 3-7 6.5 0 2 1.5 3.5 7 3.5s7-1.5 7-3.5C19 13 16 10 12 10z',
-  'Security Guard':       'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
-  'Swimming Pool':        'M2 12c1.5-2 3-2 4.5 0s3 2 4.5 0 3-2 4.5 0 3 2 4.5 0M2 17c1.5-2 3-2 4.5 0s3 2 4.5 0 3-2 4.5 0 3 2 4.5 0M10 6l2-4 2 4',
-  'Gas Pipeline':         'M12 2c0 0-6 5-6 10a6 6 0 0012 0c0-5-6-10-6-10zM12 17a2 2 0 01-2-2c0-1.5 2-4 2-4s2 2.5 2 4a2 2 0 01-2 2z',
-  'Piped Gas':            'M12 2c0 0-6 5-6 10a6 6 0 0012 0c0-5-6-10-6-10zM12 17a2 2 0 01-2-2c0-1.5 2-4 2-4s2 2.5 2 4a2 2 0 01-2 2z',
-  'Gated Security':       'M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2zM7 11V7a5 5 0 0110 0v4M12 16v2',
-  'Hot Water':            'M12 2c-3.5 2.5-5 6-5 9a5 5 0 0010 0c0-3-1.5-6.5-5-9z',
-  'Geyser':               'M12 2c-3.5 2.5-5 6-5 9a5 5 0 0010 0c0-3-1.5-6.5-5-9z',
-  'Balcony':              'M3 21h18M5 21V9l7-6 7 6v12M9 21v-6h6v6',
-  'Terrace':              'M3 21h18M5 21V9l7-6 7 6v12M9 21v-6h6v6',
-  'Garden':               'M12 22V12M12 12C12 7 7 3 7 3s0 5 5 9M12 12c0-5 5-9 5-9s0 5-5 9M5 22h14',
-  'Club House':           'M3 21h18M5 21V7l7-5 7 5v14M9 21v-5h6v5',
-  'Intercom':             'M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z',
-  'Water Supply':         'M12 2C6 8 4 12 4 15a8 8 0 0016 0c0-3-2-7-8-13z',
-  'Rainwater Harvesting': 'M12 2C6 8 4 12 4 15a8 8 0 0016 0c0-3-2-7-8-13z',
-  'Water Purifier':       'M12 2C6 8 4 12 4 15a8 8 0 0016 0c0-3-2-7-8-13zM9 15h6',
-  'Water Tank':           'M3 10h18M3 10a2 2 0 012-2h14a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2v-9zm4-2V5a5 5 0 0110 0v3',
-  'Play Area':            'M12 2a5 5 0 015 5v1h2a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2v-8a2 2 0 012-2h2V7a5 5 0 015-5z',
-  'Jogging Track':        'M13 4a1 1 0 11-2 0 1 1 0 012 0zM5 20l4-9 3 3 3-6 4 12',
-  'Visitor Parking':      'M5 17H3a2 2 0 01-2-2V9l2-4h14l2 4v6a2 2 0 01-2 2h-2m-8 0a2 2 0 100 4 2 2 0 000-4zm8 0a2 2 0 100 4 2 2 0 000-4z',
-  'Fire Safety':          'M12 2c0 0-6 5-6 10a6 6 0 0012 0c0-5-6-10-6-10zM9 12a3 3 0 106 0',
-  'Laundry':              'M3 3h18a2 2 0 012 2v14a2 2 0 01-2 2H3a2 2 0 01-2-2V5a2 2 0 012-2zm9 5a5 5 0 100 10A5 5 0 0012 8z',
-  'TV':                   'M33 3H3a2 2 0 00-2 2v12a2 2 0 002 2h4l-2 3h10l-2-3h4a2 2 0 002-2V5a2 2 0 00-2-2zM8 17h8',
-  'Fridge':               'M5 3h14a2 2 0 012 2v16a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm0 7h14M8 7v3',
-  'Sofa':                 'M3 10a4 4 0 014-4h10a4 4 0 014 4v4H3v-4zm-1 4h20v3H2v-3zm2 3v2m16-2v2',
-  'Bed':                  'M2 4v16M2 8h20M22 4v16M2 16h20M6 8v8M10 8v8',
-  'Wardrobe':             'M4 3h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1zm8 0v18M9 10h2m4 0h2',
-  'Dining Table':         'M3 10h18M3 10v4M21 10v4M7 14v4M17 14v4',
-  'Microwave':            'M3 5h18a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V7a2 2 0 012-2zm12 2v10h4V7h-4zm-1.5 5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z',
-  'Solar Panel':          'M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12M9 12a3 3 0 106 0 3 3 0 00-6 0',
-  'EV Charging':          'M5 8h14M5 8a2 2 0 01-2-2V5l2-2h12l2 2v1a2 2 0 01-2 2M5 8l1 8h12l1-8M9 12h6M12 12v4',
-  'Air Cooler':           'M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07M12 8a4 4 0 010 8',
+  'WiFi':                 Wifi,
+  'Parking':              SquareParking,
+  'AC':                   Wind,
+  'Lift':                 ArrowUpDown,
+  'Gym':                  Dumbbell,
+  'CCTV':                 Camera,
+  'Power Backup':         Zap,
+  'Kitchen':              CookingPot,
+  'Washing Machine':      WashingMachine,
+  'Pet Friendly':         PawPrint,
+  'Security Guard':       ShieldCheck,
+  'Swimming Pool':        Waves,
+  'Gas Pipeline':         Flame,
+  'Piped Gas':            Flame,
+  'Gated Security':       ShieldCheck,
+  'Hot Water':            Droplet,
+  'Geyser':               Droplet,
+  'Balcony':              DoorOpen,
+  'Terrace':              DoorOpen,
+  'Garden':               Trees,
+  'Club House':           Building2,
+  'Intercom':             PhoneCall,
+  'Water Supply':         Droplets,
+  'Rainwater Harvesting': CloudRain,
+  'Water Purifier':       Filter,
+  'Water Tank':           Container,
+  'Play Area':            Baby,
+  'Jogging Track':        Footprints,
+  'Visitor Parking':      SquareParking,
+  'Fire Safety':          ShieldAlert,
+  'Laundry':              WashingMachine,
+  'TV':                   Tv,
+  'Fridge':               Refrigerator,
+  'Sofa':                 Sofa,
+  'Bed':                  Bed,
+  'Wardrobe':             DoorClosed,
+  'Dining Table':         UtensilsCrossed,
+  'Microwave':            Microwave,
+  'Solar Panel':          Sun,
+  'EV Charging':          BatteryCharging,
+  'Air Cooler':           Fan,
 }
 
-const FALLBACK = 'M20 6L9 17l-5-5'
+const FALLBACK = HelpCircle
 
 export function AmenityIcon({ name, size = 14 }) {
-  return (
-    <svg
-      width={size} height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d={ICONS[name] ?? FALLBACK} />
-    </svg>
-  )
+  const Icon = ICONS[name] ?? FALLBACK
+  return <Icon size={size} strokeWidth={1.9} />
 }

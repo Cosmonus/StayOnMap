@@ -1,40 +1,20 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { User, Camera, Globe, Eye, EyeOff, Lock, Bell, Save, Shield, Trash2 } from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { userService } from '@services/user.service'
 import { subscribeToPush, unsubscribeFromPush, registerServiceWorker } from '@services/push.service'
 import { toast } from '@components/common/Toaster'
 import { authService } from '@services/auth.service'
 
-function Icon({ d, className = 'w-4 h-4' }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d={d} />
-    </svg>
-  )
-}
+const ICONS = { user: User, camera: Camera, globe: Globe, eye: Eye, eyeOff: EyeOff, lock: Lock, bell: Bell, save: Save, shield: Shield, trash: Trash2 }
 
-const ICONS = {
-  user:    'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z',
-  camera:  'M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z M12 17a4 4 0 100-8 4 4 0 000 8z',
-  globe:   'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M2 12h20 M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z',
-  eye:     'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 15a3 3 0 100-6 3 3 0 000 6z',
-  eyeOff:  'M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24 M1 1l22 22',
-  lock:    'M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2z M7 11V7a5 5 0 0110 0v4',
-  bell:    'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9',
-  save:    'M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z M17 21v-8H7v8 M7 3v5h8',
-  shield:  'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
-  trash:   'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6',
-  pin:     'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z M12 13a3 3 0 100-6 3 3 0 000 6z',
-}
-
-function Card({ icon, title, children, danger, className = '' }) {
+function Card({ icon: IconComp, title, children, danger, className = '' }) {
   return (
     <div className={`rounded-2xl border p-5 ${danger ? 'bg-red-50 border-red-200' : 'bg-white border-slate-100'} ${className}`}>
       <div className="flex items-center gap-2.5 mb-4">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${danger ? 'bg-red-100 text-red-500' : 'bg-slate-100 text-slate-500'}`}>
-          <Icon d={icon} className="w-4 h-4" />
+          <IconComp className="w-4 h-4" strokeWidth={1.8} />
         </div>
         <h2 className={`text-sm font-bold ${danger ? 'text-red-700' : 'text-slate-900'}`}>{title}</h2>
       </div>
@@ -73,7 +53,7 @@ function Toggle({ checked, onChange, label, description, disabled }) {
   )
 }
 
-function VisOpt({ value, current, onChange, icon, label }) {
+function VisOpt({ value, current, onChange, icon: IconComp, label }) {
   const sel = current === value
   return (
     <button
@@ -82,7 +62,7 @@ function VisOpt({ value, current, onChange, icon, label }) {
       className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl border transition-all text-left ${sel ? 'border-[#111111] bg-slate-50' : 'border-slate-100 hover:border-slate-200'}`}
     >
       <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${sel ? 'bg-[#111111] text-white' : 'bg-slate-100 text-slate-400'}`}>
-        <Icon d={icon} className="w-3.5 h-3.5" />
+        <IconComp className="w-3.5 h-3.5" strokeWidth={1.8} />
       </div>
       <span className={`text-sm font-medium ${sel ? 'text-slate-900' : 'text-slate-600'}`}>{label}</span>
       {sel && <span className="ml-auto text-[10px] font-bold text-slate-400 uppercase tracking-wide">Active</span>}
@@ -238,7 +218,7 @@ export default function SettingsPanel() {
           disabled={saving}
           className="flex items-center gap-1.5 px-4 py-2 bg-[#111111] text-white text-sm font-semibold rounded-xl hover:bg-[#2a2a2a] transition-colors disabled:opacity-60"
         >
-          <Icon d={ICONS.save} className="w-3.5 h-3.5" />
+          <Save className="w-3.5 h-3.5" strokeWidth={1.8} />
           {saving ? 'Saving...' : 'Save'}
         </button>
       </div>
@@ -262,7 +242,7 @@ export default function SettingsPanel() {
                 disabled={uploading}
                 className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/40 flex items-center justify-center transition-colors"
               >
-                <Icon d={ICONS.camera} className="w-4 h-4 text-white opacity-0 group-hover:opacity-100" />
+                <Camera className="w-4 h-4 text-white opacity-0 group-hover:opacity-100" strokeWidth={1.8} />
               </button>
               <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatar} className="hidden" />
             </div>

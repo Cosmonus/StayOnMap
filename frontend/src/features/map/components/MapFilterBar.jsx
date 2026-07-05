@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { ChevronDown, Search } from 'lucide-react'
 import { useFilterStore } from '@store/filterStore'
 import { useMapStore } from '@store/mapStore'
 import { CITIES } from '@/config/cities'
@@ -66,9 +67,7 @@ function SelectField({ value, options, onChange }) {
         className="h-9 flex items-center gap-1.5 pl-3 pr-2.5 rounded-full border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-slate-400 transition-colors"
       >
         {selected?.label}
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        <ChevronDown size={12} color="#94a3b8" strokeWidth={2.5} className={`shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && createPortal(
@@ -171,9 +170,7 @@ export default function MapFilterBar() {
         aria-label="Search rentals"
         className="w-10 h-10 rounded-full bg-brand-600 hover:bg-brand-700 flex items-center justify-center text-white shrink-0 transition-colors"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-        </svg>
+        <Search size={16} strokeWidth={2.5} />
       </button>
     </div>
   )

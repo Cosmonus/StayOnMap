@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Search, X } from 'lucide-react'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
 import PropertyPopup from './PropertyPopup'
@@ -128,9 +129,7 @@ export function FilterBody({ draft, setDraft, activeFilterCount, onApply, onRese
           onClick={onApply}
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-colors duration-150 active:scale-[0.98]"
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
+          <Search size={13} strokeWidth={2.5} />
           {draft.city ? `Show in ${draft.city}` : 'Show matches'}
         </button>
       </div>
@@ -151,9 +150,7 @@ function SheetHeader({ title, onClose }) {
           onClick={onClose}
           className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
+          <X size={16} strokeWidth={2.2} />
         </button>
       </div>
     </>
@@ -237,9 +234,7 @@ export default function MapRightPanel({ topClass = 'top-32', contained = false }
             className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-white rounded-2xl border border-slate-200 shadow-lg text-sm font-semibold text-slate-700 active:scale-[0.97] transition-transform"
             style={PANEL_SHADOW}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
+            <Search size={15} strokeWidth={2} />
             Filters
             {activeFilterCount > 0 && (
               <span className="w-5 h-5 rounded-full bg-brand-600 text-white text-[10px] font-bold flex items-center justify-center">

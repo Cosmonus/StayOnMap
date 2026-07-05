@@ -1,19 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  Calendar, CircleCheck, Clipboard, CircleX, RefreshCw, Flag, SquarePen,
+  ShieldCheck, TriangleAlert, MessageCircle, Bell, Check,
+} from 'lucide-react'
 import { notificationService } from '@services/notification.service'
 
 // ── Icon configs (same as NotificationBell) ─────────────────────────────────
 const TYPE_CONFIG = {
-  APPOINTMENT_REQUEST:     { bg: 'bg-brand-50',   iconBg: 'bg-brand-100',   iconColor: 'text-brand-600',   icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-  APPOINTMENT_ACCEPTED:    { bg: 'bg-emerald-50',  iconBg: 'bg-emerald-100',  iconColor: 'text-emerald-600',  icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-  APPOINTMENT_STATUS:      { bg: 'bg-slate-50',    iconBg: 'bg-slate-100',    iconColor: 'text-slate-600',    icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
-  APPOINTMENT_REJECTED:    { bg: 'bg-red-50',      iconBg: 'bg-red-100',      iconColor: 'text-red-600',      icon: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z' },
-  APPOINTMENT_RESCHEDULED: { bg: 'bg-amber-50',    iconBg: 'bg-amber-100',    iconColor: 'text-amber-600',    icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' },
-  REPORT_SUBMITTED:        { bg: 'bg-orange-50',   iconBg: 'bg-orange-100',   iconColor: 'text-orange-600',   icon: 'M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9' },
-  REPORT_UPDATE:           { bg: 'bg-slate-50',    iconBg: 'bg-slate-100',    iconColor: 'text-slate-600',    icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z' },
-  VERIFICATION_UPDATE:     { bg: 'bg-brand-50',    iconBg: 'bg-brand-100',    iconColor: 'text-brand-600',    icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
-  TRUST_ALERT:             { bg: 'bg-amber-50',    iconBg: 'bg-amber-100',    iconColor: 'text-amber-600',    icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
-  MESSAGE:                 { bg: 'bg-brand-50',    iconBg: 'bg-brand-100',    iconColor: 'text-brand-600',    icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' },
-  SYSTEM:                  { bg: 'bg-slate-50',    iconBg: 'bg-slate-100',    iconColor: 'text-slate-600',    icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
+  APPOINTMENT_REQUEST:     { bg: 'bg-brand-50',   iconBg: 'bg-brand-100',   iconColor: 'text-brand-600',   icon: Calendar },
+  APPOINTMENT_ACCEPTED:    { bg: 'bg-emerald-50',  iconBg: 'bg-emerald-100',  iconColor: 'text-emerald-600',  icon: CircleCheck },
+  APPOINTMENT_STATUS:      { bg: 'bg-slate-50',    iconBg: 'bg-slate-100',    iconColor: 'text-slate-600',    icon: Clipboard },
+  APPOINTMENT_REJECTED:    { bg: 'bg-red-50',      iconBg: 'bg-red-100',      iconColor: 'text-red-600',      icon: CircleX },
+  APPOINTMENT_RESCHEDULED: { bg: 'bg-amber-50',    iconBg: 'bg-amber-100',    iconColor: 'text-amber-600',    icon: RefreshCw },
+  REPORT_SUBMITTED:        { bg: 'bg-orange-50',   iconBg: 'bg-orange-100',   iconColor: 'text-orange-600',   icon: Flag },
+  REPORT_UPDATE:           { bg: 'bg-slate-50',    iconBg: 'bg-slate-100',    iconColor: 'text-slate-600',    icon: SquarePen },
+  VERIFICATION_UPDATE:     { bg: 'bg-brand-50',    iconBg: 'bg-brand-100',    iconColor: 'text-brand-600',    icon: ShieldCheck },
+  TRUST_ALERT:             { bg: 'bg-amber-50',    iconBg: 'bg-amber-100',    iconColor: 'text-amber-600',    icon: TriangleAlert },
+  MESSAGE:                 { bg: 'bg-brand-50',    iconBg: 'bg-brand-100',    iconColor: 'text-brand-600',    icon: MessageCircle },
+  SYSTEM:                  { bg: 'bg-slate-50',    iconBg: 'bg-slate-100',    iconColor: 'text-slate-600',    icon: Bell },
 }
 
 const FALLBACK = TYPE_CONFIG.SYSTEM
@@ -99,9 +103,7 @@ export default function NotificationCenter() {
             onClick={() => markAll()}
             className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-emerald-600 bg-emerald-50 rounded-xl hover:bg-emerald-100 transition-colors"
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
+            <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
             Mark all as read
           </button>
         )}
@@ -111,9 +113,7 @@ export default function NotificationCenter() {
       {notifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-            <svg className="w-7 h-7 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
+            <Bell className="w-7 h-7 text-slate-300" strokeWidth={1.5} />
           </div>
           <h2 className="text-lg font-bold text-slate-700 mb-1">No notifications</h2>
           <p className="text-sm text-slate-400 max-w-xs">When someone shows interest in your property, books or cancels an appointment, you&apos;ll see it here.</p>
@@ -137,6 +137,7 @@ export default function NotificationCenter() {
 
 function NotificationRow({ n, onMark }) {
   const cfg = TYPE_CONFIG[n.type] ?? FALLBACK
+  const CfgIcon = cfg.icon
 
   return (
     <button
@@ -147,9 +148,7 @@ function NotificationRow({ n, onMark }) {
     >
       {/* Icon */}
       <div className={`w-11 h-11 rounded-full ${cfg.iconBg} flex items-center justify-center shrink-0 mt-0.5`}>
-        <svg className={`w-5 h-5 ${cfg.iconColor}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d={cfg.icon} />
-        </svg>
+        <CfgIcon className={`w-5 h-5 ${cfg.iconColor}`} strokeWidth={1.8} />
       </div>
 
       {/* Content */}

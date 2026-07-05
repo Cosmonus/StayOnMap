@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Calendar } from 'lucide-react'
 import { appointmentService } from '@services/appointment.service'
 import { toast } from '@components/common/Toaster'
 
@@ -53,9 +54,7 @@ function EmptyState({ message }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
-        <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
+        <Calendar size={20} strokeWidth={1.8} />
       </div>
       <p className="text-sm font-semibold text-slate-700 mb-0.5">No appointments</p>
       <p className="text-xs text-slate-400 max-w-[240px]">{message}</p>

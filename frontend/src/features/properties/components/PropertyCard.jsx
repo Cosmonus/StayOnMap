@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Heart, Home, MapPin } from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
 import { savedService } from '@services/saved.service'
@@ -21,11 +22,7 @@ const TYPE_LABEL = {
 }
 
 function HeartIcon({ filled }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill={filled ? '#ef4444' : 'none'} stroke={filled ? '#ef4444' : 'white'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-    </svg>
-  )
+  return <Heart size={18} fill={filled ? '#ef4444' : 'none'} stroke={filled ? '#ef4444' : 'white'} strokeWidth={2} />
 }
 
 export default function PropertyCard({ property, isSaved: initialSaved = false }) {
@@ -82,9 +79,7 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="#cbd5e1">
-              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-            </svg>
+            <Home size={40} stroke="#cbd5e1" strokeWidth={1.5} />
           </div>
         )}
 
@@ -159,9 +154,7 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
         {/* Location + posted age — pinned to bottom */}
         <div className="flex items-center justify-between gap-2 mt-auto pt-1">
           <p className="text-xs text-slate-400 flex items-center gap-1 min-w-0">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" className="shrink-0">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-            </svg>
+            <MapPin size={9} fill="currentColor" stroke="none" className="shrink-0" />
             <span className="truncate">{property.city}</span>
           </p>
           {postedAge && (

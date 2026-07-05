@@ -1,6 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  ArrowLeft, Share2, Heart, MapPin, ChevronLeft, ChevronRight, X, LayoutGrid,
+  Building2, Compass, Calendar, Users, Check, ImageOff, SearchX, Loader2,
+  MessageSquare, Phone, Mail, Lock, Map as MapIcon, Copy, CircleCheckBig,
+  ChefHat, User, UserPlus, PawPrint, Cigarette, Wine, Clock, MessageCircleMore,
+} from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { propertyService } from '@services/property.service'
 import { formatRent, formatCurrency, imgUrl } from '@utils/format'
@@ -77,34 +83,6 @@ function rentBenchmarkLabel(rent, benchmark) {
   }
 }
 
-// ── SVG Icons (inline, no deps) ──────────────────────────────────────────────
-function Icon({ d, className = 'w-4 h-4', strokeWidth = '1.8' }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-      <path d={d} />
-    </svg>
-  )
-}
-
-const ICONS = {
-  back:     'M19 12H5M12 5l-7 7 7 7',
-  share:    'M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13',
-  heart:    'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z',
-  pin:      'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z',
-  pinDot:   'M15 11a3 3 0 11-6 0 3 3 0 016 0z',
-  chevL:    'M15 18l-6-6 6-6',
-  chevR:    'M9 18l6-6-6-6',
-  close:    'M18 6L6 18M6 6l12 12',
-  grid:     'M4 6h16M4 12h16M4 18h16',
-  area:     'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
-  floor:    'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16M3 21h18M9 7h1M9 11h1M9 15h1M14 7h1M14 11h1M14 15h1',
-  compass:  'M12 2L12 22M2 12L22 12',
-  calendar: 'M8 7V3M16 7V3M3 11h18M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z',
-  users:    'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75',
-  check:    'M20 6L9 17l-5-5',
-  x:        'M18 6L6 18M6 6l12 12',
-}
-
 // ── Image Lightbox ──────────────────────────────────────────────────────────
 function Lightbox({ images, startIndex, onClose }) {
   const [idx, setIdx] = useState(startIndex)
@@ -129,7 +107,7 @@ function Lightbox({ images, startIndex, onClose }) {
         onClick={onClose}
         className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
       >
-        <Icon d={ICONS.close} className="w-5 h-5 text-white" strokeWidth="2" />
+        <X className="w-5 h-5 text-white" strokeWidth={2} />
       </button>
 
       {/* Counter */}
@@ -152,13 +130,13 @@ function Lightbox({ images, startIndex, onClose }) {
             onClick={(e) => { e.stopPropagation(); setIdx(i => (i - 1 + len) % len) }}
             className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
           >
-            <Icon d={ICONS.chevL} className="w-5 h-5 text-white" strokeWidth="2.5" />
+            <ChevronLeft className="w-5 h-5 text-white" strokeWidth={2.5} />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); setIdx(i => (i + 1) % len) }}
             className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
           >
-            <Icon d={ICONS.chevR} className="w-5 h-5 text-white" strokeWidth="2.5" />
+            <ChevronRight className="w-5 h-5 text-white" strokeWidth={2.5} />
           </button>
         </>
       )}
@@ -190,7 +168,7 @@ function ImageGallery({ images, onOpenLightbox }) {
     return (
       <div className="aspect-video bg-slate-100 rounded-2xl flex items-center justify-center">
         <div className="text-center text-slate-300">
-          <svg className="w-16 h-16 mx-auto mb-2" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+          <ImageOff className="w-16 h-16 mx-auto mb-2" strokeWidth={1.5} />
           <p className="text-sm">No photos available</p>
         </div>
       </div>
@@ -247,13 +225,13 @@ function ImageGallery({ images, onOpenLightbox }) {
               onClick={() => setMobileIdx(i => (i - 1 + list.length) % list.length)}
               className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center"
             >
-              <Icon d={ICONS.chevL} className="w-4 h-4 text-white" strokeWidth="2.5" />
+              <ChevronLeft className="w-4 h-4 text-white" strokeWidth={2.5} />
             </button>
             <button
               onClick={() => setMobileIdx(i => (i + 1) % list.length)}
               className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center"
             >
-              <Icon d={ICONS.chevR} className="w-4 h-4 text-white" strokeWidth="2.5" />
+              <ChevronRight className="w-4 h-4 text-white" strokeWidth={2.5} />
             </button>
             <div className="absolute bottom-3 right-4 bg-black/50 text-white text-xs font-medium px-2.5 py-1 rounded-full">
               {mobileIdx + 1} / {list.length}
@@ -275,12 +253,12 @@ function SectionCard({ id, title, children, className = '' }) {
   )
 }
 
-function DetailRow({ icon, label, value }) {
+function DetailRow({ icon: IconComp, label, value }) {
   if (!value) return null
   return (
     <div className="flex items-center gap-3 py-3 border-b border-slate-50 last:border-0">
       <div className="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
-        <Icon d={icon} className="w-4 h-4 text-slate-500" />
+        <IconComp className="w-4 h-4 text-slate-500" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs text-slate-400 leading-none mb-0.5">{label}</p>
@@ -339,7 +317,7 @@ function InterestedPeoplePanel({ propertyId }) {
     return (
       <div className="text-center py-8">
         <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
-          <Icon d={ICONS.users} className="w-5 h-5 text-slate-400" />
+          <Users className="w-5 h-5 text-slate-400" />
         </div>
         <p className="text-sm font-medium text-slate-600">No interest yet</p>
         <p className="text-xs text-slate-400 mt-1">People who request visits will appear here.</p>
@@ -400,14 +378,9 @@ function InterestedPeoplePanel({ propertyId }) {
                 title="Message this person"
               >
                 {chattingId === apt.id ? (
-                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                  </svg>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-                  </svg>
+                  <MessageSquare className="w-4 h-4" strokeWidth={1.8} />
                 )}
               </button>
             </div>
@@ -417,16 +390,14 @@ function InterestedPeoplePanel({ propertyId }) {
               <div className="px-4 pb-4 pt-1 border-t border-slate-50 space-y-3">
                 {/* Interest info */}
                 <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <Icon d={ICONS.calendar} className="w-3.5 h-3.5" />
+                  <Calendar className="w-3.5 h-3.5" />
                   <span>Requested for {date} at {apt.requestedTime}</span>
                 </div>
 
                 {/* Mobile number */}
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                    <svg className="w-3.5 h-3.5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
-                    </svg>
+                    <Phone className="w-3.5 h-3.5 text-emerald-600" strokeWidth={2} />
                   </div>
                   <a href={`tel:${apt.contactNumber}`} className="text-sm font-medium text-slate-800 hover:text-brand-600 transition-colors no-underline">
                     +91 {apt.contactNumber}
@@ -444,10 +415,7 @@ function InterestedPeoplePanel({ propertyId }) {
                 {/* Email */}
                 {tenant.email && (
                   <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                      <polyline points="22,6 12,13 2,6" />
-                    </svg>
+                    <Mail className="w-3.5 h-3.5" strokeWidth={1.8} />
                     <span>{tenant.email}</span>
                   </div>
                 )}
@@ -545,10 +513,7 @@ function LoginGate({ onLogin }) {
   return (
     <div className="text-center py-6">
       <div className="w-14 h-14 rounded-2xl bg-brand-50 flex items-center justify-center mx-auto mb-4">
-        <svg className="w-7 h-7 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-          <path d="M7 11V7a5 5 0 0110 0v4" />
-        </svg>
+        <Lock className="w-7 h-7 text-brand-600" strokeWidth={1.8} />
       </div>
       <h3 className="text-base font-bold text-slate-800 mb-1">Sign in to contact the owner</h3>
       <p className="text-sm text-slate-400 mb-5 max-w-[240px] mx-auto">
@@ -645,9 +610,7 @@ function PropertyLocationMap({ lat, lng }) {
           rel="noreferrer"
           className="relative z-10 flex items-center gap-1.5 px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-xl transition-colors"
         >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6-3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-          </svg>
+          <MapIcon className="w-3.5 h-3.5" strokeWidth={2.5} />
           Directions
         </a>
       </div>
@@ -741,7 +704,7 @@ export default function PropertyPage() {
     return (
       <Shell>
         <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-24">
-          <svg className="w-16 h-16 mb-4 text-slate-200" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+          <SearchX className="w-16 h-16 mb-4 text-slate-200" strokeWidth={1.5} />
           <p className="text-lg font-semibold text-slate-700">Property not found</p>
           <p className="text-sm mt-1">This listing may have been removed or is no longer available.</p>
           <button onClick={() => navigate(-1)} className="mt-6 px-5 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors">
@@ -826,7 +789,7 @@ export default function PropertyPage() {
             onClick={() => navigate(-1)}
             className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
           >
-            <Icon d={ICONS.back} className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline">Back to properties</span>
             <span className="sm:hidden">Back</span>
           </button>
@@ -835,16 +798,14 @@ export default function PropertyPage() {
               onClick={handleShare}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200 transition-all"
             >
-              <Icon d={ICONS.share} className="w-4 h-4" />
+              <Share2 className="w-4 h-4" strokeWidth={1.8} />
               {copied ? 'Copied!' : 'Share'}
             </button>
             <button
               onClick={() => user ? saveMutation.mutate(!saved) : openLoginModal()}
               className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all border ${saved ? 'bg-red-50 text-red-600 border-red-200' : 'text-slate-600 hover:bg-white hover:shadow-sm border-transparent hover:border-slate-200'}`}
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d={ICONS.heart} />
-              </svg>
+              <Heart className="w-4 h-4" fill={saved ? 'currentColor' : 'none'} strokeWidth={1.8} />
               {saved ? 'Saved' : 'Save'}
             </button>
           </div>
@@ -875,15 +836,13 @@ export default function PropertyPage() {
                   className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 text-[11px] font-mono font-semibold text-slate-500 hover:bg-slate-200 transition-colors cursor-pointer"
                 >
                   {property.displayId}
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                  <Copy size={10} strokeWidth={2.5} />
                 </button>
               )}
 
               {/* Location */}
               <div className="flex items-start gap-1.5 text-slate-500">
-                <svg className="w-4 h-4 mt-0.5 shrink-0 text-brand-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d={ICONS.pin} /><path d={ICONS.pinDot} />
-                </svg>
+                <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-brand-500" strokeWidth={2} />
                 <p className="text-sm leading-snug">
                   {property.address}, {property.city}, {property.state}
                   {property.pincode ? ` — ${property.pincode}` : ''}
@@ -939,12 +898,12 @@ export default function PropertyPage() {
             {(property.area || floorLabel || property.facingDirection || property.availableFrom || property.leaseDuration || property.occupancyLimit) && (
               <SectionCard title="Property details">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-                  <DetailRow icon={ICONS.area}     label="Built-up Area"     value={property.area ? `${Number(property.area).toLocaleString('en-IN')} sq.ft` : null} />
-                  <DetailRow icon={ICONS.floor}    label="Floor"             value={floorLabel} />
-                  <DetailRow icon={ICONS.compass}  label="Facing Direction"  value={property.facingDirection ? property.facingDirection.charAt(0) + property.facingDirection.slice(1).toLowerCase() : null} />
-                  <DetailRow icon={ICONS.calendar} label="Available From"    value={property.availableFrom ? new Date(property.availableFrom).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null} />
-                  <DetailRow icon={ICONS.calendar} label="Minimum Lease"     value={property.leaseDuration ? `${property.leaseDuration} months` : null} />
-                  <DetailRow icon={ICONS.users}    label="Max Occupancy"     value={property.occupancyLimit ? `${property.occupancyLimit} persons` : null} />
+                  <DetailRow icon={LayoutGrid} label="Built-up Area"     value={property.area ? `${Number(property.area).toLocaleString('en-IN')} sq.ft` : null} />
+                  <DetailRow icon={Building2}  label="Floor"             value={floorLabel} />
+                  <DetailRow icon={Compass}    label="Facing Direction"  value={property.facingDirection ? property.facingDirection.charAt(0) + property.facingDirection.slice(1).toLowerCase() : null} />
+                  <DetailRow icon={Calendar}   label="Available From"    value={property.availableFrom ? new Date(property.availableFrom).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null} />
+                  <DetailRow icon={Calendar}   label="Minimum Lease"     value={property.leaseDuration ? `${property.leaseDuration} months` : null} />
+                  <DetailRow icon={Users}      label="Max Occupancy"     value={property.occupancyLimit ? `${property.occupancyLimit} persons` : null} />
                 </div>
               </SectionCard>
             )}
@@ -985,9 +944,7 @@ export default function PropertyPage() {
             {/* Zero Brokerage banner */}
             {!property.brokerage && (
               <div className="px-4 py-3 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-2.5">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>
-                </svg>
+                <CircleCheckBig width={18} height={18} color="#059669" strokeWidth={1.9} className="shrink-0" />
                 <div>
                   <p className="text-sm font-semibold text-emerald-700">Zero Brokerage</p>
                   <p className="text-xs text-emerald-600/70">Connect directly with the owner — no middlemen fees</p>
@@ -1000,25 +957,21 @@ export default function PropertyPage() {
               <SectionCard id="rules" title="House rules">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {[
-                    { icon: 'M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3', label: 'Non-veg Cooking', allowed: property.rules.nonVegAllowed   },
-                    { icon: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z',               label: 'Bachelors',       allowed: property.rules.bachelorAllowed },
-                    { icon: 'M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9zM13 2v7h7',                       label: 'Visitors',        allowed: property.rules.visitorsAllowed },
-                    { icon: 'M10 5.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm7 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM4 9.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm15 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM12 10c-4 0-7 3-7 6.5 0 2 1.5 3.5 7 3.5s7-1.5 7-3.5C19 13 16 10 12 10z', label: 'Pets', allowed: property.rules.petsAllowed },
-                    { icon: 'M18 8h1a4 4 0 010 8h-1M2 8h16v4M6 1v3M10 1v3M14 1v3M6 20v-8',                         label: 'Smoking',         allowed: property.rules.smokingAllowed  },
-                    { icon: 'M17 8h1a4 4 0 010 8h-1M3 8h14v9a4 4 0 01-4 4H7a4 4 0 01-4-4V8zM9 2v3M12 2v3M15 2v3',  label: 'Alcohol',         allowed: property.rules.alcoholAllowed  },
+                    { icon: ChefHat,   label: 'Non-veg Cooking', allowed: property.rules.nonVegAllowed   },
+                    { icon: User,      label: 'Bachelors',       allowed: property.rules.bachelorAllowed },
+                    { icon: UserPlus,  label: 'Visitors',        allowed: property.rules.visitorsAllowed },
+                    { icon: PawPrint,  label: 'Pets',            allowed: property.rules.petsAllowed     },
+                    { icon: Cigarette, label: 'Smoking',         allowed: property.rules.smokingAllowed  },
+                    { icon: Wine,      label: 'Alcohol',         allowed: property.rules.alcoholAllowed  },
                   ].map(r => (
                     <div
                       key={r.label}
                       className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border ${r.allowed ? 'bg-emerald-50 border-emerald-100' : 'bg-slate-50 border-slate-100'}`}
                     >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={r.allowed ? '#059669' : '#94a3b8'} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                        <path d={r.icon} />
-                      </svg>
+                      <r.icon width={15} height={15} color={r.allowed ? '#059669' : '#94a3b8'} strokeWidth={1.9} className="shrink-0" />
                       <span className={`text-sm font-medium flex-1 ${r.allowed ? 'text-slate-800' : 'text-slate-400'}`}>{r.label}</span>
                       <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${r.allowed ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          {r.allowed ? <path d="M20 6L9 17l-5-5" /> : <path d="M18 6L6 18M6 6l12 12" />}
-                        </svg>
+                        {r.allowed ? <Check width={10} height={10} color="white" strokeWidth={3} /> : <X width={10} height={10} color="white" strokeWidth={3} />}
                       </div>
                     </div>
                   ))}
@@ -1037,9 +990,7 @@ export default function PropertyPage() {
                     )}
                     {property.rules.curfewTime && (
                       <div className="flex items-center gap-2.5 px-4 py-3 bg-amber-50 rounded-xl border border-amber-100">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                          <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-                        </svg>
+                        <Clock width={15} height={15} color="#d97706" strokeWidth={1.9} className="shrink-0" />
                         <span className="text-sm font-medium text-amber-800">Curfew at {property.rules.curfewTime}</span>
                       </div>
                     )}
@@ -1069,9 +1020,7 @@ export default function PropertyPage() {
                     </p>
                     <div className="flex flex-wrap items-center gap-1.5 mt-2">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[11px] font-semibold rounded-full border border-emerald-100">
-                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
+                        <Check className="w-3 h-3" strokeWidth={2.5} />
                         Direct owner — no brokerage
                       </span>
                       {property.owner.ownerTrustScore && property.owner.ownerTrustScore.level !== 'UNRATED' && (
@@ -1117,9 +1066,7 @@ export default function PropertyPage() {
               <div className="bg-white rounded-2xl border border-slate-100 p-5">
                 <h3 className="text-sm font-bold text-slate-800 mb-3">Location</h3>
                 <div className="flex items-start gap-2">
-                  <svg className="w-4 h-4 mt-0.5 shrink-0 text-brand-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d={ICONS.pin} /><path d={ICONS.pinDot} />
-                  </svg>
+                  <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-brand-500" strokeWidth={2} />
                   <div>
                     <p className="text-sm text-slate-700 leading-snug">{property.address}</p>
                     <p className="text-xs text-slate-400 mt-1">
@@ -1186,9 +1133,7 @@ export default function PropertyPage() {
                           }}
                           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-100 text-slate-700 font-semibold text-sm hover:bg-slate-200 transition-colors"
                         >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                          </svg>
+                          <MessageCircleMore className="w-4 h-4" strokeWidth={2} />
                           Chat with owner
                         </button>
                       </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { MapPin, ChevronDown, Search, Check } from 'lucide-react'
 import { CITIES } from '@/config/cities'
 import { usePlatformStats } from '@hooks/usePlatformStats'
 
@@ -63,9 +64,7 @@ export default function CityDropdown({ value, onChange }) {
         ].join(' ')}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill={value ? '#f4511e' : '#94a3b8'} className="shrink-0">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-          </svg>
+          <MapPin size={13} fill={value ? '#f4511e' : '#94a3b8'} stroke="none" className="shrink-0" />
           <div className="text-left min-w-0">
             {selectedCity ? (
               <>
@@ -77,13 +76,11 @@ export default function CityDropdown({ value, onChange }) {
             )}
           </div>
         </div>
-        <svg
+        <ChevronDown
+          size={14}
+          strokeWidth={2.5}
           className={`shrink-0 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-          width="14" height="14" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        />
       </button>
 
       {open && createPortal(
@@ -95,9 +92,7 @@ export default function CityDropdown({ value, onChange }) {
         >
           <div className="p-2 border-b border-slate-100">
             <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-slate-50 border border-slate-200 focus-within:border-[#111111] transition">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-              </svg>
+              <Search size={12} stroke="#94a3b8" strokeWidth={2} className="shrink-0" />
               <input
                 autoFocus
                 type="text"
@@ -119,11 +114,7 @@ export default function CityDropdown({ value, onChange }) {
               ].join(' ')}
             >
               <span>All Cities</span>
-              {!value && (
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-              )}
+              {!value && <Check size={13} strokeWidth={2.5} />}
             </button>
 
             {Object.entries(groupedFiltered).map(([state, cities]) => (
@@ -144,18 +135,12 @@ export default function CityDropdown({ value, onChange }) {
                       ].join(' ')}
                     >
                       <div className="flex items-center gap-2">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill={isSelected ? '#f4511e' : '#cbd5e1'} className="shrink-0">
-                          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                        </svg>
+                        <MapPin size={11} fill={isSelected ? '#f4511e' : '#cbd5e1'} stroke="none" className="shrink-0" />
                         <span className={`text-sm ${isSelected ? 'font-semibold' : 'font-medium'}`}>{city.name}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-slate-400">{isLoading ? '…' : `${byCity[city.name] ?? 0} listings`}</span>
-                        {isSelected && (
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f4511e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="20 6 9 17 4 12"/>
-                          </svg>
-                        )}
+                        {isSelected && <Check size={13} stroke="#f4511e" strokeWidth={2.5} />}
                       </div>
                     </button>
                   )

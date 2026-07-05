@@ -1,3 +1,4 @@
+import { X, Filter } from 'lucide-react'
 import { useFilterStore } from '@store/filterStore'
 import { countActiveFilters } from '@features/search/utils/filter.helpers'
 
@@ -91,9 +92,7 @@ export default function CategoryChips() {
                     onClick={resetFilters}
                     className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors"
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
+                    <X size={12} strokeWidth={2.5} />
                     Clear
                   </button>
                 </>
@@ -104,11 +103,7 @@ export default function CategoryChips() {
           {/* Filters button */}
           <div className="shrink-0 pl-4 border-l border-slate-100 py-3">
             <button className="relative flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-slate-700 border border-slate-200 rounded-full hover:border-slate-400 hover:bg-slate-50 transition-all">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="4" y1="6" x2="20" y2="6" />
-                <line x1="8" y1="12" x2="16" y2="12" />
-                <line x1="10" y1="18" x2="14" y2="18" />
-              </svg>
+              <Filter size={14} strokeWidth={2} />
               Filters
               {filterCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-brand-600 text-white text-[9px] font-bold">

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Check, Plus } from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { verificationService } from '@services/verification.service'
 import { availabilityService } from '@services/availability.service'
@@ -106,7 +107,7 @@ function DoneScreen({ category, onListAnother, onGoToListings }) {
     <div className="max-w-md mx-auto text-center py-12">
       <div className="w-16 h-16 rounded-full bg-brand-50 mx-auto mb-6 flex items-center justify-center">
         <div className="w-11 h-11 rounded-full bg-brand-600 flex items-center justify-center">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+          <Check size={22} color="#fff" strokeWidth={2.6} />
         </div>
       </div>
       <h1 className="font-display font-bold text-2xl text-slate-900 tracking-tight">Your listing is submitted</h1>
@@ -154,7 +155,7 @@ function ListingsOverview({ onAdd, onView, onOfferLease }) {
           onClick={onAdd}
           className="shrink-0 flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-all bg-[#111111]"
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 4v16m8-8H4" /></svg>
+          <Plus size={15} strokeWidth={2.2} />
           Add listing
         </button>
       </div>

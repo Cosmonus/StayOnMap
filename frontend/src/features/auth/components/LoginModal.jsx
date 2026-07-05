@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { X, Phone, MapPin, Eye, EyeOff } from 'lucide-react'
 import { authService } from '@services/auth.service'
 import { useAuth } from '../hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
@@ -188,9 +189,7 @@ export default function LoginModal() {
               onClick={handleClose}
               className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-slate-100"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
+              <X size={14} color="#64748b" strokeWidth={2.5} />
             </button>
           </div>
 
@@ -237,9 +236,7 @@ export default function LoginModal() {
               resetSent ? (
                 <div className="space-y-5 text-center">
                   <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.64A2 2 0 012 .18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
-                    </svg>
+                    <Phone size={24} color="#059669" strokeWidth={2} />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-slate-800">Check your inbox</p>
@@ -285,8 +282,8 @@ export default function LoginModal() {
                     tabIndex={-1}
                   >
                     {showPw
-                      ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                      : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      ? <EyeOff size={16} strokeWidth={2} />
+                      : <Eye size={16} strokeWidth={2} />
                     }
                   </button>
                 </InputField>
@@ -318,9 +315,7 @@ export default function LoginModal() {
             ) : waitlisted ? (
               <div className="space-y-5 text-center">
                 <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                  </svg>
+                  <MapPin size={24} color="#059669" strokeWidth={2} />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-800">You&apos;re on the waitlist</p>
@@ -375,8 +370,8 @@ export default function LoginModal() {
                     tabIndex={-1}
                   >
                     {showPw
-                      ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                      : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      ? <EyeOff size={16} strokeWidth={2} />
+                      : <Eye size={16} strokeWidth={2} />
                     }
                   </button>
                 </InputField>

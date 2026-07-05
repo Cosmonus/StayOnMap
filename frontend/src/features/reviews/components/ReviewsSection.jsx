@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { Star, X, Check, Reply, SquarePen } from 'lucide-react'
 import { reviewService } from '@services/review.service'
 import { toast } from '@components/common/Toaster'
 import { useAuth } from '@features/auth/hooks/useAuth'
@@ -37,9 +38,7 @@ function StarDisplay({ value, max = 5, size = 'sm' }) {
   return (
     <div className="flex gap-0.5">
       {Array.from({ length: max }).map((_, i) => (
-        <svg key={i} className={`${w} ${i < Math.round(value) ? 'text-amber-400' : 'text-slate-200'}`} fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-        </svg>
+        <Star key={i} className={`${w} ${i < Math.round(value) ? 'text-amber-400' : 'text-slate-200'}`} fill="currentColor" stroke="none" />
       ))}
     </div>
   )
@@ -52,9 +51,7 @@ function RatingRow({ label, value, onChange }) {
       <div className="flex gap-0.5 shrink-0">
         {[1, 2, 3, 4, 5].map(n => (
           <button key={n} type="button" onClick={() => onChange(n)} className="p-0.5 transition-transform hover:scale-110 active:scale-95">
-            <svg className={`w-6 h-6 transition-colors ${n <= value ? 'text-amber-400' : 'text-slate-200 hover:text-amber-200'}`} fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-            </svg>
+            <Star className={`w-6 h-6 transition-colors ${n <= value ? 'text-amber-400' : 'text-slate-200 hover:text-amber-200'}`} fill="currentColor" stroke="none" />
           </button>
         ))}
       </div>
@@ -89,9 +86,7 @@ function WriteReviewForm({ propertyId, onCancel, onSuccess }) {
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold text-slate-800">Write a review</p>
         <button onClick={onCancel} className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 transition-colors">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <X className="w-3.5 h-3.5" strokeWidth={2.5} />
         </button>
       </div>
 
@@ -133,11 +128,7 @@ function WriteReviewForm({ propertyId, onCancel, onSuccess }) {
             }`}
           >
             <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${form[key] ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}`}>
-              {form[key] && (
-                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              )}
+              {form[key] && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
             </div>
             {label}
           </button>
@@ -227,9 +218,7 @@ function ReviewCard({ review, propertyId, isOwner, ownerInfo }) {
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <span className="text-sm font-bold text-slate-800">{avg.toFixed(1)}</span>
-          <svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-          </svg>
+          <Star className="w-4 h-4 text-amber-400" fill="currentColor" stroke="none" />
         </div>
       </div>
 
@@ -237,9 +226,7 @@ function ReviewCard({ review, propertyId, isOwner, ownerInfo }) {
 
       {review.recommend !== undefined && (
         <div className={`mt-2.5 inline-flex items-center gap-1.5 text-xs font-medium ${review.recommend ? 'text-emerald-600' : 'text-red-500'}`}>
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            {review.recommend ? <path d="M5 13l4 4L19 7" /> : <path d="M6 18L18 6M6 6l12 12" />}
-          </svg>
+          {review.recommend ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> : <X className="w-3.5 h-3.5" strokeWidth={2.5} />}
           {review.recommend ? 'Recommends this property' : 'Does not recommend'}
         </div>
       )}
@@ -268,9 +255,7 @@ function ReviewCard({ review, propertyId, isOwner, ownerInfo }) {
 
       {isOwner && !review.ownerResponse && !replyOpen && (
         <button onClick={() => setReplyOpen(true)} className="mt-3 flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-brand-600 transition-colors">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-          </svg>
+          <Reply className="w-3.5 h-3.5" strokeWidth={2} />
           Reply as owner
         </button>
       )}
@@ -349,9 +334,7 @@ export default function ReviewsSection({ propertyId, isOwner = false, ownerInfo 
               : 'border-slate-200 text-slate-600 hover:border-brand-400 hover:text-brand-600 hover:bg-brand-50'
           }`}
         >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
+          <SquarePen className="w-3.5 h-3.5" strokeWidth={2.5} />
           {user ? (writeOpen ? 'Cancel' : 'Write a review') : 'Sign in to review'}
         </button>
       </div>

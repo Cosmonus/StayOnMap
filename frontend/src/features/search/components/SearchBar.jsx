@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Search } from 'lucide-react'
 import { useMapStore } from '@store/mapStore'
 
 const SCRIPT_ID  = 'gm-places-script'
@@ -63,15 +64,7 @@ export default function SearchBar() {
   return (
     <div className="fixed top-20 left-1/2 -translate-x-1/2 z-30 w-full max-w-sm px-4">
       <div className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-full shadow-float border border-slate-200 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition-all duration-150">
-        <svg
-          width="15" height="15" viewBox="0 0 24 24"
-          fill="none" stroke="#94a3b8" strokeWidth="2.5"
-          strokeLinecap="round" strokeLinejoin="round"
-          className="shrink-0"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.35-4.35" />
-        </svg>
+        <Search size={15} stroke="#94a3b8" strokeWidth={2.5} className="shrink-0" />
         <input
           ref={inputRef}
           type="text"

@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  Shield, Trash2, Home, Droplet, Volume2, Wifi, SquareParking, Bus, Wrench,
+  User, ShieldCheck, Zap, ArrowRight,
+} from 'lucide-react'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
 
@@ -26,10 +30,6 @@ function Reveal({ children, className = '', delay = 0 }) {
   )
 }
 
-function SvgIcon({ d, className = 'w-5 h-5' }) {
-  return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>
-}
-
 /* ─── Live badge ────────────────────────────────────── */
 function LiveBadge() {
   return (
@@ -45,18 +45,18 @@ function LiveBadge() {
 
 /* ─── Data ──────────────────────────────────────────── */
 const SIGNALS = [
-  { weight: 20, label: 'Safety',        icon: 'M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z' },
-  { weight: 15, label: 'Cleanliness',   icon: 'M8 3v4M16 3v4M4 11h16M5 7h14a1 1 0 011 1v11a2 2 0 01-2 2H6a2 2 0 01-2-2V8a1 1 0 011-1z' },
-  { weight: 15, label: 'Neighborhood',  icon: 'M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6' },
-  { weight: 7,  label: 'Water supply',  icon: 'M12 3s6 6.5 6 11a6 6 0 01-12 0c0-4.5 6-11 6-11z' },
-  { weight: 7,  label: 'Noise levels',  icon: 'M11 5L6 9H2v6h4l5 4V5z M19 8a5 5 0 010 8' },
-  { weight: 7,  label: 'Internet',      icon: 'M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01' },
-  { weight: 7,  label: 'Parking',       icon: 'M9 17V7h4a3 3 0 010 6H9 M3 21h18M4 21V7a2 2 0 012-2h9l5 5v11' },
-  { weight: 7,  label: 'Transport',     icon: 'M8 19v2m8-2v2M5 17h14a1 1 0 001-1v-6a4 4 0 00-4-4H8a4 4 0 00-4 4v6a1 1 0 001 1z' },
-  { weight: 7,  label: 'Maintenance',   icon: 'M14.7 6.3a5 5 0 00-6.4 6.4L3 18v3h3l5.3-5.3a5 5 0 006.4-6.4l-3.3 3.3-2-2z' },
-  { weight: 7,  label: 'Owner conduct', icon: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z' },
-  { weight: 7,  label: 'Security',      icon: 'M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z M9 12l2 2 4-4' },
-  { weight: 6,  label: 'Power backup',  icon: 'M13 2L4 14h6l-1 8 9-12h-6z' },
+  { weight: 20, label: 'Safety',        icon: Shield },
+  { weight: 15, label: 'Cleanliness',   icon: Trash2 },
+  { weight: 15, label: 'Neighborhood',  icon: Home },
+  { weight: 7,  label: 'Water supply',  icon: Droplet },
+  { weight: 7,  label: 'Noise levels',  icon: Volume2 },
+  { weight: 7,  label: 'Internet',      icon: Wifi },
+  { weight: 7,  label: 'Parking',       icon: SquareParking },
+  { weight: 7,  label: 'Transport',     icon: Bus },
+  { weight: 7,  label: 'Maintenance',   icon: Wrench },
+  { weight: 7,  label: 'Owner conduct', icon: User },
+  { weight: 7,  label: 'Security',      icon: ShieldCheck },
+  { weight: 6,  label: 'Power backup',  icon: Zap },
 ]
 
 const PIPELINE = [
@@ -123,12 +123,12 @@ export default function IntelligencePage() {
         </Reveal>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {SIGNALS.map(({ weight, label, icon }, i) => (
+          {SIGNALS.map(({ weight, label, icon: SignalIcon }, i) => (
             <Reveal key={label} delay={i * 0.04}>
               <div className="flex flex-col gap-3 p-5 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md transition-all h-full">
                 <div className="flex items-center justify-between">
                   <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center">
-                    <SvgIcon d={icon} className="w-4 h-4 text-slate-600" />
+                    <SignalIcon className="w-4 h-4 text-slate-600" strokeWidth={1.8} />
                   </div>
                   <span className="text-[11px] font-bold text-brand-600">{weight}%</span>
                 </div>
@@ -210,7 +210,7 @@ export default function IntelligencePage() {
               </p>
               <Link to="/properties" className="inline-flex items-center gap-2 px-7 py-3.5 bg-white hover:bg-slate-100 text-[#111111] text-sm font-semibold rounded-xl transition-colors no-underline">
                 Browse Rentals
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.5} />
               </Link>
             </div>
           </div>

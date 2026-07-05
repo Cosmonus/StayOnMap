@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Heart } from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
 import { savedService } from '@services/saved.service'
@@ -20,14 +21,6 @@ const GRADIENTS = [
   'bg-gradient-to-tr from-brand-700 via-brand-600 to-brand-400',
   'bg-gradient-to-b  from-teal-500 via-brand-500 to-brand-700',
 ]
-
-function HeartIcon({ filled }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill={filled ? '#ef4444' : 'none'} stroke={filled ? '#ef4444' : '#524e47'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-    </svg>
-  )
-}
 
 export default function MapPropertyCard({ property, index = 0, isSaved: initialSaved = false }) {
   const navigate = useNavigate()
@@ -92,7 +85,7 @@ export default function MapPropertyCard({ property, index = 0, isSaved: initialS
           aria-label={saved ? 'Remove from saved' : 'Save property'}
           className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm hover:scale-110 active:scale-95 transition-transform duration-150"
         >
-          <HeartIcon filled={saved} />
+          <Heart size={16} fill={saved ? '#ef4444' : 'none'} stroke={saved ? '#ef4444' : '#524e47'} />
         </button>
 
         <p className="absolute bottom-2.5 left-4 right-4 text-white font-bold text-lg leading-tight truncate drop-shadow-sm">

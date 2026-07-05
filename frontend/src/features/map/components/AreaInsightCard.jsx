@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { X } from 'lucide-react'
 import { useMapStore } from '@store/mapStore'
 import { areasService } from '@services/areas.service'
 import { formatCurrency } from '@utils/format'
@@ -93,9 +94,7 @@ export default function AreaInsightCard() {
             className="shrink-0 text-slate-400 hover:text-slate-600 mt-0.5"
             aria-label="Close"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X className="w-4 h-4" strokeWidth={2} />
           </button>
         </div>
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
+import { Check, LoaderCircle, MessageSquare } from 'lucide-react'
 import { appointmentService } from '@services/appointment.service'
 import { chatService } from '@services/chat.service'
 import { toast } from '@components/common/Toaster'
@@ -71,9 +72,7 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
       <div className="space-y-3">
         <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex items-start gap-3">
           <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
+            <Check size={16} color="#059669" strokeWidth={2.5} />
           </div>
           <div>
             <p className="text-sm font-bold text-emerald-800">Visit requested!</p>
@@ -91,14 +90,9 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
             className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-brand-600 text-white text-xs font-bold hover:bg-brand-700 transition-colors disabled:opacity-60"
           >
             {chatLoading ? (
-              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-              </svg>
+              <LoaderCircle className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-              </svg>
+              <MessageSquare size={14} strokeWidth={2} />
             )}
             Message the owner
           </button>
