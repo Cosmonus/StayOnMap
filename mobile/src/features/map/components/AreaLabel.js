@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius } from '@theme/spacing'
+import { useMarkerRedraw } from '../hooks/useMarkerRedraw'
 
 // Mirrors frontend/src/features/map/hooks/useAreaLabels.js's dominant-trait
 // dot coloring — same thresholds, same priority order.
@@ -15,14 +16,20 @@ function dominantColor(area) {
 }
 
 export default function AreaLabel({ area, onPress }) {
+  // Was hardcoded tracksViewChanges={false} — never gave react-native-maps a
+  // chance to snapshot the custom pill, so it rendered as the default red
+  // pin. Content is static per area, so a constant key is enough — this
+  // just needs to track long enough to paint once on mount.
+  const { tracksViewChanges, onLayout } = useMarkerRedraw(area.slug)
+
   return (
     <Marker
       coordinate={{ latitude: area.lat, longitude: area.lng }}
       onPress={onPress}
-      tracksViewChanges={false}
+      tracksViewChanges={tracksViewChanges}
       anchor={{ x: 0.5, y: 0.5 }}
     >
-      <View style={styles.pill}>
+      <View style={styles.pill} onLayout={onLayout}>
         <View style={[styles.dot, { backgroundColor: dominantColor(area) }]} />
         <Text style={styles.text} numberOfLines={1}>{area.name}</Text>
       </View>

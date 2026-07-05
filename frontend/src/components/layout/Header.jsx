@@ -299,7 +299,7 @@ export default function Header() {
 
   function handleBecomeHost() {
     setHostMode(true)
-    navigate('/list')
+    navigate('/user?tab=dashboard')
   }
 
   function handleSwitchToTraveling() {

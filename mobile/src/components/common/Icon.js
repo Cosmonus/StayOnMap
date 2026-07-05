@@ -1,3 +1,4 @@
+import { View } from 'react-native'
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 
 // Semantic name -> [IconFamily, glyph]. Feather is the default (closest to
@@ -93,9 +94,32 @@ const ICONS = {
   security: [MaterialCommunityIcons, 'security'],
 }
 
+// A soft duotone/"puffy" treatment — a larger, faint copy of the same glyph
+// sits behind the crisp one, same color at both layers. Gives every icon a
+// bit of dimension without swapping icon families or losing the ability to
+// tint per state (active tab, danger red, brand green) — callers are
+// unaffected, still just `<Icon name size color />`.
+// Skipped below 18px: at badge/inline sizes the halo just reads as mush.
+const HALO_MIN_SIZE = 18
+const HALO_SCALE = 1.35
+const HALO_OPACITY = 0.16
+
 export default function Icon({ name, size = 22, color = '#1E293B' }) {
   const entry = ICONS[name]
   if (!entry) return null
   const [Family, glyph] = entry
-  return <Family name={glyph} size={size} color={color} />
+
+  if (size < HALO_MIN_SIZE) return <Family name={glyph} size={size} color={color} />
+
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Family
+        name={glyph}
+        size={Math.round(size * HALO_SCALE)}
+        color={color}
+        style={{ position: 'absolute', opacity: HALO_OPACITY }}
+      />
+      <Family name={glyph} size={size} color={color} />
+    </View>
+  )
 }

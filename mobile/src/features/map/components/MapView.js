@@ -4,22 +4,20 @@ import NativeMapView, { PROVIDER_GOOGLE, Circle } from 'react-native-maps'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
 import { useMapPins } from '../hooks/useMapPins'
-import { useAreaProfiles } from '../hooks/useAreaProfiles'
 import { useMetroNetwork } from '../hooks/useMetroNetwork'
 import { useItCorridors } from '../hooks/useItCorridors'
 import { computeClusters, getExpansionZoom } from '../utils/clustering'
 import { zoomToDelta, regionToZoom } from '../utils/regionZoom'
+import { nearestCity } from '../utils/nearestCity'
 import { CITIES } from '@config/cities'
 import PropertyPin from './PropertyPin'
 import ClusterMarker from './ClusterMarker'
-import AreaLabel from './AreaLabel'
 import MetroLines from './MetroLines'
 
 const IT_CORRIDOR_COLORS = { major: '#2563eb', moderate: '#60a5fa' }
 
 const CITY_ZOOM = 12
 const AREA_ZOOM = 15
-const AREA_LABEL_SHOW_ZOOM = 11 // matches web's useAreaLabels.js SHOW_ZOOM
 
 // Keep place/locality and road names so users can orient themselves, but
 // hide business POI clutter (shops, restaurants) and transit icons — our
@@ -44,7 +42,6 @@ export default function MapView({ onPinPress, onDeselect }) {
   const searchedPlace = useMapStore((s) => s.searchedPlace)
   const selectPin = useMapStore((s) => s.selectPin)
   const clearSelection = useMapStore((s) => s.clearSelection)
-  const setSelectedAreaSlug = useMapStore((s) => s.setSelectedAreaSlug)
   const setFlyTo = useMapStore((s) => s.setFlyTo)
   const setRegion = useMapStore((s) => s.setRegion)
 
@@ -52,9 +49,15 @@ export default function MapView({ onPinPress, onDeselect }) {
   const area = useFilterStore((s) => s.filters.area)
   const activeLayers = useMapStore((s) => s.activeLayers)
 
-  const { data: areaProfiles = [] } = useAreaProfiles()
-  const { data: metroNetwork } = useMetroNetwork(city)
-  const { data: itCorridors } = useItCorridors(city)
+  // Metro/IT-corridor data is fetched per-city from the backend (unlike web,
+  // which bundles all cities client-side and filters locally) — without a
+  // fallback, the layer pills would do nothing until the user explicitly
+  // picks a city filter. Fall back to whichever supported city is nearest
+  // the current viewport so the toggle always has something to show.
+  const effectiveCity = city || nearestCity(region.latitude, region.longitude)
+
+  const { data: metroNetwork } = useMetroNetwork(effectiveCity)
+  const { data: itCorridors } = useItCorridors(effectiveCity)
 
   // Every programmatic camera move funnels through here instead of calling
   // animateToRegion directly. react-native-maps' onRegionChangeComplete is
@@ -134,7 +137,6 @@ export default function MapView({ onPinPress, onDeselect }) {
   }, [pins, bounds, region])
 
   const zoom = regionToZoom(region)
-  const visibleAreaLabels = zoom >= AREA_LABEL_SHOW_ZOOM ? areaProfiles : []
 
   function handleClusterPress(feature) {
     const [lng, lat] = feature.geometry.coordinates
@@ -151,10 +153,6 @@ export default function MapView({ onPinPress, onDeselect }) {
     }
     selectPin(id)
     onPinPress?.(id)
-  }
-
-  function handleAreaLabelPress(areaProfile) {
-    setSelectedAreaSlug(areaProfile.slug === selectedAreaSlug ? null : areaProfile.slug)
   }
 
   // Tapping empty map area (not a marker) deselects whichever card is open —
@@ -218,14 +216,6 @@ export default function MapView({ onPinPress, onDeselect }) {
             />
           )
         })}
-
-        {visibleAreaLabels.map((areaProfile) => (
-          <AreaLabel
-            key={areaProfile.slug}
-            area={areaProfile}
-            onPress={() => handleAreaLabelPress(areaProfile)}
-          />
-        ))}
       </NativeMapView>
     </View>
   )
