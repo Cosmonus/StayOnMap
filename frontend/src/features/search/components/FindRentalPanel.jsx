@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Search } from 'lucide-react'
 import { useFilterStore } from '@store/filterStore'
 import { useMapStore } from '@store/mapStore'
 import { CITIES } from '@/config/cities'
@@ -128,9 +129,7 @@ export default function FindRentalPanel({ side = 'left', floating = true }) {
           onClick={handleApply}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#111111] hover:bg-[#2a2a2a] text-white text-sm font-semibold transition-colors duration-150"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
+          <Search size={14} strokeWidth={2.5} />
           {draft.city ? `Show rentals in ${draft.city}` : 'Show matching rentals'}
         </button>
       </div>

@@ -1,102 +1,115 @@
-import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
+import {
+  Compass, Search, MessageCircle, User, Heart, Star,
+  Share2, Camera, Send, Plus, Pencil, Trash2, Repeat2, LogOut,
+  ChevronLeft, ChevronRight, ChevronDown, X, SlidersHorizontal, Layers, List, LayoutGrid, Map,
+  Check, CircleCheck, TriangleAlert, Info, Bell, Shield, ShieldCheck, Clock, Calendar, Eye,
+  Users, Phone, Mail, Lock, Key, Settings,
+  House, Building2, MapPin, BedDouble, Ruler, IndianRupee, Sofa, Package, Wifi,
+  Image as ImageIcon, FileText, Link2, ArrowRight,
+  ArrowUpDown, Dumbbell, WavesLadder, Video, Zap, Droplet, Wind, Refrigerator, WashingMachine,
+  TreePine, DoorClosed, SquareParking,
+} from 'lucide-react-native'
 
-// Semantic name -> [IconFamily, glyph]. Feather is the default (closest to
-// the PDF's thin stroke-outline style); MaterialCommunityIcons fills gaps
-// Feather has no glyph for (bed, rupee, sofa, ruler, shield-check); Ionicons
-// supplies true filled/outline pairs for things that need both states (heart, star).
+// Semantic name -> lucide-react-native component. Lucide is a minimal,
+// consistent thin-stroke icon set (the spiritual successor to Feather,
+// which this file used previously) — one family for everything, no more
+// mixing Feather/Ionicons/MaterialCommunityIcons per icon.
 const ICONS = {
   // Tab bar
-  explore: [Feather, 'compass'],
-  search: [Feather, 'search'],
-  saved: [Ionicons, 'heart-outline'],
-  chat: [Feather, 'message-circle'],
-  profile: [Feather, 'user'],
+  explore: Compass,
+  search: Search,
+  saved: Heart,
+  chat: MessageCircle,
+  profile: User,
 
   // Save / favourite
-  heart: [Ionicons, 'heart-outline'],
-  heartFilled: [Ionicons, 'heart'],
+  heart: Heart,
+  heartFilled: Heart,
 
   // Ratings
-  star: [Ionicons, 'star'],
-  starOutline: [Ionicons, 'star-outline'],
+  star: Star,
+  starOutline: Star,
 
   // Actions
-  share: [Feather, 'share-2'],
-  camera: [Feather, 'camera'],
-  send: [Feather, 'send'],
-  plus: [Feather, 'plus'],
-  edit: [Feather, 'edit-2'],
-  trash: [Feather, 'trash-2'],
-  compare: [Feather, 'repeat'],
-  logout: [Feather, 'log-out'],
+  share: Share2,
+  camera: Camera,
+  send: Send,
+  plus: Plus,
+  edit: Pencil,
+  trash: Trash2,
+  compare: Repeat2,
+  logout: LogOut,
 
   // Navigation / chrome
-  chevronLeft: [Feather, 'chevron-left'],
-  chevronRight: [Feather, 'chevron-right'],
-  chevronDown: [Feather, 'chevron-down'],
-  close: [Feather, 'x'],
-  filter: [Feather, 'sliders'],
-  layers: [Feather, 'layers'],
-  list: [Feather, 'list'],
-  grid: [Feather, 'grid'],
-  map: [Feather, 'map'],
+  chevronLeft: ChevronLeft,
+  chevronRight: ChevronRight,
+  chevronDown: ChevronDown,
+  close: X,
+  filter: SlidersHorizontal,
+  layers: Layers,
+  list: List,
+  grid: LayoutGrid,
+  map: Map,
 
   // Status / feedback
-  check: [Feather, 'check'],
-  checkCircle: [Feather, 'check-circle'],
-  alertTriangle: [Feather, 'alert-triangle'],
-  info: [Feather, 'info'],
-  bell: [Feather, 'bell'],
-  shield: [Feather, 'shield'],
-  shieldCheck: [MaterialCommunityIcons, 'shield-check'],
-  clock: [Feather, 'clock'],
-  calendar: [Feather, 'calendar'],
-  eye: [Feather, 'eye'],
+  check: Check,
+  checkCircle: CircleCheck,
+  alertTriangle: TriangleAlert,
+  info: Info,
+  bell: Bell,
+  shield: Shield,
+  shieldCheck: ShieldCheck,
+  clock: Clock,
+  calendar: Calendar,
+  eye: Eye,
 
   // People / contact
-  users: [Feather, 'users'],
-  phone: [Feather, 'phone'],
-  mail: [Feather, 'mail'],
-  lock: [Feather, 'lock'],
-  key: [Feather, 'key'],
-  messageCircle: [Feather, 'message-circle'],
-  settings: [Feather, 'settings'],
+  users: Users,
+  phone: Phone,
+  mail: Mail,
+  lock: Lock,
+  key: Key,
+  messageCircle: MessageCircle,
+  settings: Settings,
 
   // Property attributes
-  home: [Feather, 'home'],
-  building: [MaterialCommunityIcons, 'office-building-outline'],
-  mapPin: [Feather, 'map-pin'],
-  bed: [MaterialCommunityIcons, 'bed-outline'],
-  area: [MaterialCommunityIcons, 'ruler-square'],
-  rupee: [MaterialCommunityIcons, 'currency-inr'],
-  sofa: [MaterialCommunityIcons, 'sofa-outline'],
-  box: [Feather, 'package'],
-  wifi: [Feather, 'wifi'],
-  image: [Feather, 'image'],
-  document: [Feather, 'file-text'],
-  link: [Feather, 'link'],
-  arrowRight: [Feather, 'arrow-right'],
+  home: House,
+  building: Building2,
+  mapPin: MapPin,
+  bed: BedDouble,
+  area: Ruler,
+  rupee: IndianRupee,
+  sofa: Sofa,
+  box: Package,
+  wifi: Wifi,
+  image: ImageIcon,
+  document: FileText,
+  link: Link2,
+  arrowRight: ArrowRight,
 
   // Amenities
-  elevator: [MaterialCommunityIcons, 'elevator'],
-  gym: [MaterialCommunityIcons, 'dumbbell'],
-  pool: [MaterialCommunityIcons, 'pool'],
-  cctv: [MaterialCommunityIcons, 'cctv'],
-  power: [MaterialCommunityIcons, 'flash'],
-  water: [MaterialCommunityIcons, 'water'],
-  ac: [MaterialCommunityIcons, 'air-conditioner'],
-  fridge: [MaterialCommunityIcons, 'fridge-outline'],
-  washingMachine: [MaterialCommunityIcons, 'washing-machine'],
-  garden: [MaterialCommunityIcons, 'tree'],
-  gate: [MaterialCommunityIcons, 'gate'],
-  parking: [MaterialCommunityIcons, 'parking'],
-  security: [MaterialCommunityIcons, 'security'],
+  elevator: ArrowUpDown,
+  gym: Dumbbell,
+  pool: WavesLadder,
+  cctv: Video,
+  power: Zap,
+  water: Droplet,
+  ac: Wind,
+  fridge: Refrigerator,
+  washingMachine: WashingMachine,
+  garden: TreePine,
+  gate: DoorClosed,
+  parking: SquareParking,
+  security: ShieldCheck,
 }
 
-export default function Icon({ name, size = 22, color = '#1E293B' }) {
-  const entry = ICONS[name]
-  if (!entry) return null
-  const [Family, glyph] = entry
+// Filled variants — Lucide icons are outline-only by default (fill="none");
+// these two names previously pointed at Ionicons' separate solid glyphs.
+const FILLED_NAMES = new Set(['heartFilled', 'star'])
 
-  return <Family name={glyph} size={size} color={color} />
+export default function Icon({ name, size = 22, color = '#1E293B' }) {
+  const Component = ICONS[name]
+  if (!Component) return null
+
+  return <Component size={size} color={color} fill={FILLED_NAMES.has(name) ? color : 'none'} />
 }

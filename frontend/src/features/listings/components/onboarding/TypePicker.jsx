@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Home, ChevronLeft } from 'lucide-react'
 import { authService } from '@services/auth.service'
 import { toast } from '@components/common/Toaster'
 import { CATEGORIES } from '../../config/onboarding.js'
@@ -20,9 +21,7 @@ export function BecomeHostIntro({ onDone }) {
   return (
     <div className="max-w-lg mx-auto text-center py-10">
       <div className="w-16 h-16 rounded-2xl bg-brand-50 flex items-center justify-center mx-auto mb-6">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6" />
-        </svg>
+        <Home size={28} color="#0284c7" strokeWidth={1.8} />
       </div>
       <h1 className="font-display font-bold text-2xl text-slate-900 tracking-tight mb-3">Become a host on StayOnMap</h1>
       <p className="text-sm text-slate-500 leading-relaxed mb-8">
@@ -90,7 +89,7 @@ export default function TypePicker({ onPick, onBack }) {
           onClick={onBack}
           className="mb-6 flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
+          <ChevronLeft size={14} strokeWidth={2.2} />
           Back to your listings
         </button>
       )}
@@ -117,9 +116,7 @@ export default function TypePicker({ onPick, onBack }) {
             >
               <div className="flex items-start justify-between">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${biz ? 'bg-slate-900' : 'bg-brand-50'}`}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={biz ? '#fff' : '#0284c7'} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6" />
-                  </svg>
+                  <Home size={22} color={biz ? '#fff' : '#0284c7'} strokeWidth={1.7} />
                 </div>
                 <span className={`text-[10px] font-bold tracking-wide px-2 py-1 rounded-full ${biz ? 'bg-slate-900 text-white' : 'bg-brand-50 text-brand-700'}`}>
                   {biz ? 'BUSINESS' : 'FREE'}

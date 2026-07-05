@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { Lock, X, Navigation, Phone, ArrowRight } from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { appointmentService } from '@services/appointment.service'
 import { useMapStore } from '@store/mapStore'
@@ -36,9 +37,7 @@ function LockedRow({ icon, label }) {
         <p className="text-xs text-slate-400 font-medium">{label}</p>
         <p className="text-[10px] text-slate-300 mt-0.5">Request a visit to unlock</p>
       </div>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-      </svg>
+      <Lock size={13} color="#cbd5e1" strokeWidth={2} />
     </div>
   )
 }
@@ -114,9 +113,7 @@ export default function PropertyPopup() {
           onClick={clearSelection}
           className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
+          <X size={14} strokeWidth={2.2} />
         </button>
       </div>
 
@@ -170,11 +167,9 @@ export default function PropertyPopup() {
               rel="noopener noreferrer"
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-50 border border-brand-100 hover:bg-brand-100 transition-colors no-underline"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="3 11 22 2 13 21 11 13 3 11"/>
-              </svg>
+              <Navigation size={16} color="#0284c7" strokeWidth={2} />
               <span className="flex-1 text-xs font-semibold text-brand-700">Get directions</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              <ArrowRight size={12} color="#0284c7" strokeWidth={2.5} />
             </a>
           )}
 
@@ -183,15 +178,13 @@ export default function PropertyPopup() {
               href={`tel:${property.owner.phone}`}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition-colors no-underline"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
-              </svg>
+              <Phone size={15} color="#16a34a" strokeWidth={2} />
               <span className="flex-1 text-xs font-semibold text-emerald-700">{property.owner.phone}</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              <ArrowRight size={12} color="#16a34a" strokeWidth={2.5} />
             </a>
           ) : (
             <LockedRow
-              icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>}
+              icon={<Phone size={15} strokeWidth={2} />}
               label="Owner contact"
             />
           )}
@@ -204,7 +197,7 @@ export default function PropertyPopup() {
             className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-sm font-bold text-white no-underline transition-colors duration-150 active:scale-[0.98]"
           >
             More details
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            <ArrowRight size={13} strokeWidth={2.5} />
           </Link>
         )}
       </div>

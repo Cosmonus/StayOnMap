@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Home } from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { useFilterStore } from '@store/filterStore'
 import PropertyCard from '@features/properties/components/PropertyCard'
@@ -22,9 +23,7 @@ function CardSkeleton() {
 function EmptySlotCard() {
   return (
     <div className="aspect-[4/3] rounded-2xl border border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-center px-3">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-      </svg>
+      <Home size={24} stroke="#cbd5e1" strokeWidth={1.8} />
       <p className="text-xs text-slate-400 leading-snug">More rentals<br />coming soon</p>
     </div>
   )

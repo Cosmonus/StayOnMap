@@ -8,6 +8,10 @@ import {
   CategoryScale, LinearScale, BarElement,
   LineElement, PointElement, Filler,
 } from 'chart.js'
+import {
+  X, ChevronLeft, ChevronRight, Home, MapPin, Users, CircleCheck, ArrowLeft, Copy,
+  ChefHat, User, DoorOpen, PawPrint, Cigarette, Wine, Check, Star, Building2,
+} from 'lucide-react'
 import { adminService } from '@services/admin.service'
 import { AmenityIcon } from '@components/common/AmenityIcon'
 import { googleMapsReady, createHtmlMarker } from '@lib/googleMaps'
@@ -345,9 +349,7 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
           onClick={onClose}
           className="shrink-0 p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
+          <X size={16} />
         </button>
       </div>
 
@@ -366,13 +368,13 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
                     onClick={() => setImgIdx(i => (i - 1 + images.length) % images.length)}
                     className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center"
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    <ChevronLeft size={12} color="white" strokeWidth={2.5} />
                   </button>
                   <button
                     onClick={() => setImgIdx(i => (i + 1) % images.length)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center"
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                    <ChevronRight size={12} color="white" strokeWidth={2.5} />
                   </button>
                   <div className="absolute bottom-2 right-3 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
                     {imgIdx + 1}/{images.length}
@@ -382,7 +384,7 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
             </>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-slate-300">
-              <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+              <Home className="w-10 h-10" />
             </div>
           )}
         </div>
@@ -428,10 +430,7 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
 
           {!isLoading && property?.address && (
             <div className="flex items-start gap-1.5">
-              <svg className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-              </svg>
+              <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" strokeWidth={1.8} />
               <p className="text-xs text-slate-500 leading-snug">
                 {property.address}{property.city ? `, ${property.city}` : ''}{property.state ? `, ${property.state}` : ''}
               </p>
@@ -871,7 +870,7 @@ function ReviewCard({ property, onSelect }) {
           <img src={img} alt="" className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-slate-300">
-            <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            <Home className="w-10 h-10" />
           </div>
         )}
         <span className="absolute top-2 left-2"><PropertyStatusPill status={property.status} size="sm" /></span>
@@ -899,11 +898,11 @@ function ReviewCard({ property, onSelect }) {
         {/* Contacted & Visited stats */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <Users size={13} stroke="#3b82f6" strokeWidth={2} />
             <span className="text-[11px] font-semibold text-blue-700">{contactedSet.size} contacted</span>
           </div>
           <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-green-50">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <CircleCheck size={13} stroke="#22c55e" strokeWidth={2} />
             <span className="text-[11px] font-semibold text-green-700">{visitedCount} visited</span>
           </div>
         </div>
@@ -1008,9 +1007,7 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
             onClick={onBack}
             className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
-            </svg>
+            <ArrowLeft size={16} />
             Back
           </button>
           <div className="w-px h-6 bg-slate-200 shrink-0" />
@@ -1024,7 +1021,7 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
                   className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-[11px] font-mono font-semibold text-slate-500 hover:bg-slate-200 transition-colors"
                 >
                   {property.displayId}
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                  <Copy size={10} strokeWidth={2.5} />
                 </button>
               )}
             </div>
@@ -1056,11 +1053,11 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
                   <>
                     <button onClick={() => setImgIdx(i => (i - 1 + images.length) % images.length)}
                       className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 hover:bg-white shadow flex items-center justify-center">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                      <ChevronLeft size={14} stroke="#334155" strokeWidth={2.5} />
                     </button>
                     <button onClick={() => setImgIdx(i => (i + 1) % images.length)}
                       className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 hover:bg-white shadow flex items-center justify-center">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                      <ChevronRight size={14} stroke="#334155" strokeWidth={2.5} />
                     </button>
                     <div className="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-black/60 text-white text-[11px] font-semibold">
                       {imgIdx + 1} / {images.length}
@@ -1070,7 +1067,7 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
               </>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-slate-300">
-                <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                <Home className="w-12 h-12" />
               </div>
             )}
           </div>
@@ -1168,22 +1165,18 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
             <AdminCard title="House rules">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {[
-                  { icon: 'M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3', label: 'Non-veg Cooking', allowed: property.rules.nonVegAllowed },
-                  { icon: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z',               label: 'Bachelors',       allowed: property.rules.bachelorAllowed },
-                  { icon: 'M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9zM13 2v7h7',                       label: 'Visitors',        allowed: property.rules.visitorsAllowed },
-                  { icon: 'M10 5.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm7 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM4 9.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm15 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM12 10c-4 0-7 3-7 6.5 0 2 1.5 3.5 7 3.5s7-1.5 7-3.5C19 13 16 10 12 10z', label: 'Pets', allowed: property.rules.petsAllowed },
-                  { icon: 'M18 8h1a4 4 0 010 8h-1M2 8h16v4M6 1v3M10 1v3M14 1v3M6 20v-8',                         label: 'Smoking',         allowed: property.rules.smokingAllowed },
-                  { icon: 'M17 8h1a4 4 0 010 8h-1M3 8h14v9a4 4 0 01-4 4H7a4 4 0 01-4-4V8zM9 2v3M12 2v3M15 2v3',  label: 'Alcohol',         allowed: property.rules.alcoholAllowed },
+                  { Icon: ChefHat,   label: 'Non-veg Cooking', allowed: property.rules.nonVegAllowed },
+                  { Icon: User,      label: 'Bachelors',       allowed: property.rules.bachelorAllowed },
+                  { Icon: DoorOpen,  label: 'Visitors',        allowed: property.rules.visitorsAllowed },
+                  { Icon: PawPrint,  label: 'Pets',            allowed: property.rules.petsAllowed },
+                  { Icon: Cigarette, label: 'Smoking',         allowed: property.rules.smokingAllowed },
+                  { Icon: Wine,      label: 'Alcohol',         allowed: property.rules.alcoholAllowed },
                 ].map(r => (
                   <div key={r.label} className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border ${r.allowed ? 'bg-emerald-50 border-emerald-100' : 'bg-slate-50 border-slate-100'}`}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={r.allowed ? '#059669' : '#94a3b8'} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                      <path d={r.icon} />
-                    </svg>
+                    <r.Icon size={15} stroke={r.allowed ? '#059669' : '#94a3b8'} strokeWidth={1.9} className="shrink-0" />
                     <span className={`text-sm font-medium flex-1 ${r.allowed ? 'text-slate-800' : 'text-slate-400'}`}>{r.label}</span>
                     <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${r.allowed ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        {r.allowed ? <path d="M20 6L9 17l-5-5" /> : <path d="M18 6L6 18M6 6l12 12" />}
-                      </svg>
+                      {r.allowed ? <Check size={10} color="white" strokeWidth={3} /> : <X size={10} color="white" strokeWidth={3} />}
                     </div>
                   </div>
                 ))}
@@ -1296,13 +1289,11 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
                         <p className="text-sm font-semibold text-slate-800 truncate">{displayName}</p>
                         <p className="text-xs text-slate-500 truncate mt-0.5">{u.email}</p>
                       </div>
-                      <svg
-                        width="14" height="14" viewBox="0 0 24 24" fill="none"
-                        stroke={isActive ? '#6366f1' : '#94a3b8'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                      <ChevronRight
+                        size={14}
+                        stroke={isActive ? '#6366f1' : '#94a3b8'} strokeWidth={2}
                         className={`shrink-0 transition-transform ${isActive ? 'rotate-90' : ''}`}
-                      >
-                        <path d="M9 18l6-6-6-6" />
-                      </svg>
+                      />
                     </div>
                     <div className="flex items-center gap-2 mt-2.5">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-100 text-[11px] font-semibold text-blue-700">
@@ -1808,9 +1799,7 @@ function AdminReviewCard({ r, onAction, busy }) {
             </span>
             <div className="flex items-center gap-1">
               <span className="text-base font-bold text-slate-800">{score.toFixed(1)}</span>
-              <svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-              </svg>
+              <Star className="w-4 h-4 text-amber-400" fill="currentColor" stroke="none" />
             </div>
           </div>
         </div>
@@ -1822,14 +1811,10 @@ function AdminReviewCard({ r, onAction, busy }) {
             onClick={() => setSearchParams({ tab: 'review-listings', propertyId: r.property.id })}
             className="w-full flex items-center gap-2 bg-slate-50 hover:bg-brand-50 border border-slate-100 hover:border-brand-200 rounded-xl px-3 py-2 transition-colors group text-left"
           >
-            <svg className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
+            <Building2 className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-500 shrink-0" strokeWidth={2} />
             <span className="text-xs font-semibold text-slate-700 group-hover:text-brand-700 truncate flex-1">{r.property.title}</span>
             <span className="text-xs text-slate-400 shrink-0">{r.property.city}</span>
-            <svg className="w-3 h-3 text-slate-300 group-hover:text-brand-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 5l7 7-7 7" />
-            </svg>
+            <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-brand-400 shrink-0" strokeWidth={2} />
           </button>
         )}
 

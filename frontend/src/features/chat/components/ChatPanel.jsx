@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  Check, CheckCheck, Search, MessageCircle, Home, ChevronRight,
+  Paperclip, Smile, Send, SquarePen, ChevronLeft,
+} from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { chatService } from '@services/chat.service'
 import { getSocket, connectSocket } from '@lib/socket'
@@ -43,18 +47,8 @@ function displayName(user) {
 
 // ── Read receipt ticks ──────────────────────────────────────────────────────
 function ReadReceipt({ isRead }) {
-  return (
-    <svg className={`w-3.5 h-3.5 shrink-0 ${isRead ? 'text-white' : 'text-white/50'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      {isRead ? (
-        <>
-          <path d="M2 13l4 4L14 7" />
-          <path d="M9 13l4 4L21 7" />
-        </>
-      ) : (
-        <path d="M5 13l4 4L17 7" />
-      )}
-    </svg>
-  )
+  const cls = `w-3.5 h-3.5 shrink-0 ${isRead ? 'text-white' : 'text-white/50'}`
+  return isRead ? <CheckCheck className={cls} strokeWidth={2.5} /> : <Check className={cls} strokeWidth={2.5} />
 }
 
 // ── Avatar ──────────────────────────────────────────────────────────────────
@@ -73,9 +67,7 @@ function Avatar({ name, url, size = 40, className = '' }) {
 function SearchBar({ value, onChange }) {
   return (
     <div className="relative">
-      <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-        <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-      </svg>
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" strokeWidth={2} />
       <input
         type="text"
         value={value}
@@ -101,9 +93,7 @@ function ConversationList({ conversations, activeId, onSelect, userId, search, o
     return (
       <div className="flex flex-col items-center justify-center flex-1 px-8 text-center">
         <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-          <svg className="w-7 h-7 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
+          <MessageCircle className="w-7 h-7 text-slate-300" strokeWidth={1.5} />
         </div>
         <p className="text-sm font-semibold text-slate-600">No conversations yet</p>
         <p className="text-xs text-slate-400 mt-1 leading-relaxed">Start a chat by visiting a property and clicking &ldquo;Chat with owner&rdquo;</p>
@@ -212,9 +202,7 @@ function ChatHeader({ conversation, userId, typingUser, searchOpen, onToggleSear
         className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${searchOpen ? 'bg-brand-100 text-brand-600' : 'hover:bg-slate-100 text-slate-500'}`}
         title="Search messages"
       >
-        <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-        </svg>
+        <Search className="w-[18px] h-[18px]" strokeWidth={2} />
       </button>
     </div>
   )
@@ -239,7 +227,7 @@ function ChatPropertyCard({ property }) {
           <img src={img} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <svg className="w-6 h-6 text-slate-300" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            <Home className="w-6 h-6 text-slate-300" fill="currentColor" />
           </div>
         )}
       </div>
@@ -268,9 +256,7 @@ function ChatPropertyCard({ property }) {
       </div>
 
       {/* Arrow */}
-      <svg className="w-4 h-4 text-slate-300 shrink-0 group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 18l6-6-6-6" />
-      </svg>
+      <ChevronRight className="w-4 h-4 text-slate-300 shrink-0 group-hover:text-brand-500 transition-colors" strokeWidth={2} />
     </Link>
   )
 }
@@ -403,9 +389,7 @@ function InputBar({ onSend, onTyping, isPending }) {
     <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-100 bg-white px-5 py-3.5 flex items-end gap-3">
       {/* Attachment button */}
       <button type="button" className="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-400 shrink-0 mb-0.5">
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-        </svg>
+        <Paperclip className="w-5 h-5" strokeWidth={2} />
       </button>
 
       {/* Text input */}
@@ -423,9 +407,7 @@ function InputBar({ onSend, onTyping, isPending }) {
 
       {/* Emoji */}
       <button type="button" className="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-400 shrink-0 mb-0.5">
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" />
-        </svg>
+        <Smile className="w-5 h-5" strokeWidth={2} />
       </button>
 
       {/* Send */}
@@ -434,9 +416,7 @@ function InputBar({ onSend, onTyping, isPending }) {
         disabled={!input.trim() || isPending}
         className="w-10 h-10 rounded-full bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 mb-0.5"
       >
-        <svg className="w-4 h-4 -rotate-45" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-        </svg>
+        <Send className="w-4 h-4" fill="currentColor" />
       </button>
     </form>
   )
@@ -448,9 +428,7 @@ function EmptyChat() {
     <div className="flex-1 flex items-center justify-center bg-slate-50/50">
       <div className="text-center">
         <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-5">
-          <svg className="w-9 h-9 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
+          <MessageCircle className="w-9 h-9 text-slate-300" strokeWidth={1.2} />
         </div>
         <p className="text-base font-bold text-slate-600 mb-1">Select a conversation</p>
         <p className="text-sm text-slate-400">Choose from your existing chats on the left</p>
@@ -542,9 +520,7 @@ function ChatWindow({ conversation, conversationId, userId }) {
       {searchOpen && (
         <div className="shrink-0 px-6 py-2.5 border-b border-slate-100 bg-white">
           <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-            </svg>
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" strokeWidth={2} />
             <input
               autoFocus
               type="text"
@@ -622,9 +598,7 @@ export default function ChatPanel() {
             <h1 className="text-xl font-bold text-slate-900">Messages</h1>
             <div className="flex items-center gap-1">
               <button className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-500">
-                <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
+                <SquarePen className="w-[18px] h-[18px]" strokeWidth={2} />
               </button>
             </div>
           </div>
@@ -650,9 +624,7 @@ export default function ChatPanel() {
             onClick={() => setActiveConvo(null)}
             className="md:hidden shrink-0 flex items-center gap-2 px-4 py-3 border-b border-slate-100 text-sm font-medium text-slate-600 hover:bg-slate-50"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
+            <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
             Back to messages
           </button>
         )}

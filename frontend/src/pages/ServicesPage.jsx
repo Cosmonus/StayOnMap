@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { FileText, Wrench, ShieldCheck, Truck, Plus, ArrowRight } from 'lucide-react'
 import SEOMeta from '@components/common/SEOMeta'
 import { toast } from '@components/common/Toaster'
 import { canonical } from '@lib/seo'
@@ -8,30 +9,17 @@ const SERVICES = [
   {
     title: 'Rental agreements',
     body: 'Generate and e-sign legally sound rental agreements in minutes.',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" />
-        <path d="M9 13h6M9 17h4" />
-      </svg>
-    ),
+    icon: <FileText size={22} strokeWidth={1.7} />,
   },
   {
     title: 'Home cleaning & repairs',
     body: 'On-demand cleaning, painting and repair pros — rated by real tenants.',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-      </svg>
-    ),
+    icon: <Wrench size={22} strokeWidth={1.7} />,
   },
   {
     title: 'Tenant verification',
     body: 'Fast, privacy-first identity and background checks for owners.',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" />
-      </svg>
-    ),
+    icon: <ShieldCheck size={22} strokeWidth={1.7} />,
   },
 ]
 
@@ -102,10 +90,7 @@ export default function ServicesPage() {
               />
               <div className="flex items-center justify-between relative z-10">
                 <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="1" y="3" width="15" height="13" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-                    <circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
-                  </svg>
+                  <Truck size={24} color="#fff" strokeWidth={1.6} />
                 </div>
                 <span className="font-mono text-[10px] font-semibold tracking-widest text-white/50">FIRST TO LAUNCH</span>
               </div>
@@ -131,9 +116,7 @@ export default function ServicesPage() {
             <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-7 flex flex-col min-h-[220px]">
               <div className="flex items-start justify-between">
                 <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 text-brand-600 flex items-center justify-center">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
+                  <Plus size={22} strokeWidth={1.7} />
                 </div>
                 <span className="font-mono text-[10px] font-semibold tracking-widest text-slate-400">ROADMAP</span>
               </div>
@@ -185,9 +168,7 @@ export default function ServicesPage() {
               className="inline-flex items-center gap-2 rounded-full border border-slate-200 hover:border-slate-400 text-slate-900 text-sm font-semibold px-6 py-3 no-underline transition-colors"
             >
               Browse rentals on the map
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
+              <ArrowRight size={16} strokeWidth={2.5} />
             </Link>
           </div>
 

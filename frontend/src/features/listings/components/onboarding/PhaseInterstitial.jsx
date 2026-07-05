@@ -1,10 +1,9 @@
-const ART = {
-  1: 'M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6',
-  2: 'M12 2l2.9 6.3L22 9.3l-5 4.7 1.3 6.9L12 17.8 5.7 20.9 7 14 2 9.3l7.1-1z',
-  3: 'M9 12l2 2 4-4M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
-}
+import { Home, Star, ShieldCheck } from 'lucide-react'
+
+const ART = { 1: Home, 2: Star, 3: ShieldCheck }
 
 export default function PhaseInterstitial({ n, title, blurb }) {
+  const Art = ART[n]
   return (
     <div className="flex gap-10 items-center flex-wrap py-5">
       <div className="flex-1 min-w-[260px]">
@@ -14,9 +13,7 @@ export default function PhaseInterstitial({ n, title, blurb }) {
         <p className="text-base text-slate-500 leading-relaxed mt-4 max-w-md">{blurb}</p>
       </div>
       <div className="shrink-0 w-56 h-56 rounded-3xl bg-brand-50 flex items-center justify-center">
-        <svg width="88" height="88" viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
-          {ART[n].split('M').filter(Boolean).map((d, i) => <path key={i} d={`M${d}`} />)}
-        </svg>
+        <Art size={88} color="#0284c7" strokeWidth={1.3} />
       </div>
     </div>
   )

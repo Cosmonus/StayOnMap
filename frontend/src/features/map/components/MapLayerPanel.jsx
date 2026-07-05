@@ -1,3 +1,4 @@
+import { TrainFront, Building2, Droplets, TrafficCone } from 'lucide-react'
 import { useMapStore } from '@store/mapStore'
 
 const LAYERS = [
@@ -22,37 +23,11 @@ const LAYERS = [
 ]
 
 function LayerIcon({ layerKey, color }) {
-  const props = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: '1.8', strokeLinecap: 'round', strokeLinejoin: 'round' }
-  if (layerKey === 'metro') return (
-    <svg {...props}>
-      <rect x="5" y="5" width="14" height="13" rx="2"/>
-      <path d="M5 10h14"/>
-      <circle cx="8.5" cy="14.5" r="1" fill={color} stroke="none"/>
-      <circle cx="15.5" cy="14.5" r="1" fill={color} stroke="none"/>
-      <path d="M8 18l-1.5 2M16 18l1.5 2"/>
-    </svg>
-  )
-  if (layerKey === 'itCorridors') return (
-    <svg {...props}>
-      <path d="M3 21h18M3 8l9-5 9 5M4 8v13M20 8v13M9 21v-6h6v6"/>
-    </svg>
-  )
-  if (layerKey === 'floodZones') return (
-    <svg {...props}>
-      <path d="M12 2v8"/>
-      <path d="M8 6l4-4 4 4"/>
-      <path d="M3 14c1.5-2 3-2 4.5 0s3 2 4.5 0 3-2 4.5 0 3 2 4.5 0"/>
-      <path d="M3 18c1.5-2 3-2 4.5 0s3 2 4.5 0 3-2 4.5 0 3 2 4.5 0"/>
-    </svg>
-  )
-  if (layerKey === 'traffic') return (
-    <svg {...props}>
-      <rect x="8" y="2" width="8" height="20" rx="2"/>
-      <circle cx="12" cy="7"  r="1.8" fill={color} stroke="none"/>
-      <circle cx="12" cy="12" r="1.8" fill={color} stroke="none"/>
-      <circle cx="12" cy="17" r="1.8" fill={color} stroke="none"/>
-    </svg>
-  )
+  const props = { size: 18, color, strokeWidth: 1.8 }
+  if (layerKey === 'metro') return <TrainFront {...props} />
+  if (layerKey === 'itCorridors') return <Building2 {...props} />
+  if (layerKey === 'floodZones') return <Droplets {...props} />
+  if (layerKey === 'traffic') return <TrafficCone {...props} />
   return null
 }
 

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { ArrowRight, Home } from 'lucide-react'
 import MapView from '@features/map/components/MapView'
 import MapLegend from '@features/map/components/MapLegend'
 import AreaInsightCard from '@features/map/components/AreaInsightCard'
@@ -117,7 +118,7 @@ function MapHeroSection() {
           <div className="flex items-center gap-2 flex-wrap mt-7">
             <Link to="/properties" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 transition-colors no-underline">
               Browse rentals
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+              <ArrowRight size={14} strokeWidth={2.5} />
             </Link>
             <button onClick={openLoginModal} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-700 border border-slate-200 hover:border-slate-400 transition-colors">
               List your property
@@ -158,9 +159,7 @@ function MapHeroSection() {
 function EmptySlotCard() {
   return (
     <div className="aspect-[3/4] rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-center px-3">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-      </svg>
+      <Home size={22} stroke="#cbd5e1" strokeWidth={1.8} />
       <p className="text-xs text-slate-400 leading-snug">More rentals<br />coming soon</p>
     </div>
   )
@@ -198,7 +197,7 @@ function FeaturedListings() {
         </div>
         <Link to={viewAllLink} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-white border border-slate-200 text-slate-700 hover:border-slate-400 transition-colors no-underline shrink-0">
           View all
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+          <ArrowRight size={14} strokeWidth={2.5} />
         </Link>
       </div>
 

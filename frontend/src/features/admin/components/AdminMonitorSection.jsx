@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
+import { RefreshCw } from 'lucide-react'
 import { adminService } from '@services/admin.service'
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -443,15 +444,7 @@ export default function AdminMonitorSection() {
           disabled={isLoading}
           className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors"
         >
-          <svg
-            width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            className={isLoading ? 'animate-spin' : ''}
-          >
-            <polyline points="23 4 23 10 17 10" />
-            <polyline points="1 20 1 14 7 14" />
-            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
-          </svg>
+          <RefreshCw size={14} strokeWidth={2} className={isLoading ? 'animate-spin' : ''} />
           Refresh
         </button>
       </div>

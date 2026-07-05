@@ -1,5 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  Shield, Camera, IndianRupee, Clock, Check, Heart, TriangleAlert, Ban,
+  Copy, Lock, User, Wrench, Flag, MessageSquare, FileText, Mail, X, Info, CircleAlert,
+} from 'lucide-react'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
 
@@ -70,31 +74,16 @@ const RULES = {
 }
 
 // ── Icons ───────────────────────────────────────────────────────────
-const ICON_PATHS = {
-  shield:   'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
-  camera:   'M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z M12 17a4 4 0 100-8 4 4 0 000 8z',
-  currency: 'M12 1v22 M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6',
-  clock:    'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M12 6v6l4 2',
-  check:    'M20 6L9 17l-5-5',
-  heart:    'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z',
-  alert:    'M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z M12 9v4 M12 17h.01',
-  block:    'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M4.93 4.93l14.14 14.14',
-  copy:     'M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2 M8 2h8v4H8z',
-  lock:     'M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2z M7 11V7a5 5 0 0110 0v4',
-  user:     'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 11a4 4 0 100-8 4 4 0 000 8z',
-  tool:     'M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z',
-  flag:     'M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z M4 22v-7',
-  chat:     'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
-  doc:      'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8',
-  mail:     'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6',
+const RULE_ICONS = {
+  shield: Shield, camera: Camera, currency: IndianRupee, clock: Clock,
+  check: Check, heart: Heart, alert: TriangleAlert, block: Ban, copy: Copy,
+  lock: Lock, user: User, tool: Wrench, flag: Flag, chat: MessageSquare,
+  doc: FileText, mail: Mail,
 }
 
 function RuleIcon({ name, size = 14, className = '' }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d={ICON_PATHS[name] ?? ICON_PATHS.check} />
-    </svg>
-  )
+  const IconComp = RULE_ICONS[name] ?? Check
+  return <IconComp size={size} className={className} strokeWidth={2} />
 }
 
 // ── Components ──────────────────────────────────────────────────────
@@ -120,11 +109,7 @@ function RuleSection({ title, subtitle, items, type }) {
     <div className={`rounded-xl border p-5 sm:p-6 ${isDo ? 'bg-emerald-50/40 border-emerald-100' : 'bg-red-50/40 border-red-100'}`}>
       <div className="flex items-center gap-2.5 mb-5">
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDo ? 'bg-emerald-500' : 'bg-red-500'}`}>
-          {isDo ? (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          )}
+          {isDo ? <Check size={18} color="white" strokeWidth={3} /> : <X size={18} color="white" strokeWidth={3} />}
         </div>
         <div>
           <h3 className="text-sm font-bold text-slate-800">{title}</h3>
@@ -230,9 +215,7 @@ export default function RulesPage() {
         {/* Summary card */}
         <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 mb-6 flex items-start gap-3">
           <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center shrink-0 mt-0.5">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f4511e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
-            </svg>
+            <Info size={14} color="#f4511e" strokeWidth={2} />
           </div>
           <div>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">In short</p>
@@ -243,9 +226,7 @@ export default function RulesPage() {
         {/* Broker context note */}
         {rules.note && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-6 flex items-start gap-3">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
+            <CircleAlert size={16} color="#d97706" strokeWidth={2} className="shrink-0 mt-0.5" />
             <p className="text-sm text-amber-800 leading-relaxed">{rules.note}</p>
           </div>
         )}
@@ -253,9 +234,7 @@ export default function RulesPage() {
         {/* Lifetime ban warning */}
         {rules.warning && (
           <div className="bg-red-600 rounded-2xl px-5 py-4 mb-6 flex items-start gap-3">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
-              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
+            <TriangleAlert size={18} color="white" strokeWidth={2.5} className="shrink-0 mt-0.5" />
             <div>
               <p className="text-xs font-bold text-white/70 uppercase tracking-wider mb-1">Zero tolerance</p>
               <p className="text-sm text-white font-medium leading-relaxed">{rules.warning}</p>

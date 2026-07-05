@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { ChevronLeft, ChevronRight, ArrowLeft, Calendar, MapPin, Home, Check, X } from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { appointmentService } from '@services/appointment.service'
 import { formatRent, formatCurrency } from '@utils/format'
@@ -40,15 +41,6 @@ const GENDER_LABEL    = { ANY: 'Any Gender', MALE: 'Male Only', FEMALE: 'Female 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const FULL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa']
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function Svg({ d, className = 'w-4 h-4' }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d={d} />
-    </svg>
-  )
-}
 
 function Label({ children }) {
   return <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{children}</p>
@@ -96,12 +88,12 @@ function MiniCalendar({ appointments, selectedDate, onSelect }) {
       <div className="flex items-center justify-between mb-2">
         <button onClick={() => setCursor(new Date(yr, mo - 1, 1))}
           className="w-6 h-6 rounded hover:bg-slate-100 flex items-center justify-center text-slate-400">
-          <Svg d="M15 18l-6-6 6-6" className="w-3 h-3" />
+          <ChevronLeft className="w-3 h-3" />
         </button>
         <span className="text-xs font-bold text-slate-700">{FULL_MONTHS[mo]} {yr}</span>
         <button onClick={() => setCursor(new Date(yr, mo + 1, 1))}
           className="w-6 h-6 rounded hover:bg-slate-100 flex items-center justify-center text-slate-400">
-          <Svg d="M9 18l6-6-6-6" className="w-3 h-3" />
+          <ChevronRight className="w-3 h-3" />
         </button>
       </div>
       <div className="grid grid-cols-7 mb-1">
@@ -142,7 +134,7 @@ function TenantProfile({ appt, onBack, onAction, acting }) {
   return (
     <div>
       <button onClick={onBack} className="flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-slate-700 mb-4">
-        <Svg d="M19 12H5M12 5l-7 7 7 7" className="w-3.5 h-3.5" /> Back
+        <ArrowLeft className="w-3.5 h-3.5" /> Back
       </button>
 
       <div className="flex items-center gap-3 mb-4 p-3 bg-slate-50 rounded-xl">
@@ -300,7 +292,7 @@ function AppointmentSidebar({ propertyId }) {
             ) : dayAppts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center">
                 <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-300 mb-2">
-                  <Svg d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" className="w-5 h-5" />
+                  <Calendar className="w-5 h-5" />
                 </div>
                 <p className="text-xs text-slate-400">
                   {selectedDate ? 'No visits on this date.' : 'No appointments yet.'}
@@ -414,7 +406,7 @@ export default function ListingDetailPage() {
       <header className="sticky top-0 z-30 bg-white border-b border-slate-100 px-4 md:px-6 h-[57px] flex items-center gap-3">
         <button onClick={() => navigate('/user?tab=my-listings')}
           className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors shrink-0">
-          <Svg d="M19 12H5M12 5l-7 7 7 7" className="w-3.5 h-3.5" />
+          <ArrowLeft className="w-3.5 h-3.5" />
           My Listings
         </button>
 
@@ -464,18 +456,18 @@ export default function ListingDetailPage() {
               <img src={images[imgIdx].url} alt="" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-slate-200">
-                <svg className="w-16 h-16" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                <Home className="w-16 h-16" />
               </div>
             )}
             {images.length > 1 && (
               <>
                 <button onClick={() => setImgIdx(i => (i - 1 + images.length) % images.length)}
                   className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center transition-colors">
-                  <Svg d="M15 18l-6-6 6-6" className="w-4 h-4 text-white" />
+                  <ChevronLeft className="w-4 h-4 text-white" />
                 </button>
                 <button onClick={() => setImgIdx(i => (i + 1) % images.length)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center transition-colors">
-                  <Svg d="M9 18l6-6-6-6" className="w-4 h-4 text-white" />
+                  <ChevronRight className="w-4 h-4 text-white" />
                 </button>
                 <span className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
                   {imgIdx + 1}/{images.length}
@@ -514,7 +506,7 @@ export default function ListingDetailPage() {
             {/* Location */}
             {(property.address || property.city) && (
               <div className="flex items-start gap-2 text-sm text-slate-600">
-                <Svg d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z" className="w-4 h-4 shrink-0 mt-0.5 text-slate-400" />
+                <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-slate-400" />
                 <span>
                   {[property.address, property.city, property.state, property.pincode].filter(Boolean).join(', ')}
                   {property.landmark && <span className="text-slate-400"> · Near {property.landmark}</span>}
@@ -611,9 +603,7 @@ export default function ListingDetailPage() {
                       <span className="text-sm shrink-0">{icon}</span>
                       <span className={`text-xs font-medium flex-1 ${v ? 'text-slate-800' : 'text-slate-400'}`}>{label}</span>
                       <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${v ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          {v ? <path d="M20 6L9 17l-5-5" /> : <path d="M18 6L6 18M6 6l12 12" />}
-                        </svg>
+                        {v ? <Check size={10} color="white" strokeWidth={3} /> : <X size={10} color="white" strokeWidth={3} />}
                       </div>
                     </div>
                   ))}

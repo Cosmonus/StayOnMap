@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { TrainFront, Train, Bus } from 'lucide-react'
 import { areasService } from '@services/areas.service'
 import { formatCurrency } from '@utils/format'
 
@@ -36,25 +37,9 @@ function Badge({ bg, text, label }) {
 }
 
 const TRANSIT_ICON = {
-  metro: (
-    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="5" y="2" width="14" height="20" rx="2" />
-      <path d="M12 6h.01M9 16l3 3 3-3M5 12h14" />
-    </svg>
-  ),
-  rail: (
-    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 15l8-8 8 8" />
-      <path d="M4 19h16M7 19v-4M17 19v-4" />
-    </svg>
-  ),
-  bus: (
-    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 6v6M3 6h18l-1.5 9H4.5z" />
-      <circle cx="7.5" cy="17.5" r="1.5" /><circle cx="16.5" cy="17.5" r="1.5" />
-      <path d="M3 6H2M22 6h-1" />
-    </svg>
-  ),
+  metro: <TrainFront className="w-3.5 h-3.5" strokeWidth={2} />,
+  rail: <Train className="w-3.5 h-3.5" strokeWidth={2} />,
+  bus: <Bus className="w-3.5 h-3.5" strokeWidth={2} />,
 }
 
 function TransitRow({ icon, label, score }) {

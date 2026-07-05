@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Plus, Check, Heart, Navigation, ArrowRight, Phone, Lock, LifeBuoy } from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { propertyService } from '@services/property.service'
 import { authService } from '@services/auth.service'
@@ -18,23 +19,6 @@ import MapRightPanel from '@features/map/components/MapRightPanel'
 import AppointmentManager from '@features/appointments/components/AppointmentManager'
 import LeaseManager from '@features/leases/components/LeaseManager'
 import SettingsPanel from '@features/settings/components/SettingsPanel'
-
-// ── Icons ──────────────────────────────────────────────────────────────────
-function Icon({ d, size = 18 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d={d} />
-    </svg>
-  )
-}
-const ICONS = {
-  dashboard:     'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
-  properties:    'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
-  deals:         'M4.5 12.75l6 6 9-13.5',
-  plus:          'M12 4v16m8-8H4',
-  wishlist:      'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z',
-}
 
 // ── Section: Overview ──────────────────────────────────────────────────────
 function OverviewSection({ listings, isOwner, onListProperty }) {
@@ -75,7 +59,7 @@ function OverviewSection({ listings, isOwner, onListProperty }) {
             className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 hover:border-slate-300 transition-all text-left"
           >
             <div className="w-10 h-10 rounded-xl bg-[#111111] flex items-center justify-center shrink-0">
-              <Icon d={ICONS.plus} size={18} />
+              <Plus size={18} strokeWidth={1.8} />
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-800">List a property</p>
@@ -87,7 +71,7 @@ function OverviewSection({ listings, isOwner, onListProperty }) {
             className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 hover:border-slate-300 transition-all no-underline"
           >
             <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-600">
-              <Icon d={ICONS.deals} size={18} />
+              <Check size={18} strokeWidth={1.8} />
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-800">Browse properties</p>
@@ -101,11 +85,11 @@ function OverviewSection({ listings, isOwner, onListProperty }) {
 }
 
 // ── Section: Placeholder ───────────────────────────────────────────────────
-function ComingSoon({ icon, title, description }) {
+function ComingSoon({ icon: IconComp, title, description }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
       <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-4">
-        <Icon d={ICONS[icon]} size={24} />
+        <IconComp size={24} strokeWidth={1.8} />
       </div>
       <h2 className="text-lg font-bold text-slate-800 mb-1">{title}</h2>
       <p className="text-sm text-slate-400 max-w-xs">{description}</p>
@@ -138,7 +122,7 @@ function WishlistSection() {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-4">
-          <Icon d={ICONS.wishlist} size={24} />
+          <Heart size={24} strokeWidth={1.8} />
         </div>
         <h2 className="text-lg font-bold text-slate-800 mb-1">No saved properties</h2>
         <p className="text-sm text-slate-400 max-w-xs">
@@ -245,9 +229,7 @@ function WishlistCard({ property }) {
           className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
           aria-label="Remove from wishlist"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-          </svg>
+          <Heart size={16} fill="currentColor" />
         </button>
       </div>
 
@@ -316,25 +298,21 @@ function WishlistCard({ property }) {
               onClick={(e) => e.stopPropagation()}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-50 border border-brand-100 hover:bg-brand-100 transition-colors no-underline"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d8a5f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="3 11 22 2 13 21 11 13 3 11"/>
-              </svg>
+              <Navigation size={16} color="#0d8a5f" />
               <span className="flex-1 text-xs font-semibold text-brand-700">Get directions</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0d8a5f" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              <ArrowRight size={12} color="#0d8a5f" strokeWidth={2.5} />
             </a>
           )}
 
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 border border-dashed border-slate-200">
             <span className="text-slate-300">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+              <Phone size={15} />
             </span>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-slate-400 font-medium">Owner contact</p>
               <p className="text-[10px] text-slate-300 mt-0.5">Request a visit to unlock</p>
             </div>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-            </svg>
+            <Lock size={13} color="#cbd5e1" />
           </div>
         </div>
 
@@ -364,7 +342,7 @@ function WishlistCard({ property }) {
           className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-sm font-bold text-white no-underline transition-colors duration-150 active:scale-[0.98]"
         >
           More details
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          <ArrowRight size={13} strokeWidth={2.5} />
         </Link>
       </div>
     </div>
@@ -524,7 +502,7 @@ export default function DashboardPage() {
       case 'settings':
         return <SettingsPanel />
       case 'support':
-        return <ComingSoon icon="support" title="Help &amp; Support" description="Get help with listings, appointments, and anything else." />
+        return <ComingSoon icon={LifeBuoy} title="Help &amp; Support" description="Get help with listings, appointments, and anything else." />
       default:
         return null
     }

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { uploadService } from '@services/upload.service'
 
 export default function ImageUploader({ value = [], onChange, onUploadingChange }) {
@@ -65,9 +66,7 @@ export default function ImageUploader({ value = [], onChange, onUploadingChange 
               <span className="text-xs text-slate-400">Uploading...</span>
             ) : (
               <>
-                <svg className="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
+                <Plus className="w-6 h-6 text-slate-300" strokeWidth={1.5} />
                 <span className="text-xs text-slate-400">Add photo</span>
               </>
             )}

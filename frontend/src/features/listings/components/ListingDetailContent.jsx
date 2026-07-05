@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  Home, User, Users, Calendar, Check, MessageCircle, Heart, Phone,
+  ChevronRight, ChevronLeft, ArrowLeft, Map as MapIcon, ImageOff,
+  Ruler, Layers, Compass, Clipboard, CircleCheck, ChefHat, DoorOpen,
+  PawPrint, Cigarette, Wine, X, Clock,
+} from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { appointmentService } from '@services/appointment.service'
 import { formatRent, formatCurrency } from '@utils/format'
@@ -26,15 +32,6 @@ const APPT_STATUS = {
 const FURNISHED_LABEL = { FULLY: '🛋️ Fully Furnished', SEMI: '🪑 Semi Furnished', UNFURNISHED: '📦 Unfurnished' }
 const TYPE_EMOJI = { APARTMENT: '🏢', HOUSE: '🏠', VILLA: '🏡', PG: '🏘️', INDEPENDENT_HOUSE: '🏠', COMMERCIAL: '🏪' }
 const GENDER_LABEL    = { ANY: 'Any Gender', MALE: 'Male Only', FEMALE: 'Female Only', FAMILY: 'Families Only' }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function Svg({ d, className = 'w-4 h-4' }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d={d} />
-    </svg>
-  )
-}
 
 function SectionLabel({ children }) {
   return <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{children}</p>
@@ -125,7 +122,7 @@ function TenantList({ contacts, selectedTenantId, onSelect }) {
         {userStats.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full py-16 text-center px-4">
             <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
-              <Svg d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" className="w-5 h-5 text-slate-400" />
+              <Users className="w-5 h-5 text-slate-400" strokeWidth={1.8} />
             </div>
             <p className="text-sm font-semibold text-slate-400">No contacts yet</p>
             <p className="text-xs text-slate-300 mt-1">People who reach out will appear here</p>
@@ -148,30 +145,31 @@ function TenantList({ contacts, selectedTenantId, onSelect }) {
                       <p className="text-sm font-semibold text-slate-800 truncate">{displayName}</p>
                       <p className="text-xs text-slate-500 truncate mt-0.5">{u.email}</p>
                     </div>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                      stroke={selected ? '#6366f1' : '#94a3b8'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                      className={`shrink-0 transition-transform ${selected ? 'rotate-90' : ''}`}>
-                      <path d="M9 18l6-6-6-6" />
-                    </svg>
+                    <ChevronRight
+                      size={14}
+                      color={selected ? '#6366f1' : '#94a3b8'}
+                      strokeWidth={2}
+                      className={`shrink-0 transition-transform ${selected ? 'rotate-90' : ''}`}
+                    />
                   </div>
                   <div className="flex items-center gap-2 mt-2.5 flex-wrap">
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-100 text-[11px] font-semibold text-blue-700">
-                      <Svg d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" className="w-3 h-3" />
+                      <Calendar className="w-3 h-3" strokeWidth={1.8} />
                       {u.appointmentCount} appt{u.appointmentCount !== 1 ? 's' : ''}
                     </span>
                     {u.visitedCount > 0 && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-50 border border-green-100 text-[11px] font-semibold text-green-700">
-                        <Svg d="M5 13l4 4L19 7" className="w-3 h-3" /> visited
+                        <Check className="w-3 h-3" strokeWidth={1.8} /> visited
                       </span>
                     )}
                     {u.hasConversation && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 border border-purple-100 text-[11px] font-semibold text-purple-700">
-                        <Svg d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" className="w-3 h-3" /> chatted
+                        <MessageCircle className="w-3 h-3" strokeWidth={1.8} /> chatted
                       </span>
                     )}
                     {u.savedAt && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 border border-rose-100 text-[11px] font-semibold text-rose-600">
-                        <Svg d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" className="w-3 h-3" /> saved
+                        <Heart className="w-3 h-3" strokeWidth={1.8} /> saved
                       </span>
                     )}
                   </div>
@@ -191,7 +189,7 @@ function TenantDetail({ tenant, contacts, ownerId, onAction, acting }) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-16 text-center px-4">
         <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-          <Svg d="M16 7a4 4 0 11-8 0 4 4 0 018 0zm-4 7a7 7 0 00-7 7h14a7 7 0 00-7-7z" className="w-6 h-6 text-slate-300" />
+          <User className="w-6 h-6 text-slate-300" strokeWidth={1.8} />
         </div>
         <p className="text-sm font-semibold text-slate-700">Select a user</p>
         <p className="text-sm text-slate-500 mt-1 max-w-[220px]">Click on someone from the list to view their activity</p>
@@ -235,7 +233,7 @@ function TenantDetail({ tenant, contacts, ownerId, onAction, acting }) {
                   <div key={appt.id} className="p-3.5 rounded-xl border border-slate-100 space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5">
-                        <Svg d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" className="w-3.5 h-3.5 text-slate-400" />
+                        <Calendar className="w-3.5 h-3.5 text-slate-400" strokeWidth={1.8} />
                         <span className="text-sm font-medium text-slate-700">
                           {fmtDate(appt.requestedDate)}
                           {appt.requestedTime && <span className="text-slate-400 font-normal"> at {appt.requestedTime}</span>}
@@ -245,7 +243,7 @@ function TenantDetail({ tenant, contacts, ownerId, onAction, acting }) {
                     </div>
                     {appt.contactNumber && (
                       <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                        <Svg d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" className="w-3 h-3 text-slate-400 shrink-0" />
+                        <Phone className="w-3 h-3 text-slate-400 shrink-0" strokeWidth={1.8} />
                         {appt.contactNumber}
                       </div>
                     )}
@@ -361,9 +359,7 @@ function PropertyLocationMap({ lat, lng }) {
           rel="noreferrer"
           className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg transition-colors"
         >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6-3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-          </svg>
+          <MapIcon className="w-3.5 h-3.5" strokeWidth={2.5} />
           Directions
         </a>
       </div>
@@ -507,7 +503,7 @@ export default function ListingDetailContent({ propertyId, onBack }) {
       <div className="shrink-0 flex items-center gap-3 px-5 py-3 bg-white border-b border-slate-100">
         <button onClick={onBack}
           className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors shrink-0">
-          <Svg d="M19 12H5M12 5l-7 7 7 7" className="w-3.5 h-3.5" />
+          <ArrowLeft className="w-3.5 h-3.5" strokeWidth={2} />
           Listings
         </button>
         <span className="text-slate-300 text-xs">/</span>
@@ -544,11 +540,11 @@ export default function ListingDetailContent({ propertyId, onBack }) {
                   <>
                     <button onClick={() => setImgIdx(i => (i - 1 + images.length) % images.length)}
                       className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 hover:bg-white shadow flex items-center justify-center">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                      <ChevronLeft size={14} color="#334155" strokeWidth={2.5} />
                     </button>
                     <button onClick={() => setImgIdx(i => (i + 1) % images.length)}
                       className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 hover:bg-white shadow flex items-center justify-center">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                      <ChevronRight size={14} color="#334155" strokeWidth={2.5} />
                     </button>
                     <div className="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-black/60 text-white text-[11px] font-semibold">
                       {imgIdx + 1} / {images.length}
@@ -558,7 +554,7 @@ export default function ListingDetailContent({ propertyId, onBack }) {
               </>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-slate-300">
-                <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                <ImageOff className="w-12 h-12" strokeWidth={1.5} />
               </div>
             )}
           </div>
@@ -594,9 +590,7 @@ export default function ListingDetailContent({ propertyId, onBack }) {
           {status === 'OCCUPIED' && property.currentTenant && (
             <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/>
-                </svg>
+                <Home size={18} color="#4f46e5" strokeWidth={1.9} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide mb-0.5">Current Tenant</p>
@@ -621,17 +615,15 @@ export default function ListingDetailContent({ propertyId, onBack }) {
           {(property.area || property.floor != null || property.facingDirection || property.leaseDuration || property.availableFrom || property.occupancyLimit) && (
             <OwnerCard title="Property details">
               {[
-                { d: 'M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5', label: 'Built-up Area',   value: property.area ? `${Number(property.area).toLocaleString('en-IN')} sq.ft` : null },
-                { d: 'M3 21h18M3 10h18M10 3L3 10M21 10l-7-7M9 21V10m6 11V10',                                         label: 'Floor',           value: property.floor != null ? `${property.floor}${property.totalFloors ? ` of ${property.totalFloors}` : ''}` : null },
-                { d: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',                                       label: 'Facing Direction', value: property.facingDirection ? property.facingDirection.charAt(0) + property.facingDirection.slice(1).toLowerCase() : null },
-                { d: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',     label: 'Available From',  value: property.availableFrom ? new Date(property.availableFrom).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null },
-                { d: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 000 4h6a2 2 0 000-4M9 5a2 2 0 012-2h2a2 2 0 012 2', label: 'Minimum Lease', value: property.leaseDuration ? `${property.leaseDuration} months` : null },
-                { d: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M12 7a4 4 0 100 8 4 4 0 000-8z', label: 'Max Occupancy', value: property.occupancyLimit ? `${property.occupancyLimit} persons` : null },
-              ].filter(r => r.value).map(({ d, label, value }) => (
+                { Icon: Ruler,    label: 'Built-up Area',    value: property.area ? `${Number(property.area).toLocaleString('en-IN')} sq.ft` : null },
+                { Icon: Layers,   label: 'Floor',            value: property.floor != null ? `${property.floor}${property.totalFloors ? ` of ${property.totalFloors}` : ''}` : null },
+                { Icon: Compass,  label: 'Facing Direction', value: property.facingDirection ? property.facingDirection.charAt(0) + property.facingDirection.slice(1).toLowerCase() : null },
+                { Icon: Calendar, label: 'Available From',   value: property.availableFrom ? new Date(property.availableFrom).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null },
+                { Icon: Clipboard, label: 'Minimum Lease',   value: property.leaseDuration ? `${property.leaseDuration} months` : null },
+                { Icon: Users,    label: 'Max Occupancy',    value: property.occupancyLimit ? `${property.occupancyLimit} persons` : null },
+              ].filter(r => r.value).map(({ Icon, label, value }) => (
                 <div key={label} className="flex items-center gap-3 py-2.5 border-b border-slate-50 last:border-0">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                    <path d={d} />
-                  </svg>
+                  <Icon size={15} color="#94a3b8" strokeWidth={1.8} className="shrink-0" />
                   <span className="text-sm text-slate-500 flex-1">{label}</span>
                   <span className="text-sm font-semibold text-slate-800">{value}</span>
                 </div>
@@ -672,9 +664,7 @@ export default function ListingDetailContent({ propertyId, onBack }) {
           {/* Zero Brokerage banner */}
           {!property.brokerage && (
             <div className="px-4 py-3 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-2.5">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>
-              </svg>
+              <CircleCheck size={18} color="#059669" strokeWidth={1.9} className="shrink-0" />
               <div>
                 <p className="text-sm font-semibold text-emerald-700">Zero Brokerage</p>
                 <p className="text-xs text-emerald-600/70">Connect directly with tenants — no middlemen</p>
@@ -687,22 +677,18 @@ export default function ListingDetailContent({ propertyId, onBack }) {
             <OwnerCard title="House rules">
               <div className="grid grid-cols-2 gap-2.5">
                 {[
-                  { d: 'M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3', label: 'Non-veg Cooking', allowed: rules.nonVegAllowed },
-                  { d: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z',               label: 'Bachelors',       allowed: rules.bachelorAllowed },
-                  { d: 'M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9zM13 2v7h7',                       label: 'Visitors',        allowed: rules.visitorsAllowed },
-                  { d: 'M10 5.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm7 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM4 9.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm15 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM12 10c-4 0-7 3-7 6.5 0 2 1.5 3.5 7 3.5s7-1.5 7-3.5C19 13 16 10 12 10z', label: 'Pets', allowed: rules.petsAllowed },
-                  { d: 'M18 8h1a4 4 0 010 8h-1M2 8h16v4M6 1v3M10 1v3M14 1v3M6 20v-8',                         label: 'Smoking',         allowed: rules.smokingAllowed },
-                  { d: 'M17 8h1a4 4 0 010 8h-1M3 8h14v9a4 4 0 01-4 4H7a4 4 0 01-4-4V8zM9 2v3M12 2v3M15 2v3',  label: 'Alcohol',         allowed: rules.alcoholAllowed },
+                  { Icon: ChefHat,  label: 'Non-veg Cooking', allowed: rules.nonVegAllowed },
+                  { Icon: User,     label: 'Bachelors',       allowed: rules.bachelorAllowed },
+                  { Icon: DoorOpen, label: 'Visitors',        allowed: rules.visitorsAllowed },
+                  { Icon: PawPrint, label: 'Pets',            allowed: rules.petsAllowed },
+                  { Icon: Cigarette, label: 'Smoking',        allowed: rules.smokingAllowed },
+                  { Icon: Wine,     label: 'Alcohol',         allowed: rules.alcoholAllowed },
                 ].map(r => (
                   <div key={r.label} className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border ${r.allowed ? 'bg-emerald-50 border-emerald-100' : 'bg-slate-50 border-slate-100'}`}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={r.allowed ? '#059669' : '#94a3b8'} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                      <path d={r.d} />
-                    </svg>
+                    <r.Icon size={15} color={r.allowed ? '#059669' : '#94a3b8'} strokeWidth={1.9} className="shrink-0" />
                     <span className={`text-sm font-medium flex-1 ${r.allowed ? 'text-slate-800' : 'text-slate-400'}`}>{r.label}</span>
                     <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${r.allowed ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        {r.allowed ? <path d="M20 6L9 17l-5-5" /> : <path d="M18 6L6 18M6 6l12 12" />}
-                      </svg>
+                      {r.allowed ? <Check size={10} color="white" strokeWidth={3} /> : <X size={10} color="white" strokeWidth={3} />}
                     </div>
                   </div>
                 ))}
@@ -717,9 +703,7 @@ export default function ListingDetailContent({ propertyId, onBack }) {
                   )}
                   {rules.curfewTime && (
                     <div className="flex items-center gap-2.5 px-3 py-2.5 bg-amber-50 rounded-xl border border-amber-100">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                        <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-                      </svg>
+                      <Clock size={15} color="#d97706" strokeWidth={1.9} className="shrink-0" />
                       <span className="text-sm font-medium text-amber-800">Curfew at {rules.curfewTime}</span>
                     </div>
                   )}
@@ -781,9 +765,7 @@ export default function ListingDetailContent({ propertyId, onBack }) {
                 disabled={busy}
                 className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg transition-colors disabled:opacity-50 shrink-0"
               >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/>
-                </svg>
+                <Home size={11} strokeWidth={2.2} />
                 Mark as Tenant
               </button>
             )}
