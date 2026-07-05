@@ -9,9 +9,10 @@ import LoginModal from '@features/auth/components/LoginModal'
 export default function App() {
   const { pathname } = useLocation()
 
-  const hideChrome = pathname.startsWith('/user') || pathname.startsWith('/admin') || pathname.startsWith('/property/') || pathname === '/design-system'
-  const showHeader = !hideChrome
-  const showFooter = !hideChrome
+  const hideHeader = pathname.startsWith('/admin') || pathname.startsWith('/property/') || pathname === '/design-system'
+  const hideFooter = pathname.startsWith('/user') || pathname.startsWith('/list') || pathname.startsWith('/admin') || pathname.startsWith('/property/') || pathname === '/design-system'
+  const showHeader = !hideHeader
+  const showFooter = !hideFooter
 
   return (
     <>

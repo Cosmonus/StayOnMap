@@ -8,6 +8,9 @@ Everything below is unresolved as of 2026-07-04. Detailed context for each item
 lives in the dated sections further down this file — this is just the clean
 checklist to work through. Nothing here has been done yet.
 
+### Navbar redesign — on hold, discuss tomorrow
+- [ ] User wants 3 visually/functionally distinct navbars instead of the current shared one: (1) homepage/guest nav, (2) a dedicated after-login (Dashboard `/user`) nav, (3) a dedicated "become a host" (`/list`) nav. Paused mid-design — no code changes made yet (a draft `DashboardHeader.jsx` was started then removed, unwired). Needs a decision on exactly what each navbar should contain before implementing.
+
 ### Legal & Compliance
 - [ ] Fill in the 4 placeholders in `/privacy` and `/terms`: legal entity name, registered business address, Grievance Officer name, governing-law jurisdiction city
 - [ ] Get a real lawyer to review both pages before relying on them — Aadhaar/PAN handling carries real regulatory weight under India's DPDP Act 2023

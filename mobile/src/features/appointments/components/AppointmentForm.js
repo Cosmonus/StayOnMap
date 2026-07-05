@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native'
 import { useMutation } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
 import { chatService } from '@services/chat.service'
+import { useUiStore } from '@store/uiStore'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -30,6 +31,7 @@ function formatSlot(t) {
 
 export default function AppointmentForm({ propertyId, windowStart, windowEnd, onSuccess }) {
   const navigation = useNavigation()
+  const hostMode = useUiStore((s) => s.hostMode)
   const [form, setForm] = useState({ requestedDate: '', requestedTime: '', message: '', contactNumber: '' })
   const [submitted, setSubmitted] = useState(false)
   const [chatLoading, setChatLoading] = useState(false)
@@ -54,7 +56,7 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
     setChatLoading(true)
     try {
       await chatService.startConversation(propertyId)
-      navigation.getParent()?.navigate('Chat')
+      navigation.getParent()?.navigate(hostMode ? 'Inbox' : 'Chat')
     } catch {
       // best-effort — error surfaced via the disabled state resetting below
     } finally {

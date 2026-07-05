@@ -15,7 +15,6 @@ import { toast } from '@components/common/Toaster'
 import { googleMapsReady, createHtmlMarker } from '@lib/googleMaps'
 import ReviewsSection     from '@features/reviews/components/ReviewsSection'
 import ReportButton       from '@features/reports/components/ReportButton'
-import UnifiedSidebar     from '@components/layout/UnifiedSidebar'
 import Header             from '@components/layout/Header'
 import Footer             from '@components/layout/Footer'
 import { useUiStore }     from '@store/uiStore'
@@ -681,7 +680,7 @@ function PageSkeleton() {
 export default function PropertyPage() {
   const { id }   = useParams()
   const navigate = useNavigate()
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const openLoginModal = useUiStore((s) => s.openLoginModal)
   const qc = useQueryClient()
   const [lightboxIdx, setLightboxIdx] = useState(null)
@@ -725,35 +724,14 @@ export default function PropertyPage() {
     }
   }, [property?.title])
 
-  // Guest layout wrapper (public header + footer)
-  const GuestShell = ({ children }) => (
+  // Layout wrapper (shared header + footer, logged-in or guest)
+  const Shell = ({ children }) => (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Header />
       <div className="flex-1 pt-16">{children}</div>
       <Footer />
     </div>
   )
-
-  // Logged-in layout wrapper (sidebar only, no header/footer)
-  const userName = user?.name ?? ''
-  const userEmail = user?.email ?? ''
-  const userAvatar = user?.avatarUrl ?? ''
-
-  const DashShell = ({ children }) => (
-    <div className="flex h-screen bg-slate-50">
-      <UnifiedSidebar
-        active="properties"
-        onChange={(tabId) => navigate(`/user?tab=${tabId}`)}
-        onLogout={signOut}
-        userName={userName}
-        userEmail={userEmail}
-        avatarUrl={userAvatar}
-      />
-      {children}
-    </div>
-  )
-
-  const Shell = user ? DashShell : GuestShell
 
   if (isLoading) {
     return <Shell><PageSkeleton /></Shell>

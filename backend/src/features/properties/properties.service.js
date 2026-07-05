@@ -206,6 +206,9 @@ function buildWhereClause(filters) {
   if (filters.city)      where.city = { contains: filters.city, mode: 'insensitive' }
   if (filters.furnished) where.furnished = filters.furnished
   if (filters.bhk)       where.bhk = { in: String(filters.bhk).split(',').map(Number) }
+  if (filters.swLat != null && filters.swLng != null && filters.neLat != null && filters.neLng != null) {
+    Object.assign(where, boundsFilter(filters))
+  }
   return where
 }
 

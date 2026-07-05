@@ -7,6 +7,7 @@ import { chatService } from '@services/chat.service'
 import { authService } from '@services/auth.service'
 import { savedService } from '@services/saved.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import { useUiStore } from '@store/uiStore'
 import TrustBadge from '@components/common/TrustBadge'
 import RiskAlert from '@components/common/RiskAlert'
 import TrustScoreWidget from '@features/trust/components/TrustScoreWidget'
@@ -55,6 +56,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
   const { propertyId } = route.params
   const [chatLoading, setChatLoading] = useState(false)
   const { user } = useAuth()
+  const hostMode = useUiStore((s) => s.hostMode)
   const qc = useQueryClient()
 
   const { data: property, isLoading, isError } = useQuery({
@@ -96,7 +98,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
     setChatLoading(true)
     try {
       await chatService.startConversation(propertyId)
-      navigation.getParent()?.navigate('Chat')
+      navigation.getParent()?.navigate(hostMode ? 'Inbox' : 'Chat')
     } catch {
       // best-effort
     } finally {

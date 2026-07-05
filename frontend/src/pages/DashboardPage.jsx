@@ -1,27 +1,23 @@
-import { useState, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { propertyService } from '@services/property.service'
 import { authService } from '@services/auth.service'
 import { savedService } from '@services/saved.service'
-import { chatService } from '@services/chat.service'
 import { notificationService } from '@services/notification.service'
+import { appointmentService } from '@services/appointment.service'
+import { leaseService } from '@services/lease.service'
 import { AmenityIcon } from '@components/common/AmenityIcon'
 import { formatRent, formatCurrency } from '@utils/format'
-import Modal from '@components/common/Modal'
-import ListingManager from '@features/listings/components/ListingManager'
-import ListingDetailContent from '@features/listings/components/ListingDetailContent'
-import AddListingForm from '@features/listings/components/AddListingForm'
 import NotificationCenter from '@features/notifications/components/NotificationCenter'
 import ChatPanel from '@features/chat/components/ChatPanel'
 import MapView from '@features/map/components/MapView'
 import MapRightPanel from '@features/map/components/MapRightPanel'
 
 import AppointmentManager from '@features/appointments/components/AppointmentManager'
-import LeaseManager, { CreateLeaseModal } from '@features/leases/components/LeaseManager'
+import LeaseManager from '@features/leases/components/LeaseManager'
 import SettingsPanel from '@features/settings/components/SettingsPanel'
-import UnifiedSidebar from '@components/layout/UnifiedSidebar'
 
 // ── Icons ──────────────────────────────────────────────────────────────────
 function Icon({ d, size = 18 }) {
@@ -41,7 +37,7 @@ const ICONS = {
 }
 
 // ── Section: Overview ──────────────────────────────────────────────────────
-function OverviewSection({ listings, isOwner, onAddListing, onNavigateToListings }) {
+function OverviewSection({ listings, isOwner, onListProperty }) {
   const stats = isOwner
     ? [
         { label: 'My listings',    value: listings.length,                                       color: 'text-slate-800' },
@@ -75,7 +71,7 @@ function OverviewSection({ listings, isOwner, onAddListing, onNavigateToListings
         <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Quick actions</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
-            onClick={isOwner ? onAddListing : onNavigateToListings}
+            onClick={onListProperty}
             className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 hover:border-slate-300 transition-all text-left"
           >
             <div className="w-10 h-10 rounded-xl bg-[#111111] flex items-center justify-center shrink-0">
@@ -100,36 +96,6 @@ function OverviewSection({ listings, isOwner, onAddListing, onNavigateToListings
           </Link>
         </div>
       </div>
-    </div>
-  )
-}
-
-// ── Section: Become Owner Prompt ──────────────────────────────────────────
-function BecomeOwnerPrompt() {
-  const qc = useQueryClient()
-  const mutation = useMutation({
-    mutationFn: () => authService.upgradeRole().then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
-  })
-  return (
-    <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 mb-4">
-        <Icon d={ICONS.properties} size={24} />
-      </div>
-      <h2 className="text-lg font-bold text-slate-800 mb-1">List your property</h2>
-      <p className="text-sm text-slate-400 max-w-xs mb-6">
-        Become an owner to list rentals and manage visit appointments.
-      </p>
-      {mutation.isError && (
-        <p className="text-xs text-red-500 mb-4">{mutation.error?.message ?? 'Something went wrong'}</p>
-      )}
-      <button
-        onClick={() => mutation.mutate()}
-        disabled={mutation.isPending}
-        className="px-6 py-2.5 bg-[#111111] text-white text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity"
-      >
-        {mutation.isPending ? 'Upgrading…' : 'Start listing'}
-      </button>
     </div>
   )
 }
@@ -405,32 +371,96 @@ function WishlistCard({ property }) {
   )
 }
 
-// ── Mobile tab nav ─────────────────────────────────────────────────────────
-const MOBILE_TABS = [
-  { id: 'dashboard',     label: 'Home' },
-  { id: 'properties',    label: 'Map' },
-  { id: 'my-listings',   label: 'Listings' },
-  { id: 'appointments',  label: 'Appts' },
-  { id: 'leases',        label: 'Leases' },
-  { id: 'wishlist',      label: 'Wishlist' },
-  { id: 'messages',      label: 'Messages' },
-  { id: 'notifications', label: 'Alerts' },
-  { id: 'settings',      label: 'Settings' },
-]
+// ── Section: Calendar ──────────────────────────────────────────────────────
+function daysInMonth(year, month) {
+  return new Date(year, month + 1, 0).getDate()
+}
 
-function MobileNav({ section, setSection }) {
+function dateKey(d) {
+  const dt = new Date(d)
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+}
+
+function CalendarSection() {
+  const [cursor, setCursor] = useState(() => {
+    const d = new Date()
+    return { year: d.getFullYear(), month: d.getMonth() }
+  })
+
+  const { data: appointments = [] } = useQuery({
+    queryKey: ['owner-appointments'],
+    queryFn: () => appointmentService.owner().then(r => r.data),
+  })
+
+  const { data: leaseData } = useQuery({
+    queryKey: ['leases'],
+    queryFn: () => leaseService.getMyLeases().then(r => r.data),
+  })
+  const leases = leaseData?.asOwner ?? []
+
+  const events = new Map()
+  function addEvent(rawDate, entry) {
+    if (!rawDate) return
+    const key = dateKey(rawDate)
+    if (!events.has(key)) events.set(key, [])
+    events.get(key).push(entry)
+  }
+  appointments.forEach(a => addEvent(a.requestedDate, { type: 'appointment', label: a.property?.title ?? 'Visit' }))
+  leases.forEach(l => {
+    addEvent(l.startDate, { type: 'lease-start', label: l.property?.title ?? 'Lease starts' })
+    addEvent(l.endDate, { type: 'lease-end', label: l.property?.title ?? 'Lease ends' })
+  })
+
+  const total = daysInMonth(cursor.year, cursor.month)
+  const firstWeekday = new Date(cursor.year, cursor.month, 1).getDay()
+  const cells = Array.from({ length: firstWeekday }, () => null).concat(
+    Array.from({ length: total }, (_, i) => i + 1)
+  )
+  const monthLabel = new Date(cursor.year, cursor.month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+
+  const DOT_COLOR = { appointment: 'bg-amber-400', 'lease-start': 'bg-green-500', 'lease-end': 'bg-slate-400' }
+
   return (
-    <div className="md:hidden shrink-0 bg-white border-b border-slate-200 overflow-x-auto no-scrollbar">
-      <div className="flex gap-1 px-4 py-2 w-max">
-        {MOBILE_TABS.map(({ id, label }) => (
-          <button
-            key={id}
-            onClick={() => setSection(id)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${section === id ? 'bg-[#111111] text-white' : 'text-slate-500 hover:bg-slate-100'}`}
-          >
-            {label}
-          </button>
-        ))}
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-xl font-bold text-slate-900">Calendar</h1>
+        <p className="text-sm text-slate-400 mt-0.5">Upcoming appointments and lease dates</p>
+      </div>
+
+      <div className="bg-white border border-slate-100 rounded-2xl p-5 max-w-md">
+        <div className="flex items-center justify-between mb-4">
+          <button type="button" onClick={() => setCursor(c => c.month === 0 ? { year: c.year - 1, month: 11 } : { ...c, month: c.month - 1 })} className="text-slate-400 hover:text-slate-700 px-2">‹</button>
+          <p className="text-sm font-bold text-slate-900">{monthLabel}</p>
+          <button type="button" onClick={() => setCursor(c => c.month === 11 ? { year: c.year + 1, month: 0 } : { ...c, month: c.month + 1 })} className="text-slate-400 hover:text-slate-700 px-2">›</button>
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+            <div key={i} className="text-center text-[11px] font-semibold text-slate-400 py-1">{d}</div>
+          ))}
+          {cells.map((day, i) => {
+            if (!day) return <div key={i} />
+            const key = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+            const dayEvents = events.get(key) ?? []
+            return (
+              <div key={i} className="aspect-square flex flex-col items-center justify-center gap-0.5">
+                <span className="text-xs font-mono text-slate-700">{day}</span>
+                {dayEvents.length > 0 && (
+                  <div className="flex gap-0.5">
+                    {dayEvents.slice(0, 3).map((e, idx) => (
+                      <span key={idx} className={`w-1.5 h-1.5 rounded-full ${DOT_COLOR[e.type]}`} title={e.label} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 text-xs text-slate-500">
+        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400" /> Appointment</span>
+        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" /> Lease starts</span>
+        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-slate-400" /> Lease ends</span>
       </div>
     </div>
   )
@@ -438,30 +468,19 @@ function MobileNav({ section, setSection }) {
 
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const section   = searchParams.get('tab') ?? 'dashboard'
-  const listingId = searchParams.get('listing') ?? null
+  const [searchParams] = useSearchParams()
+  const section = searchParams.get('tab') ?? 'dashboard'
   const qc = useQueryClient()
 
-  const handleLogout = useCallback(async () => {
-    await signOut()
-    navigate('/')
-  }, [signOut, navigate])
-
-  const setSection = useCallback((id) => {
-    setSearchParams({ tab: id }, { replace: true })
-    if (id === 'messages') {
-      qc.invalidateQueries({ queryKey: ['chat-unread'] })
-      notificationService.markAllByType('MESSAGE').then(() => {
-        qc.invalidateQueries({ queryKey: ['notifications'] })
-      }).catch(() => {})
-    }
-  }, [setSearchParams, qc])
-
-  const [showForm, setShowForm] = useState(false)
-  const [offerLeaseFor, setOfferLeaseFor] = useState(null)
+  useEffect(() => {
+    if (section !== 'messages') return
+    qc.invalidateQueries({ queryKey: ['chat-unread'] })
+    notificationService.markAllByType('MESSAGE').then(() => {
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+    }).catch(() => {})
+  }, [section, qc])
 
   const { data: profile } = useQuery({
     queryKey: ['me'],
@@ -477,23 +496,12 @@ export default function DashboardPage() {
     enabled: !!user,
   })
 
-  const { data: unreadMessages = 0 } = useQuery({
-    queryKey: ['chat-unread'],
-    queryFn: () => chatService.unreadCount().then(r => r.data?.count ?? 0),
-    enabled: !!user,
-    refetchInterval: section === 'messages' ? false : 30000,
-  })
-
-  const isFullBleed = section === 'properties' || section === 'messages' || (section === 'my-listings' && !!listingId)
-
-  const userName = profile?.name ?? user?.name ?? ''
-  const userEmail = user?.email ?? ''
-  const userAvatar = profile?.avatarUrl ?? user?.avatarUrl ?? ''
+  const isFullBleed = section === 'properties' || section === 'messages'
 
   function renderSection() {
     switch (section) {
       case 'dashboard':
-        return <OverviewSection listings={listings} isOwner={isOwner} onAddListing={() => setShowForm(true)} onNavigateToListings={() => setSection('my-listings')} />
+        return <OverviewSection listings={listings} isOwner={isOwner} onListProperty={() => navigate('/list')} />
       case 'properties':
         return (
           <div className="relative w-full h-full overflow-hidden">
@@ -501,51 +509,12 @@ export default function DashboardPage() {
             <MapRightPanel topClass="top-16" />
           </div>
         )
-      case 'my-listings': {
-        if (!isOwner) return <BecomeOwnerPrompt />
-        if (listingId) {
-          return (
-            <ListingDetailContent
-              propertyId={listingId}
-              onBack={() => setSearchParams({ tab: 'my-listings' }, { replace: true })}
-            />
-          )
-        }
-        return (
-          <div className="space-y-5">
-            <div className="flex items-start sm:items-center justify-between gap-3">
-              <div>
-                <h1 className="text-xl font-bold text-slate-900">My Listings</h1>
-                <p className="text-sm text-slate-400 mt-0.5">Manage your rental properties</p>
-              </div>
-              <button
-                onClick={() => setShowForm(true)}
-                className="shrink-0 flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-all"
-                style={{ background: '#111111' }}
-              >
-                <Icon d={ICONS.plus} size={15} /> Add listing
-              </button>
-            </div>
-            <ListingManager
-              onAdd={() => setShowForm(true)}
-              onViewDetails={(id) => setSearchParams({ tab: 'my-listings', listing: id }, { replace: true })}
-              onOfferLease={setOfferLeaseFor}
-            />
-            {offerLeaseFor && (
-              <CreateLeaseModal
-                propertyId={offerLeaseFor.id}
-                propertyTitle={offerLeaseFor.title}
-                isOpen
-                onClose={() => setOfferLeaseFor(null)}
-              />
-            )}
-          </div>
-        )
-      }
       case 'appointments':
         return <AppointmentManager isOwner={isOwner} />
       case 'leases':
         return <LeaseManager />
+      case 'calendar':
+        return <CalendarSection />
       case 'wishlist':
         return <WishlistSection />
       case 'messages':
@@ -562,28 +531,10 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      <UnifiedSidebar
-        active={section}
-        onChange={setSection}
-        onLogout={handleLogout}
-        userName={userName}
-        userEmail={userEmail}
-        avatarUrl={userAvatar}
-        badges={{ messages: section === 'messages' ? 0 : unreadMessages }}
-      />
-
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <MobileNav section={section} setSection={setSection} />
-
-        <main className={`flex-1 overflow-hidden ${isFullBleed ? '' : 'px-4 md:px-8 py-4 md:py-8 overflow-y-auto'}`}>
-          {renderSection()}
-        </main>
-      </div>
-
-      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Add New Listing" size="xl">
-        <AddListingForm onSuccess={() => setShowForm(false)} />
-      </Modal>
+    <div className="flex flex-col h-screen bg-slate-50 pt-16">
+      <main className={`flex-1 overflow-hidden ${isFullBleed ? '' : 'px-4 md:px-8 py-4 md:py-8 overflow-y-auto'}`}>
+        {renderSection()}
+      </main>
     </div>
   )
 }

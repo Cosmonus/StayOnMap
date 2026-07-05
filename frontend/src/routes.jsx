@@ -17,6 +17,7 @@ const RulesPage         = lazy(() => import('@pages/RulesPage'))
 const PrivacyPolicyPage    = lazy(() => import('@pages/PrivacyPolicyPage'))
 const TermsOfServicePage   = lazy(() => import('@pages/TermsOfServicePage'))
 const DashboardPage     = lazy(() => import('@pages/DashboardPage'))
+const HostOnboardingPage = lazy(() => import('@pages/HostOnboardingPage'))
 const NotFoundPage      = lazy(() => import('@pages/NotFoundPage'))
 const AdminLoginPage    = lazy(() => import('@pages/AdminLoginPage'))
 const AdminPage         = lazy(() => import('@pages/AdminPage'))
@@ -49,6 +50,7 @@ export default function AppRoutes() {
 
           {/* Authenticated user */}
           <Route path="/user"         element={<UserGuard><DashboardPage /></UserGuard>} />
+          <Route path="/list"         element={<UserGuard><HostOnboardingPage /></UserGuard>} />
 
           {/* Password reset — public, token in URL query param */}
           <Route path="/reset-password" element={<ResetPasswordPage />} />

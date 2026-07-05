@@ -6,9 +6,11 @@ import MapSearchBar from '@features/map/components/MapSearchBar'
 import MapFiltersSheet from '@features/map/components/MapFiltersSheet'
 import MapLayersSheet from '@features/map/components/MapLayersSheet'
 import AreaInsightCard from '@features/map/components/AreaInsightCard'
+import HomesInAreaList from '@features/map/components/HomesInAreaList'
 import PinPreviewCard from '../components/PinPreviewCard'
 import Logo from '@components/common/Logo'
 import Icon from '@components/common/Icon'
+import { useAuth } from '@features/auth/hooks/useAuth'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
 import { colors } from '@theme/colors'
@@ -18,6 +20,7 @@ import { spacing, radius } from '@theme/spacing'
 // Map-first (PDF direction 1a). Tapping a pin floats a preview card over
 // the map; tapping empty map area or the same pin again dismisses it.
 export default function ExploreScreen({ navigation }) {
+  const { user } = useAuth()
   const selectedPinId = useMapStore((s) => s.selectedPinId)
   const selectedAreaSlug = useMapStore((s) => s.selectedAreaSlug)
   const clearSelection = useMapStore((s) => s.clearSelection)
@@ -90,6 +93,8 @@ export default function ExploreScreen({ navigation }) {
       {selectedAreaSlug && (
         <AreaInsightCard slug={selectedAreaSlug} onClose={clearSelection} />
       )}
+
+      {user && !selectedPinId && !selectedAreaSlug && <HomesInAreaList />}
 
       <MapFiltersSheet visible={filtersOpen} onClose={() => setFiltersOpen(false)} />
       <MapLayersSheet visible={layersOpen} onClose={() => setLayersOpen(false)} />

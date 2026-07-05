@@ -23,6 +23,8 @@ enum PropertyType {
   PG
   INDEPENDENT_HOUSE
   COMMERCIAL
+  LAND
+  SHORT_STAY
 }
 
 enum FurnishedType {
@@ -130,6 +132,10 @@ enum VerificationDocType {
   PAN
   SELFIE
   OTHER
+  GST
+  TRADE_LICENSE
+  PATTA_TITLE
+  HOMESTAY_PERMIT
 }
 
 enum FraudSignalType {
@@ -245,6 +251,8 @@ model User {
   role       UserRole @default(TENANT)
   isVerified Boolean  @default(false)
   isBlocked  Boolean  @default(false)
+  isBusiness    Boolean   @default(false) // gates creating PG / COMMERCIAL / SHORT_STAY listings
+  businessSince DateTime?
 
   // Settings
   listingVisibility   ListingVisibility   @default(PUBLIC)
@@ -384,6 +392,43 @@ model Property {
   totalFloors     Int?
   floor           Int?             // which floor the unit is on
   facingDirection FacingDirection?
+  bathrooms       Int?             // apartment / house / short_stay
+
+  // HOUSE — which of the 4 describe-step choices (Independent house/Villa/Duplex/Row
+  // house); `type` is derived from this (VILLA/INDEPENDENT_HOUSE get their own enum
+  // value, Duplex/Row house both map to HOUSE, distinguished only by this field)
+  houseStyle String?
+
+  // LAND
+  landType       String?  // Residential | Agricultural | Commercial | Industrial
+  extent         Decimal? @db.Decimal(10, 2)
+  extentUnit     String?  // sq.ft | acres | cents etc.
+  dimensions     String?  // free text, e.g. "40 x 60 ft"
+  roadWidth      Decimal? @db.Decimal(10, 2) // ft
+  approvalStatus String?  // DTCP | RERA | Panchayat | Unapproved
+  saleOrLease    String?  // SALE | LEASE — land can be either
+
+  // COMMERCIAL (shop/office/showroom/warehouse)
+  commercialType String?  // Retail shop | Office | Showroom | Warehouse
+  carpetArea     Decimal? @db.Decimal(10, 2)
+  frontage       Decimal? @db.Decimal(10, 2) // ft
+  powerLoad      String?  // sanctioned power load, e.g. "15 kW"
+
+  // PG
+  totalBeds        Int?
+  availableBeds    Int?
+  noticePeriodDays Int?
+
+  // SHORT_STAY
+  placeType    String?  // Entire place | Private room | Shared room
+  maxGuests    Int?
+  beds         Int?     // distinct from bhk/bedrooms — total sleeping beds
+  nightlyRate  Decimal? @db.Decimal(10, 2)
+  cleaningFee  Decimal? @db.Decimal(10, 2)
+  weekendRate  Decimal? @db.Decimal(10, 2)
+  minNights    Int?
+  maxNights    Int?
+  instantBook  Boolean?
 
   // Pricing
   rent               Decimal  @db.Decimal(10, 2)
@@ -427,6 +472,7 @@ model Property {
   fraudSignals  FraudSignal[]
   conversations Conversation[]
   leases        Lease[]
+  availabilityBlocks AvailabilityBlock[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -833,5 +879,22 @@ model Lease {
 
   @@index([tenantId])
   @@index([ownerId])
+  @@index([propertyId])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Availability (SHORT_STAY calendars)
+// ─────────────────────────────────────────────────────────────────
+
+model AvailabilityBlock {
+  id         String   @id @default(cuid())
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  date       DateTime @db.Date
+  isBlocked  Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@unique([propertyId, date])
   @@index([propertyId])
 }
