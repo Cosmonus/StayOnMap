@@ -95,7 +95,7 @@ function DropdownMenu({ trigger, triggerClassName, items }) {
           <div className="absolute right-0 top-full mt-2 z-40 w-56 bg-white rounded-xl shadow-panel border border-slate-200 py-2">
             {items.map((item) =>
               item.divider ? (
-                <div key={item.key} className="border-t border-slate-200 my-1" />
+                <div key={item.key} className={`border-t border-slate-200 my-1 ${item.className ?? ''}`} />
               ) : item.to ? (
                 <Link
                   key={item.key}
@@ -103,7 +103,7 @@ function DropdownMenu({ trigger, triggerClassName, items }) {
                   onClick={() => setOpen(false)}
                   className={`flex items-center justify-between gap-2 px-4 py-2.5 text-sm no-underline ${
                     item.danger ? 'text-red-500 hover:bg-red-50' : 'text-slate-700 hover:bg-slate-100'
-                  }`}
+                  } ${item.className ?? ''}`}
                 >
                   {item.label}
                   <Badge count={item.badge} />
@@ -114,7 +114,7 @@ function DropdownMenu({ trigger, triggerClassName, items }) {
                   onClick={() => { setOpen(false); item.onClick() }}
                   className={`w-full flex items-center justify-between gap-2 text-left px-4 py-2.5 text-sm ${
                     item.danger ? 'text-red-500 hover:bg-red-50' : 'text-slate-700 hover:bg-slate-100'
-                  }`}
+                  } ${item.className ?? ''}`}
                 >
                   {item.label}
                   <Badge count={item.badge} />
@@ -158,8 +158,9 @@ function GuestActions() {
   const tabs = NAV_TABS.map((t) => ({ ...t, active: isActive(t.to) }))
 
   const menuItems = [
-    ...NAV_TABS.map((t) => ({ key: t.to, label: t.label, to: t.to })),
-    { key: 'divider', divider: true },
+    // Only needed on mobile — NavTabs above already shows these at md+.
+    ...NAV_TABS.map((t) => ({ key: t.to, label: t.label, to: t.to, className: 'md:hidden' })),
+    { key: 'divider', divider: true, className: 'md:hidden' },
     { key: 'login', label: 'Login / Sign up', onClick: openLoginModal },
   ]
 
@@ -190,8 +191,9 @@ function TravelerActions({ unreadMessages, onBecomeHost, profile }) {
   const menuItems = [
     // Duplicates the top NavTabs row — NavTabs is desktop-only (`hidden
     // md:flex`), so on mobile the hamburger is the ONLY way to reach these.
-    ...NAV_TABS.map((t) => ({ key: t.to, label: t.label, to: t.to })),
-    { key: 'divider-tabs', divider: true },
+    // Hidden at md+ here since NavTabs already covers it there.
+    ...NAV_TABS.map((t) => ({ key: t.to, label: t.label, to: t.to, className: 'md:hidden' })),
+    { key: 'divider-tabs', divider: true, className: 'md:hidden' },
     { key: 'wishlist',      label: 'Wishlist',      to: '/user?tab=wishlist' },
     { key: 'appointments',  label: 'Appointments',  to: '/user?tab=appointments' },
     { key: 'leases',        label: 'Rented',        to: '/user?tab=leases' },
