@@ -178,7 +178,7 @@ export default function MapView({ onPinPress, onDeselect }) {
         showsTraffic={activeLayers.traffic}
         customMapStyle={MAP_STYLE}
       >
-        {activeLayers.metro && <MetroLines network={metroNetwork} zoom={zoom} />}
+        {activeLayers.metro && <MetroLines network={metroNetwork} zoom={zoom} bounds={bounds} />}
 
         {activeLayers.itCorridors && itCorridors?.features.map((feature) => {
           const [lng, lat] = feature.geometry.coordinates
@@ -210,7 +210,7 @@ export default function MapView({ onPinPress, onDeselect }) {
           return (
             <PropertyPin
               key={feature.properties.id}
-              pin={{ id: feature.properties.id, lat, lng, rent: feature.properties.rent, bhk: feature.properties.bhk, sharing: feature.properties.sharing }}
+              pin={{ id: feature.properties.id, lat, lng, rent: feature.properties.rent, type: feature.properties.type, bhk: feature.properties.bhk, sharing: feature.properties.sharing }}
               selected={feature.properties.id === selectedPinId}
               onPress={() => handlePinPress(feature)}
             />

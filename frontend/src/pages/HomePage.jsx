@@ -75,22 +75,28 @@ function AppComingSoonCard() {
   )
 }
 
+function MapPanel({ widthClass }) {
+  return (
+    <div className={`relative h-[60vh] md:h-[calc(100vh-190px)] min-h-[420px] w-full ${widthClass} rounded-3xl overflow-hidden border border-slate-200 shadow-sm`}>
+      <MapView contained />
+      <MapLegend />
+      <AreaInsightCard />
+      <MapRightPanel contained topClass="top-5" />
+    </div>
+  )
+}
+
 function MapHeroSection() {
   const { totalActive, activeOwners, cities, isLoading } = usePlatformStats()
   const openLoginModal = useUiStore((s) => s.openLoginModal)
   const { user } = useAuth()
 
   return (
-    <section className={`w-full pt-20 md:pt-[166px] pb-4 md:pb-6 px-4 md:px-6 flex flex-col md:flex-row items-start gap-4 ${user ? 'md:gap-0' : 'md:gap-6'}`}>
-      <div className={`relative h-[60vh] md:h-[calc(100vh-190px)] min-h-[420px] w-full ${user ? 'md:w-[85%]' : 'md:w-[70%]'} rounded-3xl overflow-hidden border border-slate-200 shadow-sm`}>
-        <MapView contained />
-        <MapLegend />
-        <AreaInsightCard />
-        <MapRightPanel contained topClass="top-5" />
-      </div>
+    <section className="w-full pt-20 md:pt-[166px] pb-4 md:pb-6 px-4 md:px-6 flex flex-col md:flex-row items-start gap-4 md:gap-6">
+      <MapPanel widthClass="md:w-[70%]" />
 
       {user && (
-        <div className="w-full md:w-[15%]">
+        <div className="w-full md:w-[30%] h-[60vh] md:h-[calc(100vh-190px)] min-h-[420px] overflow-y-auto no-scrollbar">
           <MapPropertiesList />
         </div>
       )}

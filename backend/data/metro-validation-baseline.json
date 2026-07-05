@@ -1,0 +1,1523 @@
+{
+  "generatedAt": "2026-07-05T15:34:53.669Z",
+  "note": "Known, already-reviewed WARNING-tier issues — see .claude/roadmap.md for the metro-validation addendum. ERROR-tier issues are never baselined here.",
+  "entries": [
+    {
+      "severity": "warning",
+      "code": "unexpected-termination",
+      "city": "Ahmedabad",
+      "line": "Yellow Line: Mahatma Mandir → Motera Stadium",
+      "message": "Line \"Yellow Line: Mahatma Mandir → Motera Stadium\"'s start point has no station within 500m (nearest: 4.67km)."
+    },
+    {
+      "severity": "warning",
+      "code": "residual-path-gap",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" has a 2.19km gap at path index 141-142.",
+      "detail": {
+        "gapMeters": 2185.8826426049463,
+        "index": 142
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "residual-path-gap",
+      "city": "Bengaluru",
+      "line": "Green Line",
+      "message": "Line \"Green Line\" has a 2.33km gap at path index 24-25.",
+      "detail": {
+        "gapMeters": 2327.1115613380457,
+        "index": 25
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "disconnected-line-components",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" splits into 2 disconnected components after accounting for the 2000m gap tolerance.",
+      "detail": {
+        "componentCount": 2
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "disconnected-line-components",
+      "city": "Bengaluru",
+      "line": "Green Line",
+      "message": "Line \"Green Line\" splits into 2 disconnected components after accounting for the 2000m gap tolerance.",
+      "detail": {
+        "componentCount": 2
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 6 and 11 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 6 and 16 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 6 and 21 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 16 and 21 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 38 and 40 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 38 and 45 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 42 and 45 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 45 and 53 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 47 and 49 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 54 and 58 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 59 and 62 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 63 and 69 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 69 and 72 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 106 and 109 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 114 and 117 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 117 and 122 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 122 and 126 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 127 and 130 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 130 and 134 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 136 and 141 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 142 and 146 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 146 and 148 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 150 and 153 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 154 and 159 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Green Line",
+      "message": "Line \"Green Line\" crosses itself near segments 14 and 23 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Green Line",
+      "message": "Line \"Green Line\" crosses itself near segments 15 and 18 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Green Line",
+      "message": "Line \"Green Line\" crosses itself near segments 18 and 23 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Green Line",
+      "message": "Line \"Green Line\" crosses itself near segments 24 and 28 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Green Line",
+      "message": "Line \"Green Line\" crosses itself near segments 32 and 36 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Green Line",
+      "message": "Line \"Green Line\" crosses itself near segments 39 and 51 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Green Line",
+      "message": "Line \"Green Line\" crosses itself near segments 44 and 62 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Bengaluru",
+      "line": "Green Line",
+      "message": "Line \"Green Line\" crosses itself near segments 52 and 63 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Chennai",
+      "line": "Blue Line",
+      "message": "Line \"Blue Line\" crosses itself near segments 1 and 6 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Chennai",
+      "line": "Blue Line",
+      "message": "Line \"Blue Line\" crosses itself near segments 1 and 11 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Chennai",
+      "line": "Blue Line",
+      "message": "Line \"Blue Line\" crosses itself near segments 8 and 11 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "residual-path-gap",
+      "city": "Delhi",
+      "line": "Delhi–Meerut RRTS",
+      "message": "Line \"Delhi–Meerut RRTS\" has a 2.69km gap at path index 27-28.",
+      "detail": {
+        "gapMeters": 2686.66753067506,
+        "index": 28
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "disconnected-line-components",
+      "city": "Delhi",
+      "line": "Delhi–Meerut RRTS",
+      "message": "Line \"Delhi–Meerut RRTS\" splits into 2 disconnected components after accounting for the 2000m gap tolerance.",
+      "detail": {
+        "componentCount": 2
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Yellow Line",
+      "message": "Line \"Yellow Line\" crosses itself near segments 252 and 265 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Grey Line",
+      "message": "Line \"Grey Line\" crosses itself near segments 0 and 8 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Grey Line",
+      "message": "Line \"Grey Line\" crosses itself near segments 1 and 12 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Grey Line",
+      "message": "Line \"Grey Line\" crosses itself near segments 10 and 13 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Rapid MetroRail Gurgaon: S55 → Sikandarpur",
+      "message": "Line \"Rapid MetroRail Gurgaon: S55 → Sikandarpur\" crosses itself near segments 0 and 202 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Rapid MetroRail Gurgaon: S55 → Sikandarpur",
+      "message": "Line \"Rapid MetroRail Gurgaon: S55 → Sikandarpur\" crosses itself near segments 102 and 104 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Rapid MetroRail Gurgaon: S55 → Sikandarpur",
+      "message": "Line \"Rapid MetroRail Gurgaon: S55 → Sikandarpur\" crosses itself near segments 103 and 112 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Rapid MetroRail Gurgaon: S55 → Sikandarpur",
+      "message": "Line \"Rapid MetroRail Gurgaon: S55 → Sikandarpur\" crosses itself near segments 103 and 202 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Rapid MetroRail Gurgaon: S55 → Sikandarpur",
+      "message": "Line \"Rapid MetroRail Gurgaon: S55 → Sikandarpur\" crosses itself near segments 105 and 116 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Rapid MetroRail Gurgaon: S55 → Sikandarpur",
+      "message": "Line \"Rapid MetroRail Gurgaon: S55 → Sikandarpur\" crosses itself near segments 105 and 194 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Rapid MetroRail Gurgaon: S55 → Sikandarpur",
+      "message": "Line \"Rapid MetroRail Gurgaon: S55 → Sikandarpur\" crosses itself near segments 112 and 194 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Rapid MetroRail Gurgaon: S55 → Sikandarpur",
+      "message": "Line \"Rapid MetroRail Gurgaon: S55 → Sikandarpur\" crosses itself near segments 113 and 116 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Rapid MetroRail Gurgaon: S55 → Sikandarpur",
+      "message": "Line \"Rapid MetroRail Gurgaon: S55 → Sikandarpur\" crosses itself near segments 113 and 202 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Rapid MetroRail Gurgaon: S55 → Sikandarpur",
+      "message": "Line \"Rapid MetroRail Gurgaon: S55 → Sikandarpur\" crosses itself near segments 116 and 187 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Rapid MetroRail Gurgaon: S55 → Sikandarpur",
+      "message": "Line \"Rapid MetroRail Gurgaon: S55 → Sikandarpur\" crosses itself near segments 116 and 191 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Rapid MetroRail Gurgaon: S55 → Sikandarpur",
+      "message": "Line \"Rapid MetroRail Gurgaon: S55 → Sikandarpur\" crosses itself near segments 120 and 190 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Rapid MetroRail Gurgaon: S55 → Sikandarpur",
+      "message": "Line \"Rapid MetroRail Gurgaon: S55 → Sikandarpur\" crosses itself near segments 188 and 193 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Rapid MetroRail Gurgaon: S55 → Sikandarpur",
+      "message": "Line \"Rapid MetroRail Gurgaon: S55 → Sikandarpur\" crosses itself near segments 191 and 201 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Rapid MetroRail Gurgaon: S55 → Sikandarpur",
+      "message": "Line \"Rapid MetroRail Gurgaon: S55 → Sikandarpur\" crosses itself near segments 195 and 203 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Pink Line",
+      "message": "Line \"Pink Line\" crosses itself near segments 0 and 282 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Magenta Line",
+      "message": "Line \"Magenta Line\" crosses itself near segments 0 and 22 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Magenta Line",
+      "message": "Line \"Magenta Line\" crosses itself near segments 55 and 85 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Magenta Line",
+      "message": "Line \"Magenta Line\" crosses itself near segments 118 and 133 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Magenta Line",
+      "message": "Line \"Magenta Line\" crosses itself near segments 119 and 137 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Magenta Line",
+      "message": "Line \"Magenta Line\" crosses itself near segments 134 and 137 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Delhi",
+      "line": "Magenta Line",
+      "message": "Line \"Magenta Line\" crosses itself near segments 138 and 144 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "unexpected-termination",
+      "city": "Delhi",
+      "line": "Delhi–Meerut RRTS",
+      "message": "Line \"Delhi–Meerut RRTS\"'s end point has no station within 500m (nearest: 38.72km)."
+    },
+    {
+      "severity": "warning",
+      "code": "duplicate-edge",
+      "city": "Delhi",
+      "line": "Rapid MetroRail Gurgaon: S55 → Sikandarpur",
+      "message": "Line \"Rapid MetroRail Gurgaon: S55 → Sikandarpur\" repeats the same segment (index 104) elsewhere in its path."
+    },
+    {
+      "severity": "warning",
+      "code": "duplicate-edge",
+      "city": "Delhi",
+      "line": "Magenta Line",
+      "message": "Line \"Magenta Line\" repeats the same segment (index 86) elsewhere in its path."
+    },
+    {
+      "severity": "warning",
+      "code": "residual-path-gap",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" has a 2.26km gap at path index 171-172.",
+      "detail": {
+        "gapMeters": 2260.6367571055134,
+        "index": 172
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "disconnected-line-components",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" splits into 2 disconnected components after accounting for the 2000m gap tolerance.",
+      "detail": {
+        "componentCount": 2
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 0 and 3 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 0 and 23 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 4 and 7 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 7 and 24 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 70 and 79 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 80 and 93 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 93 and 97 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 93 and 119 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 97 and 104 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 104 and 118 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 120 and 123 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 127 and 129 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 129 and 133 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 129 and 142 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 138 and 143 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 146 and 157 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 157 and 159 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 160 and 171 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 171 and 189 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 189 and 196 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 196 and 206 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 206 and 210 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 216 and 232 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 232 and 257 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 234 and 243 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 234 and 250 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 252 and 258 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 283 and 287 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Hyderabad",
+      "line": "Red Line",
+      "message": "Line \"Red Line\" crosses itself near segments 287 and 294 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "unexpected-termination",
+      "city": "Hyderabad",
+      "line": "Green Line",
+      "message": "Line \"Green Line\"'s end point has no station within 500m (nearest: 0.60km)."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Kolkata",
+      "line": "Kolkata Metro Blue Line",
+      "message": "Line \"Kolkata Metro Blue Line\" crosses itself near segments 244 and 252 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Kolkata",
+      "line": "Kolkata Metro Blue Line",
+      "message": "Line \"Kolkata Metro Blue Line\" crosses itself near segments 244 and 260 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Kolkata",
+      "line": "Kolkata Metro Blue Line",
+      "message": "Line \"Kolkata Metro Blue Line\" crosses itself near segments 252 and 260 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Kolkata",
+      "line": "Kolkata Metro Blue Line",
+      "message": "Line \"Kolkata Metro Blue Line\" crosses itself near segments 260 and 294 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Kolkata",
+      "line": "Green Line",
+      "message": "Line \"Green Line\" crosses itself near segments 24 and 26 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Kolkata",
+      "line": "Green Line",
+      "message": "Line \"Green Line\" crosses itself near segments 25 and 40 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Kolkata",
+      "line": "Green Line",
+      "message": "Line \"Green Line\" crosses itself near segments 27 and 35 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Kolkata",
+      "line": "Green Line",
+      "message": "Line \"Green Line\" crosses itself near segments 36 and 41 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Kolkata",
+      "line": "Purple Line",
+      "message": "Line \"Purple Line\" crosses itself near segments 96 and 99 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "duplicate-edge",
+      "city": "Kolkata",
+      "line": "Green Line",
+      "message": "Line \"Green Line\" repeats the same segment (index 26) elsewhere in its path."
+    },
+    {
+      "severity": "warning",
+      "code": "possible-unmodeled-branch",
+      "city": "Mumbai",
+      "line": "Line 7",
+      "message": "Line \"Line 7\" has an unusually large 6.30km gap at path index 4-5 — may indicate an unmodeled Y-branch; consider splitting into two line entries if OSM data confirms a junction. Not asserted as fact.",
+      "detail": {
+        "gapMeters": 6302.545873539915,
+        "index": 5
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "residual-path-gap",
+      "city": "Mumbai",
+      "line": "Mumbai Metro Line 11",
+      "message": "Line \"Mumbai Metro Line 11\" has a 4.87km gap at path index 6-7.",
+      "detail": {
+        "gapMeters": 4868.407620717719,
+        "index": 7
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Kapurbawdi Station",
+      "message": "Station \"Kapurbawdi Station\" is not within 2000m of any line (nearest: 11.33km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Gaimukh Station",
+      "message": "Station \"Gaimukh Station\" is not within 2000m of any line (nearest: 6.87km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Gowniwada Station",
+      "message": "Station \"Gowniwada Station\" is not within 2000m of any line (nearest: 7.96km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Lokmanya Nagar Bus Depot",
+      "message": "Station \"Lokmanya Nagar Bus Depot\" is not within 2000m of any line (nearest: 8.74km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Azad Nagar Bus Stop",
+      "message": "Station \"Azad Nagar Bus Stop\" is not within 2000m of any line (nearest: 10.93km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Subhash Chandra Bose Ground",
+      "message": "Station \"Subhash Chandra Bose Ground\" is not within 2000m of any line (nearest: 4.14km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Manpada",
+      "message": "Station \"Manpada\" is not within 2000m of any line (nearest: 10.20km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Shahid Bhagat Singh Garden",
+      "message": "Station \"Shahid Bhagat Singh Garden\" is not within 2000m of any line (nearest: 3.77km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Wagle Circle",
+      "message": "Station \"Wagle Circle\" is not within 2000m of any line (nearest: 8.65km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Shivai Nagar",
+      "message": "Station \"Shivai Nagar\" is not within 2000m of any line (nearest: 9.04km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Neelkanth Terminal",
+      "message": "Station \"Neelkanth Terminal\" is not within 2000m of any line (nearest: 9.62km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Ghandi Nagar",
+      "message": "Station \"Ghandi Nagar\" is not within 2000m of any line (nearest: 10.45km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Dr. Kashinath Ghanekar Natyagruha",
+      "message": "Station \"Dr. Kashinath Ghanekar Natyagruha\" is not within 2000m of any line (nearest: 10.37km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Dongripada",
+      "message": "Station \"Dongripada\" is not within 2000m of any line (nearest: 10.05km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Vijay Nagari",
+      "message": "Station \"Vijay Nagari\" is not within 2000m of any line (nearest: 9.75km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Waghbil",
+      "message": "Station \"Waghbil\" is not within 2000m of any line (nearest: 10.23km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Waterfront",
+      "message": "Station \"Waterfront\" is not within 2000m of any line (nearest: 11.18km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Mumbai",
+      "station": "Patlipada",
+      "message": "Station \"Patlipada\" is not within 2000m of any line (nearest: 10.95km)."
+    },
+    {
+      "severity": "warning",
+      "code": "disconnected-line-components",
+      "city": "Mumbai",
+      "line": "Line 7",
+      "message": "Line \"Line 7\" splits into 2 disconnected components after accounting for the 2000m gap tolerance.",
+      "detail": {
+        "componentCount": 2
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "disconnected-line-components",
+      "city": "Mumbai",
+      "line": "Mumbai Metro Line 11",
+      "message": "Line \"Mumbai Metro Line 11\" splits into 2 disconnected components after accounting for the 2000m gap tolerance.",
+      "detail": {
+        "componentCount": 2
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Mumbai",
+      "line": "Line 7",
+      "message": "Line \"Line 7\" crosses itself near segments 0 and 3 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Mumbai",
+      "line": "Line 7",
+      "message": "Line \"Line 7\" crosses itself near segments 4 and 7 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Mumbai",
+      "line": "Line 7",
+      "message": "Line \"Line 7\" crosses itself near segments 4 and 25 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Mumbai",
+      "line": "Mumbai Metro Line 11",
+      "message": "Line \"Mumbai Metro Line 11\" crosses itself near segments 0 and 5 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Mumbai",
+      "line": "Mumbai Metro Line 11",
+      "message": "Line \"Mumbai Metro Line 11\" crosses itself near segments 6 and 30 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "unexpected-termination",
+      "city": "Mumbai",
+      "line": "Line 3",
+      "message": "Line \"Line 3\"'s start point has no station within 500m (nearest: 1.23km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unexpected-termination",
+      "city": "Mumbai",
+      "line": "Navi Mumbai Metro Line 1",
+      "message": "Line \"Navi Mumbai Metro Line 1\"'s start point has no station within 500m (nearest: 7.59km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unexpected-termination",
+      "city": "Mumbai",
+      "line": "Mumbai Metro Line 11",
+      "message": "Line \"Mumbai Metro Line 11\"'s start point has no station within 500m (nearest: 0.89km)."
+    },
+    {
+      "severity": "warning",
+      "code": "missing-line-color",
+      "city": "Mumbai",
+      "line": "Mumbai Metro Line 11",
+      "message": "Line \"Mumbai Metro Line 11\" has no color set."
+    },
+    {
+      "severity": "warning",
+      "code": "residual-path-gap",
+      "city": "Pune",
+      "line": "Aqua Line: Ramwadi => Vanaz",
+      "message": "Line \"Aqua Line: Ramwadi => Vanaz\" has a 2.67km gap at path index 3-4.",
+      "detail": {
+        "gapMeters": 2665.8778612682886,
+        "index": 4
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "residual-path-gap",
+      "city": "Pune",
+      "line": "Purple Line: Swargate → PCMC Bhavan",
+      "message": "Line \"Purple Line: Swargate → PCMC Bhavan\" has a 3.41km gap at path index 204-205.",
+      "detail": {
+        "gapMeters": 3408.7779747645386,
+        "index": 205
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Balewadi Stadium",
+      "message": "Station \"Balewadi Stadium\" is not within 2000m of any line (nearest: 6.88km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Doehler India",
+      "message": "Station \"Doehler India\" is not within 2000m of any line (nearest: 11.52km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Infosys",
+      "message": "Station \"Infosys\" is not within 2000m of any line (nearest: 10.64km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Wipro",
+      "message": "Station \"Wipro\" is not within 2000m of any line (nearest: 9.76km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Wakad Chowk",
+      "message": "Station \"Wakad Chowk\" is not within 2000m of any line (nearest: 6.47km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Savitribal Phule Pune University",
+      "message": "Station \"Savitribal Phule Pune University\" is not within 2000m of any line (nearest: 2.12km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "YASHADA",
+      "message": "Station \"YASHADA\" is not within 2000m of any line (nearest: 2.77km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Krushi Anusandhan",
+      "message": "Station \"Krushi Anusandhan\" is not within 2000m of any line (nearest: 3.73km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Baner",
+      "message": "Station \"Baner\" is not within 2000m of any line (nearest: 4.54km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Baner Gaon",
+      "message": "Station \"Baner Gaon\" is not within 2000m of any line (nearest: 5.11km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Balewadi Phata",
+      "message": "Station \"Balewadi Phata\" is not within 2000m of any line (nearest: 6.04km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "High Street",
+      "message": "Station \"High Street\" is not within 2000m of any line (nearest: 6.36km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "NICMAR",
+      "message": "Station \"NICMAR\" is not within 2000m of any line (nearest: 6.83km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Jakat Naka",
+      "message": "Station \"Jakat Naka\" is not within 2000m of any line (nearest: 7.36km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Hinjawadi",
+      "message": "Station \"Hinjawadi\" is not within 2000m of any line (nearest: 8.06km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Bhakti Shakti",
+      "message": "Station \"Bhakti Shakti\" is not within 2000m of any line (nearest: 4.71km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Nigdi",
+      "message": "Station \"Nigdi\" is not within 2000m of any line (nearest: 4.10km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Akurdi",
+      "message": "Station \"Akurdi\" is not within 2000m of any line (nearest: 3.05km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Wagheshwar Temple",
+      "message": "Station \"Wagheshwar Temple\" is not within 2000m of any line (nearest: 7.94km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Upper Kharadi Rd",
+      "message": "Station \"Upper Kharadi Rd\" is not within 2000m of any line (nearest: 6.13km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Ubale Nagar",
+      "message": "Station \"Ubale Nagar\" is not within 2000m of any line (nearest: 5.35km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Tuljabhavani Nagar",
+      "message": "Station \"Tuljabhavani Nagar\" is not within 2000m of any line (nearest: 4.25km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Kharadi Bypass",
+      "message": "Station \"Kharadi Bypass\" is not within 2000m of any line (nearest: 3.19km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Somnath Nagar",
+      "message": "Station \"Somnath Nagar\" is not within 2000m of any line (nearest: 2.25km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Karve Nagar",
+      "message": "Station \"Karve Nagar\" is not within 2000m of any line (nearest: 2.24km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Warje",
+      "message": "Station \"Warje\" is not within 2000m of any line (nearest: 3.03km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Daulat Nagar",
+      "message": "Station \"Daulat Nagar\" is not within 2000m of any line (nearest: 3.90km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Manik Baug",
+      "message": "Station \"Manik Baug\" is not within 2000m of any line (nearest: 4.40km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Dalvewadi",
+      "message": "Station \"Dalvewadi\" is not within 2000m of any line (nearest: 5.87km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Nanded City",
+      "message": "Station \"Nanded City\" is not within 2000m of any line (nearest: 5.57km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Dhayari Phata",
+      "message": "Station \"Dhayari Phata\" is not within 2000m of any line (nearest: 5.39km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Hingane Chowk",
+      "message": "Station \"Hingane Chowk\" is not within 2000m of any line (nearest: 2.79km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Rajaram Pul",
+      "message": "Station \"Rajaram Pul\" is not within 2000m of any line (nearest: 2.04km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Bibwewadi",
+      "message": "Station \"Bibwewadi\" is not within 2000m of any line (nearest: 2.73km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Padmavati",
+      "message": "Station \"Padmavati\" is not within 2000m of any line (nearest: 4.31km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Balaji Nagar",
+      "message": "Station \"Balaji Nagar\" is not within 2000m of any line (nearest: 5.18km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Katraj",
+      "message": "Station \"Katraj\" is not within 2000m of any line (nearest: 5.92km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Pune Cantonment Board",
+      "message": "Station \"Pune Cantonment Board\" is not within 2000m of any line (nearest: 2.14km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Race Course",
+      "message": "Station \"Race Course\" is not within 2000m of any line (nearest: 3.05km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Fatima Nagar",
+      "message": "Station \"Fatima Nagar\" is not within 2000m of any line (nearest: 3.77km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Ramtekadi",
+      "message": "Station \"Ramtekadi\" is not within 2000m of any line (nearest: 4.15km)."
+    },
+    {
+      "severity": "warning",
+      "code": "unmapped-station",
+      "city": "Pune",
+      "station": "Hadapsar",
+      "message": "Station \"Hadapsar\" is not within 2000m of any line (nearest: 4.78km)."
+    },
+    {
+      "severity": "warning",
+      "code": "ambiguous-station-ordering",
+      "city": "Pune",
+      "line": "Aqua Line: Ramwadi => Vanaz",
+      "station": "Ramwadi / Viman Nagar",
+      "message": "Stations \"Ramwadi\" and \"Viman Nagar\" on line \"Aqua Line: Ramwadi => Vanaz\" project to nearly the same point along the path but are 1.34km apart in reality — the path may loop back near here. Best-effort signal, not a hard guarantee."
+    },
+    {
+      "severity": "warning",
+      "code": "ambiguous-station-ordering",
+      "city": "Pune",
+      "line": "Aqua Line: Ramwadi => Vanaz",
+      "station": "Kothrud Bus Depot / Vanaz",
+      "message": "Stations \"Kothrud Bus Depot\" and \"Vanaz\" on line \"Aqua Line: Ramwadi => Vanaz\" project to nearly the same point along the path but are 1.30km apart in reality — the path may loop back near here. Best-effort signal, not a hard guarantee."
+    },
+    {
+      "severity": "warning",
+      "code": "ambiguous-station-ordering",
+      "city": "Pune",
+      "line": "Aqua Line: Ramwadi => Vanaz",
+      "station": "Vanaz / Chandani Chowk",
+      "message": "Stations \"Vanaz\" and \"Chandani Chowk\" on line \"Aqua Line: Ramwadi => Vanaz\" project to nearly the same point along the path but are 1.95km apart in reality — the path may loop back near here. Best-effort signal, not a hard guarantee."
+    },
+    {
+      "severity": "warning",
+      "code": "ambiguous-station-ordering",
+      "city": "Pune",
+      "line": "Purple Line: Swargate → PCMC Bhavan",
+      "station": "Dandekar Pul / Market Yard",
+      "message": "Stations \"Dandekar Pul\" and \"Market Yard\" on line \"Purple Line: Swargate → PCMC Bhavan\" project to nearly the same point along the path but are 1.95km apart in reality — the path may loop back near here. Best-effort signal, not a hard guarantee."
+    },
+    {
+      "severity": "warning",
+      "code": "ambiguous-station-ordering",
+      "city": "Pune",
+      "line": "Purple Line: Swargate → PCMC Bhavan",
+      "station": "Market Yard / Swargate",
+      "message": "Stations \"Market Yard\" and \"Swargate\" on line \"Purple Line: Swargate → PCMC Bhavan\" project to nearly the same point along the path but are 1.33km apart in reality — the path may loop back near here. Best-effort signal, not a hard guarantee."
+    },
+    {
+      "severity": "warning",
+      "code": "disconnected-line-components",
+      "city": "Pune",
+      "line": "Aqua Line: Ramwadi => Vanaz",
+      "message": "Line \"Aqua Line: Ramwadi => Vanaz\" splits into 2 disconnected components after accounting for the 2000m gap tolerance.",
+      "detail": {
+        "componentCount": 2
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "disconnected-line-components",
+      "city": "Pune",
+      "line": "Purple Line: Swargate → PCMC Bhavan",
+      "message": "Line \"Purple Line: Swargate → PCMC Bhavan\" splits into 2 disconnected components after accounting for the 2000m gap tolerance.",
+      "detail": {
+        "componentCount": 2
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Pune",
+      "line": "Aqua Line: Ramwadi => Vanaz",
+      "message": "Line \"Aqua Line: Ramwadi => Vanaz\" crosses itself near segments 0 and 2 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Pune",
+      "line": "Aqua Line: Ramwadi => Vanaz",
+      "message": "Line \"Aqua Line: Ramwadi => Vanaz\" crosses itself near segments 3 and 84 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Pune",
+      "line": "Aqua Line: Ramwadi => Vanaz",
+      "message": "Line \"Aqua Line: Ramwadi => Vanaz\" crosses itself near segments 221 and 294 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Pune",
+      "line": "Aqua Line: Ramwadi => Vanaz",
+      "message": "Line \"Aqua Line: Ramwadi => Vanaz\" crosses itself near segments 239 and 294 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Pune",
+      "line": "Aqua Line: Ramwadi => Vanaz",
+      "message": "Line \"Aqua Line: Ramwadi => Vanaz\" crosses itself near segments 269 and 288 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Pune",
+      "line": "Aqua Line: Ramwadi => Vanaz",
+      "message": "Line \"Aqua Line: Ramwadi => Vanaz\" crosses itself near segments 273 and 288 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Pune",
+      "line": "Aqua Line: Ramwadi => Vanaz",
+      "message": "Line \"Aqua Line: Ramwadi => Vanaz\" crosses itself near segments 278 and 288 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Pune",
+      "line": "Aqua Line: Ramwadi => Vanaz",
+      "message": "Line \"Aqua Line: Ramwadi => Vanaz\" crosses itself near segments 285 and 288 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Pune",
+      "line": "Aqua Line: Ramwadi => Vanaz",
+      "message": "Line \"Aqua Line: Ramwadi => Vanaz\" crosses itself near segments 288 and 292 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Pune",
+      "line": "Purple Line: Swargate → PCMC Bhavan",
+      "message": "Line \"Purple Line: Swargate → PCMC Bhavan\" crosses itself near segments 124 and 204 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Pune",
+      "line": "Purple Line: Swargate → PCMC Bhavan",
+      "message": "Line \"Purple Line: Swargate → PCMC Bhavan\" crosses itself near segments 155 and 204 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Pune",
+      "line": "Purple Line: Swargate → PCMC Bhavan",
+      "message": "Line \"Purple Line: Swargate → PCMC Bhavan\" crosses itself near segments 185 and 196 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    },
+    {
+      "severity": "warning",
+      "code": "self-intersecting-geometry",
+      "city": "Pune",
+      "line": "Purple Line: Swargate → PCMC Bhavan",
+      "message": "Line \"Purple Line: Swargate → PCMC Bhavan\" crosses itself near segments 189 and 196 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+    }
+  ]
+}

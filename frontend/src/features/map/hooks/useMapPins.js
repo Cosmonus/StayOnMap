@@ -16,11 +16,32 @@ function bhkShort(pin) {
   return ''
 }
 
+// One color per wizard category (HOUSE/VILLA/INDEPENDENT_HOUSE share the
+// "house" color since they're one category in the listing wizard, see
+// config/onboarding.js's CATEGORIES) — the pin border/selected-fill is the
+// only place on the map itself that shows which of the 6 types a pin is.
+const TYPE_COLORS = {
+  APARTMENT: '#0284C7',
+  HOUSE: '#16A34A',
+  VILLA: '#16A34A',
+  INDEPENDENT_HOUSE: '#16A34A',
+  LAND: '#B45309',
+  PG: '#7C3AED',
+  COMMERCIAL: '#EA580C',
+  SHORT_STAY: '#DB2777',
+}
+const DEFAULT_TYPE_COLOR = '#d6d2c8'
+
+function typeColor(pin) {
+  return TYPE_COLORS[pin.type] ?? DEFAULT_TYPE_COLOR
+}
+
 // ── Individual pin (white pill with rent label) ───────────────────
 function makePinEl(pin, selected) {
   const rent  = `₹${(Number(pin.rent) / 1000).toFixed(0)}K`
   const bhk   = bhkShort(pin)
   const label = bhk ? `${rent} · ${bhk}` : rent
+  const color = typeColor(pin)
 
   const el = document.createElement('div')
   el.setAttribute('aria-label', `Property at ${rent}/mo`)
@@ -40,8 +61,8 @@ function makePinEl(pin, selected) {
     will-change: transform;
     user-select: none;
     ${selected
-      ? 'background:#111111;color:#fff;border:2px solid #111111;'
-      : 'background:#fff;color:#1c1a16;border:2px solid #d6d2c8;'}
+      ? `background:${color};color:#fff;border:2px solid ${color};`
+      : `background:#fff;color:#1c1a16;border:2px solid ${color};`}
   `
   el.textContent = label
   el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.08)' })
@@ -49,10 +70,11 @@ function makePinEl(pin, selected) {
   return el
 }
 
-function applySelected(el, selected) {
-  el.style.background  = selected ? '#111111' : '#fff'
-  el.style.color       = selected ? '#fff'     : '#1c1a16'
-  el.style.borderColor = selected ? '#111111'  : '#d6d2c8'
+function applySelected(el, selected, pin) {
+  const color = typeColor(pin)
+  el.style.background  = selected ? color : '#fff'
+  el.style.color       = selected ? '#fff' : '#1c1a16'
+  el.style.borderColor = color
 }
 
 // ── Cluster bubble (brand-blue pill with count) ───────────────────
@@ -95,6 +117,7 @@ export function useMapPins(mapRef) {
   const zoom        = useMapStore((s) => s.zoom)
   const bounds      = useMapStore((s) => s.bounds)
   const selectedId  = useMapStore((s) => s.selectedPinId)
+  const hoveredId   = useMapStore((s) => s.hoveredPinId)
   const selectPin   = useMapStore((s) => s.selectPin)
   const clearSelection = useMapStore((s) => s.clearSelection)
   const mapReady    = useMapStore((s) => s.flyTo !== null)
@@ -112,7 +135,7 @@ export function useMapPins(mapRef) {
 
     if (!pins.length) return
 
-    const currentSelectedId = useMapStore.getState().selectedPinId
+    const { selectedPinId: currentSelectedId, hoveredPinId: currentHoveredId } = useMapStore.getState()
     const items = computeClusters(pins, bounds, zoom)
 
     for (const item of items) {
@@ -137,7 +160,7 @@ export function useMapPins(mapRef) {
         const pin   = pins.find((p) => p.id === pinId)
         if (!pin) continue
 
-        const selected = pinId === currentSelectedId
+        const selected = pinId === currentSelectedId || pinId === currentHoveredId
         const el       = makePinEl(pin, selected)
         const marker   = createHtmlMarker({
           element: el,
@@ -157,12 +180,13 @@ export function useMapPins(mapRef) {
     }
   }, [pins, zoom, bounds, mapReady, mapRef, selectPin, clearSelection])
 
-  // Update selected styling without re-creating markers
+  // Update selected/hovered styling without re-creating markers
   useEffect(() => {
     for (const [id, marker] of pinMarkersRef.current) {
-      applySelected(marker.getElement(), id === selectedId)
+      const pin = pins.find((p) => p.id === id)
+      if (pin) applySelected(marker.getElement(), id === selectedId || id === hoveredId, pin)
     }
-  }, [selectedId])
+  }, [selectedId, hoveredId, pins])
 
   // Cleanup on unmount
   useEffect(() => {

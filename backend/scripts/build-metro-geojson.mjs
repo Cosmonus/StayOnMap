@@ -13,6 +13,7 @@
 import { readdirSync, readFileSync, writeFileSync, copyFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import path from 'path'
+import { splitPathIntoComponents, PATH_GAP_METERS } from '../src/lib/metro-validation/index.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const SRC_DIR = path.join(__dirname, '../src/data/metro-lines')
@@ -30,10 +31,26 @@ for (const file of files) {
   const data = JSON.parse(readFileSync(path.join(SRC_DIR, file), 'utf-8'))
 
   data.lines.forEach((line, i) => {
-    features.push({
-      type: 'Feature',
-      properties: { city: data.city, name: line.name, line: i + 1, color: line.color ?? null },
-      geometry: { type: 'LineString', coordinates: line.path.map(([lat, lng]) => [lng, lat]) },
+    // A handful of lines have a genuine gap in the source OSM data (no
+    // fetchable track geometry for that stretch — see .claude/roadmap.md's
+    // Addendum 4/10) — rendering the full path as one LineString draws a
+    // straight "fake bridge" across the gap, implying a direct route that
+    // doesn't exist. Split into one feature per contiguous component
+    // instead, so the map honestly shows the break rather than papering
+    // over it.
+    const components = splitPathIntoComponents(line.path, PATH_GAP_METERS)
+    components.forEach((component, componentIndex) => {
+      if (component.length < 2) return
+      features.push({
+        type: 'Feature',
+        properties: {
+          city: data.city,
+          name: components.length > 1 ? `${line.name} (part ${componentIndex + 1}/${components.length})` : line.name,
+          line: i + 1,
+          color: line.color ?? null,
+        },
+        geometry: { type: 'LineString', coordinates: component.map(([lat, lng]) => [lng, lat]) },
+      })
     })
   })
 
