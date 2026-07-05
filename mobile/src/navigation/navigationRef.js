@@ -6,7 +6,7 @@ export const navigationRef = createNavigationContainerRef()
 // Maps a Notification's { referenceId, referenceType } (see
 // notifyUser() in backend/src/features/notifications/notifications.service.js)
 // to a concrete in-app destination for push-notification taps. Branches on
-// hostMode since the traveler and host tab bars use different route names
+// hostMode since the renter and host tab bars use different route names
 // for the same destinations (AppTabs.js) — without this, a tap would
 // silently no-op in whichever mode isn't the hardcoded one.
 export function navigateToReference({ referenceId, referenceType }) {

@@ -6,7 +6,7 @@ import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
 // Simple placeholder, mirrors web's ComingSoon stub (DashboardPage.jsx) —
-// registered under both ProfileStack (traveler mode) and DashboardStack
+// registered under both ProfileStack (renter mode) and DashboardStack
 // (host mode), same stateless component in both places.
 export default function SupportScreen({ navigation }) {
   return (

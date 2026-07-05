@@ -12,10 +12,11 @@ backend/.env
 frontend/.env
 
 # ─────────────────────────────────────────────
-# Private planning & product docs
+# Private planning & product docs — no markdown docs of any kind go to git;
+# they document internal architecture, known bugs, and security posture,
+# which is itself a security exposure if pushed to the remote.
 # ─────────────────────────────────────────────
-inital.md
-CLAUDE.md
+*.md
 .claude/
 docs/
 staynear-summary.html

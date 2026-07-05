@@ -117,6 +117,39 @@ describe('listProperties', () => {
     expect(result).toHaveProperty('properties')
     expect(Array.isArray(result.properties)).toBe(true)
   })
+
+  it('applies lat/lng bounds filter when all four bounds are provided', async () => {
+    prismaMock.property.findMany.mockResolvedValue([])
+    prismaMock.property.count.mockResolvedValue(0)
+
+    await listProperties({ swLat: 12.8, swLng: 77.4, neLat: 13.1, neLng: 77.8 }, { skip: 0, limit: 20 })
+
+    const whereClause = prismaMock.property.findMany.mock.calls[0][0].where
+    expect(whereClause.lat).toMatchObject({ gte: 12.8, lte: 13.1 })
+    expect(whereClause.lng).toMatchObject({ gte: 77.4, lte: 77.8 })
+  })
+
+  it('does not apply a bounds filter when bounds are absent (regular unfiltered browsing)', async () => {
+    prismaMock.property.findMany.mockResolvedValue([])
+    prismaMock.property.count.mockResolvedValue(0)
+
+    await listProperties({}, { skip: 0, limit: 20 })
+
+    const whereClause = prismaMock.property.findMany.mock.calls[0][0].where
+    expect(whereClause.lat).toBeUndefined()
+    expect(whereClause.lng).toBeUndefined()
+  })
+
+  it('does not apply a bounds filter when only some bounds are provided (partial/malformed input)', async () => {
+    prismaMock.property.findMany.mockResolvedValue([])
+    prismaMock.property.count.mockResolvedValue(0)
+
+    await listProperties({ swLat: 12.8, swLng: 77.4 }, { skip: 0, limit: 20 })
+
+    const whereClause = prismaMock.property.findMany.mock.calls[0][0].where
+    expect(whereClause.lat).toBeUndefined()
+    expect(whereClause.lng).toBeUndefined()
+  })
 })
 
 // ─── getPropertyById ─────────────────────────────────────────────────────────
