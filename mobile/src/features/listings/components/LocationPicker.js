@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native'
 import NativeMapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps'
 import { geocodeAddress } from '@lib/googleGeocoding'
@@ -11,14 +11,20 @@ const INDIA_CENTER = { latitude: 20.5937, longitude: 78.9629 }
 
 export default function LocationPicker({ value, onChange }) {
   const [query, setQuery] = useState('')
+  const mapRef = useRef(null)
 
   async function handleSearch() {
     if (!query.trim()) return
     const loc = await geocodeAddress(`${query}, India`)
-    if (loc) onChange({ lat: loc.lat, lng: loc.lng })
+    if (!loc) return
+    onChange({ lat: loc.lat, lng: loc.lng })
+    mapRef.current?.animateToRegion({ latitude: loc.lat, longitude: loc.lng, latitudeDelta: 0.05, longitudeDelta: 0.05 }, 400)
   }
 
-  const region = value
+  // initialRegion, not region — a controlled `region` prop rebuilt as a new
+  // object on every render is a known react-native-maps instability/crash
+  // source on Android. Camera moves after mount go through mapRef instead.
+  const initialRegion = value
     ? { latitude: value.lat, longitude: value.lng, latitudeDelta: 0.05, longitudeDelta: 0.05 }
     : { ...INDIA_CENTER, latitudeDelta: 20, longitudeDelta: 20 }
 
@@ -43,9 +49,10 @@ export default function LocationPicker({ value, onChange }) {
       </View>
 
       <NativeMapView
+        ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={styles.map}
-        region={region}
+        initialRegion={initialRegion}
         onPress={(e) => onChange({ lat: e.nativeEvent.coordinate.latitude, lng: e.nativeEvent.coordinate.longitude })}
       >
         {value && (
