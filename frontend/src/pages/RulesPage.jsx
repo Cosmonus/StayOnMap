@@ -218,7 +218,7 @@ export default function RulesPage() {
       <section className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
         {/* Persona header */}
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-2xl shadow-sm shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-2xl shrink-0">
             {persona.emoji}
           </div>
           <div>

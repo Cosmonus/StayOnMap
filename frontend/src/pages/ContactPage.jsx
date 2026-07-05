@@ -124,7 +124,7 @@ export default function ContactPage() {
                 href={`mailto:${email}`}
                 className={`flex flex-col h-full rounded-2xl border p-6 transition-all no-underline group ${color}`}
               >
-                <div className="w-11 h-11 rounded-xl bg-white/80 flex items-center justify-center mb-4 shadow-sm">
+                <div className="w-11 h-11 rounded-xl bg-white/80 flex items-center justify-center mb-4">
                   <SvgIcon d={icon} className="w-5 h-5" />
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 mb-1">{label}</h3>
@@ -154,7 +154,7 @@ export default function ContactPage() {
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 {sent ? (
                   <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
-                    <div className="w-16 h-16 rounded-full bg-[#111111] flex items-center justify-center mb-5 shadow-lg">
+                    <div className="w-16 h-16 rounded-full bg-[#111111] flex items-center justify-center mb-5">
                       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                     </div>
                     <h3 className="font-display font-bold text-xl text-slate-900 mb-2">Message sent!</h3>
