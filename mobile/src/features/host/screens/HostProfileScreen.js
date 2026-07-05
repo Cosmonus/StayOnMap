@@ -10,32 +10,13 @@ import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-const MENU_ITEMS = [
-  ['Appointments', 'calendar', 'Appointments'],
-  ['Leases', 'document', 'Rented'],
-  ['Notifications', 'bell', 'Notifications'],
-  ['Settings', 'settings', 'Settings'],
-  ['Support', 'info', 'Support'],
-]
-
-export default function ProfileScreen({ navigation }) {
+export default function HostProfileScreen({ navigation }) {
   const { user, signOut } = useAuth()
   const setHostMode = useUiStore((s) => s.setHostMode)
-  const setHostEntryTab = useUiStore((s) => s.setHostEntryTab)
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['me'],
-    queryFn: async () => {
-      try {
-        return await authService.getMe().then((r) => r.data)
-      } catch (err) {
-        if (err?.error === 'PROFILE_NOT_FOUND') {
-          await authService.syncProfile({})
-          return authService.getMe().then((r) => r.data)
-        }
-        throw err
-      }
-    },
+    queryFn: () => authService.getMe().then((r) => r.data),
     enabled: !!user,
     staleTime: 0,
   })
@@ -50,25 +31,21 @@ export default function ProfileScreen({ navigation }) {
           <ActivityIndicator color={colors.brand600} style={{ marginTop: spacing.sm }} />
         ) : (
           <>
-            <Text style={styles.name}>{profile?.name || 'StayOnMap user'}</Text>
+            <Text style={styles.name}>{profile?.name || 'StayOnMap host'}</Text>
             <Text style={styles.email}>{user?.email}</Text>
             <View style={styles.roleBadge}>
-              <Icon name={profile?.role === 'OWNER' ? 'home' : 'key'} size={11} color={colors.brand700} />
-              <Text style={styles.roleBadgeText}>{profile?.role ?? 'TENANT'}</Text>
+              <Icon name="home" size={11} color={colors.brand700} />
+              <Text style={styles.roleBadgeText}>HOST</Text>
             </View>
           </>
         )}
       </View>
 
       <View style={styles.menu}>
-        {MENU_ITEMS.map(([route, icon, label]) => (
-          <MenuItem key={route} icon={icon} label={label} onPress={() => navigation.navigate(route)} />
-        ))}
-        <MenuItem
-          icon="home"
-          label="Switch to host"
-          onPress={() => { setHostEntryTab('MyListing'); setHostMode(true) }}
-        />
+        <MenuItem icon="bell" label="Notifications" onPress={() => navigation.navigate('Notifications')} />
+        <MenuItem icon="settings" label="Settings" onPress={() => navigation.navigate('Settings')} />
+        <MenuItem icon="info" label="Support" onPress={() => navigation.navigate('Support')} />
+        <MenuItem icon="map" label="Switch to renter" onPress={() => setHostMode(false)} />
       </View>
 
       <Pressable style={styles.signOutButton} onPress={signOut}>

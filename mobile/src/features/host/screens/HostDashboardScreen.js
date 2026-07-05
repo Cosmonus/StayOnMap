@@ -4,8 +4,6 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { authService } from '@services/auth.service'
 import { propertyService } from '@services/property.service'
-import { useUiStore } from '@store/uiStore'
-import MenuItem from '@features/profile/components/MenuItem'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -21,8 +19,7 @@ function StatTile({ label, value }) {
 }
 
 export default function HostDashboardScreen({ navigation }) {
-  const { user, signOut } = useAuth()
-  const setHostMode = useUiStore((s) => s.setHostMode)
+  const { user } = useAuth()
 
   const { data: profile, isLoading: loadingProfile } = useQuery({
     queryKey: ['me'],
@@ -73,13 +70,15 @@ export default function HostDashboardScreen({ navigation }) {
           </View>
         </Pressable>
 
-        <View style={styles.menu}>
-          <MenuItem icon="bell" label="Notifications" onPress={() => navigation.navigate('Notifications')} />
-          <MenuItem icon="settings" label="Settings" onPress={() => navigation.navigate('Settings')} />
-          <MenuItem icon="info" label="Support" onPress={() => navigation.navigate('Support')} />
-          <MenuItem icon="map" label="Switch to traveling" onPress={() => setHostMode(false)} />
-          <MenuItem icon="logout" label="Log out" danger onPress={signOut} />
-        </View>
+        <Pressable style={styles.quickAction} onPress={() => navigation.navigate('Calendar')}>
+          <View style={[styles.quickActionIcon, styles.quickActionIconAlt]}>
+            <Icon name="calendar" size={16} color={colors.white} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.quickActionTitle}>View calendar</Text>
+            <Text style={styles.quickActionBody}>Appointment and lease dates at a glance</Text>
+          </View>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   )
@@ -103,7 +102,7 @@ const styles = StyleSheet.create({
     padding: spacing.md, marginTop: spacing.lg,
   },
   quickActionIcon: { width: 40, height: 40, borderRadius: radius.md, backgroundColor: '#111111', alignItems: 'center', justifyContent: 'center' },
+  quickActionIconAlt: { backgroundColor: colors.brand600 },
   quickActionTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
   quickActionBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 1 },
-  menu: { marginTop: spacing.xl, borderTopWidth: 1, borderTopColor: colors.slate100 },
 })

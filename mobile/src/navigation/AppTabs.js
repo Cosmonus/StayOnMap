@@ -21,6 +21,7 @@ import LeasesScreen from '@features/leases/screens/LeasesScreen'
 import CreateLeaseScreen from '@features/leases/screens/CreateLeaseScreen'
 import SettingsScreen from '@features/profile/screens/SettingsScreen'
 import HostDashboardScreen from '@features/host/screens/HostDashboardScreen'
+import HostProfileScreen from '@features/host/screens/HostProfileScreen'
 import CalendarScreen from '@features/host/screens/CalendarScreen'
 import SupportScreen from '@features/host/screens/SupportScreen'
 
@@ -61,7 +62,7 @@ const ChatStack = makeStack([
   { name: 'Conversation', component: ConversationScreen, options: { title: 'Chat' } },
 ])
 
-// Traveler-only — listing management moved out to host mode's My Listing tab.
+// Renter-only — listing management moved out to host mode's My Listing tab.
 const ProfileStack = makeStack([
   { name: 'ProfileHome', component: ProfileScreen, options: { title: 'Profile' } },
   { name: 'Appointments', component: AppointmentsScreen, options: { headerShown: false } },
@@ -74,17 +75,18 @@ const ProfileStack = makeStack([
 // ── Host mode — new stacks ──────────────────────────────────────────────
 const DashboardStack = makeStack([
   { name: 'DashboardHome', component: HostDashboardScreen, options: { headerShown: false } },
-  { name: 'Notifications', component: NotificationsScreen, options: { headerShown: false } },
-  { name: 'Settings', component: SettingsScreen, options: { headerShown: false } },
-  { name: 'Support', component: SupportScreen, options: { headerShown: false } },
+  { name: 'Calendar', component: CalendarScreen, options: { title: 'Calendar' } },
 ])
 
 const HostAppointmentsStack = makeStack([
   { name: 'AppointmentsHome', component: AppointmentsScreen, options: { headerShown: false }, initialParams: { initialTab: 'incoming' } },
 ])
 
-const CalendarStack = makeStack([
-  { name: 'CalendarHome', component: CalendarScreen, options: { headerShown: false } },
+const HostProfileStack = makeStack([
+  { name: 'HostProfileHome', component: HostProfileScreen, options: { headerShown: false } },
+  { name: 'Notifications', component: NotificationsScreen, options: { headerShown: false } },
+  { name: 'Settings', component: SettingsScreen, options: { headerShown: false } },
+  { name: 'Support', component: SupportScreen, options: { headerShown: false } },
 ])
 
 const MyListingStack = makeStack([
@@ -95,21 +97,21 @@ const MyListingStack = makeStack([
   ...BOOKING_SCREENS,
 ])
 
-const TRAVELER_TABS = [
+const RENTER_TABS = [
   ['Explore', ExploreStack, 'explore'],
   ['Saved', SavedStack, 'saved'],
   ['Chat', ChatStack, 'chat'],
   ['Profile', ProfileStack, 'profile'],
 ]
 
-// No Explore/Saved — mobile's map is traveler-only, matching web's host nav
+// No Explore/Saved — mobile's map is renter-only, matching web's host nav
 // having no Map/Properties tabs either.
 const HOST_TABS = [
   ['Dashboard', DashboardStack, 'grid'],
   ['Inbox', ChatStack, 'chat'],
   ['Appointments', HostAppointmentsStack, 'clock'],
-  ['Calendar', CalendarStack, 'calendar'],
   ['MyListing', MyListingStack, 'building'],
+  ['Profile', HostProfileStack, 'profile'],
 ]
 
 export default function AppTabs() {
@@ -117,7 +119,7 @@ export default function AppTabs() {
   const hostEntryTab = useUiStore((s) => s.hostEntryTab)
   const setHostEntryTab = useUiStore((s) => s.setHostEntryTab)
 
-  const TABS = hostMode ? HOST_TABS : TRAVELER_TABS
+  const TABS = hostMode ? HOST_TABS : RENTER_TABS
 
   // hostEntryTab is read once as initialRouteName below (only relevant while
   // hostMode is true); reset it back to the default right after so a plain
@@ -128,7 +130,7 @@ export default function AppTabs() {
 
   return (
     <Tab.Navigator
-      key={hostMode ? 'host' : 'traveler'}
+      key={hostMode ? 'host' : 'renter'}
       initialRouteName={hostMode ? hostEntryTab : undefined}
       screenOptions={{
         headerShown: false,

@@ -188,6 +188,10 @@ function TravelerActions({ unreadMessages, onBecomeHost, profile }) {
   const tabs = NAV_TABS.map((t) => ({ ...t, active: isActive(t.to) }))
 
   const menuItems = [
+    // Duplicates the top NavTabs row — NavTabs is desktop-only (`hidden
+    // md:flex`), so on mobile the hamburger is the ONLY way to reach these.
+    ...NAV_TABS.map((t) => ({ key: t.to, label: t.label, to: t.to })),
+    { key: 'divider-tabs', divider: true },
     { key: 'wishlist',      label: 'Wishlist',      to: '/user?tab=wishlist' },
     { key: 'appointments',  label: 'Appointments',  to: '/user?tab=appointments' },
     { key: 'leases',        label: 'Rented',        to: '/user?tab=leases' },
@@ -236,6 +240,12 @@ function HostActions({ unreadMessages, onSwitchToTraveling, profile }) {
   }))
 
   const menuItems = [
+    // Duplicates the top NavTabs row (HOST_NAV_TABS) — NavTabs is
+    // desktop-only (`hidden md:flex`), so on mobile the hamburger is the
+    // ONLY way to switch between Dashboard/Inbox/Appointments/Calendar/My
+    // Listing.
+    ...tabs.map((t) => ({ key: `tab-${t.key}`, label: t.label, to: t.to })),
+    { key: 'divider-tabs', divider: true },
     { key: 'notifications',      label: 'Notifications',      to: '/user?tab=notifications' },
     { key: 'account',            label: 'Account',             to: '/user?tab=settings' },
     { key: 'support',            label: 'Support',             to: '/user?tab=support' },

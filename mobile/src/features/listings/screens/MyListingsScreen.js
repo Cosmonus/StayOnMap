@@ -79,7 +79,7 @@ export default function MyListingsScreen({ navigation }) {
         <Text style={styles.headerTitle}>My listings</Text>
         <Pressable style={styles.addButton} onPress={() => navigation.navigate('AddListing')}>
           <Icon name="plus" size={14} color={colors.white} />
-          <Text style={styles.addButtonText}>Add</Text>
+          <Text style={styles.addButtonText}>Add Properties</Text>
         </Pressable>
       </View>
 
@@ -98,7 +98,7 @@ export default function MyListingsScreen({ navigation }) {
                 <Icon name="plus" size={20} color={colors.brand600} />
               </View>
               <Text style={styles.emptyTitle}>No listings yet</Text>
-              <Text style={styles.emptyBody}>Tap to add your first listing</Text>
+              <Text style={styles.emptyBody}>Tap to add your first property</Text>
             </Pressable>
           }
           renderItem={({ item }) => (
