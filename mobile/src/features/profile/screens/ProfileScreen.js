@@ -21,7 +21,6 @@ const MENU_ITEMS = [
 export default function ProfileScreen({ navigation }) {
   const { user, signOut } = useAuth()
   const setHostMode = useUiStore((s) => s.setHostMode)
-  const setHostEntryTab = useUiStore((s) => s.setHostEntryTab)
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['me'],
@@ -67,7 +66,7 @@ export default function ProfileScreen({ navigation }) {
         <MenuItem
           icon="home"
           label="Switch to host"
-          onPress={() => { setHostEntryTab('MyListing'); setHostMode(true) }}
+          onPress={() => setHostMode(true)}
         />
       </View>
 

@@ -1,6 +1,7 @@
 import { Polyline, Marker } from 'react-native-maps'
 import { View, StyleSheet } from 'react-native'
 import { colors } from '@theme/colors'
+import { useMarkerRedraw } from '../hooks/useMarkerRedraw'
 
 const STATION_SHOW_ZOOM = 13 // stations only render zoomed-in — up to ~280 of them (Delhi), too dense/expensive otherwise
 
@@ -14,6 +15,28 @@ const STATION_SHOW_ZOOM = 13 // stations only render zoomed-in — up to ~280 of
 // 2+ entries means a genuine interchange (tight <400m match on both lines),
 // 1 entry colors the dot to match its line, 0 means it doesn't yet
 // reconcile with any line in this file (falls back to the default color).
+// Split out so useMarkerRedraw (a hook) can be called once per station,
+// not inside the .map() loop below.
+function StationMarker({ station, dotColor, isInterchange }) {
+  // Was hardcoded tracksViewChanges={false} — never gave react-native-maps a
+  // chance to snapshot the custom dot, so it rendered as the default red
+  // pin. Content is static per station, so a constant key is enough.
+  const { tracksViewChanges, onLayout } = useMarkerRedraw(station.name)
+
+  return (
+    <Marker
+      coordinate={{ latitude: station.lat, longitude: station.lng }}
+      anchor={{ x: 0.5, y: 0.5 }}
+      tracksViewChanges={tracksViewChanges}
+    >
+      <View
+        style={[styles.stationDot, { borderColor: dotColor }, isInterchange && styles.stationDotInterchange]}
+        onLayout={onLayout}
+      />
+    </Marker>
+  )
+}
+
 export default function MetroLines({ network, zoom }) {
   if (!network) return null
 
@@ -36,18 +59,12 @@ export default function MetroLines({ network, zoom }) {
         const dotColor = matchedLines[0]?.color || colors.slate600
 
         return (
-          <Marker
+          <StationMarker
             key={station.name}
-            coordinate={{ latitude: station.lat, longitude: station.lng }}
-            anchor={{ x: 0.5, y: 0.5 }}
-            tracksViewChanges={false}
-          >
-            <View style={[
-              styles.stationDot,
-              { borderColor: dotColor },
-              isInterchange && styles.stationDotInterchange,
-            ]} />
-          </Marker>
+            station={station}
+            dotColor={dotColor}
+            isInterchange={isInterchange}
+          />
         )
       })}
     </>

@@ -4,13 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import MapView from '@features/map/components/MapView'
 import MapSearchBar from '@features/map/components/MapSearchBar'
 import MapFiltersSheet from '@features/map/components/MapFiltersSheet'
-import MapLayersSheet from '@features/map/components/MapLayersSheet'
+import MapLayerPills from '@features/map/components/MapLayerPills'
 import AreaInsightCard from '@features/map/components/AreaInsightCard'
-import HomesInAreaList from '@features/map/components/HomesInAreaList'
 import PinPreviewCard from '../components/PinPreviewCard'
 import Logo from '@components/common/Logo'
 import Icon from '@components/common/Icon'
-import { useAuth } from '@features/auth/hooks/useAuth'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
 import { colors } from '@theme/colors'
@@ -20,20 +18,16 @@ import { spacing, radius } from '@theme/spacing'
 // Map-first (PDF direction 1a). Tapping a pin floats a preview card over
 // the map; tapping empty map area or the same pin again dismisses it.
 export default function ExploreScreen({ navigation }) {
-  const { user } = useAuth()
   const selectedPinId = useMapStore((s) => s.selectedPinId)
   const selectedAreaSlug = useMapStore((s) => s.selectedAreaSlug)
   const clearSelection = useMapStore((s) => s.clearSelection)
   const filters = useFilterStore((s) => s.filters)
-  const activeLayers = useMapStore((s) => s.activeLayers)
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [layersOpen, setLayersOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const searchBarRef = useRef(null)
 
   const activeFilterCount =
     (filters.city ? 1 : 0) + (filters.bhk.length ? 1 : 0) + (filters.furnished ? 1 : 0)
-  const activeLayerCount = Object.values(activeLayers).filter(Boolean).length
 
   // Search starts collapsed to just the header icon — MapSearchBar (with its
   // full input + Go button) only mounts once opened, so focus it right after
@@ -68,15 +62,6 @@ export default function ExploreScreen({ navigation }) {
                 </View>
               )}
             </Pressable>
-            <Pressable style={styles.filterButton} onPress={() => setLayersOpen(true)}>
-              <Icon name="layers" size={16} color={colors.slate700} />
-              <Text style={styles.filterButtonText}>Layers</Text>
-              {activeLayerCount > 0 && (
-                <View style={[styles.filterBadge, styles.layerBadge]}>
-                  <Text style={styles.filterBadgeText}>{activeLayerCount}</Text>
-                </View>
-              )}
-            </Pressable>
           </View>
         </SafeAreaView>
         {searchOpen && (
@@ -84,6 +69,7 @@ export default function ExploreScreen({ navigation }) {
             <MapSearchBar ref={searchBarRef} />
           </View>
         )}
+        <MapLayerPills />
       </View>
 
       {selectedPinId && (
@@ -94,10 +80,7 @@ export default function ExploreScreen({ navigation }) {
         <AreaInsightCard slug={selectedAreaSlug} onClose={clearSelection} />
       )}
 
-      {user && !selectedPinId && !selectedAreaSlug && <HomesInAreaList />}
-
       <MapFiltersSheet visible={filtersOpen} onClose={() => setFiltersOpen(false)} />
-      <MapLayersSheet visible={layersOpen} onClose={() => setLayersOpen(false)} />
     </View>
   )
 }
@@ -130,7 +113,6 @@ const styles = StyleSheet.create({
     minWidth: 16, height: 16, borderRadius: 8, backgroundColor: colors.danger,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
   },
-  layerBadge: { backgroundColor: '#7c3aed' },
   filterBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.white },
   searchWrap: {
     marginHorizontal: spacing.md, marginTop: spacing.sm,

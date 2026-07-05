@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
 import { Marker } from 'react-native-maps'
 import { View, Text, StyleSheet } from 'react-native'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius } from '@theme/spacing'
 import { formatCompact } from '@utils/format'
+import { useMarkerRedraw } from '../hooks/useMarkerRedraw'
 
 function bhkLabel(pin) {
   if (pin.bhk === 0) return 'Studio'
@@ -14,16 +14,11 @@ function bhkLabel(pin) {
 }
 
 export default function PropertyPin({ pin, selected, onPress }) {
-  // tracksViewChanges must stay true for a beat after `selected` flips so
-  // react-native-maps captures a fresh snapshot of the new look — turning
-  // it off in the same render as the flip freezes the marker on its last
-  // (stale) snapshot, e.g. staying green after deselecting.
-  const [tracksViewChanges, setTracksViewChanges] = useState(true)
-  useEffect(() => {
-    setTracksViewChanges(true)
-    const timer = setTimeout(() => setTracksViewChanges(false), 150)
-    return () => clearTimeout(timer)
-  }, [selected])
+  // tracksViewChanges must stay true until the pill view actually reports its
+  // own layout, or react-native-maps can freeze the marker on the default red
+  // pin (see useMarkerRedraw). Key on selection + label so both trigger a
+  // recapture when the pill's content changes.
+  const { tracksViewChanges, onLayout } = useMarkerRedraw(`${selected}:${pin.rent}:${pin.bhk}:${pin.sharing}`)
 
   return (
     <Marker
@@ -32,7 +27,7 @@ export default function PropertyPin({ pin, selected, onPress }) {
       tracksViewChanges={tracksViewChanges}
       anchor={{ x: 0.5, y: 1 }}
     >
-      <View style={[styles.pill, selected && styles.pillSelected]}>
+      <View style={[styles.pill, selected && styles.pillSelected]} onLayout={onLayout}>
         <Text style={[styles.pillText, selected && styles.pillTextSelected]} numberOfLines={1}>
           {bhkLabel(pin) ? `${bhkLabel(pin)} : ${formatCompact(pin.rent)}` : formatCompact(pin.rent)}
         </Text>

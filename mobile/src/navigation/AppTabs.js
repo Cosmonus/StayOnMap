@@ -106,12 +106,14 @@ const RENTER_TABS = [
 
 // No Explore/Saved — mobile's map is renter-only, matching web's host nav
 // having no Map/Properties tabs either.
+// The Profile tab uses a mode-unique route name ('HostProfile') even though it
+// shows the label "Profile" — see the switch-landing note in AppTabs below.
 const HOST_TABS = [
   ['Dashboard', DashboardStack, 'grid'],
   ['Inbox', ChatStack, 'chat'],
   ['Appointments', HostAppointmentsStack, 'clock'],
   ['MyListing', MyListingStack, 'building'],
-  ['Profile', HostProfileStack, 'profile'],
+  ['HostProfile', HostProfileStack, 'profile', 'Profile'],
 ]
 
 export default function AppTabs() {
@@ -128,6 +130,15 @@ export default function AppTabs() {
     if (hostMode && hostEntryTab !== 'Dashboard') setHostEntryTab('Dashboard')
   }, [hostMode, hostEntryTab, setHostEntryTab])
 
+  // Landing tab on a host/renter switch is driven entirely by initialRouteName
+  // (Dashboard for host, Explore — the first renter tab — for renter). This only
+  // works because the two tab sets share NO route name: remounting via `key`
+  // makes React Navigation drop the previously focused route (it no longer
+  // exists in the new set) and fall back to initialRouteName on the first paint.
+  // If a shared name existed (e.g. both called their last tab 'Profile'), it
+  // would stay focused and flash before correcting — hence the host tab's unique
+  // 'HostProfile' route name above.
+
   return (
     <Tab.Navigator
       key={hostMode ? 'host' : 'renter'}
@@ -140,12 +151,13 @@ export default function AppTabs() {
         tabBarStyle: { borderTopColor: colors.slate200 },
       }}
     >
-      {TABS.map(([name, Component, iconName]) => (
+      {TABS.map(([name, Component, iconName, label]) => (
         <Tab.Screen
           key={name}
           name={name}
           component={Component}
           options={{
+            tabBarLabel: label ?? name,
             tabBarIcon: ({ color, size }) => <Icon name={iconName} color={color} size={size} />,
           }}
         />

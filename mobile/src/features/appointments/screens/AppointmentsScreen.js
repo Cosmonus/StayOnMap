@@ -3,8 +3,6 @@ import { View, Text, Image, TextInput, Pressable, FlatList, Modal, ActivityIndic
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
-import { authService } from '@services/auth.service'
-import { useAuth } from '@features/auth/hooks/useAuth'
 import { imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
@@ -203,28 +201,27 @@ function EmptyState({ message }) {
 }
 
 export default function AppointmentsScreen({ navigation, route }) {
-  const { user } = useAuth()
   const qc = useQueryClient()
 
-  const { data: profile } = useQuery({
-    queryKey: ['me'],
-    queryFn: () => authService.getMe().then((r) => r.data),
-    enabled: !!user,
-  })
-  const isOwner = profile?.role === 'OWNER'
-
-  const [tab, setTab] = useState(route?.params?.initialTab ?? 'my-requests')
+  // Fixed by which nav stack registered this screen, not a user-facing
+  // toggle — host mode's Appointments tab always means "incoming for my
+  // properties", renter mode's Profile > Appointments always means "my own
+  // visit requests". A user who is both can already switch between these
+  // via the renter/host mode toggle itself, so a second toggle in here
+  // would just duplicate that.
+  const isIncoming = route?.params?.initialTab === 'incoming'
   const [filter, setFilter] = useState('all')
 
   const { data: ownerAppts = [], isLoading: loadingOwner } = useQuery({
     queryKey: ['owner-appointments'],
     queryFn: () => appointmentService.owner().then((r) => r.data),
-    enabled: isOwner,
+    enabled: isIncoming,
   })
 
   const { data: myAppts = [], isLoading: loadingMine } = useQuery({
     queryKey: ['my-appointments'],
     queryFn: () => appointmentService.mine().then((r) => r.data),
+    enabled: !isIncoming,
   })
 
   const mutation = useMutation({
@@ -232,10 +229,9 @@ export default function AppointmentsScreen({ navigation, route }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['owner-appointments'] }),
   })
 
-  const activeTab = isOwner ? tab : 'my-requests'
   const pendingCount = ownerAppts.filter((a) => a.status === 'PENDING').length
   const filteredOwner = filter === 'all' ? ownerAppts : ownerAppts.filter((a) => a.status === filter)
-  const isLoading = loadingOwner || loadingMine
+  const isLoading = isIncoming ? loadingOwner : loadingMine
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -248,28 +244,19 @@ export default function AppointmentsScreen({ navigation, route }) {
           )}
           <View style={styles.headerTitleRow}>
             <Icon name="calendar" size={20} color={colors.slate800} />
-            <Text style={styles.headerTitle}>Appointments</Text>
+            <Text style={styles.headerTitle}>
+              Appointments{isIncoming && pendingCount > 0 ? ` (${pendingCount})` : ''}
+            </Text>
           </View>
         </View>
-        <Text style={styles.headerSub}>Manage incoming requests and track your visits</Text>
+        <Text style={styles.headerSub}>
+          {isIncoming ? 'Visit requests for your properties' : 'Visits you’ve requested'}
+        </Text>
       </View>
-
-      {isOwner && (
-        <View style={styles.tabRow}>
-          <Pressable style={[styles.tabButton, activeTab === 'incoming' && styles.tabButtonActive]} onPress={() => setTab('incoming')}>
-            <Text style={[styles.tabButtonText, activeTab === 'incoming' && styles.tabButtonTextActive]}>
-              Incoming{pendingCount > 0 ? ` (${pendingCount})` : ''}
-            </Text>
-          </Pressable>
-          <Pressable style={[styles.tabButton, activeTab === 'my-requests' && styles.tabButtonActive]} onPress={() => setTab('my-requests')}>
-            <Text style={[styles.tabButtonText, activeTab === 'my-requests' && styles.tabButtonTextActive]}>My Requests</Text>
-          </Pressable>
-        </View>
-      )}
 
       {isLoading ? (
         <View style={styles.center}><ActivityIndicator color={colors.brand600} /></View>
-      ) : activeTab === 'incoming' ? (
+      ) : isIncoming ? (
         <FlatList
           data={filteredOwner}
           keyExtractor={(item) => item.id}
@@ -304,11 +291,6 @@ const styles = StyleSheet.create({
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
   headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2 },
-  tabRow: { flexDirection: 'row', gap: 4, backgroundColor: colors.slate100, borderRadius: radius.md, padding: 4, margin: spacing.lg, alignSelf: 'flex-start' },
-  tabButton: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2, borderRadius: radius.sm },
-  tabButtonActive: { backgroundColor: colors.white },
-  tabButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate600 },
-  tabButtonTextActive: { color: colors.slate800 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: spacing.lg, gap: spacing.md },
   filterRow: { marginBottom: spacing.md, alignItems: 'flex-start' },
