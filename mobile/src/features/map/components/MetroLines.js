@@ -5,6 +5,59 @@ import { useMarkerRedraw } from '../hooks/useMarkerRedraw'
 
 const STATION_SHOW_ZOOM = 13 // stations only render zoomed-in — up to ~280 of them (Delhi), too dense/expensive otherwise
 
+// A handful of lines have a genuine gap in the source OSM data (no
+// fetchable track geometry for that stretch — see .claude/roadmap.md's
+// Addendum 4/10, and backend/src/lib/metro-validation/graph.js's identical
+// splitPathIntoComponents — duplicated here since mobile can't import from
+// the backend package). Rendering the full path as one Polyline draws a
+// straight "fake bridge" across the gap, implying a direct route that
+// doesn't exist — split into one Polyline per contiguous component instead.
+const PATH_GAP_METERS = 2000
+const EARTH_RADIUS_M = 6371000
+
+function toRad(deg) {
+  return (deg * Math.PI) / 180
+}
+
+function haversineMeters([lat1, lng1], [lat2, lng2]) {
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(a))
+}
+
+function splitPathAtGaps(path, gapMeters) {
+  if (path.length === 0) return []
+  const components = [[path[0]]]
+  for (let i = 1; i < path.length; i++) {
+    if (haversineMeters(path[i - 1], path[i]) > gapMeters) components.push([])
+    components[components.length - 1].push(path[i])
+  }
+  return components.filter((c) => c.length >= 2)
+}
+
+// Unlike property pins (already viewport-bounds-filtered server-side, see
+// GET /properties/pins), the metro network is fetched whole-city
+// (GET /api/v1/metro?city=) — a dense city like Delhi has ~280 stations,
+// and rendering every one of them as a custom-view Marker regardless of
+// what's actually on screen is real, avoidable jank (each custom-view
+// marker costs a JS-to-native bridge snapshot). Filter to the current
+// viewport (+ a padding margin so panning slightly doesn't pop markers in
+// abruptly) before rendering any of them.
+const VIEWPORT_PADDING_RATIO = 0.2
+
+function isStationInBounds(station, bounds) {
+  if (!bounds) return true
+  const latPad = (bounds.neLat - bounds.swLat) * VIEWPORT_PADDING_RATIO
+  const lngPad = (bounds.neLng - bounds.swLng) * VIEWPORT_PADDING_RATIO
+  return (
+    station.lat >= bounds.swLat - latPad &&
+    station.lat <= bounds.neLat + latPad &&
+    station.lng >= bounds.swLng - lngPad &&
+    station.lng <= bounds.neLng + lngPad
+  )
+}
+
 // Real metro/light-rail lines + stations (react-native-maps Polyline/Marker),
 // sourced from OpenStreetMap via the backend's /api/v1/metro proxy — see
 // docs/features/map.md. Lines always render when a network exists for the
@@ -37,23 +90,26 @@ function StationMarker({ station, dotColor, isInterchange }) {
   )
 }
 
-export default function MetroLines({ network, zoom }) {
+export default function MetroLines({ network, zoom, bounds }) {
   if (!network) return null
 
   const showStations = zoom >= STATION_SHOW_ZOOM
+  const visibleStations = showStations ? network.stations.filter((s) => isStationInBounds(s, bounds)) : []
 
   return (
     <>
-      {network.lines.map((line) => (
-        <Polyline
-          key={line.name}
-          coordinates={line.path.map(([lat, lng]) => ({ latitude: lat, longitude: lng }))}
-          strokeColor={line.color || colors.brand600}
-          strokeWidth={3}
-        />
-      ))}
+      {network.lines.map((line) =>
+        splitPathAtGaps(line.path, PATH_GAP_METERS).map((component, i) => (
+          <Polyline
+            key={`${line.name}-${i}`}
+            coordinates={component.map(([lat, lng]) => ({ latitude: lat, longitude: lng }))}
+            strokeColor={line.color || colors.brand600}
+            strokeWidth={3}
+          />
+        ))
+      )}
 
-      {showStations && network.stations.map((station) => {
+      {visibleStations.map((station) => {
         const matchedLines = (station.lines ?? []).map((i) => network.lines[i]).filter(Boolean)
         const isInterchange = matchedLines.length > 1
         const dotColor = matchedLines[0]?.color || colors.slate600

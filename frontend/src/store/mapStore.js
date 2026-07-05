@@ -8,6 +8,10 @@ export const useMapStore = create((set) => ({
   pins: [],
   selectedPinId: null,
   selectedPinRect: null,
+  // Separate from selectedPinId — hovering a card in MapPropertiesList only
+  // highlights the matching pin's pill on the map, it must NOT open
+  // PropertyPopup (which selectedPinId triggers, see MapRightPanel.jsx).
+  hoveredPinId: null,
 
   flyTo: null,
   searchedPlace: null,
@@ -26,6 +30,7 @@ export const useMapStore = create((set) => ({
   setPins: (pins) => set({ pins }),
   selectPin: (id, rect) => set({ selectedPinId: id, selectedPinRect: rect ?? null }),
   clearSelection: () => set({ selectedPinId: null, selectedPinRect: null }),
+  setHoveredPinId: (id) => set({ hoveredPinId: id }),
   setFlyTo: (fn) => set({ flyTo: fn }),
   setSearchedPlace: (place) => set({ searchedPlace: place }),
   toggleLayer: (name) => set((s) => ({
