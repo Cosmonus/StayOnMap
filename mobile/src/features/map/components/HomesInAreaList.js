@@ -6,6 +6,7 @@ import { useNavigation } from '@react-navigation/native'
 import { propertyService } from '@services/property.service'
 import { useFilterStore } from '@store/filterStore'
 import { useMapStore } from '@store/mapStore'
+import { toQueryParams } from '@config/filters'
 import MapHomeCard from './MapHomeCard'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -29,11 +30,9 @@ export default function HomesInAreaList() {
       swLng: bounds.swLng,
       neLat: bounds.neLat,
       neLng: bounds.neLng,
-      city: filters.city || undefined,
-      furnished: filters.furnished || undefined,
-      bhk: filters.bhk?.length ? filters.bhk.join(',') : undefined,
+      ...toQueryParams(filters),
     }
-  }, [bounds, filters.city, filters.furnished, filters.bhk])
+  }, [bounds, filters])
 
   const { data, isLoading } = useQuery({
     queryKey: ['properties-in-view', params],

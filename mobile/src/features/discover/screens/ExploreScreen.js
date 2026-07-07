@@ -11,6 +11,7 @@ import Logo from '@components/common/Logo'
 import Icon from '@components/common/Icon'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
+import { countActiveFilters } from '@config/filters'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -26,8 +27,7 @@ export default function ExploreScreen({ navigation }) {
   const [searchOpen, setSearchOpen] = useState(false)
   const searchBarRef = useRef(null)
 
-  const activeFilterCount =
-    (filters.city ? 1 : 0) + (filters.bhk.length ? 1 : 0) + (filters.furnished ? 1 : 0)
+  const activeFilterCount = countActiveFilters(filters)
 
   // Search starts collapsed to just the header icon — MapSearchBar (with its
   // full input + Go button) only mounts once opened, so focus it right after

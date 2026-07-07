@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
 import { propertyService } from '@services/property.service'
+import { toQueryParams } from '@config/filters'
 import { regionToBounds } from '../utils/regionZoom'
 
 const DEBOUNCE_MS = 400
@@ -22,12 +23,9 @@ export function useMapPins() {
       lastRegionRef.current = region
       const bounds = regionToBounds(region)
       setBounds(bounds)
+      // Every active filter travels to the server (schema-driven, mirrors web)
       propertyService
-        .getPinsInBounds(bounds, {
-          bhk: filters.bhk?.length ? filters.bhk.join(',') : undefined,
-          furnished: filters.furnished || undefined,
-          city: filters.city || undefined,
-        })
+        .getPinsInBounds(bounds, toQueryParams(filters))
         .then((r) => setPins(Array.isArray(r.data) ? r.data : []))
         .catch(() => {})
     },
@@ -45,17 +43,18 @@ export function useMapPins() {
 
   // Filter changes refetch immediately against the last known viewport,
   // mirroring web's behavior instead of waiting for the next pan/zoom.
-  // Deliberately excludes `filters.area` — area is never sent to the pins
-  // query (only bhk/furnished/city are, see property.service.js), and a
-  // location search always follows with MapView's flyTo() moving the map,
-  // which refetches pins for the new viewport itself (see MapView.js).
-  // Refetching here too would race against that one using the stale
-  // pre-fly viewport, and could resolve after it and overwrite the correct
-  // pins with wrong-location ones.
+  // Keyed on the serialized query params, which deliberately exclude
+  // `filters.area` (it's search context, not a wire param — see
+  // config/filters.js): a location search always follows with MapView's
+  // flyTo() moving the map, which refetches pins for the new viewport
+  // itself. Refetching here too would race against that one using the
+  // stale pre-fly viewport, and could resolve after it and overwrite the
+  // correct pins with wrong-location ones.
+  const paramsKey = JSON.stringify(toQueryParams(filters))
   useEffect(() => {
     if (lastRegionRef.current) fetchPins(lastRegionRef.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.bhk, filters.furnished, filters.city])
+  }, [paramsKey])
 
   // Initial fetch on mount — MapView's onMapReady triggers a non-animated
   // fitToCoordinates() to frame all cities, and on Android that programmatic
