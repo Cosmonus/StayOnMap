@@ -7,12 +7,16 @@
  *   updateUserRole — role upgrade is one-way (TENANT → OWNER only): rejects
  *                    any target other than OWNER, and rejects re-upgrading
  *                    an existing OWNER
+ *   verifyEmail    — only a purpose-scoped token signed with the DERIVED
+ *                    secret verifies; a login JWT (same base secret) must
+ *                    never work as a verification link and vice versa
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import jwt from 'jsonwebtoken'
 import { prismaMock } from './mocks/prisma.js'
 
-import { registerUser, updateUserRole } from '../src/features/auth/auth.service.js'
+import { registerUser, updateUserRole, verifyEmail } from '../src/features/auth/auth.service.js'
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -80,5 +84,49 @@ describe('updateUserRole', () => {
 
     expect(result.role).toBe('OWNER')
     expect(result.passwordHash).toBeUndefined()
+  })
+})
+
+describe('verifyEmail', () => {
+  // Must match auth.service.js's derived secret and the env mock's jwtSecret
+  const VERIFY_SECRET = 'test-jwt-secret:email-verify'
+
+  it('sets isVerified for a valid verification token', async () => {
+    prismaMock.user.updateMany.mockResolvedValue({ count: 1 })
+    const token = jwt.sign({ sub: 'user-1', purpose: 'email_verify' }, VERIFY_SECRET, { expiresIn: '24h' })
+
+    await expect(verifyEmail(token)).resolves.toBeUndefined()
+    expect(prismaMock.user.updateMany).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: { isVerified: true },
+    })
+  })
+
+  it('rejects a login JWT (signed with the base secret) as a verification link', async () => {
+    const loginToken = jwt.sign({ sub: 'user-1', email: 'a@b.c', role: 'TENANT' }, 'test-jwt-secret', { expiresIn: '7d' })
+
+    await expect(verifyEmail(loginToken)).rejects.toMatchObject({ statusCode: 400 })
+    expect(prismaMock.user.updateMany).not.toHaveBeenCalled()
+  })
+
+  it('rejects a correctly-signed token with the wrong purpose claim', async () => {
+    const token = jwt.sign({ sub: 'user-1', purpose: 'password_reset' }, VERIFY_SECRET, { expiresIn: '24h' })
+
+    await expect(verifyEmail(token)).rejects.toMatchObject({ statusCode: 400 })
+    expect(prismaMock.user.updateMany).not.toHaveBeenCalled()
+  })
+
+  it('rejects garbage and expired tokens', async () => {
+    await expect(verifyEmail('not-a-token')).rejects.toMatchObject({ statusCode: 400 })
+
+    const expired = jwt.sign({ sub: 'user-1', purpose: 'email_verify' }, VERIFY_SECRET, { expiresIn: '-1s' })
+    await expect(verifyEmail(expired)).rejects.toMatchObject({ statusCode: 400 })
+  })
+
+  it('rejects a valid token whose user no longer exists', async () => {
+    prismaMock.user.updateMany.mockResolvedValue({ count: 0 })
+    const token = jwt.sign({ sub: 'ghost', purpose: 'email_verify' }, VERIFY_SECRET, { expiresIn: '24h' })
+
+    await expect(verifyEmail(token)).rejects.toMatchObject({ statusCode: 400 })
   })
 })

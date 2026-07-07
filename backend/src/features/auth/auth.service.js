@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken'
 import { prisma } from '../../lib/prisma.js'
 import { env } from '../../config/env.js'
 import { generateUserDisplayId } from '../../utils/idGenerator.js'
-import { sendEmail, passwordResetEmail } from '../../services/email.service.js'
+import { sendEmail, passwordResetEmail, emailVerificationEmail } from '../../services/email.service.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
 
 function signUserToken(user) {
@@ -42,6 +42,8 @@ export async function registerUser({ name, email, password, city, role }) {
       role: role ?? 'TENANT',
     },
   })
+
+  sendVerificationEmailTo(user) // non-blocking — user can browse unverified
 
   return { token: signUserToken(user), user: stripPasswordHash(user) }
 }
@@ -120,4 +122,42 @@ export async function resetPassword(rawToken, newPassword) {
     prisma.user.update({ where: { id: resetToken.userId }, data: { passwordHash } }),
     prisma.passwordResetToken.update({ where: { id: resetToken.id }, data: { usedAt: new Date() } }),
   ])
+}
+
+// ── Email verification — non-blocking, sets User.isVerified ─────────────────
+// Stateless JWT instead of a DB token table: verifying twice is harmless, so
+// single-use tracking isn't needed. Signed with a DERIVED secret so a
+// verification token can never be replayed as a login token (authMiddleware
+// verifies against env.jwtSecret) and a login token can never verify an email.
+const VERIFY_EMAIL_SECRET = `${env.jwtSecret}:email-verify`
+
+function sendVerificationEmailTo(user) {
+  const token = jwt.sign({ sub: user.id, purpose: 'email_verify' }, VERIFY_EMAIL_SECRET, { expiresIn: '24h' })
+  const link = `${env.frontendUrl}/verify-email?token=${token}`
+  sendEmail({ to: user.email, ...emailVerificationEmail({ name: user.name, link }) })
+}
+
+export async function resendVerificationEmail(userId) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, name: true, isVerified: true },
+  })
+  if (!user) throw Object.assign(new Error('User not found'), { statusCode: 404 })
+  if (user.isVerified) throw Object.assign(new Error('Email is already verified'), { statusCode: 400 })
+  sendVerificationEmailTo(user)
+}
+
+export async function verifyEmail(rawToken) {
+  let payload
+  try {
+    payload = jwt.verify(rawToken, VERIFY_EMAIL_SECRET)
+  } catch {
+    throw Object.assign(new Error('This verification link is invalid or has expired'), { statusCode: 400 })
+  }
+  if (payload.purpose !== 'email_verify') {
+    throw Object.assign(new Error('This verification link is invalid or has expired'), { statusCode: 400 })
+  }
+
+  const { count } = await prisma.user.updateMany({ where: { id: payload.sub }, data: { isVerified: true } })
+  if (count === 0) throw Object.assign(new Error('This verification link is invalid or has expired'), { statusCode: 400 })
 }

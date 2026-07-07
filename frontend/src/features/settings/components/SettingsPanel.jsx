@@ -161,6 +161,12 @@ export default function SettingsPanel() {
     onError: () => toast.error('Error', 'Failed to send reset email'),
   })
 
+  const { mutate: resendVerification, isPending: sendingVerification } = useMutation({
+    mutationFn: () => authService.sendEmailVerification(),
+    onSuccess: () => toast.success('Email sent', 'Check your inbox for the verification link'),
+    onError: () => toast.error('Error', 'Failed to send verification email'),
+  })
+
   const { mutate: deleteAccount, isPending: deleting } = useMutation({
     mutationFn: () => userService.deleteAccount(),
     onSuccess: () => { toast.success('Deleted', 'Account removed'); signOut() },
@@ -385,7 +391,28 @@ export default function SettingsPanel() {
           </Card>
 
           <Card icon={ICONS.shield} title="Security">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-50">
+              <div>
+                <p className="text-sm font-medium text-slate-800">Email verification</p>
+                <p className="text-[11px] text-slate-400">
+                  {settings.isVerified ? 'Your email address is confirmed' : 'Confirm your email to mark your account as trusted'}
+                </p>
+              </div>
+              {settings.isVerified ? (
+                <span className="px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-[11px] font-bold shrink-0">
+                  Verified
+                </span>
+              ) : (
+                <button
+                  onClick={() => resendVerification()}
+                  disabled={sendingVerification}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60 shrink-0"
+                >
+                  {sendingVerification ? 'Sending...' : 'Verify'}
+                </button>
+              )}
+            </div>
+            <div className="flex items-center justify-between pt-3">
               <div>
                 <p className="text-sm font-medium text-slate-800">Password</p>
                 <p className="text-[11px] text-slate-400">Reset via email link</p>

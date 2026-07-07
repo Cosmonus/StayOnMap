@@ -32,6 +32,20 @@ export async function resetPassword(req, res, next) {
   } catch (err) { next(err) }
 }
 
+export async function verifyEmail(req, res, next) {
+  try {
+    await service.verifyEmail(req.body.token)
+    ok(res, { verified: true })
+  } catch (err) { next(err) }
+}
+
+export async function sendVerification(req, res, next) {
+  try {
+    await service.resendVerificationEmail(req.user.id)
+    ok(res, { sent: true })
+  } catch (err) { next(err) }
+}
+
 export async function getMe(req, res, next) {
   try {
     const user = await service.getUserById(req.user.id)

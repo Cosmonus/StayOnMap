@@ -46,6 +46,19 @@ export function adminPasswordChangedEmail({ adminName, adminEmail }) {
   }
 }
 
+export function emailVerificationEmail({ name, link }) {
+  return {
+    subject: 'Verify your StayOnMap email',
+    html: `
+      <p>Hi ${name},</p>
+      <p>Welcome to StayOnMap! Please confirm this email address by clicking the link below:</p>
+      <p><a href="${link}">${link}</a></p>
+      <p>This link expires in 24 hours. You can keep using StayOnMap while unverified — verifying just marks your account as trusted.</p>
+      <p>If you didn't create a StayOnMap account, you can safely ignore this email.</p>
+    `,
+  }
+}
+
 export function passwordResetEmail({ name, link }) {
   return {
     subject: 'Reset your StayOnMap password',

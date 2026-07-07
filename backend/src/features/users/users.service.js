@@ -33,7 +33,7 @@ export async function getSettings(id) {
     where: { id },
     select: {
       displayId: true, name: true, phone: true, avatarUrl: true, bio: true,
-      socialLinks: true, email: true, role: true,
+      socialLinks: true, email: true, role: true, isVerified: true,
       listingVisibility: true, contactVisibility: true, showExactLocation: true,
       emailNotifs: true, pushNotifs: true,
     },
