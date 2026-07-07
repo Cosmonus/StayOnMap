@@ -50,6 +50,12 @@ import { adminVerificationRouter } from './features/verification/verification.ro
 const app  = express()
 const PORT = process.env.PORT ?? 4000
 
+// Railway terminates TLS at its edge proxy — without this, req.ip is the
+// proxy's address for every request, so all users share one rate-limit
+// bucket (the 20-req/15-min auth limiter becomes platform-wide, failing
+// real signups/logins under normal traffic). Trust exactly one hop.
+if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1)
+
 app.use(compression())
 app.use(helmet())
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))

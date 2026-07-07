@@ -12,6 +12,10 @@ export function corsOriginHandler(origin, cb) {
   if (!origin || origin === allowed || PROD_ORIGINS.includes(origin) || (isDev && /^http:\/\/localhost:\d+$/.test(origin))) {
     cb(null, true)
   } else {
-    cb(new Error('Not allowed by CORS'))
+    // Log the offending origin — a rejected request surfaces in the browser as
+    // a bare "CORS error" with no server-side trace otherwise, making live
+    // incidents undiagnosable after the fact.
+    console.warn(JSON.stringify({ src: 'cors', event: 'origin_rejected', origin, allowed }))
+    cb(Object.assign(new Error('Not allowed by CORS'), { statusCode: 403, code: 'CORS_FORBIDDEN' }))
   }
 }
