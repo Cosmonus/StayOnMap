@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/prisma.js'
 import { boundsFilter } from '../../utils/geo.js'
-import { recalculateRiskScore, recalculateTrustScore } from '../trust/trust.service.js'
-import { runFraudScan } from '../ai/ai.service.js'
+import { recalculateTrustScore } from '../trust/trust.service.js'
+import { evaluateListing, getRentBenchmark } from '../../services/intelligence.service.js'
 import { generatePropertyDisplayId } from '../../utils/idGenerator.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
@@ -79,23 +79,6 @@ export async function getPropertyById(id, userId = null) {
   return property
 }
 
-// Average rent across other ACTIVE listings of the same city + type + size
-// (BHK count, or sharing for PGs) — free, uses only our own DB data. Requires
-// at least 3 comparables so a lone other listing can't masquerade as "the
-// area average".
-async function getRentBenchmark(property) {
-  const where = {
-    status: 'ACTIVE',
-    city: property.city,
-    type: property.type,
-    id: { not: property.id },
-    ...(property.type === 'PG' ? { sharing: property.sharing } : { bhk: property.bhk }),
-  }
-  const agg = await prisma.property.aggregate({ where, _avg: { rent: true }, _count: true })
-  if (!agg._avg.rent || agg._count < 3) return null
-  return { avgRent: Math.round(Number(agg._avg.rent)), sampleSize: agg._count }
-}
-
 export async function getPropertiesByOwner(ownerId) {
   return prisma.property.findMany({
     where: { ownerId },
@@ -139,9 +122,9 @@ export async function createProperty(ownerId, data) {
     })
   })
 
-  // Fire-and-forget: seed trust score record + detect duplicates
+  // Fire-and-forget: seed trust score record + run the intelligence checks
   recalculateTrustScore(property.id).catch(() => {})
-  detectDuplicates(property.id, property.address, property.lat, property.lng, ownerId).catch(() => {})
+  evaluateListing(property.id, 'create')
 
   return property
 }
@@ -151,7 +134,7 @@ export async function updateProperty(id, ownerId, data) {
 
   if (propertyData.city !== undefined) assertAllowedCity(propertyData.city)
 
-  return prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx) => {
     const existing = await tx.property.findUnique({ where: { id, ownerId } })
     if (!existing) throw Object.assign(new Error('Property not found or access denied'), { statusCode: 404 })
 
@@ -174,6 +157,14 @@ export async function updateProperty(id, ownerId, data) {
       include: FULL_INCLUDE,
     })
   })
+
+  // Re-run the intelligence checks when identity-defining fields change —
+  // create-time results are stale once the listing points somewhere else
+  if (['address', 'lat', 'lng', 'city', 'rent'].some((f) => propertyData[f] !== undefined)) {
+    evaluateListing(id, 'update')
+  }
+
+  return updated
 }
 
 export async function deleteProperty(id, ownerId) {
@@ -188,7 +179,13 @@ export async function publishProperty(id, ownerId) {
   if (property.status !== 'DRAFT' && property.status !== 'REJECTED') {
     throw Object.assign(new Error('Only draft or rejected properties can be submitted for review'), { statusCode: 400 })
   }
-  return prisma.property.update({ where: { id }, data: { status: 'PENDING' } })
+  const updated = await prisma.property.update({ where: { id }, data: { status: 'PENDING' } })
+
+  // Fire-and-forget: re-evaluate at submission so the admin moderation queue
+  // sees a current risk score, not the one from draft creation time
+  evaluateListing(id, 'publish')
+
+  return updated
 }
 
 export async function toggleStatus(id, ownerId) {
@@ -315,30 +312,4 @@ export async function vacateProperty(propertyId, ownerId) {
     where: { id: propertyId },
     data: { status: 'ACTIVE', currentTenantId: null, occupiedSince: null },
   })
-}
-
-async function detectDuplicates(propertyId, address, lat, lng, ownerId) {
-  const normalized = address.toLowerCase().trim()
-
-  const [dupAddress, _sameListing] = await Promise.all([
-    prisma.property.findFirst({ where: { address: { equals: normalized, mode: 'insensitive' }, id: { not: propertyId } } }),
-    prisma.property.findFirst({ where: { ownerId, id: { not: propertyId }, status: { not: 'REJECTED' } } }),
-  ])
-
-  const signals = []
-  if (dupAddress) signals.push({ propertyId, type: 'DUPLICATE_ADDRESS', detail: `Matches property ${dupAddress.id}` })
-
-  const FIFTY_METERS = 0.00045
-  const nearby = await prisma.property.findFirst({
-    where: { id: { not: propertyId }, lat: { gte: Number(lat) - FIFTY_METERS, lte: Number(lat) + FIFTY_METERS }, lng: { gte: Number(lng) - FIFTY_METERS, lte: Number(lng) + FIFTY_METERS } },
-  })
-  if (nearby) signals.push({ propertyId, type: 'SIMILAR_GEOLOCATION', detail: `Within 50m of property ${nearby.id}` })
-
-  if (signals.length > 0) {
-    await prisma.fraudSignal.createMany({ data: signals })
-    await recalculateRiskScore(propertyId)
-  }
-
-  // AI fraud scan (stub)
-  await runFraudScan(propertyId)
 }

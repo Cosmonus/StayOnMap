@@ -23,6 +23,12 @@ vi.mock('../src/features/ai/ai.service.js', () => ({
   runFraudScan: vi.fn().mockResolvedValue(null),
 }))
 
+// ── Intelligence layer — fire-and-forget side effects ──────────────────────
+vi.mock('../src/services/intelligence.service.js', () => ({
+  evaluateListing:  vi.fn().mockResolvedValue(undefined),
+  getRentBenchmark: vi.fn().mockResolvedValue(null),
+}))
+
 // ── Notifications / chat — fire-and-forget side effects across services ────
 vi.mock('../src/features/notifications/notifications.service.js', () => ({
   notifyUser: vi.fn().mockResolvedValue(null),
