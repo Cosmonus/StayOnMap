@@ -5,7 +5,6 @@ import MapView from '@features/map/components/MapView'
 import MapLegend from '@features/map/components/MapLegend'
 import AreaInsightCard from '@features/map/components/AreaInsightCard'
 import MapRightPanel from '@features/map/components/MapRightPanel'
-import MapPropertiesList from '@features/map/components/MapPropertiesList'
 import PropertyCard from '@features/properties/components/PropertyCard'
 import SEOMeta from '@components/common/SEOMeta'
 import { propertyService } from '@services/property.service'
@@ -14,6 +13,8 @@ import { useUiStore } from '@store/uiStore'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { BRAND, canonical } from '@lib/seo'
 import { usePlatformStats } from '@hooks/usePlatformStats'
+import { toQueryParams } from '@/config/filters'
+import { useFilterUrlSync } from '@features/filters/hooks/useFilterUrlSync'
 
 const HOW_IT_WORKS_STEPS = [
   { num: '01', title: 'Search on the map', description: 'Open the map, pick your city and zoom into the neighbourhood you want. Every pin is a verified rental.' },
@@ -93,14 +94,9 @@ function MapHeroSection() {
   const { user } = useAuth()
 
   return (
-    <section className="w-full pt-20 md:pt-[166px] pb-4 md:pb-6 px-4 md:px-6 flex flex-col md:flex-row items-start gap-4 md:gap-6">
-      <MapPanel widthClass="md:w-[70%]" />
-
-      {user && (
-        <div className="w-full md:w-[30%] h-[60vh] md:h-[calc(100vh-190px)] min-h-[420px] overflow-y-auto no-scrollbar">
-          <MapPropertiesList />
-        </div>
-      )}
+    <section className="w-full pt-[132px] md:pt-[166px] pb-4 md:pb-6 px-4 md:px-6 flex flex-col md:flex-row items-start gap-4 md:gap-6">
+      {/* Logged in: the map is the whole hero. Guests keep the marketing panel. */}
+      <MapPanel widthClass={user ? '' : 'md:w-[70%]'} />
 
       {!user && (
         <div className="w-full md:w-[30%] py-8 md:py-10">
@@ -170,16 +166,11 @@ function EmptySlotCard() {
    ================================================================ */
 function FeaturedListings() {
   const filters = useFilterStore((s) => s.filters)
-  const bhkKey = filters.bhk?.length ? filters.bhk.join(',') : ''
+  const params = toQueryParams(filters)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['featured-listings', filters.city, bhkKey, filters.furnished],
-    queryFn: () => propertyService.getList({
-      limit: 6,
-      city: filters.city || undefined,
-      bhk: bhkKey || undefined,
-      furnished: filters.furnished || undefined,
-    }),
+    queryKey: ['featured-listings', params],
+    queryFn: () => propertyService.getList({ limit: 6, ...params }),
     staleTime: 5 * 60 * 1000,
   })
 
@@ -232,6 +223,7 @@ const HOME_JSON_LD = {
 
 export default function HomePage() {
   const { user } = useAuth()
+  useFilterUrlSync()
 
   return (
     <div className="bg-white overflow-x-hidden">

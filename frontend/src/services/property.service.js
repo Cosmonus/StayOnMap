@@ -20,6 +20,11 @@ export const propertyService = {
     })
   },
 
+  // Live result count for the filter modal — bounds are plain numbers here
+  // (from mapStore), not a google.maps.LatLngBounds
+  getCount: (bounds, filters) =>
+    api.get('/properties/count', { params: { ...bounds, ...filters } }),
+
   create: (data) => api.post('/properties', data),
 
   update: (id, data) => api.put(`/properties/${id}`, data),

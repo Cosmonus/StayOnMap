@@ -1,15 +1,10 @@
-﻿// Global search + filter state
+// Global search + filter state — shape defined by config/filters.js
+// (DEFAULT_FILTERS covers city/area search context plus every filter id).
 import { create } from 'zustand'
-
-const defaultFilters = {
-  city:      '',   // one of config/cities.js's CITY_NAMES, or ''
-  area:      '',   // free-text area / landmark
-  bhk:       [],   // e.g. [1, 2, 3]
-  furnished: null,
-}
+import { DEFAULT_FILTERS, SEARCH_KEYS } from '@/config/filters'
 
 export const useFilterStore = create((set) => ({
-  filters: { ...defaultFilters },
+  filters: { ...DEFAULT_FILTERS },
 
   setFilter: (key, value) =>
     set((state) => ({ filters: { ...state.filters, [key]: value } })),
@@ -17,5 +12,16 @@ export const useFilterStore = create((set) => ({
   setFilters: (patch) =>
     set((state) => ({ filters: { ...state.filters, ...patch } })),
 
-  resetFilters: () => set({ filters: { ...defaultFilters } }),
+  // Full reset — search context included
+  resetFilters: () => set({ filters: { ...DEFAULT_FILTERS } }),
+
+  // Modal "Clear all" — resets every filter but keeps where the user is
+  // looking (city/area drive the map viewport, not the result set shape)
+  clearFilters: () =>
+    set((state) => ({
+      filters: {
+        ...DEFAULT_FILTERS,
+        ...Object.fromEntries(SEARCH_KEYS.map((k) => [k, state.filters[k]])),
+      },
+    })),
 }))

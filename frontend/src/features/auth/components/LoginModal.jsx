@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { X, Phone, MapPin, Eye, EyeOff } from 'lucide-react'
 import { authService } from '@services/auth.service'
 import { useAuth } from '../hooks/useAuth'
@@ -38,7 +37,6 @@ export default function LoginModal() {
   const isOpen  = useUiStore((s) => s.loginModalOpen)
   const onClose = useUiStore((s) => s.closeLoginModal)
   const { loginSuccess } = useAuth()
-  const navigate = useNavigate()
   const [tab, setTab]           = useState('login')
   const [name, setName]         = useState('')
   const [email, setEmail]       = useState('')
@@ -70,8 +68,9 @@ export default function LoginModal() {
     try {
       const res = await authService.login({ email, password })
       loginSuccess(res.data)
+      // No redirect — login lands on the map (or wherever the modal was opened).
+      // The dashboard is host-mode territory, entered via "Become a host".
       reset(); onClose()
-      if (res.data?.user?.role === 'OWNER') navigate('/user')
     } catch (err) {
       setError(err?.message ?? 'Invalid email or password')
       setLoading(false)
@@ -106,7 +105,6 @@ export default function LoginModal() {
       }
       loginSuccess(res.data)
       reset(); onClose()
-      if (res.data?.user?.role === 'OWNER') navigate('/user')
     } catch (err) {
       setError(err?.message ?? 'Could not create account')
       setLoading(false)

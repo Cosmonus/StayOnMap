@@ -1,5 +1,6 @@
 import { X, Filter } from 'lucide-react'
 import { useFilterStore } from '@store/filterStore'
+import { useUiStore } from '@store/uiStore'
 import { countActiveFilters } from '@features/search/utils/filter.helpers'
 
 const BHK_OPTIONS = [
@@ -33,7 +34,8 @@ function Chip({ label, active, onClick }) {
 }
 
 export default function CategoryChips() {
-  const { filters, setFilter, resetFilters } = useFilterStore()
+  const { filters, setFilter, clearFilters } = useFilterStore()
+  const openFilterModal = useUiStore((s) => s.openFilterModal)
   const filterCount = countActiveFilters(filters)
 
   function toggleBhk(val) {
@@ -45,7 +47,11 @@ export default function CategoryChips() {
   }
 
   function toggleFurnished(val) {
-    setFilter('furnished', filters.furnished === val ? null : val)
+    const current = filters.furnished ?? []
+    const next = current.includes(val)
+      ? current.filter(v => v !== val)
+      : [...current, val]
+    setFilter('furnished', next)
   }
 
   const hasFilters = filterCount > 0
@@ -79,7 +85,7 @@ export default function CategoryChips() {
                 <Chip
                   key={value}
                   label={label}
-                  active={filters.furnished === value}
+                  active={(filters.furnished ?? []).includes(value)}
                   onClick={() => toggleFurnished(value)}
                 />
               ))}
@@ -89,7 +95,7 @@ export default function CategoryChips() {
                 <>
                   <div className="h-5 w-px bg-slate-200 mx-1 shrink-0" />
                   <button
-                    onClick={resetFilters}
+                    onClick={clearFilters}
                     className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors"
                   >
                     <X size={12} strokeWidth={2.5} />
@@ -102,7 +108,7 @@ export default function CategoryChips() {
 
           {/* Filters button */}
           <div className="shrink-0 pl-4 border-l border-slate-100 py-3">
-            <button className="relative flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-slate-700 border border-slate-200 rounded-full hover:border-slate-400 hover:bg-slate-50 transition-all">
+            <button onClick={openFilterModal} className="relative flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-slate-700 border border-slate-200 rounded-full hover:border-slate-400 hover:bg-slate-50 transition-all">
               <Filter size={14} strokeWidth={2} />
               Filters
               {filterCount > 0 && (

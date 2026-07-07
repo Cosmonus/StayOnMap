@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { MapPin, Search, X, Clock } from 'lucide-react'
 import { useMapStore } from '@store/mapStore'
 import { CITIES } from '@/config/cities'
-import { googleMapsReady } from '@lib/googleMaps'
+import { googleMapsReady, resolvePlace } from '@lib/googleMaps'
 
 function useAreaSuggestions(query, cityName) {
   const [suggestions, setSuggestions] = useState([])
@@ -140,7 +140,7 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
     })
   }
 
-  function handleKeyDown(e) {
+  async function handleKeyDown(e) {
     if (e.key !== 'Enter') return
     e.preventDefault()
 
@@ -149,27 +149,21 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
       return
     }
 
-    // No autocomplete suggestion picked yet — geocode the typed text directly
-    if (!query.trim() || !window.google?.maps) return
-    const geocoder = new window.google.maps.Geocoder()
-    const address  = city ? `${query}, ${city}, India` : `${query}, India`
-    geocoder.geocode({ address, region: 'in' }, (results, status) => {
-      if (status !== 'OK' || !results?.[0]) return
-      const loc   = results[0].geometry.location
-      const lat   = loc.lat()
-      const lng   = loc.lng()
-      const label = results[0].address_components?.[0]?.long_name || query
+    // No autocomplete suggestion yet — resolve the typed text directly
+    // (Places-first with Geocoder fallback, see lib/googleMaps.js)
+    if (!query.trim()) return
+    const place = await resolvePlace(query, city).catch(() => null)
+    if (!place) return
 
-      setOpen(false)
-      saveRecentArea(label)
-      useMapStore.getState().clearSelection()
-      if (onPlacePicked) {
-        onPlacePicked({ name: label, lat, lng })
-      } else {
-        useMapStore.getState().flyTo?.({ center: [lng, lat], zoom: 16, duration: 800 })
-        useMapStore.getState().setSearchedPlace({ name: label, lat, lng })
-      }
-    })
+    setOpen(false)
+    saveRecentArea(place.name)
+    useMapStore.getState().clearSelection()
+    if (onPlacePicked) {
+      onPlacePicked(place)
+    } else {
+      useMapStore.getState().flyTo?.({ center: [place.lng, place.lat], zoom: 16, duration: 800 })
+      useMapStore.getState().setSearchedPlace(place)
+    }
   }
 
   function clear() {
@@ -208,7 +202,7 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
             if (suggestions.length) setOpen(true)
             else if (!query && r.length) setOpen(true)
           }}
-          placeholder={city ? `Search in ${city}…` : 'e.g. Koramangala, OMR'}
+          placeholder={city ? `Search in ${city}…` : 'Search city, area or landmark…'}
           className="flex-1 min-w-0 text-sm text-slate-700 placeholder-slate-400 bg-transparent outline-none"
         />
         {query && (

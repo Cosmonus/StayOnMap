@@ -12,6 +12,7 @@ export const useUiStore = create((set) => ({
   sidebarView: 'list', // 'list' | 'detail'
   loginModalOpen: false,
   signupModalOpen: false,
+  filterModalOpen: false,
   hostMode: readHostMode(),
 
   openSidebar: (view = 'list') => set({ sidebarOpen: true, sidebarView: view }),
@@ -20,6 +21,8 @@ export const useUiStore = create((set) => ({
   closeLoginModal: () => set({ loginModalOpen: false }),
   openSignupModal: () => set({ signupModalOpen: true }),
   closeSignupModal: () => set({ signupModalOpen: false }),
+  openFilterModal: () => set({ filterModalOpen: true }),
+  closeFilterModal: () => set({ filterModalOpen: false }),
   setHostMode: (value) => {
     try { localStorage.setItem(HOST_MODE_KEY, String(value)) } catch (_) { /* noop */ }
     set({ hostMode: value })

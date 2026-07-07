@@ -7,6 +7,7 @@ import { useUiStore } from '@store/uiStore'
 import { chatService } from '@services/chat.service'
 import { authService } from '@services/auth.service'
 import MapFilterBar from '@features/map/components/MapFilterBar'
+import FilterButton from '@features/filters/components/FilterButton'
 
 const NAV_TABS = [
   {
@@ -326,8 +327,9 @@ export default function Header() {
       </div>
 
       {isMapPage && (
-        <div className="hidden md:flex justify-center border-t border-slate-100 px-4 py-2.5">
+        <div className="flex items-center justify-center gap-2.5 border-t border-slate-100 px-4 py-2.5">
           <MapFilterBar />
+          <FilterButton />
         </div>
       )}
     </header>

@@ -30,13 +30,58 @@ const TYPE_COLORS = {
   COMMERCIAL: '#EA580C',
   SHORT_STAY: '#DB2777',
 }
-const DEFAULT_TYPE_COLOR = '#d6d2c8'
+const DEFAULT_TYPE_COLOR = '#475569'
 
 function typeColor(pin) {
   return TYPE_COLORS[pin.type] ?? DEFAULT_TYPE_COLOR
 }
 
-// ── Individual pin (white pill with rent label) ───────────────────
+// Darken a #rrggbb color — the selected pin keeps its type color but drops
+// to a deeper shade so selection reads without losing type identity.
+function darken(hex, factor = 0.72) {
+  const n = parseInt(hex.slice(1), 16)
+  const ch = (shift) => Math.round(((n >> shift) & 255) * factor)
+  return `rgb(${ch(16)}, ${ch(8)}, ${ch(0)})`
+}
+
+function tintShadow(hex, alpha) {
+  const n = parseInt(hex.slice(1), 16)
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
+}
+
+// Exact lucide geometry (Building2 / House / LandPlot / BedDouble / Store /
+// Luggage), inlined as SVG strings because pins are plain DOM, not React.
+// One icon per wizard category — HOUSE/VILLA/INDEPENDENT_HOUSE share House,
+// mirroring how they share a color above.
+const HOUSE_PATHS = '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'
+const TYPE_ICON_PATHS = {
+  APARTMENT: '<path d="M10 12h4"/><path d="M10 8h4"/><path d="M14 21v-3a2 2 0 0 0-4 0v3"/><path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/>',
+  HOUSE: HOUSE_PATHS,
+  VILLA: HOUSE_PATHS,
+  INDEPENDENT_HOUSE: HOUSE_PATHS,
+  LAND: '<path d="m12 8 6-3-6-3v10"/><path d="m8 11.99-5.5 3.14a1 1 0 0 0 0 1.74l8.5 4.86a2 2 0 0 0 2 0l8.5-4.86a1 1 0 0 0 0-1.74L16 12"/><path d="m6.49 12.85 11.02 6.3"/><path d="M17.51 12.85 6.5 19.15"/>',
+  PG: '<path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"/><path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"/><path d="M12 4v6"/><path d="M2 18h20"/>',
+  COMMERCIAL: '<path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"/><path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"/><path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"/>',
+  SHORT_STAY: '<path d="M6 20a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2"/><path d="M8 18V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v14"/><path d="M10 20h4"/><circle cx="16" cy="20" r="2"/><circle cx="8" cy="20" r="2"/>',
+}
+
+function typeIconHtml(pin) {
+  const paths = TYPE_ICON_PATHS[pin.type]
+  if (!paths) return ''
+  return `<span data-type-icon style="display:inline-flex;margin-right:5px;color:#fff">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>
+  </span>`
+}
+
+// ── Individual pin (color-filled pill, white label) ───────────────
+// Borderless fill IS the type color; selection deepens the shade and adds
+// a colored glow ring.
+function pinStateStyles(color, selected) {
+  return selected
+    ? `background:${darken(color)};box-shadow:0 0 0 3px ${tintShadow(color, 0.35)}, 0 4px 14px ${tintShadow(color, 0.5)};`
+    : `background:${color};box-shadow:0 2px 8px ${tintShadow(color, 0.45)};`
+}
+
 function makePinEl(pin, selected) {
   const rent  = `₹${(Number(pin.rent) / 1000).toFixed(0)}K`
   const bhk   = bhkShort(pin)
@@ -48,33 +93,32 @@ function makePinEl(pin, selected) {
   el.style.cssText = `
     display: inline-flex;
     align-items: center;
-    padding: 4px 10px;
+    padding: 6px 12px;
     border-radius: 999px;
     font-size: 12px;
     font-weight: 600;
     font-family: Inter, sans-serif;
     white-space: nowrap;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-    transition: transform 150ms ease;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease;
     transform-origin: center bottom;
     will-change: transform;
     user-select: none;
-    ${selected
-      ? `background:${color};color:#fff;border:2px solid ${color};`
-      : `background:#fff;color:#1c1a16;border:2px solid ${color};`}
+    ${pinStateStyles(color, selected)}
   `
-  el.textContent = label
+  const labelSpan = document.createElement('span')
+  labelSpan.textContent = label
+  el.innerHTML = typeIconHtml(pin)
+  el.appendChild(labelSpan)
   el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.08)' })
   el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)' })
   return el
 }
 
 function applySelected(el, selected, pin) {
-  const color = typeColor(pin)
-  el.style.background  = selected ? color : '#fff'
-  el.style.color       = selected ? '#fff' : '#1c1a16'
-  el.style.borderColor = color
+  el.style.cssText += pinStateStyles(typeColor(pin), selected)
 }
 
 // ── Cluster bubble (brand-blue pill with count) ───────────────────
@@ -117,7 +161,6 @@ export function useMapPins(mapRef) {
   const zoom        = useMapStore((s) => s.zoom)
   const bounds      = useMapStore((s) => s.bounds)
   const selectedId  = useMapStore((s) => s.selectedPinId)
-  const hoveredId   = useMapStore((s) => s.hoveredPinId)
   const selectPin   = useMapStore((s) => s.selectPin)
   const clearSelection = useMapStore((s) => s.clearSelection)
   const mapReady    = useMapStore((s) => s.flyTo !== null)
@@ -130,7 +173,7 @@ export function useMapPins(mapRef) {
     const map = mapRef.current
     if (!map || !mapReady) return
 
-    const { selectedPinId: currentSelectedId, hoveredPinId: currentHoveredId } = useMapStore.getState()
+    const { selectedPinId: currentSelectedId } = useMapStore.getState()
     const items = pins.length ? computeClusters(pins, bounds, zoom) : []
 
     // Keys we want on the map after this pass.
@@ -168,7 +211,7 @@ export function useMapPins(mapRef) {
           const pin = pins.find((p) => p.id === pinId)
           if (!pin) continue
 
-          const selected = pinId === currentSelectedId || pinId === currentHoveredId
+          const selected = pinId === currentSelectedId
           const el       = makePinEl(pin, selected)
           const marker   = createHtmlMarker({
             element: el,
@@ -203,13 +246,13 @@ export function useMapPins(mapRef) {
     }
   }, [pins, zoom, bounds, mapReady, mapRef, selectPin, clearSelection])
 
-  // Update selected/hovered styling without re-creating markers
+  // Update selected styling without re-creating markers
   useEffect(() => {
     for (const [id, marker] of pinMarkersRef.current) {
       const pin = pins.find((p) => p.id === id)
-      if (pin) applySelected(marker.getElement(), id === selectedId || id === hoveredId, pin)
+      if (pin) applySelected(marker.getElement(), id === selectedId, pin)
     }
-  }, [selectedId, hoveredId, pins])
+  }, [selectedId, pins])
 
   // Cleanup on unmount
   useEffect(() => {
