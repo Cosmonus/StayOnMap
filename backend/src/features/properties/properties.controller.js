@@ -22,6 +22,15 @@ export async function getPins(req, res, next) {
   } catch (err) { next(err) }
 }
 
+export async function countProperties(req, res, next) {
+  try {
+    const bounds = parseBounds(req.query)
+    const userId = req.user?.id ?? null
+    const count = await service.countPropertiesInBounds(bounds, req.query, userId)
+    ok(res, { count })
+  } catch (err) { next(err) }
+}
+
 export async function getProperty(req, res, next) {
   try {
     const property = await service.getPropertyById(req.params.id, req.user?.id ?? null)

@@ -1,5 +1,8 @@
 import { z } from 'zod'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
+import { PROPERTY_TYPES, filterQueryShape } from './filters.registry.js'
+
+export { PROPERTY_TYPES }
 
 const SUPABASE_STORAGE_URL = process.env.SUPABASE_URL
   ? `${process.env.SUPABASE_URL}/storage/v1/object/public/`
@@ -10,9 +13,8 @@ const storageImageUrl = z.string().url().refine(
   { message: 'Image must be uploaded to StayOnMap storage' }
 )
 
-// Single source of truth for the 8 property types — previously duplicated
-// independently between create/update schemas (a real drift risk).
-export const PROPERTY_TYPES = ['APARTMENT', 'HOUSE', 'VILLA', 'PG', 'INDEPENDENT_HOUSE', 'COMMERCIAL', 'LAND', 'SHORT_STAY']
+// PROPERTY_TYPES lives in filters.registry.js now (single source of truth
+// shared with the filter engine) — re-exported above for existing importers.
 
 // Types whose bhk represents bedrooms and is required (PG uses `sharing`
 // instead; LAND/COMMERCIAL have no bedroom concept at all).
@@ -215,12 +217,13 @@ export const updatePropertySchema = z.object({
   { message: 'Window start must be before end', path: ['appointmentWindowStart'] }
 )
 
+// All map/list filters come from the registry — one Zod shape shared by the
+// list, pins, and count queries. bhk/furnished/city are registry entries now
+// (furnished upgraded single-value → CSV multi; a lone value still parses).
 export const listQuerySchema = z.object({
   page:      z.coerce.number().int().min(1).default(1),
   limit:     z.coerce.number().int().min(1).max(50).default(20),
-  bhk:       z.string().regex(/^[\d,]+$/).optional(),
-  furnished: z.enum(['FULLY', 'SEMI', 'UNFURNISHED']).optional(),
-  city:      z.string().max(100).optional(),
+  ...filterQueryShape(),
   swLat:     z.coerce.number().optional(),
   swLng:     z.coerce.number().optional(),
   neLat:     z.coerce.number().optional(),
@@ -230,12 +233,20 @@ export const listQuerySchema = z.object({
 // Bounds are required here (unlike listQuerySchema above) — /pins always
 // comes from a map viewport, and without this, missing/malformed bounds
 // reached Prisma as NaN and 500'd instead of a clean 400.
+// Corners are clamped into India's bounding box rather than rejected: a
+// zoomed-out viewport that CONTAINS India (e.g. the initial fitBounds over
+// all supported cities) is a valid query whose corners fall outside the box.
+// A viewport entirely outside India clamps to an empty box → 0 pins.
+const clampedTo = (min, max) => z.coerce.number().transform((n) => Math.min(Math.max(n, min), max))
+
 export const pinsQuerySchema = z.object({
-  swLat:     z.coerce.number().min(6).max(38),
-  swLng:     z.coerce.number().min(68).max(98),
-  neLat:     z.coerce.number().min(6).max(38),
-  neLng:     z.coerce.number().min(68).max(98),
-  bhk:       z.string().regex(/^[\d,]+$/).optional(),
-  furnished: z.enum(['FULLY', 'SEMI', 'UNFURNISHED']).optional(),
-  city:      z.string().max(100).optional(),
+  swLat: clampedTo(6, 38),
+  swLng: clampedTo(68, 98),
+  neLat: clampedTo(6, 38),
+  neLng: clampedTo(68, 98),
+  ...filterQueryShape(),
 })
+
+// Live result count for the filter modal — same shape as /pins (bounds
+// required: the count is always "matches in the current viewport").
+export const countQuerySchema = pinsQuerySchema

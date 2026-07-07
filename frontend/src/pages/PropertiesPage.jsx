@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Home } from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { useFilterStore } from '@store/filterStore'
+import { toQueryParams } from '@/config/filters'
 import PropertyCard from '@features/properties/components/PropertyCard'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
@@ -32,13 +33,9 @@ function EmptySlotCard() {
 export default function PropertiesPage() {
   const filters = useFilterStore((s) => s.filters)
 
-  const params = useMemo(() => {
-    const p = { limit: 50 }
-    if (filters.city)       p.city = filters.city
-    if (filters.furnished)  p.furnished = filters.furnished
-    if (filters.bhk?.length) p.bhk = filters.bhk.join(',')
-    return p
-  }, [filters.city, filters.furnished, filters.bhk])
+  // Every active filter (modal included) shapes the grid — same schema-driven
+  // params the map's pin fetch uses.
+  const params = useMemo(() => ({ limit: 50, ...toQueryParams(filters) }), [filters])
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['properties', params],
@@ -64,7 +61,7 @@ export default function PropertiesPage() {
     <>
       <SEOMeta title={pageTitle} description={pageDesc} canonical={canonical('/properties')} />
 
-      <main className="min-h-screen bg-white pt-28 md:pt-40 pb-20">
+      <main className="min-h-screen bg-white pt-[132px] md:pt-40 pb-20">
         <div className="w-[80%] mx-auto">
           <div className="mb-6">
             <h1 className="font-display font-bold text-2xl sm:text-3xl text-slate-900 tracking-tight">

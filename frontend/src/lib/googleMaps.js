@@ -65,3 +65,44 @@ export function createHtmlMarker({ element, lat, lng, map }) {
   if (map) marker.setMap(map)
   return marker
 }
+
+// Resolve free-typed text ("avadi") to { name, lat, lng }.
+// Tries the Places API first (Autocomplete prediction → Place Details) —
+// the same pipeline suggestion clicks use, so it works wherever they do.
+// google.maps.Geocoder is only a fallback: Geocoding is a separately-enabled
+// Google product, and relying on it alone made search silently do nothing
+// when the browser key lacked it (same trap .claude/maps.md documents for
+// mobile). Returns null when nothing matches.
+export async function resolvePlace(query, city) {
+  await googleMapsReady
+  const g = window.google.maps
+  const input = city ? `${query}, ${city}, India` : `${query}, India`
+
+  const prediction = await new Promise((resolve) => {
+    new g.places.AutocompleteService().getPlacePredictions(
+      { input, componentRestrictions: { country: 'in' } },
+      (preds, status) => resolve(status === 'OK' ? preds?.[0] ?? null : null)
+    )
+  })
+  if (prediction?.place_id) {
+    const location = await new Promise((resolve) => {
+      new g.places.PlacesService(document.createElement('div')).getDetails(
+        { placeId: prediction.place_id, fields: ['geometry'] },
+        (place, status) => resolve(status === 'OK' ? place?.geometry?.location ?? null : null)
+      )
+    })
+    if (location) {
+      const name = prediction.structured_formatting?.main_text || query
+      return { name, lat: location.lat(), lng: location.lng() }
+    }
+  }
+
+  const result = await new Promise((resolve) => {
+    new g.Geocoder().geocode({ address: input, region: 'in' }, (results, status) =>
+      resolve(status === 'OK' ? results?.[0] ?? null : null)
+    )
+  })
+  if (!result) return null
+  const loc = result.geometry.location
+  return { name: result.address_components?.[0]?.long_name || query, lat: loc.lat(), lng: loc.lng() }
+}

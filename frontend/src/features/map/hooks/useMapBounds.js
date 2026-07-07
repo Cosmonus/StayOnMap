@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
 import { propertyService } from '@services/property.service'
+import { toQueryParams } from '@/config/filters'
 
 export function useMapBounds(mapRef) {
   const setPins     = useMapStore((s) => s.setPins)
@@ -28,11 +29,9 @@ export function useMapBounds(mapRef) {
       setBounds({ swLat: sw.lat(), swLng: sw.lng(), neLat: ne.lat(), neLng: ne.lng() })
       setViewport(map.getCenter()?.toJSON() ?? {}, map.getZoom() ?? 5)
 
-      propertyService.getPinsInBounds(b, {
-        bhk:       filters.bhk?.length ? filters.bhk.join(',') : undefined,
-        furnished: filters.furnished || undefined,
-        city:      filters.city      || undefined,
-      })
+      // Every active filter travels to the server — the pin set is always
+      // server-filtered, the viewport never moves because of a filter change.
+      propertyService.getPinsInBounds(b, toQueryParams(filters))
         .then((r) => setPins(Array.isArray(r.data) ? r.data : []))
         .catch(() => {})
     }

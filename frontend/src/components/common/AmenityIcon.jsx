@@ -3,7 +3,9 @@ import {
   WashingMachine, PawPrint, ShieldCheck, Waves, Flame, Droplet, DoorOpen, Trees,
   Building2, PhoneCall, Droplets, CloudRain, Filter, Container, Baby, Footprints,
   ShieldAlert, Tv, Refrigerator, Sofa, Bed, DoorClosed, UtensilsCrossed, Microwave,
-  Sun, BatteryCharging, Fan, HelpCircle,
+  Sun, BatteryCharging, Fan, HelpCircle, CarFront, ChefHat, Fence, Coffee, Utensils,
+  Sparkles, LampDesk, ShowerHead, Layers, Signpost, Route, LandPlot, BrickWall,
+  Sunrise, Hammer, Laptop, TreePalm, PanelBottomClose,
 } from 'lucide-react'
 
 const ICONS = {
@@ -48,6 +50,32 @@ const ICONS = {
   'Solar Panel':          Sun,
   'EV Charging':          BatteryCharging,
   'Air Cooler':           Fan,
+  // Seeded amenities used by the filter chips and the listing wizard
+  'Covered Parking':      CarFront,
+  'Modular Kitchen':      ChefHat,
+  'Gated Community':      Fence,
+  'Borewell':             Droplet,
+  'Solar Water Heater':   Sun,
+  'Servant Room':         Bed,
+  'Breakfast':            Coffee,
+  'Lunch':                UtensilsCrossed,
+  'Dinner':               Utensils,
+  'Housekeeping':         Sparkles,
+  'Study Desk':           LampDesk,
+  'Attached Bath':        ShowerHead,
+  'Washroom':             ShowerHead,
+  '3-Phase Power':        Zap,
+  'Roll-down Shutter':    PanelBottomClose,
+  'Mezzanine':            Layers,
+  'Signage Space':        Signpost,
+  'Near Main Road':       Route,
+  'Corner Plot':          LandPlot,
+  'Boundary Wall':        BrickWall,
+  'East Facing':          Sunrise,
+  'Ready to Build':       Hammer,
+  'Workspace':            Laptop,
+  'Beachfront':           TreePalm,
+  'Furnished':            Sofa,
 }
 
 const FALLBACK = HelpCircle

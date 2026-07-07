@@ -5,6 +5,7 @@ import { evaluateListing, getRentBenchmark } from '../../services/intelligence.s
 import { generatePropertyDisplayId } from '../../utils/idGenerator.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
+import { buildFilterWhere, filterCacheKey } from './filters.registry.js'
 
 const FULL_INCLUDE = {
   images:    { orderBy: { order: 'asc' } },
@@ -37,7 +38,7 @@ export async function getPinsInBounds(bounds, filters, userId = null) {
   // auth included: applyVisibilityFilter() below shows LOGGED_IN-only listings
   // to authenticated users — without this, one bucket's cached result could
   // leak into the other (e.g. an anon visitor served a logged-in-only listing)
-  const cacheKey = `pins:${JSON.stringify({ b: roundedBounds, city: filters?.city ?? '', bhk: filters?.bhk ?? '', furnished: filters?.furnished ?? '', auth: !!userId })}`
+  const cacheKey = `pins:${JSON.stringify(roundedBounds)}:${filterCacheKey(filters ?? {})}:${!!userId}`
 
   const cached = await cacheGet(cacheKey)
   if (cached) return cached
@@ -56,6 +57,24 @@ export async function getPinsInBounds(bounds, filters, userId = null) {
 
   await cacheSet(cacheKey, pins, 30)
   return pins
+}
+
+// Live "Show N homes" count for the filter modal — same where-clause as
+// /pins but a COUNT, uncapped by the 200-pin limit. Short TTL: the user is
+// actively toggling filters while this is on screen.
+export async function countPropertiesInBounds(bounds, filters, userId = null) {
+  const cacheKey = `count:${JSON.stringify(bounds)}:${filterCacheKey(filters ?? {})}:${!!userId}`
+  const cached = await cacheGet(cacheKey)
+  if (cached !== null && cached !== undefined) return cached
+
+  const where = { status: 'ACTIVE', ...boundsFilter(bounds) }
+  const fragments = buildFilterWhere(filters ?? {})
+  if (fragments.length) where.AND = fragments
+  applyVisibilityFilter(where, userId)
+
+  const count = await prisma.property.count({ where })
+  await cacheSet(cacheKey, count, 15)
+  return count
 }
 
 export async function getPropertyById(id, userId = null) {
@@ -198,11 +217,13 @@ export async function toggleStatus(id, ownerId) {
   return prisma.property.update({ where: { id }, data: { status: next } })
 }
 
+// All filter → Prisma mapping is generated from filters.registry.js.
+// Fragments are AND-composed so two filters targeting the same column
+// (e.g. rentMin + rentMax) can never clobber each other.
 function buildWhereClause(filters) {
   const where = { status: 'ACTIVE' }
-  if (filters.city)      where.city = { contains: filters.city, mode: 'insensitive' }
-  if (filters.furnished) where.furnished = filters.furnished
-  if (filters.bhk)       where.bhk = { in: String(filters.bhk).split(',').map(Number) }
+  const fragments = buildFilterWhere(filters)
+  if (fragments.length) where.AND = fragments
   if (filters.swLat != null && filters.swLng != null && filters.neLat != null && filters.neLng != null) {
     Object.assign(where, boundsFilter(filters))
   }

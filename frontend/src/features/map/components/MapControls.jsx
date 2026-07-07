@@ -17,7 +17,6 @@ const ACTIVE_COLORS = {
 export default function MapControls() {
   const activeLayers = useMapStore((s) => s.activeLayers)
   const toggleLayer  = useMapStore((s) => s.toggleLayer)
-
   return (
     <div className="absolute z-10 flex flex-col gap-1.5 top-4 left-4">
       {LAYERS.map(({ key, label, icon }) => {

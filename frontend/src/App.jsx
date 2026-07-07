@@ -5,6 +5,7 @@ import Footer from '@components/layout/Footer'
 import Toaster from '@components/common/Toaster'
 import ConfirmDialog from '@components/common/ConfirmDialog'
 import LoginModal from '@features/auth/components/LoginModal'
+import FilterModal from '@features/filters/components/FilterModal'
 
 export default function App() {
   const { pathname } = useLocation()
@@ -22,6 +23,7 @@ export default function App() {
       <Toaster />
       <ConfirmDialog />
       <LoginModal />
+      <FilterModal />
     </>
   )
 }

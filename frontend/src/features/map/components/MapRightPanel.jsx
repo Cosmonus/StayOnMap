@@ -98,11 +98,14 @@ export function FilterBody({ draft, setDraft, activeFilterCount, onApply, onRese
         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Furnishing</label>
         <div className="flex gap-1.5">
           {FURNISHED_OPTIONS.map(({ label, value }) => {
-            const sel = draft.furnished === value
+            const sel = draft.furnished.includes(value)
             return (
               <button
                 key={value}
-                onClick={() => setDraft((d) => ({ ...d, furnished: sel ? null : value }))}
+                onClick={() => setDraft((d) => ({
+                  ...d,
+                  furnished: sel ? d.furnished.filter((v) => v !== value) : [...d.furnished, value],
+                }))}
                 className="flex-1 py-2 text-xs font-semibold rounded-xl border transition-all duration-150"
                 style={sel
                   ? { background: 'linear-gradient(135deg,#1e293b,#334155)', color: '#fff', borderColor: 'transparent', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }
@@ -189,13 +192,13 @@ function MobilePropertyCard({ propertyId }) {
 export default function MapRightPanel({ topClass = 'top-32', contained = false }) {
   const selectedPinId  = useMapStore((s) => s.selectedPinId)
   const clearSelection = useMapStore((s) => s.clearSelection)
-  const { filters, setFilters, resetFilters } = useFilterStore()
+  const { filters, setFilters } = useFilterStore()
 
   const [mobileSheet, setMobileSheet] = useState(null)            // mobile sheet: 'filters' | null
-  const [draft, setDraft]           = useState({ city: '', area: '', bhk: [], furnished: null })
+  const [draft, setDraft]           = useState({ city: '', area: '', bhk: [], furnished: [] })
 
   useEffect(() => {
-    setDraft({ city: filters.city ?? '', area: filters.area ?? '', bhk: filters.bhk ?? [], furnished: filters.furnished ?? null })
+    setDraft({ city: filters.city ?? '', area: filters.area ?? '', bhk: filters.bhk ?? [], furnished: filters.furnished ?? [] })
   }, [filters.city, filters.area, filters.bhk, filters.furnished]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleApply() {
@@ -205,12 +208,14 @@ export default function MapRightPanel({ topClass = 'top-32', contained = false }
   }
 
   function handleReset() {
-    resetFilters()
-    setDraft({ city: '', area: '', bhk: [], furnished: null })
+    // Reset only what this sheet controls — modal filters are cleared from
+    // the filter modal itself
+    setFilters({ city: '', area: '', bhk: [], furnished: [] })
+    setDraft({ city: '', area: '', bhk: [], furnished: [] })
     useMapStore.getState().setSearchedPlace?.(null)
   }
 
-  const activeFilterCount = [draft.city, draft.area, draft.furnished, ...draft.bhk].filter(Boolean).length
+  const activeFilterCount = [draft.city, draft.area, ...draft.furnished, ...draft.bhk].filter(Boolean).length
 
   const filterProps = { draft, setDraft, activeFilterCount, onApply: handleApply, onReset: handleReset }
 

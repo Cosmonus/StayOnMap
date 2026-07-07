@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react'
-import { googleMapsReady, createHtmlMarker } from '@lib/googleMaps'
+import { googleMapsReady, createHtmlMarker, resolvePlace } from '@lib/googleMaps'
 import { useFilterStore } from '@store/filterStore'
 import { useMapStore } from '@store/mapStore'
 import { useMapPins } from '../hooks/useMapPins'
 import { useMapBounds } from '../hooks/useMapBounds'
 import { useMapLayers } from '../hooks/useMapLayers'
+import { useUserLocation } from '../hooks/useUserLocation'
 import MapControls from './MapControls'
 // import { useAreaLabels } from '../hooks/useAreaLabels'  // TODO: re-enable after area research
 import { CITIES } from '@/config/cities'
@@ -20,6 +21,7 @@ export default function MapView({ contained = false }) {
   useMapPins(mapRef)
   useMapBounds(mapRef)
   useMapLayers(mapRef)
+  useUserLocation(mapRef)
   // useAreaLabels(mapRef)  // TODO: re-enable after area research
 
   const city          = useFilterStore((s) => s.filters.city)
@@ -48,7 +50,7 @@ export default function MapView({ contained = false }) {
         center:            { lat: 14.5, lng: 78.9629 },
         zoom:              6,
         mapId,
-        mapTypeId:         'terrain',
+        mapTypeId:         'roadmap',
         mapTypeControl:    false,
         streetViewControl: false,
         fullscreenControl: false,
@@ -90,21 +92,18 @@ export default function MapView({ contained = false }) {
     map.panTo({ lat: cityData.lat, lng: cityData.lng })
   }, [city, area, mapReady])
 
-  // Geocode area and fly
+  // Resolve area text and fly (Places-first with Geocoder fallback —
+  // Geocoder alone silently no-ops when the key lacks the Geocoding API)
   useEffect(() => {
     const map = mapRef.current
     if (!map || !area) return
-    googleMapsReady.then(() => {
-      const geocoder = new window.google.maps.Geocoder()
-      const cityData  = CITIES.find((c) => c.name === city)
-      const address   = cityData ? `${area}, ${cityData.name}, India` : `${area}, India`
-      geocoder.geocode({ address, region: 'in' }, (results, status) => {
-        if (status !== 'OK' || !results?.[0]) return
-        const loc = results[0].geometry.location
-        map.setZoom(AREA_ZOOM)
-        map.panTo({ lat: loc.lat(), lng: loc.lng() })
-      })
-    })
+    let cancelled = false
+    resolvePlace(area, city).then((place) => {
+      if (cancelled || !place || !mapRef.current) return
+      mapRef.current.setZoom(AREA_ZOOM)
+      mapRef.current.panTo({ lat: place.lat, lng: place.lng })
+    }).catch(() => {})
+    return () => { cancelled = true }
   }, [area, city, mapReady])
 
   // Orange pin at searched place
