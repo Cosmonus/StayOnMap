@@ -38,9 +38,16 @@ export default function MapView({ contained = false }) {
     googleMapsReady.then(() => {
       if (cancelled || mapRef.current) return
 
+      // A vector Map ID (created in Google Cloud Console) switches Google's
+      // basemap to GPU/WebGL rendering — smoother pan/zoom and a prerequisite
+      // for any WebGL overlay. Opt-in: unset env → undefined → current raster
+      // behavior, so this is a no-op until VITE_GOOGLE_MAPS_MAP_ID is provided.
+      const mapId = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || undefined
+
       const map = new window.google.maps.Map(el, {
         center:            { lat: 14.5, lng: 78.9629 },
         zoom:              6,
+        mapId,
         mapTypeId:         'terrain',
         mapTypeControl:    false,
         streetViewControl: false,

@@ -122,60 +122,83 @@ export function useMapPins(mapRef) {
   const clearSelection = useMapStore((s) => s.clearSelection)
   const mapReady    = useMapStore((s) => s.flyTo !== null)
 
-  // Re-render all markers whenever pins, zoom, or bounds change
+  // Reconcile markers whenever pins, zoom, or bounds change.
+  // Diff against what's already on the map — add new, remove stale, and leave
+  // unchanged markers untouched. Never clear-and-redraw: rebuilding every
+  // marker on each pan/zoom is what causes visible flicker and CPU churn.
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
 
-    // Clear all existing markers
-    for (const m of pinMarkersRef.current.values())     m.remove()
-    for (const m of clusterMarkersRef.current.values()) m.remove()
-    pinMarkersRef.current.clear()
-    clusterMarkersRef.current.clear()
-
-    if (!pins.length) return
-
     const { selectedPinId: currentSelectedId, hoveredPinId: currentHoveredId } = useMapStore.getState()
-    const items = computeClusters(pins, bounds, zoom)
+    const items = pins.length ? computeClusters(pins, bounds, zoom) : []
+
+    // Keys we want on the map after this pass.
+    const desiredPinIds     = new Set()
+    const desiredClusterKeys = new Set()
 
     for (const item of items) {
       const [lng, lat] = item.geometry.coordinates
 
       if (item.properties.cluster) {
         // ── Cluster bubble ──
+        // Supercluster reuses numeric cluster ids across viewports, so key on
+        // id + count + rounded position: any change yields a new key, so a
+        // moved/resized cluster is naturally replaced while a static one is reused.
         const count     = item.properties.point_count
         const clusterId = item.id
-        const el        = makeClusterEl(count)
-        const marker    = createHtmlMarker({ element: el, lat, lng, map })
+        const key       = `${clusterId}:${count}:${lat.toFixed(5)}:${lng.toFixed(5)}`
+        desiredClusterKeys.add(key)
 
-        el.addEventListener('click', () => {
-          const expZoom = Math.min(getExpansionZoom(clusterId), 16)
-          useMapStore.getState().flyTo({ center: [lng, lat], zoom: expZoom })
-        })
-
-        clusterMarkersRef.current.set(clusterId, marker)
+        if (!clusterMarkersRef.current.has(key)) {
+          const el     = makeClusterEl(count)
+          const marker = createHtmlMarker({ element: el, lat, lng, map })
+          el.addEventListener('click', () => {
+            const expZoom = Math.min(getExpansionZoom(clusterId), 16)
+            useMapStore.getState().flyTo({ center: [lng, lat], zoom: expZoom })
+          })
+          clusterMarkersRef.current.set(key, marker)
+        }
       } else {
-        // ── Individual pin ──
+        // ── Individual pin ── (position is stable, so key on id alone)
         const pinId = item.properties.id
-        const pin   = pins.find((p) => p.id === pinId)
-        if (!pin) continue
+        desiredPinIds.add(pinId)
 
-        const selected = pinId === currentSelectedId || pinId === currentHoveredId
-        const el       = makePinEl(pin, selected)
-        const marker   = createHtmlMarker({
-          element: el,
-          lat: parseFloat(pin.lat),
-          lng: parseFloat(pin.lng),
-          map,
-        })
+        if (!pinMarkersRef.current.has(pinId)) {
+          const pin = pins.find((p) => p.id === pinId)
+          if (!pin) continue
 
-        el.addEventListener('click', () => {
-          const { selectedPinId } = useMapStore.getState()
-          if (selectedPinId === pinId) clearSelection()
-          else selectPin(pinId, el.getBoundingClientRect())
-        })
+          const selected = pinId === currentSelectedId || pinId === currentHoveredId
+          const el       = makePinEl(pin, selected)
+          const marker   = createHtmlMarker({
+            element: el,
+            lat: parseFloat(pin.lat),
+            lng: parseFloat(pin.lng),
+            map,
+          })
 
-        pinMarkersRef.current.set(pinId, marker)
+          el.addEventListener('click', () => {
+            const { selectedPinId } = useMapStore.getState()
+            if (selectedPinId === pinId) clearSelection()
+            else selectPin(pinId, el.getBoundingClientRect())
+          })
+
+          pinMarkersRef.current.set(pinId, marker)
+        }
+      }
+    }
+
+    // Remove markers no longer wanted.
+    for (const [id, marker] of pinMarkersRef.current) {
+      if (!desiredPinIds.has(id)) {
+        marker.remove()
+        pinMarkersRef.current.delete(id)
+      }
+    }
+    for (const [key, marker] of clusterMarkersRef.current) {
+      if (!desiredClusterKeys.has(key)) {
+        marker.remove()
+        clusterMarkersRef.current.delete(key)
       }
     }
   }, [pins, zoom, bounds, mapReady, mapRef, selectPin, clearSelection])
