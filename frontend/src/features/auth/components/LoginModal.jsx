@@ -70,7 +70,8 @@ export default function LoginModal() {
     try {
       const res = await authService.login({ email, password })
       loginSuccess(res.data)
-      reset(); onClose(); navigate('/user')
+      reset(); onClose()
+      if (res.data?.user?.role === 'OWNER') navigate('/user')
     } catch (err) {
       setError(err?.message ?? 'Invalid email or password')
       setLoading(false)
@@ -104,7 +105,8 @@ export default function LoginModal() {
         return
       }
       loginSuccess(res.data)
-      reset(); onClose(); navigate('/user')
+      reset(); onClose()
+      if (res.data?.user?.role === 'OWNER') navigate('/user')
     } catch (err) {
       setError(err?.message ?? 'Could not create account')
       setLoading(false)
