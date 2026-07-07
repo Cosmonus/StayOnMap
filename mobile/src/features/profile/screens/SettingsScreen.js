@@ -60,7 +60,7 @@ export default function SettingsScreen({ navigation }) {
       </View>
 
       <Text style={styles.sectionLabel}>Legal</Text>
-      <Pressable style={styles.row} onPress={() => Linking.openURL('https://stayonmap.com/privacy')}>
+      <Pressable style={styles.row} onPress={() => Linking.openURL('https://www.stayonmap.com/privacy')}>
         <View style={styles.rowIconLabel}>
           <View style={styles.rowIcon}>
             <Icon name="document" size={16} color={colors.brand600} />
@@ -69,7 +69,7 @@ export default function SettingsScreen({ navigation }) {
         </View>
         <Icon name="chevronRight" size={16} color={colors.slate400} />
       </Pressable>
-      <Pressable style={styles.row} onPress={() => Linking.openURL('https://stayonmap.com/terms')}>
+      <Pressable style={styles.row} onPress={() => Linking.openURL('https://www.stayonmap.com/terms')}>
         <View style={styles.rowIconLabel}>
           <View style={styles.rowIcon}>
             <Icon name="document" size={16} color={colors.brand600} />
