@@ -10,6 +10,10 @@ export const propertyService = {
   getPinsInBounds: (bounds, filters) =>
     api.get('/properties/pins', { params: { ...bounds, ...filters } }),
 
+  // Live result count for the filter sheet — same query shape as /pins
+  getCount: (bounds, filters) =>
+    api.get('/properties/count', { params: { ...bounds, ...filters } }),
+
   create: (data) => api.post('/properties', data),
   update: (id, data) => api.put(`/properties/${id}`, data),
   remove: (id) => api.delete(`/properties/${id}`),
