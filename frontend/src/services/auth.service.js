@@ -11,4 +11,6 @@ export const authService = {
   upgradeBusiness: () => api.patch('/auth/business'),
   requestPasswordReset: (data) => api.post('/auth/forgot-password', data),
   confirmPasswordReset: (data) => api.post('/auth/reset-password', data),
+  sendEmailVerification: () => api.post('/auth/send-verification'),
+  confirmEmailVerification: (data) => api.post('/auth/verify-email', data),
 }

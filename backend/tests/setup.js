@@ -52,4 +52,5 @@ vi.mock('../src/config/env.js', () => ({
 vi.mock('../src/services/email.service.js', () => ({
   sendEmail: vi.fn().mockResolvedValue(null),
   passwordResetEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
+  emailVerificationEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
 }))

@@ -22,6 +22,7 @@ const NotFoundPage      = lazy(() => import('@pages/NotFoundPage'))
 const AdminLoginPage    = lazy(() => import('@pages/AdminLoginPage'))
 const AdminPage         = lazy(() => import('@pages/AdminPage'))
 const ResetPasswordPage = lazy(() => import('@pages/ResetPasswordPage'))
+const VerifyEmailPage   = lazy(() => import('@pages/VerifyEmailPage'))
 
 function PageFallback() {
   return (
@@ -55,8 +56,9 @@ export default function AppRoutes() {
           <Route path="/user"         element={<UserGuard><DashboardPage /></UserGuard>} />
           <Route path="/list"         element={<UserGuard><HostOnboardingPage /></UserGuard>} />
 
-          {/* Password reset — public, token in URL query param */}
+          {/* Password reset + email verification — public, token in URL query param */}
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/verify-email"   element={<VerifyEmailPage />} />
 
           {/* Admin — login is public, everything else guarded */}
           <Route path="/admin/login"  element={<AdminLoginPage />} />
