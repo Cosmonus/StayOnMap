@@ -1,19 +1,11 @@
-import { Resend } from 'resend'
 import { env } from '../config/env.js'
+import { sendMail } from '../lib/mailer.js'
 
-function getResend() {
-  return new Resend(env.resendApiKey)
-}
-
-export async function sendEmail({ to, subject, html }) {
-  if (!env.resendApiKey) return
-  try {
-    await getResend().emails.send({ from: env.resendFrom, to, subject, html })
-  } catch (err) {
-    // Best-effort — never crash the main flow, but a silent catch here is how
-    // a bad RESEND_API_KEY/RESEND_FROM_EMAIL went unnoticed in production before.
-    console.error('[email] send failed:', err.message)
-  }
+// Templates below; delivery lives in lib/mailer.js (plain SMTP, quota-aware).
+// `critical: true` marks emails that must go out even near the daily cap —
+// password resets and security alerts, never routine notifications.
+export async function sendEmail({ to, subject, html, critical = false }) {
+  return sendMail({ to, subject, html, critical })
 }
 
 export function appointmentAcceptedEmail({ tenantName, propertyTitle, ownerNote }) {

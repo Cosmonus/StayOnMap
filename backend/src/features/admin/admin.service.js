@@ -371,7 +371,7 @@ export async function getMonitorStatus() {
     system: {
       aiProvider:   process.env.AI_PROVIDER ?? 'stub',
       redisEnabled: !!process.env.REDIS_URL,
-      emailEnabled: !!process.env.RESEND_API_KEY,
+      emailEnabled: !!(process.env.SMTP_HOST && process.env.SMTP_USER),
       pushEnabled:  !!process.env.VAPID_PUBLIC_KEY,
       nodeEnv:      process.env.NODE_ENV ?? 'development',
       selfUrl:      process.env.SELF_URL ?? null,
@@ -405,7 +405,7 @@ export async function changeAdminPassword(adminId, currentPassword, newPassword)
   if (!valid) throw Object.assign(new Error('Current password is incorrect'), { statusCode: 400 })
   const hash = await bcrypt.hash(newPassword, 12)
   await prisma.admin.update({ where: { id: adminId }, data: { passwordHash: hash } })
-  sendEmail({ to: admin.email, ...adminPasswordChangedEmail({ adminName: admin.name, adminEmail: admin.email }) })
+  sendEmail({ to: admin.email, ...adminPasswordChangedEmail({ adminName: admin.name, adminEmail: admin.email }), critical: true })
 }
 
 export async function moderateReview(reviewId, status, adminId) {

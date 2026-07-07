@@ -104,7 +104,7 @@ export async function requestPasswordReset(email) {
   })
 
   const link = `${env.frontendUrl}/reset-password?token=${rawToken}`
-  sendEmail({ to: user.email, ...passwordResetEmail({ name: user.name, link }) })
+  sendEmail({ to: user.email, ...passwordResetEmail({ name: user.name, link }), critical: true })
 }
 
 export async function resetPassword(rawToken, newPassword) {
