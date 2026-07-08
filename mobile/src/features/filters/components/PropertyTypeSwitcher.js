@@ -20,7 +20,8 @@ export default function PropertyTypeSwitcher({ selectedTypes, onChange }) {
           <Pressable
             key={category.id}
             onPress={() => onChange(active ? [] : [...category.types])}
-            style={[styles.card, active && { borderColor: category.color, backgroundColor: colors.slate50 }]}
+            // Active = the type's own color as a soft tint + border (hex8 alpha)
+            style={[styles.card, active && { borderColor: category.color, backgroundColor: `${category.color}14` }]}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
           >
@@ -41,7 +42,7 @@ const styles = StyleSheet.create({
     width: '31%', flexGrow: 1,
     alignItems: 'center', gap: 6,
     paddingVertical: spacing.md - 4, paddingHorizontal: 4,
-    borderRadius: radius.lg, borderWidth: 2, borderColor: colors.slate200,
+    borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate200,
     backgroundColor: colors.white,
   },
   label: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.slate500 },

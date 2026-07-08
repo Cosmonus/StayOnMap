@@ -44,8 +44,11 @@ export const FILTERS = {
   // ── Universal ────────────────────────────────────────────────────
   type:      { schema: csvEnum(PROPERTY_TYPES), where: (v) => ({ type: { in: v } }) },
   city:      { schema: z.string().max(100), where: (v) => ({ city: { contains: v, mode: 'insensitive' } }) },
-  rentMin:   { schema: money(10_000_000), where: (v) => ({ rent: { gte: v } }) },
-  rentMax:   { schema: money(10_000_000), where: (v) => ({ rent: { lte: v } }) },
+  // Up to ₹10Cr — LAND sale prices and large COMMERCIAL rents live in the
+  // same rent column, so the filter bound matches the column's capacity,
+  // not residential rent expectations.
+  rentMin:   { schema: money(100_000_000), where: (v) => ({ rent: { gte: v } }) },
+  rentMax:   { schema: money(100_000_000), where: (v) => ({ rent: { lte: v } }) },
   depositMax:     { schema: money(), where: (v) => ({ deposit: { lte: v } }) },
   maintenanceMax: { schema: money(), where: lteOrNull('maintenance') },
   bhk:            { schema: csvInt(0, 10), where: (v) => inWithPlus('bhk', v, 4) },

@@ -25,9 +25,11 @@ export default function PropertyTypeSwitcher({ selectedTypes, onChange }) {
             type="button"
             onClick={() => toggle(category)}
             aria-pressed={active}
-            style={active ? { borderColor: category.color, color: category.color } : undefined}
-            className={`flex flex-col items-center gap-1.5 py-3 px-1 rounded-2xl border-2 transition-all duration-150 active:scale-95 focus:outline-none focus:ring-2 focus:ring-brand-500 ${
-              active ? 'bg-slate-50 font-semibold' : 'border-slate-200 text-slate-500 hover:border-slate-300'
+            // Active = the type's own color as a soft tint + border, so the
+            // card reads as "selected" without a heavy double-stroke box
+            style={active ? { borderColor: category.color, color: category.color, backgroundColor: `${category.color}14` } : undefined}
+            className={`flex flex-col items-center gap-1.5 py-3 px-1 rounded-2xl border transition-all duration-150 active:scale-95 focus:outline-none focus:ring-2 focus:ring-brand-500 ${
+              active ? 'font-semibold' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'
             }`}
           >
             <Icon size={20} strokeWidth={2} />
