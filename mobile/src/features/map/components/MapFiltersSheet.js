@@ -92,8 +92,8 @@ const styles = StyleSheet.create({
   handle: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: colors.slate200, marginTop: spacing.sm + 2 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.md - 2 },
   heading: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  groupLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700, marginBottom: spacing.sm + 2 },
-  typeSwitcher: { marginBottom: spacing.md },
+  groupLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm + 1, color: colors.slate800, marginBottom: spacing.sm + 4 },
+  typeSwitcher: { paddingBottom: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.slate100 },
   footer: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingVertical: spacing.md - 4, borderTopWidth: 1, borderTopColor: colors.slate100,

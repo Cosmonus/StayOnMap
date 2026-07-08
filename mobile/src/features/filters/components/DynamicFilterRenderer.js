@@ -62,10 +62,11 @@ export default function DynamicFilterRenderer({ draft, patch }) {
 
   return (
     <View style={styles.list}>
-      {sections.map((section) => (
+      {sections.map((section, index) => (
         <FilterSection
           key={section.id}
           label={section.label}
+          last={index === sections.length - 1}
           defaultOpen={section.defaultOpen || countSectionActive(section, draft) > 0}
           activeCount={countSectionActive(section, draft)}
           onClear={() => patch(clearSectionPatch(section, selectedTypes))}
@@ -80,6 +81,6 @@ export default function DynamicFilterRenderer({ draft, patch }) {
 }
 
 const styles = StyleSheet.create({
-  list: { gap: spacing.sm + 4, paddingBottom: spacing.xs },
+  list: { paddingBottom: spacing.xs },
   toggles: { gap: 2 },
 })

@@ -145,16 +145,18 @@ export const FILTER_SECTIONS = [
     id: 'budget', label: 'Budget', types: null, defaultOpen: true,
     rows: [
       {
+        // Residential scale only — COMMERCIAL and LAND price in their own
+        // sections at lakh/crore scale, reusing the same rentMin/rentMax ids
         kind: 'range', label: 'Monthly rent', unit: '₹', idMin: 'rentMin', idMax: 'rentMax',
-        types: [...HOMES, 'PG', 'COMMERCIAL'],
+        types: [...HOMES, 'PG'],
         chips: [
           { label: 'Under ₹10k', min: null, max: 10000 }, { label: '₹10–20k', min: 10000, max: 20000 },
           { label: '₹20–35k', min: 20000, max: 35000 }, { label: '₹35–60k', min: 35000, max: 60000 },
-          { label: '₹60k+', min: 60000, max: null },
+          { label: '₹60k–1L', min: 60000, max: 100000 }, { label: '₹1L+', min: 100000, max: null },
         ],
       },
-      { kind: 'chips', label: 'Max deposit', id: 'depositMax', single: true, types: [...HOMES, 'PG', 'COMMERCIAL'], options: [{ value: 25000, label: 'Up to ₹25k' }, { value: 50000, label: '₹50k' }, { value: 100000, label: '₹1L' }, { value: 200000, label: '₹2L' }] },
-      { kind: 'chips', label: 'Max maintenance / mo', id: 'maintenanceMax', single: true, types: [...HOMES, 'COMMERCIAL'], options: [{ value: 1000, label: 'Up to ₹1k' }, { value: 2000, label: '₹2k' }, { value: 5000, label: '₹5k' }] },
+      { kind: 'chips', label: 'Max deposit', id: 'depositMax', single: true, types: [...HOMES, 'PG'], options: [{ value: 25000, label: 'Up to ₹25k' }, { value: 50000, label: '₹50k' }, { value: 100000, label: '₹1L' }, { value: 200000, label: '₹2L' }] },
+      { kind: 'chips', label: 'Max maintenance / mo', id: 'maintenanceMax', single: true, types: HOMES, options: [{ value: 1000, label: 'Up to ₹1k' }, { value: 2000, label: '₹2k' }, { value: 5000, label: '₹5k' }] },
     ],
   },
   {
@@ -206,6 +208,16 @@ export const FILTER_SECTIONS = [
   {
     id: 'commercial', label: 'Commercial', types: ['COMMERCIAL'], requiresType: true, defaultOpen: true,
     rows: [
+      {
+        kind: 'range', label: 'Monthly rent', unit: '₹', idMin: 'rentMin', idMax: 'rentMax',
+        chips: [
+          { label: 'Under ₹50k', min: null, max: 50000 }, { label: '₹50k–1L', min: 50000, max: 100000 },
+          { label: '₹1–2.5L', min: 100000, max: 250000 }, { label: '₹2.5–5L', min: 250000, max: 500000 },
+          { label: '₹5L+', min: 500000, max: null },
+        ],
+      },
+      { kind: 'chips', label: 'Max deposit', id: 'depositMax', single: true, options: [{ value: 100000, label: 'Up to ₹1L' }, { value: 500000, label: '₹5L' }, { value: 1000000, label: '₹10L' }, { value: 2500000, label: '₹25L' }] },
+      { kind: 'chips', label: 'Max maintenance / mo', id: 'maintenanceMax', single: true, options: [{ value: 5000, label: 'Up to ₹5k' }, { value: 10000, label: '₹10k' }, { value: 25000, label: '₹25k' }] },
       { kind: 'chips', label: 'Space type', id: 'commercialType', options: asOptions(['Retail shop', 'Office', 'Showroom', 'Warehouse']) },
       { kind: 'chips', label: 'Min carpet area', id: 'carpetAreaMin', single: true, options: [{ value: 250, label: '250+ sq.ft' }, { value: 500, label: '500+' }, { value: 1000, label: '1000+' }, { value: 2000, label: '2000+' }] },
       { kind: 'chips', label: 'Min frontage', id: 'frontageMin', single: true, options: [{ value: 10, label: '10+ ft' }, { value: 20, label: '20+ ft' }, { value: 40, label: '40+ ft' }] },
@@ -215,7 +227,14 @@ export const FILTER_SECTIONS = [
   {
     id: 'land', label: 'Land', types: ['LAND'], requiresType: true, defaultOpen: true,
     rows: [
-      { kind: 'range', label: 'Price', unit: '₹', idMin: 'rentMin', idMax: 'rentMax' },
+      {
+        kind: 'range', label: 'Price', unit: '₹', idMin: 'rentMin', idMax: 'rentMax',
+        chips: [
+          { label: 'Under ₹10L', min: null, max: 1000000 }, { label: '₹10–25L', min: 1000000, max: 2500000 },
+          { label: '₹25–50L', min: 2500000, max: 5000000 }, { label: '₹50L–1Cr', min: 5000000, max: 10000000 },
+          { label: '₹1Cr+', min: 10000000, max: null },
+        ],
+      },
       { kind: 'chips', label: 'Land type', id: 'landType', options: asOptions(['Residential', 'Agricultural', 'Commercial', 'Industrial']) },
       { kind: 'chips', label: 'Approval', id: 'approvalStatus', options: asOptions(['DTCP', 'RERA', 'Panchayat', 'Unapproved']) },
       { kind: 'chips', label: 'Sale or lease', id: 'saleOrLease', single: true, options: [{ value: 'SALE', label: 'Sale' }, { value: 'LEASE', label: 'Lease' }] },

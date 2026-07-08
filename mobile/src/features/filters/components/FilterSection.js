@@ -1,21 +1,24 @@
-// Collapsible filter section card — closed cards sit on a muted background,
-// the open card lifts to white with a divider under its header (mirrors
-// web's FilterSection).
+// Collapsible filter section. Deliberately borderless — structure is carried
+// by whitespace and a single hairline between sections, so the only boxes in
+// the sheet are the interactive elements themselves (chips, inputs). Mirrors
+// web's FilterSection.
 import { useState } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
-import { spacing, radius } from '@theme/spacing'
+import { spacing } from '@theme/spacing'
 
-export default function FilterSection({ label, activeCount, defaultOpen = false, onClear, children }) {
+export default function FilterSection({ label, activeCount, defaultOpen = false, onClear, last = false, children }) {
   const [open, setOpen] = useState(defaultOpen)
 
+  // RN has no :last-child — the footer supplies its own hairline, so the
+  // final section skips its divider to avoid a doubled line.
   return (
-    <View style={[styles.card, open ? styles.cardOpen : styles.cardClosed]}>
+    <View style={last ? null : styles.section}>
       <Pressable style={styles.header} onPress={() => setOpen((v) => !v)} accessibilityRole="button" accessibilityState={{ expanded: open }}>
         <View style={styles.titleWrap}>
-          <Text style={styles.title}>{label}</Text>
+          <Text style={[styles.title, open && styles.titleOpen]}>{label}</Text>
           {activeCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{activeCount}</Text>
@@ -29,7 +32,7 @@ export default function FilterSection({ label, activeCount, defaultOpen = false,
             </Text>
           )}
           <View style={[styles.chevron, open && styles.chevronOpen]}>
-            <Icon name="chevronDown" size={14} color={colors.slate500} />
+            <Icon name="chevronDown" size={15} color={colors.slate400} />
           </View>
         </View>
       </Pressable>
@@ -40,29 +43,22 @@ export default function FilterSection({ label, activeCount, defaultOpen = false,
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: radius.lg, borderWidth: 1 },
-  cardOpen: { borderColor: colors.slate400, backgroundColor: colors.white },
-  cardClosed: { borderColor: colors.slate200, backgroundColor: colors.slate50 },
+  section: { borderBottomWidth: 1, borderBottomColor: colors.slate100 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.md, paddingVertical: spacing.md - 2,
+    paddingVertical: spacing.md,
   },
-  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm + 1, color: colors.slate800 },
+  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
+  title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm + 1, color: colors.slate600 },
+  titleOpen: { color: colors.slate800 },
   badge: {
-    minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.brand600,
+    minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.slate800,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5,
   },
   badgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.white },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md - 4 },
   clear: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate400, textDecorationLine: 'underline' },
-  chevron: {
-    width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center',
-  },
+  chevron: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   chevronOpen: { backgroundColor: colors.slate100, transform: [{ rotate: '180deg' }] },
-  body: {
-    borderTopWidth: 1, borderTopColor: colors.slate100,
-    paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.md + 4,
-    gap: spacing.md + 4,
-  },
+  body: { paddingBottom: spacing.lg, gap: spacing.md + 4 },
 })

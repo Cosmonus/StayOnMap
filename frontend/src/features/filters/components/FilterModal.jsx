@@ -66,8 +66,8 @@ export default function FilterModal() {
         </div>
       }
     >
-      <div className="mb-2">
-        <p className="text-sm font-medium text-slate-700 mb-2.5">Property type</p>
+      <div className="pt-1 pb-6 border-b border-slate-100">
+        <p className="text-[15px] font-semibold text-slate-900 mb-3">Property type</p>
         <PropertyTypeSwitcher
           selectedTypes={draft.types ?? []}
           onChange={(types) => patch({ types, ...staleFilterPatch(types) })}
