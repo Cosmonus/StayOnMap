@@ -103,8 +103,10 @@ describe('listProperties', () => {
 
     await listProperties({ city: 'Chennai' }, { skip: 0, limit: 20 })
 
+    // Filters are AND-composed fragments from filters.registry.js (so two
+    // filters on the same column can't clobber each other), not top-level keys
     const whereClause = prismaMock.property.findMany.mock.calls[0][0].where
-    expect(whereClause.city).toMatchObject({ contains: 'Chennai', mode: 'insensitive' })
+    expect(whereClause.AND).toContainEqual({ city: { contains: 'Chennai', mode: 'insensitive' } })
   })
 
   it('returns total count alongside the rows', async () => {
