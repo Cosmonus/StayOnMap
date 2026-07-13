@@ -43,10 +43,13 @@ function makeLimiter({ prefix, windowMs, max, message }) {
   })
 }
 
+// Map browsing is request-heavy by design: every pan/zoom fires /pins (+ the
+// homepage list), and the header polls unread counts every 30-60s — a single
+// active session legitimately makes several hundred requests per window.
 export const defaultLimiter = makeLimiter({
   prefix: 'rl:default:',
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 600,
   message: { success: false, message: 'Too many requests', statusCode: 429 },
 })
 
@@ -54,6 +57,16 @@ export const strictLimiter = makeLimiter({
   prefix: 'rl:strict:',
   windowMs: 15 * 60 * 1000,
   max: 20,
+  message: { success: false, message: 'Too many attempts, try again later', statusCode: 429 },
+})
+
+// Own bucket, separate from auth: one listing uploads up to 10 images, and a
+// shared 20-req bucket with /auth locked users out of both mid-onboarding
+export const uploadLimiter = makeLimiter({
+  prefix: 'rl:upload:',
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: { success: false, message: 'Too many uploads, try again later', statusCode: 429 },
 })
 
 // Admin users are trusted operators — generous limit so moderation actions never get throttled
