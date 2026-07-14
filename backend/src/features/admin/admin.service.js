@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma.js'
+import { PropertyType } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
@@ -96,7 +97,7 @@ export async function listUsers({ search, isBlocked, page = 1, limit = 20 }) {
   if (isBlocked !== undefined) where.isBlocked = isBlocked === 'true'
   const skip = (pageNum - 1) * limitNum
   const [users, total] = await Promise.all([
-    prisma.user.findMany({ where, skip, take: limitNum, orderBy: { createdAt: 'desc' }, select: { id: true, displayId: true, email: true, name: true, phone: true, role: true, isVerified: true, isBlocked: true, createdAt: true, _count: { select: { properties: true, appointments: true, reports: true } } } }),
+    prisma.user.findMany({ where, skip, take: limitNum, orderBy: { createdAt: 'desc' }, select: { id: true, displayId: true, email: true, name: true, phone: true, role: true, city: true, isBusiness: true, isVerified: true, isBlocked: true, createdAt: true, _count: { select: { properties: true, appointments: true, reports: true } } } }),
     prisma.user.count({ where }),
   ])
   return { users, total, page: pageNum, limit: limitNum }
@@ -120,7 +121,7 @@ export async function toggleUserBlock(userId, blocked, reason, adminId) {
   return user
 }
 
-export async function getAdminPins({ south, north, west, east, status, city, bhk } = {}) {
+export async function getAdminPins({ south, north, west, east, status, city, bhk, type } = {}) {
   const where = {}
   if (south != null && north != null && west != null && east != null) {
     where.lat = { gte: Number(south), lte: Number(north) }
@@ -128,6 +129,11 @@ export async function getAdminPins({ south, north, west, east, status, city, bhk
   }
   if (status) where.status = status
   if (city) where.city = { contains: city, mode: 'insensitive' }
+  if (type) {
+    // Whitelist against the Prisma enum — an unknown value would make the query throw
+    const types = String(type).split(',').filter((t) => t in PropertyType)
+    if (types.length) where.type = { in: types }
+  }
   if (bhk) {
     const bhkNums = String(bhk).split(',').map(Number).filter(n => !isNaN(n))
     if (bhkNums.length === 1 && bhkNums[0] === 4) {
@@ -148,7 +154,7 @@ export async function getAdminPropertyById(id) {
     where: { id },
     include: {
       images: { select: { url: true, isPrimary: true, order: true }, orderBy: { order: 'asc' } },
-      owner: { select: { id: true, displayId: true, name: true, email: true, phone: true, avatarUrl: true, isVerified: true } },
+      owner: { select: { id: true, displayId: true, name: true, email: true, phone: true, avatarUrl: true, isVerified: true, isBusiness: true } },
       trustScore: true,
       riskScore: true,
       amenities: { select: { amenity: { select: { id: true, name: true } } } },
@@ -203,7 +209,7 @@ export async function listAdminProperties({ status, city, riskLevel: _riskLevel,
       where, skip, take: limitNum, orderBy: { createdAt: 'desc' },
       include: {
         images: { select: { url: true, isPrimary: true, order: true }, orderBy: { order: 'asc' } },
-        owner: { select: { id: true, displayId: true, name: true, email: true, phone: true, avatarUrl: true, isVerified: true } },
+        owner: { select: { id: true, displayId: true, name: true, email: true, phone: true, avatarUrl: true, isVerified: true, isBusiness: true } },
         trustScore: true,
         riskScore: true,
         amenities: { select: { amenity: { select: { id: true, name: true } } } },

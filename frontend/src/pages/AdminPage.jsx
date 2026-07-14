@@ -278,6 +278,7 @@ function OverviewSection() {
 const TYPE_SHORT = {
   APARTMENT: 'Apt', HOUSE: 'House', VILLA: 'Villa',
   PG: 'PG', INDEPENDENT_HOUSE: 'Indep.', COMMERCIAL: 'Comm.',
+  LAND: 'Land', SHORT_STAY: 'Stay',
 }
 
 function makeMapPin(pin, selected) {
@@ -316,6 +317,13 @@ const BHK_OPTIONS_MAP = [
   { label: '3 BHK', value: 3 }, { label: '4+ BHK', value: 4 },
 ]
 
+const TYPE_FILTERS = [
+  { value: 'APARTMENT', label: 'Apartment' }, { value: 'HOUSE', label: 'House' },
+  { value: 'VILLA', label: 'Villa' },         { value: 'INDEPENDENT_HOUSE', label: 'Independent' },
+  { value: 'PG', label: 'PG' },               { value: 'COMMERCIAL', label: 'Commercial' },
+  { value: 'LAND', label: 'Land' },           { value: 'SHORT_STAY', label: 'Short stay' },
+]
+
 const STATUS_FILTERS = [
   { value: '', label: 'All' },       { value: 'ACTIVE', label: 'Active' },
   { value: 'PENDING', label: 'Pending' }, { value: 'DRAFT', label: 'Draft' },
@@ -323,13 +331,32 @@ const STATUS_FILTERS = [
   { value: 'SUSPENDED', label: 'Suspended' }, { value: 'REJECTED', label: 'Rejected' },
 ]
 
+// Type-appropriate headline chip — BHK only means something for residential types
+function typeHeadline(p) {
+  if (!p) return null
+  switch (p.type) {
+    case 'PG':         return p.sharing ? `${p.sharing}-Sharing PG` : 'PG'
+    case 'SHORT_STAY': return p.maxGuests ? `Up to ${p.maxGuests} guests` : null
+    case 'LAND':       return p.extent ? `${Number(p.extent).toLocaleString('en-IN')} ${(p.extentUnit ?? 'sq.ft').toLowerCase()}` : null
+    case 'COMMERCIAL': return p.carpetArea ? `${Number(p.carpetArea).toLocaleString('en-IN')} sq.ft carpet` : null
+    default:           return p.bhk ? `${p.bhk} BHK` : null
+  }
+}
+
+// LAND repurposes rent as total price; SHORT_STAY's headline price is per night
+function priceLabel(p) {
+  const amount = p?.type === 'SHORT_STAY' && p.nightlyRate != null ? p.nightlyRate : p?.rent
+  const formatted = `₹${Number(amount).toLocaleString('en-IN')}`
+  if (p?.type === 'SHORT_STAY') return `${formatted}/night`
+  if (p?.type === 'LAND') return formatted
+  return `${formatted}/mo`
+}
+
 function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprove, onSuspend, onReject }) {
   const [imgIdx, setImgIdx] = useState(0)
   const images    = property?.images ?? []
   const amenities = property?.amenities ?? []
-  const bhkLabel  = property?.type === 'PG'
-    ? `${property.sharing}-Sharing PG`
-    : property?.bhk ? `${property.bhk} BHK` : null
+  const bhkLabel  = typeHeadline(property)
 
   return (
     <div className="w-full bg-white rounded-2xl shadow-xl border border-slate-100 flex flex-col overflow-hidden" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
@@ -397,10 +424,12 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
             <div className="flex items-end justify-between gap-2">
               <div>
                 <p className="text-2xl font-bold text-slate-900 leading-none">
-                  ₹{Number(property?.rent).toLocaleString('en-IN')}/mo
+                  {priceLabel(property)}
                 </p>
                 {property?.deposit > 0 && (
-                  <p className="text-xs text-slate-400 mt-1">Deposit: ₹{Number(property.deposit).toLocaleString('en-IN')}</p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {property?.type === 'LAND' ? 'Advance' : 'Deposit'}: ₹{Number(property.deposit).toLocaleString('en-IN')}
+                  </p>
                 )}
               </div>
               {property?.maintenance > 0 && (
@@ -516,6 +545,7 @@ function AdminPropertiesMap() {
   const [city, setCity]                 = useState('')
   const [area, setArea]                 = useState('')
   const [bhkFilter, setBhkFilter]       = useState([])
+  const [typeFilter, setTypeFilter]     = useState([])
   const [statusFilter, setStatusFilter] = useState('')
   const [selectedId, setSelectedId]     = useState(null)
   const [popupProperty, setPopupProperty] = useState(null)
@@ -524,6 +554,10 @@ function AdminPropertiesMap() {
 
   function toggleBhk(v) {
     setBhkFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])
+  }
+
+  function toggleType(v) {
+    setTypeFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])
   }
 
   // Init map once
@@ -607,6 +641,7 @@ function AdminPropertiesMap() {
       if (statusFilter) params.status = statusFilter
       if (city.trim()) params.city = city.trim()
       if (bhkFilter.length) params.bhk = bhkFilter.join(',')
+      if (typeFilter.length) params.type = typeFilter.join(',')
       adminService.pins(params)
         .then(r => { if (!cancelled) setPins(Array.isArray(r.data) ? r.data : []) })
         .catch(() => {})
@@ -618,7 +653,7 @@ function AdminPropertiesMap() {
       debounce = setTimeout(fetchPins, 400)
     })
     return () => { cancelled = true; clearTimeout(debounce); window.google.maps.event.removeListener(idle) }
-  }, [mapReady, statusFilter, city, bhkFilter])
+  }, [mapReady, statusFilter, city, bhkFilter, typeFilter])
 
   // Sync markers (diff — no full clear)
   useEffect(() => {
@@ -682,7 +717,7 @@ function AdminPropertiesMap() {
     )
   }
 
-  const hasFilters = statusFilter || city || bhkFilter.length > 0
+  const hasFilters = statusFilter || city || bhkFilter.length > 0 || typeFilter.length > 0
 
   return (
     <div className="flex h-[100vh] -mx-8 -my-8 overflow-hidden">
@@ -697,7 +732,7 @@ function AdminPropertiesMap() {
           </div>
           {hasFilters && (
             <button
-              onClick={() => { setCity(''); setArea(''); setBhkFilter([]); setStatusFilter('') }}
+              onClick={() => { setCity(''); setArea(''); setBhkFilter([]); setTypeFilter([]); setStatusFilter('') }}
               className="text-xs text-slate-400 hover:text-slate-700 transition-colors"
             >
               Reset
@@ -721,6 +756,27 @@ function AdminPropertiesMap() {
             onPlacePicked={handlePlacePicked}
             onClear={handleAreaClear}
           />
+
+          {/* Property type */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Property type</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {TYPE_FILTERS.map(({ label, value }) => (
+                <button
+                  key={value}
+                  onClick={() => toggleType(value)}
+                  className={[
+                    'px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-150',
+                    typeFilter.includes(value)
+                      ? 'bg-[#111111] text-white border-[#111111] shadow-sm'
+                      : 'border-slate-200 text-slate-600 bg-slate-50 hover:border-slate-400',
+                  ].join(' ')}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Bedrooms */}
           <div>
@@ -848,7 +904,11 @@ function aggregatePropertyUsers(property) {
 /* ── Simple card for the grid ── */
 function ReviewCard({ property, onSelect }) {
   const img = property.images?.[0]?.url
-  const rent = Number(property.rent)
+  const rent = property.type === 'SHORT_STAY' && property.nightlyRate != null
+    ? Number(property.nightlyRate)
+    : Number(property.rent)
+  const rentSuffix = property.type === 'SHORT_STAY' ? '/night' : property.type === 'LAND' ? '' : '/mo'
+  const headline = typeHeadline(property)
   const ownerName = property.owner?.name || property.owner?.email?.split('@')[0] || '—'
 
   // Contacted = unique tenants who made an appointment
@@ -883,9 +943,9 @@ function ReviewCard({ property, onSelect }) {
             <p className="text-[10px] font-mono text-slate-400">{property.displayId}</p>
           )}
           <p className="text-xs text-slate-500 mt-0.5">
-            ₹{rent >= 1000 ? `${(rent / 1000).toFixed(rent % 1000 === 0 ? 0 : 1)}K` : rent}/mo
+            ₹{rent >= 1000 ? `${(rent / 1000).toFixed(rent % 1000 === 0 ? 0 : 1)}K` : rent}{rentSuffix}
             {property.city ? ` · ${property.city}` : ''}
-            {property.bhk ? ` · ${property.bhk} BHK` : ''}
+            {headline ? ` · ${headline}` : ''}
           </p>
         </div>
 
@@ -1099,33 +1159,74 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
             </AdminCard>
           )}
 
-          {/* Property Details */}
-          {(property.area || property.floor != null || property.facingDirection || property.leaseDuration || fmtDate(property.availableFrom)) && (
-            <AdminCard title="Property details">
-              {[
-                ['📐', 'Built-up Area',   property.area ? `${Number(property.area).toLocaleString('en-IN')} sq.ft` : null],
-                ['🏢', 'Floor',           property.floor != null ? `${property.floor}${property.totalFloors ? ` of ${property.totalFloors}` : ''}` : null],
-                ['🧭', 'Facing',          property.facingDirection ? property.facingDirection.charAt(0) + property.facingDirection.slice(1).toLowerCase() : null],
-                ['📅', 'Available From',  fmtDate(property.availableFrom)],
-                ['📋', 'Minimum Lease',   property.leaseDuration ? `${property.leaseDuration} months` : null],
-                ['👥', 'Max Occupancy',   property.occupancyLimit ? `${property.occupancyLimit} persons` : null],
-              ].filter(([,, v]) => v).map(([icon, label, value]) => (
-                <div key={label} className="flex items-center gap-3 py-2.5 border-b border-slate-50 last:border-0">
-                  <span className="text-sm shrink-0">{icon}</span>
-                  <span className="text-sm text-slate-500 flex-1">{label}</span>
-                  <span className="text-sm font-semibold text-slate-800">{value}</span>
-                </div>
-              ))}
-            </AdminCard>
-          )}
+          {/* Property Details — common rows plus the listing type's specific columns */}
+          {(() => {
+            const detailRows = [
+              ['📐', 'Built-up Area',   property.area ? `${Number(property.area).toLocaleString('en-IN')} sq.ft` : null],
+              ['🏢', 'Floor',           property.floor != null ? `${property.floor}${property.totalFloors ? ` of ${property.totalFloors}` : ''}` : null],
+              ['🧭', 'Facing',          property.facingDirection ? property.facingDirection.charAt(0) + property.facingDirection.slice(1).toLowerCase() : null],
+              ['🏠', 'House Style',     property.houseStyle],
+              ['📅', 'Available From',  fmtDate(property.availableFrom)],
+              ['📋', 'Minimum Lease',   property.leaseDuration ? `${property.leaseDuration} months` : null],
+              ['👥', 'Max Occupancy',   property.occupancyLimit ? `${property.occupancyLimit} persons` : null],
+              // LAND
+              ['🌾', 'Land Type',       property.landType],
+              ['📏', 'Extent',          property.extent ? `${Number(property.extent).toLocaleString('en-IN')} ${(property.extentUnit ?? 'sq.ft').toLowerCase()}` : null],
+              ['📐', 'Dimensions',      property.dimensions],
+              ['🛣️', 'Road Width',      property.roadWidth ? `${property.roadWidth} ft` : null],
+              ['✅', 'Approval',        property.approvalStatus],
+              ['📜', 'Sale / Lease',    property.saleOrLease],
+              // COMMERCIAL
+              ['🏪', 'Commercial Type', property.commercialType],
+              ['📐', 'Carpet Area',     property.carpetArea ? `${Number(property.carpetArea).toLocaleString('en-IN')} sq.ft` : null],
+              ['🚪', 'Frontage',        property.frontage ? `${property.frontage} ft` : null],
+              ['⚡', 'Power Load',      property.powerLoad],
+              // PG
+              ['🛏️', 'Beds',            property.totalBeds ? `${property.availableBeds ?? '?'} of ${property.totalBeds} available` : null],
+              ['🗓️', 'Notice Period',   property.noticePeriodDays ? `${property.noticePeriodDays} days` : null],
+              // SHORT_STAY
+              ['🏡', 'Place Type',      property.placeType],
+              ['👥', 'Max Guests',      property.maxGuests ? `${property.maxGuests} guests` : null],
+              ['🛏️', 'Guest Beds',      property.beds ? `${property.beds} beds` : null],
+              ['🌙', 'Stay Length',     property.minNights ? `${property.minNights}–${property.maxNights ?? '∞'} nights` : null],
+              ['⚡', 'Instant Book',    property.instantBook === true ? 'Yes' : property.instantBook === false ? 'No' : null],
+            ].filter(([,, v]) => v)
+            return detailRows.length > 0 && (
+              <AdminCard title="Property details">
+                {detailRows.map(([icon, label, value]) => (
+                  <div key={label} className="flex items-center gap-3 py-2.5 border-b border-slate-50 last:border-0">
+                    <span className="text-sm shrink-0">{icon}</span>
+                    <span className="text-sm text-slate-500 flex-1">{label}</span>
+                    <span className="text-sm font-semibold text-slate-800">{value}</span>
+                  </div>
+                ))}
+              </AdminCard>
+            )
+          })()}
 
           {/* Pricing + Amenities side by side */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Pricing */}
             <AdminCard title="Pricing">
-              <AdminPriceRow label="Monthly Rent"       value={`₹${rent.toLocaleString('en-IN')}`} accent />
-              <AdminPriceRow label="Deposit"            value={`₹${deposit.toLocaleString('en-IN')}`} />
-              <AdminPriceRow label="Maintenance"        value={maintenance > 0 ? `₹${maintenance.toLocaleString('en-IN')}/mo` : 'Not included'} />
+              {property.type === 'SHORT_STAY' ? (
+                <>
+                  <AdminPriceRow label="Nightly Rate"   value={`₹${Number(property.nightlyRate ?? rent).toLocaleString('en-IN')}`} accent />
+                  {property.weekendRate > 0 && <AdminPriceRow label="Weekend Rate"  value={`₹${Number(property.weekendRate).toLocaleString('en-IN')}`} />}
+                  {property.cleaningFee > 0 && <AdminPriceRow label="Cleaning Fee"  value={`₹${Number(property.cleaningFee).toLocaleString('en-IN')}`} />}
+                  <AdminPriceRow label="Deposit"        value={`₹${deposit.toLocaleString('en-IN')}`} />
+                </>
+              ) : property.type === 'LAND' ? (
+                <>
+                  <AdminPriceRow label="Total Price"    value={`₹${rent.toLocaleString('en-IN')}`} accent />
+                  <AdminPriceRow label="Advance"        value={`₹${deposit.toLocaleString('en-IN')}`} />
+                </>
+              ) : (
+                <>
+                  <AdminPriceRow label="Monthly Rent"   value={`₹${rent.toLocaleString('en-IN')}`} accent />
+                  <AdminPriceRow label="Deposit"        value={`₹${deposit.toLocaleString('en-IN')}`} />
+                  <AdminPriceRow label="Maintenance"    value={maintenance > 0 ? `₹${maintenance.toLocaleString('en-IN')}/mo` : 'Not included'} />
+                </>
+              )}
               <AdminPriceRow label="Brokerage"          value={property.brokerage ? `₹${Number(property.brokerage).toLocaleString('en-IN')}` : 'None'} />
               {property.electricityCharges > 0 && <AdminPriceRow label="Electricity (est.)" value={`₹${Number(property.electricityCharges).toLocaleString('en-IN')}/mo`} />}
               {property.waterCharges > 0      && <AdminPriceRow label="Water (est.)"        value={`₹${Number(property.waterCharges).toLocaleString('en-IN')}/mo`} />}
@@ -1210,6 +1311,9 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
                   <p className="text-xs text-slate-500 truncate mt-0.5">{owner.email}</p>
                   {owner.phone && <p className="text-xs text-slate-500 mt-0.5">{owner.phone}</p>}
                 </div>
+                {owner.isBusiness && (
+                  <span className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 border border-indigo-200 text-indigo-600 uppercase">Business</span>
+                )}
                 {owner.isVerified && (
                   <span className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-green-50 border border-green-200 text-green-600 uppercase">Verified</span>
                 )}
@@ -1560,7 +1664,7 @@ function UsersSection() {
           <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
-                {['User ID', 'Name', 'Email', 'Role', 'Properties', 'Status', 'Action'].map(h => (
+                {['User ID', 'Name', 'Email', 'Role', 'City', 'Properties', 'Status', 'Action'].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -1571,7 +1675,13 @@ function UsersSection() {
                   <td className="px-4 py-3 text-[11px] font-mono text-slate-400">{u.displayId ?? '—'}</td>
                   <td className="px-4 py-3 font-medium text-slate-800">{u.name ?? '—'}</td>
                   <td className="px-4 py-3 text-slate-500 max-w-48 truncate">{u.email}</td>
-                  <td className="px-4 py-3 text-slate-400">{u.role}</td>
+                  <td className="px-4 py-3 text-slate-400">
+                    {u.role}
+                    {u.isBusiness && (
+                      <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 uppercase">Biz</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-slate-400">{u.city ?? '—'}</td>
                   <td className="px-4 py-3 text-slate-400">{u._count?.properties ?? 0}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.isBlocked ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
@@ -1589,7 +1699,7 @@ function UsersSection() {
                 </tr>
               ))}
               {(data?.users ?? []).length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-slate-400">No users found.</td></tr>
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-slate-400">No users found.</td></tr>
               )}
             </tbody>
           </table>
