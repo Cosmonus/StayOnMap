@@ -1,59 +1,26 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search, X } from 'lucide-react'
+import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
+import { useUiStore } from '@store/uiStore'
+import { countActiveFilters } from '@/config/filters'
+import { resolvePlace } from '@lib/googleMaps'
 import PropertyPopup from './PropertyPopup'
 import PropertyCard from '@features/properties/components/PropertyCard'
 import CityDropdown from '@features/search/components/CityDropdown'
 import AreaInput from '@features/search/components/AreaInput'
 import { propertyService } from '@services/property.service'
 
-/* ─── Constants ──────────────────────────────────────────── */
-const BHK_OPTIONS = [
-  { label: '1 BHK', value: 1 },
-  { label: '2 BHK', value: 2 },
-  { label: '3 BHK', value: 3 },
-  { label: '4+',    value: 4 },
-]
-
-const BHK_QUERY_RE = /^\s*(\d+)\s*\+?\s*bhk\.?\s*$/i
-
-const FURNISHED_OPTIONS = [
-  { label: 'Fully',  value: 'FULLY' },
-  { label: 'Semi',   value: 'SEMI' },
-  { label: 'None',   value: 'UNFURNISHED' },
-]
-
-/* ─── Shared filter form ─────────────────────────────────── */
-export function FilterBody({ draft, setDraft, activeFilterCount, onApply, onReset }) {
-  function toggleBhk(val) {
-    setDraft((d) => ({
-      ...d,
-      bhk: d.bhk.includes(val) ? d.bhk.filter((v) => v !== val) : [...d.bhk, val],
-    }))
-  }
-
-  // City selection zooms the map right away, instead of waiting for "Show matches"
+/* ─── Mobile search form (city + area) ───────────────────────
+   Search only — every other filter lives in the shared FilterModal,
+   which the FAB's "Filters" button opens (same modal as the header). */
+function SearchBody({ draft, setDraft, onApply, onReset, hasActive }) {
+  // City selection zooms the map right away, instead of waiting for "Search"
   function handleCityChange(val) {
     setDraft((d) => ({ ...d, city: val, area: '' }))
     useFilterStore.getState().setFilter('city', val)
     useFilterStore.getState().setFilter('area', '')
-  }
-
-  // "2bhk" typed into the area box isn't a place — treat it as a Bedrooms filter instead
-  function handleAreaChange(val) {
-    const bhkMatch = val.match(BHK_QUERY_RE)
-    if (bhkMatch) {
-      const bhkValue = Math.min(Number(bhkMatch[1]), 4)
-      setDraft((d) => ({
-        ...d,
-        area: '',
-        bhk: d.bhk.includes(bhkValue) ? d.bhk : [...d.bhk, bhkValue],
-      }))
-      return
-    }
-    setDraft((d) => ({ ...d, area: val }))
   }
 
   return (
@@ -69,58 +36,11 @@ export function FilterBody({ draft, setDraft, activeFilterCount, onApply, onRese
       <AreaInput
         value={draft.area}
         city={draft.city}
-        onChange={handleAreaChange}
+        onChange={(val) => setDraft((d) => ({ ...d, area: val }))}
       />
 
-      <div>
-        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Bedrooms</label>
-        <div className="flex gap-1.5">
-          {BHK_OPTIONS.map(({ label, value }) => {
-            const sel = draft.bhk.includes(value)
-            return (
-              <button
-                key={value}
-                onClick={() => toggleBhk(value)}
-                className="flex-1 py-2 text-xs font-semibold rounded-xl border transition-all duration-150"
-                style={sel
-                  ? { background: 'linear-gradient(135deg,#1e293b,#334155)', color: '#fff', borderColor: 'transparent', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }
-                  : { background: '#f8fafc', color: '#64748b', borderColor: '#e2e8f0' }
-                }
-              >
-                {label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Furnishing</label>
-        <div className="flex gap-1.5">
-          {FURNISHED_OPTIONS.map(({ label, value }) => {
-            const sel = draft.furnished.includes(value)
-            return (
-              <button
-                key={value}
-                onClick={() => setDraft((d) => ({
-                  ...d,
-                  furnished: sel ? d.furnished.filter((v) => v !== value) : [...d.furnished, value],
-                }))}
-                className="flex-1 py-2 text-xs font-semibold rounded-xl border transition-all duration-150"
-                style={sel
-                  ? { background: 'linear-gradient(135deg,#1e293b,#334155)', color: '#fff', borderColor: 'transparent', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }
-                  : { background: '#f8fafc', color: '#64748b', borderColor: '#e2e8f0' }
-                }
-              >
-                {label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
       <div className="flex gap-2 pt-1">
-        {activeFilterCount > 0 && (
+        {hasActive && (
           <button
             onClick={onReset}
             className="px-3 py-2.5 text-xs font-semibold text-slate-500 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all"
@@ -133,7 +53,7 @@ export function FilterBody({ draft, setDraft, activeFilterCount, onApply, onRese
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-colors duration-150 active:scale-[0.98]"
         >
           <Search size={13} strokeWidth={2.5} />
-          {draft.city ? `Show in ${draft.city}` : 'Show matches'}
+          {draft.city ? `Search in ${draft.city}` : 'Search'}
         </button>
       </div>
     </div>
@@ -193,31 +113,39 @@ export default function MapRightPanel({ topClass = 'top-32', contained = false }
   const selectedPinId  = useMapStore((s) => s.selectedPinId)
   const clearSelection = useMapStore((s) => s.clearSelection)
   const { filters, setFilters } = useFilterStore()
+  const openFilterModal = useUiStore((s) => s.openFilterModal)
 
-  const [mobileSheet, setMobileSheet] = useState(null)            // mobile sheet: 'filters' | null
-  const [draft, setDraft]           = useState({ city: '', area: '', bhk: [], furnished: [] })
+  const [mobileSheet, setMobileSheet] = useState(null)            // mobile sheet: 'search' | null
+  const [draft, setDraft]           = useState({ city: '', area: '' })
 
   useEffect(() => {
-    setDraft({ city: filters.city ?? '', area: filters.area ?? '', bhk: filters.bhk ?? [], furnished: filters.furnished ?? [] })
-  }, [filters.city, filters.area, filters.bhk, filters.furnished]) // eslint-disable-line react-hooks/exhaustive-deps
+    setDraft({ city: filters.city ?? '', area: filters.area ?? '' })
+  }, [filters.city, filters.area])
 
-  function handleApply() {
+  async function handleApply() {
     useMapStore.getState().clearSelection()
-    setFilters({ city: draft.city, area: draft.area, bhk: draft.bhk, furnished: draft.furnished })
+    setFilters({ city: draft.city, area: draft.area })
     setMobileSheet(null)
+
+    // Fly to the searched area, same as the desktop search bar
+    const query = draft.area.trim()
+    if (!query) return
+    const place = await resolvePlace(query, draft.city).catch(() => null)
+    if (!place) return
+    useMapStore.getState().flyTo?.({ center: [place.lng, place.lat], zoom: 16, duration: 800 })
+    useMapStore.getState().setSearchedPlace(place)
   }
 
   function handleReset() {
     // Reset only what this sheet controls — modal filters are cleared from
     // the filter modal itself
-    setFilters({ city: '', area: '', bhk: [], furnished: [] })
-    setDraft({ city: '', area: '', bhk: [], furnished: [] })
+    setFilters({ city: '', area: '' })
+    setDraft({ city: '', area: '' })
     useMapStore.getState().setSearchedPlace?.(null)
   }
 
-  const activeFilterCount = [draft.city, draft.area, ...draft.furnished, ...draft.bhk].filter(Boolean).length
-
-  const filterProps = { draft, setDraft, activeFilterCount, onApply: handleApply, onReset: handleReset }
+  const hasActiveSearch = Boolean(draft.city || draft.area)
+  const modalFilterCount = countActiveFilters(filters)
 
   const PANEL_SHADOW = { boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
 
@@ -231,27 +159,36 @@ export default function MapRightPanel({ topClass = 'top-32', contained = false }
         {selectedPinId && <PropertyPopup />}
       </div>
 
-      {/* ══ MOBILE: FAB bar ══════════════════════════════════ */}
+      {/* ══ MOBILE: FAB bar — search sheet + the shared filter modal ══ */}
       {!selectedPinId && (
         <div className={`md:hidden ${contained ? 'absolute' : 'fixed'} bottom-5 inset-x-4 z-20 flex gap-2`}>
           <button
-            onClick={() => setMobileSheet('filters')}
+            onClick={() => setMobileSheet('search')}
             className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-white rounded-2xl border border-slate-200 shadow-lg text-sm font-semibold text-slate-700 active:scale-[0.97] transition-transform"
             style={PANEL_SHADOW}
           >
             <Search size={15} strokeWidth={2} />
+            Search area
+            {hasActiveSearch && <span className="w-2 h-2 rounded-full bg-brand-600" />}
+          </button>
+          <button
+            onClick={openFilterModal}
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-white rounded-2xl border border-slate-200 shadow-lg text-sm font-semibold text-slate-700 active:scale-[0.97] transition-transform"
+            style={PANEL_SHADOW}
+          >
+            <SlidersHorizontal size={15} strokeWidth={2} />
             Filters
-            {activeFilterCount > 0 && (
+            {modalFilterCount > 0 && (
               <span className="w-5 h-5 rounded-full bg-brand-600 text-white text-[10px] font-bold flex items-center justify-center">
-                {activeFilterCount}
+                {modalFilterCount}
               </span>
             )}
           </button>
         </div>
       )}
 
-      {/* ══ MOBILE: filter bottom sheet ═══════════════════════ */}
-      {mobileSheet && (
+      {/* ══ MOBILE: search bottom sheet ═══════════════════════ */}
+      {mobileSheet === 'search' && (
         <div className="md:hidden fixed inset-0 z-40">
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/40" onClick={() => setMobileSheet(null)} />
@@ -262,11 +199,17 @@ export default function MapRightPanel({ topClass = 'top-32', contained = false }
             style={{ maxHeight: '82vh' }}
           >
             <SheetHeader
-              title="Filter rentals"
+              title="Search area"
               onClose={() => setMobileSheet(null)}
             />
             <div className="overflow-y-auto" style={{ maxHeight: 'calc(82vh - 72px)', scrollbarWidth: 'none' }}>
-              <FilterBody {...filterProps} />
+              <SearchBody
+                draft={draft}
+                setDraft={setDraft}
+                onApply={handleApply}
+                onReset={handleReset}
+                hasActive={hasActiveSearch}
+              />
             </div>
           </div>
         </div>
