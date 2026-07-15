@@ -17,7 +17,7 @@ export default {
     android: {
       package: 'com.stayonmap.app',
       adaptiveIcon: {
-        backgroundColor: '#E9F9F1',
+        backgroundColor: '#edfaf7',
         foregroundImage: './assets/android-icon-foreground.png',
         backgroundImage: './assets/android-icon-background.png',
         monochromeImage: './assets/android-icon-monochrome.png',
@@ -33,12 +33,19 @@ export default {
     },
     plugins: [
       'expo-font',
-      'expo-splash-screen',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/splash-icon.png',
+          imageWidth: 200,
+          backgroundColor: '#edfaf7',
+        },
+      ],
       [
         'expo-notifications',
         {
           icon: './assets/icon.png',
-          color: '#0E9D66',
+          color: '#0d8a5f',
         },
       ],
       [

@@ -43,7 +43,7 @@ export default function LocationPicker({ value, onChange }) {
             returnKeyType="search"
           />
         </View>
-        <Pressable style={styles.searchButton} onPress={handleSearch}>
+        <Pressable style={styles.searchButton} onPress={handleSearch} accessibilityRole="button">
           <Text style={styles.searchButtonText}>Find</Text>
         </Pressable>
       </View>

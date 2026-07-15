@@ -2,7 +2,11 @@ import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { authService } from '@services/auth.service'
 import { connectSocket, disconnectSocket } from '@lib/socket'
-import { registerForPushNotifications, unregisterPushNotifications } from '@services/push.service'
+import {
+  registerForPushNotifications,
+  registerForPushNotificationsIfGranted,
+  unregisterPushNotifications,
+} from '@services/push.service'
 import { useUiStore, HOST_MODE_KEY } from '@store/uiStore'
 
 const AuthContext = createContext(null)
@@ -21,7 +25,7 @@ export function AuthProvider({ children }) {
           setUser(res.data)
           hadUser.current = true
           connectSocket()
-          registerForPushNotifications().catch(() => {})
+          registerForPushNotificationsIfGranted().catch(() => {})
         })
       })
       .catch(() => {

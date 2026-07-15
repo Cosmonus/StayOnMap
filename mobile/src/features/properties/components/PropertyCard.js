@@ -6,6 +6,7 @@ import { savedService } from '@services/saved.service'
 import { imgUrl, formatCompact, formatAge, isAvailableToday } from '@utils/format'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -40,7 +41,7 @@ export default function PropertyCard({ property, isSaved: initialSaved = false, 
   const bhkLabel = property.bhk === 0 ? 'Studio' : property.bhk ? `${property.bhk} BHK` : null
 
   return (
-    <Pressable style={styles.card} onPress={onPress}>
+    <Pressable style={styles.card} onPress={onPress} accessibilityRole="button" accessibilityLabel={`View ${property.title}`}>
       <View style={styles.imageWrap}>
         {cover ? (
           <Image source={{ uri: cover }} style={styles.image} resizeMode="cover" />
@@ -58,6 +59,9 @@ export default function PropertyCard({ property, isSaved: initialSaved = false, 
           style={styles.heartButton}
           onPress={handleHeartPress}
           hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={saved ? 'Remove from saved' : 'Save property'}
+          accessibilityState={{ selected: saved }}
         >
           <Icon name={saved ? 'heartFilled' : 'heart'} size={16} color={saved ? colors.danger : colors.white} />
         </Pressable>
@@ -104,7 +108,7 @@ export default function PropertyCard({ property, isSaved: initialSaved = false, 
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: radius.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate200, overflow: 'hidden' },
+  card: { borderRadius: radius.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate200, overflow: 'hidden', ...shadows.card },
   imageWrap: { aspectRatio: 4 / 3, backgroundColor: colors.slate100 },
   image: { width: '100%', height: '100%' },
   imageFallback: { backgroundColor: colors.slate100 },

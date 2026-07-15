@@ -12,7 +12,7 @@ function Stars({ score, size = 18 }) {
   return (
     <View style={styles.starRow}>
       {Array.from({ length: 5 }).map((_, i) => (
-        <Icon key={i} name={i < rounded ? 'star' : 'starOutline'} size={size} color={i < rounded ? '#F59E0B' : colors.slate200} />
+        <Icon key={i} name={i < rounded ? 'star' : 'starOutline'} size={size} color={i < rounded ? colors.warning : colors.slate200} />
       ))}
     </View>
   )

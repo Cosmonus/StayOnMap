@@ -9,6 +9,7 @@ import { useMapStore } from '@store/mapStore'
 import { toQueryParams } from '@config/filters'
 import MapHomeCard from './MapHomeCard'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -84,7 +85,8 @@ const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
   panel: {
     backgroundColor: colors.white, borderRadius: radius.xl, padding: spacing.md,
-    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+    borderWidth: 1, borderColor: colors.slate100,
+    ...shadows.float,
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },

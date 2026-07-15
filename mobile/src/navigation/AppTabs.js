@@ -16,6 +16,8 @@ import AppointmentsScreen from '@features/appointments/screens/AppointmentsScree
 import NotificationsScreen from '@features/notifications/screens/NotificationsScreen'
 import MyListingsScreen from '@features/listings/screens/MyListingsScreen'
 import AddListingScreen from '@features/listings/screens/AddListingScreen'
+import ManageListingScreen from '@features/listings/screens/ManageListingScreen'
+import EditListingScreen from '@features/listings/screens/EditListingScreen'
 import VerificationScreen from '@features/listings/screens/VerificationScreen'
 import LeasesScreen from '@features/leases/screens/LeasesScreen'
 import CreateLeaseScreen from '@features/leases/screens/CreateLeaseScreen'
@@ -92,6 +94,8 @@ const HostProfileStack = makeStack([
 const MyListingStack = makeStack([
   { name: 'MyListingsHome', component: MyListingsScreen, options: { headerShown: false } },
   { name: 'AddListing', component: AddListingScreen, options: { headerShown: false, presentation: 'modal' } },
+  { name: 'ManageListing', component: ManageListingScreen, options: { headerShown: false } },
+  { name: 'EditListing', component: EditListingScreen, options: { headerShown: false } },
   { name: 'Verification', component: VerificationScreen, options: { headerShown: false } },
   { name: 'CreateLease', component: CreateLeaseScreen, options: { headerShown: false, presentation: 'modal' } },
   ...BOOKING_SCREENS,

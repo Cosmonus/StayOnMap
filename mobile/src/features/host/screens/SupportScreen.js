@@ -12,7 +12,7 @@ export default function SupportScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
+        <Pressable onPress={() => navigation.goBack()} hitSlop={14} accessibilityRole="button" accessibilityLabel="Go back">
           <Icon name="chevronLeft" size={20} color={colors.slate800} />
         </Pressable>
         <Text style={styles.headerTitle}>Support</Text>
@@ -31,7 +31,7 @@ export default function SupportScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
+  container: { flex: 1, backgroundColor: colors.slate50 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: spacing.lg, paddingTop: spacing.md,

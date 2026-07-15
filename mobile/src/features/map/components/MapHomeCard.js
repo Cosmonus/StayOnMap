@@ -36,14 +36,21 @@ export default function MapHomeCard({ property, isSaved: initialSaved = false, o
     : property.bhk != null ? `${property.bhk} BHK` : null
 
   return (
-    <Pressable style={styles.card} onPress={onPress}>
+    <Pressable style={styles.card} onPress={onPress} accessibilityRole="button" accessibilityLabel={`View ${property.title}`}>
       <View style={styles.imageWrap}>
         {thumb ? (
           <Image source={{ uri: imgUrl(thumb, 'card') }} style={styles.image} resizeMode="cover" />
         ) : (
           <View style={[styles.image, styles.imageFallback]} />
         )}
-        <Pressable style={styles.heartButton} onPress={handleHeartPress} hitSlop={8}>
+        <Pressable
+          style={styles.heartButton}
+          onPress={handleHeartPress}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={saved ? 'Remove from saved' : 'Save property'}
+          accessibilityState={{ selected: saved }}
+        >
           <Icon name={saved ? 'heartFilled' : 'heart'} size={13} color={saved ? colors.danger : colors.white} />
         </Pressable>
       </View>

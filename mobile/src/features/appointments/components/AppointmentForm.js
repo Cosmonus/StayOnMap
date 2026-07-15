@@ -72,7 +72,7 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
       <View style={styles.container}>
         <View style={styles.successBox}>
           <View style={styles.successRow}>
-            <Icon name="checkCircle" size={18} color="#059669" />
+            <Icon name="checkCircle" size={18} color={colors.brand600} />
             <Text style={styles.successTitle}>Visit requested!</Text>
           </View>
           <Text style={styles.successBody}>The owner will respond within 24 hours.</Text>
@@ -80,7 +80,14 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
         <View style={styles.chatNudge}>
           <Text style={styles.chatNudgeTitle}>Want to ask the owner something?</Text>
           <Text style={styles.chatNudgeBody}>Chat directly — get faster answers about the property.</Text>
-          <Pressable style={[styles.primaryButton, chatLoading && styles.disabled]} onPress={handleChat} disabled={chatLoading}>
+          <Pressable
+            style={[styles.primaryButton, chatLoading && styles.disabled]}
+            onPress={handleChat}
+            disabled={chatLoading}
+            accessibilityRole="button"
+            accessibilityLabel="Message the owner"
+            accessibilityState={{ disabled: chatLoading, busy: chatLoading }}
+          >
             {chatLoading ? (
               <ActivityIndicator color={colors.white} size="small" />
             ) : (
@@ -109,6 +116,10 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
             key={value}
             style={[styles.chip, form.requestedDate === value && styles.chipActive]}
             onPress={() => setForm((f) => ({ ...f, requestedDate: value }))}
+            hitSlop={{ top: 6, bottom: 6 }}
+            accessibilityRole="radio"
+            accessibilityLabel={`Select date ${label}`}
+            accessibilityState={{ checked: form.requestedDate === value }}
           >
             <Text style={[styles.chipText, form.requestedDate === value && styles.chipTextActive]}>{label}</Text>
           </Pressable>
@@ -122,6 +133,10 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
             key={t}
             style={[styles.chip, form.requestedTime === t && styles.chipActive]}
             onPress={() => setForm((f) => ({ ...f, requestedTime: t }))}
+            hitSlop={{ top: 6, bottom: 6 }}
+            accessibilityRole="radio"
+            accessibilityLabel={`Select time ${formatSlot(t)}`}
+            accessibilityState={{ checked: form.requestedTime === t }}
           >
             <Text style={[styles.chipText, form.requestedTime === t && styles.chipTextActive]}>{formatSlot(t)}</Text>
           </Pressable>
@@ -157,6 +172,9 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
         style={[styles.submitButton, (!isValid || mutation.isPending) && styles.disabled]}
         onPress={() => mutation.mutate(form)}
         disabled={!isValid || mutation.isPending}
+        accessibilityRole="button"
+        accessibilityLabel="Request visit"
+        accessibilityState={{ disabled: !isValid || mutation.isPending, busy: mutation.isPending }}
       >
         {mutation.isPending ? (
           <ActivityIndicator color={colors.white} size="small" />
@@ -193,10 +211,10 @@ const styles = StyleSheet.create({
   submitButton: { flexDirection: 'row', gap: 6, backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center', justifyContent: 'center', marginTop: spacing.sm },
   submitButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   disabled: { opacity: 0.55 },
-  successBox: { backgroundColor: '#ECFDF5', borderWidth: 1, borderColor: '#A7F3D0', borderRadius: radius.md, padding: spacing.md },
+  successBox: { backgroundColor: colors.brand50, borderWidth: 1, borderColor: colors.brand200, borderRadius: radius.md, padding: spacing.md },
   successRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  successTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: '#065F46' },
-  successBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#059669', marginTop: 2 },
+  successTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand800 },
+  successBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.brand600, marginTop: 2 },
   chatNudge: { backgroundColor: colors.brand50, borderWidth: 1, borderColor: colors.brand100, borderRadius: radius.md, padding: spacing.md },
   chatNudgeTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
   chatNudgeBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.brand700, opacity: 0.7, marginTop: 2, marginBottom: spacing.sm },

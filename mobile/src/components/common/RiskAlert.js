@@ -1,12 +1,13 @@
 import { View, Text, StyleSheet } from 'react-native'
 import Icon from '@components/common/Icon'
+import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
 
 const LEVEL_CONFIG = {
-  MEDIUM:     { label: 'Under Review',        bg: '#FFFBEB', border: '#FDE68A', text: '#92400E', icon: 'info', body: 'This property is currently being reviewed by our trust and safety team.' },
-  HIGH:       { label: 'Under Investigation', bg: '#FEF2F2', border: '#FECACA', text: '#991B1B', icon: 'alertTriangle', body: 'This listing has been flagged for suspicious activity. Proceed with caution.' },
-  SUSPICIOUS: { label: 'Suspicious Listing',  bg: '#FEF2F2', border: '#FCA5A5', text: '#7F1D1D', icon: 'alertTriangle', body: 'This listing has been flagged for suspicious activity. Proceed with caution.' },
+  MEDIUM:     { label: 'Under Review',        bg: colors.warning50, border: '#FDE68A', text: '#92400E', icon: 'info', body: 'This property is currently being reviewed by our trust and safety team.' },
+  HIGH:       { label: 'Under Investigation', bg: colors.danger50, border: '#FECACA', text: '#991B1B', icon: 'alertTriangle', body: 'This listing has been flagged for suspicious activity. Proceed with caution.' },
+  SUSPICIOUS: { label: 'Suspicious Listing',  bg: colors.danger50, border: '#FCA5A5', text: '#7F1D1D', icon: 'alertTriangle', body: 'This listing has been flagged for suspicious activity. Proceed with caution.' },
 }
 
 export default function RiskAlert({ riskScore }) {

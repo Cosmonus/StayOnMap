@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { View, StyleSheet } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import NativeMapView, { PROVIDER_GOOGLE, Circle } from 'react-native-maps'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
@@ -13,6 +14,8 @@ import { CITIES } from '@config/cities'
 import PropertyPin from './PropertyPin'
 import ClusterMarker from './ClusterMarker'
 import MetroLines from './MetroLines'
+import LocateButton from './LocateButton'
+import { spacing } from '@theme/spacing'
 
 const IT_CORRIDOR_COLORS = { major: '#2563eb', moderate: '#60a5fa' }
 
@@ -32,6 +35,7 @@ export default function MapView({ onPinPress, onDeselect }) {
   const mapRef = useRef(null)
   const pendingFlyRef = useRef(null)
   const [mapReady, setMapReady] = useState(false)
+  const [userLocationEnabled, setUserLocationEnabled] = useState(false)
   const { onRegionChangeComplete, fetchPinsNow } = useMapPins()
 
   const region = useMapStore((s) => s.region)
@@ -173,7 +177,7 @@ export default function MapView({ onPinPress, onDeselect }) {
         onMapReady={handleMapReady}
         onRegionChangeComplete={onRegionChangeComplete}
         onPress={handleMapPress}
-        showsUserLocation
+        showsUserLocation={userLocationEnabled}
         showsMyLocationButton={false}
         showsTraffic={activeLayers.traffic}
         customMapStyle={MAP_STYLE}
@@ -217,6 +221,16 @@ export default function MapView({ onPinPress, onDeselect }) {
           )
         })}
       </NativeMapView>
+
+      {!selectedPinId && !selectedAreaSlug && (
+        <SafeAreaView edges={['bottom']} style={styles.locateWrap} pointerEvents="box-none">
+          <LocateButton onLocate={flyTo} onPermissionGranted={() => setUserLocationEnabled(true)} />
+        </SafeAreaView>
+      )}
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  locateWrap: { position: 'absolute', right: spacing.md, bottom: spacing.md },
+})

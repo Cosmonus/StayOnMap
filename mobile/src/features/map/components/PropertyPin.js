@@ -1,6 +1,7 @@
 import { Marker } from 'react-native-maps'
 import { View, Text, StyleSheet } from 'react-native'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius } from '@theme/spacing'
 import { formatCompact } from '@utils/format'
@@ -66,11 +67,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    ...shadows.md,
   },
   pillText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs },
 })

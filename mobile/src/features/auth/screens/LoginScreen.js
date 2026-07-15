@@ -125,7 +125,13 @@ export default function LoginScreen() {
           {tab !== 'forgot' && !waitlisted && (
             <View style={styles.tabSwitcher}>
               {[['login', 'Log In'], ['signup', 'Sign Up']].map(([t, label]) => (
-                <Pressable key={t} style={[styles.tabButton, tab === t && styles.tabButtonActive]} onPress={() => switchTab(t)}>
+                <Pressable
+                  key={t}
+                  style={[styles.tabButton, tab === t && styles.tabButtonActive]}
+                  onPress={() => switchTab(t)}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: tab === t }}
+                >
                   <Text style={[styles.tabButtonText, tab === t && styles.tabButtonTextActive]}>{label}</Text>
                 </Pressable>
               ))}
@@ -143,7 +149,7 @@ export default function LoginScreen() {
               <View style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
                 <Text style={styles.confirmTitle}>Check your inbox</Text>
                 <Text style={styles.confirmBody}>We sent a reset link to {email}</Text>
-                <Pressable style={[styles.primaryButton, { marginTop: spacing.lg, alignSelf: 'stretch' }]} onPress={() => switchTab('login')}>
+                <Pressable style={[styles.primaryButton, { marginTop: spacing.lg, alignSelf: 'stretch' }]} onPress={() => switchTab('login')} accessibilityRole="button">
                   <Text style={styles.primaryButtonText}>Back to log in</Text>
                 </Pressable>
               </View>
@@ -154,10 +160,12 @@ export default function LoginScreen() {
                   style={[styles.primaryButton, (loading || !email) && styles.disabled]}
                   onPress={handleForgot}
                   disabled={loading || !email}
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: loading || !email }}
                 >
                   <Text style={styles.primaryButtonText}>{loading ? 'Sending…' : 'Send reset link'}</Text>
                 </Pressable>
-                <Pressable onPress={() => switchTab('login')} style={{ marginTop: spacing.md }}>
+                <Pressable onPress={() => switchTab('login')} style={{ marginTop: spacing.md }} accessibilityRole="button" hitSlop={{ top: 8, bottom: 8 }}>
                   <Text style={styles.linkText}>← Back to log in</Text>
                 </Pressable>
               </>
@@ -166,10 +174,16 @@ export default function LoginScreen() {
             <>
               <Field icon="mail" label="Email address" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" />
               <Field icon="lock" label="Password" value={password} onChangeText={setPassword} placeholder="••••••••" secureTextEntry />
-              <Pressable onPress={() => switchTab('forgot')} style={{ alignSelf: 'flex-end', marginBottom: spacing.md }}>
+              <Pressable onPress={() => switchTab('forgot')} style={{ alignSelf: 'flex-end', marginBottom: spacing.md }} accessibilityRole="button" hitSlop={{ top: 8, bottom: 8 }}>
                 <Text style={styles.linkText}>Forgot password?</Text>
               </Pressable>
-              <Pressable style={[styles.primaryButton, loading && styles.disabled]} onPress={handleLogin} disabled={loading}>
+              <Pressable
+                style={[styles.primaryButton, loading && styles.disabled]}
+                onPress={handleLogin}
+                disabled={loading}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: loading, busy: loading }}
+              >
                 <Text style={styles.primaryButtonText}>{loading ? 'Signing in…' : 'Sign in'}</Text>
               </Pressable>
             </>
@@ -179,7 +193,7 @@ export default function LoginScreen() {
               <Text style={styles.confirmBody}>
                 StayOnMap is currently live in {CITY_NAMES.join(', ')}. We&apos;ll email {email} as soon as we launch near you.
               </Text>
-              <Pressable style={[styles.primaryButton, { marginTop: spacing.lg, alignSelf: 'stretch' }]} onPress={() => switchTab('login')}>
+              <Pressable style={[styles.primaryButton, { marginTop: spacing.lg, alignSelf: 'stretch' }]} onPress={() => switchTab('login')} accessibilityRole="button">
                 <Text style={styles.primaryButtonText}>Back to log in</Text>
               </Pressable>
             </View>
@@ -210,6 +224,8 @@ export default function LoginScreen() {
                     key={value}
                     style={[styles.roleButton, role === value && styles.roleButtonActive]}
                     onPress={() => setRole(value)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: role === value }}
                   >
                     <Icon name={icon} size={16} color={role === value ? colors.white : colors.slate500} />
                     <Text style={[styles.roleButtonText, role === value && styles.roleButtonTextActive]}>
@@ -219,7 +235,13 @@ export default function LoginScreen() {
                 ))}
               </View>
 
-              <Pressable style={[styles.primaryButton, loading && styles.disabled, { marginTop: spacing.md }]} onPress={handleSignup} disabled={loading}>
+              <Pressable
+                style={[styles.primaryButton, loading && styles.disabled, { marginTop: spacing.md }]}
+                onPress={handleSignup}
+                disabled={loading}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: loading, busy: loading }}
+              >
                 <Text style={styles.primaryButtonText}>{loading ? 'Creating account…' : 'Create account'}</Text>
               </Pressable>
             </>
@@ -259,7 +281,7 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.base,
     color: colors.slate800,
   },
-  errorBox: { backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FEE2E2', borderRadius: radius.md, padding: spacing.sm, marginBottom: spacing.md },
+  errorBox: { backgroundColor: colors.danger50, borderWidth: 1, borderColor: '#FEE2E2', borderRadius: radius.md, padding: spacing.sm, marginBottom: spacing.md },
   errorText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.danger },
   primaryButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center' },
   disabled: { opacity: 0.5 },

@@ -20,11 +20,11 @@ const DOC_TYPES = [
 ]
 
 const STATUS_CONFIG = {
-  PENDING:      { label: 'Pending review', bg: '#FFFBEB', text: '#B45309', dot: '#FBBF24' },
+  PENDING:      { label: 'Pending review', bg: colors.warning50, text: '#B45309', dot: '#FBBF24' },
   UNDER_REVIEW: { label: 'Under review',   bg: '#EFF6FF', text: '#1D4ED8', dot: '#60A5FA' },
-  VERIFIED:     { label: 'Verified',       bg: '#F0FDF4', text: '#15803D', dot: '#4ADE80' },
-  REJECTED:     { label: 'Rejected',       bg: '#FEF2F2', text: '#DC2626', dot: '#F87171' },
-  SUSPENDED:    { label: 'Suspended',      bg: '#FEF2F2', text: '#DC2626', dot: '#F87171' },
+  VERIFIED:     { label: 'Verified',       bg: colors.success50, text: '#15803D', dot: '#4ADE80' },
+  REJECTED:     { label: 'Rejected',       bg: colors.danger50, text: '#DC2626', dot: '#F87171' },
+  SUSPENDED:    { label: 'Suspended',      bg: colors.danger50, text: '#DC2626', dot: '#F87171' },
 }
 
 function StatusPill({ status }) {
@@ -138,7 +138,14 @@ export default function VerificationScreen({ route }) {
             )}
 
             {verification.status === 'REJECTED' && (
-              <Pressable style={styles.darkButton} onPress={() => submitMutation.mutate()} disabled={submitMutation.isPending}>
+              <Pressable
+                style={styles.darkButton}
+                onPress={() => submitMutation.mutate()}
+                disabled={submitMutation.isPending}
+                accessibilityRole="button"
+                accessibilityLabel="Resubmit for review"
+                accessibilityState={{ disabled: submitMutation.isPending, busy: submitMutation.isPending }}
+              >
                 {submitMutation.isPending ? (
                   <ActivityIndicator color={colors.white} size="small" />
                 ) : (
@@ -161,7 +168,14 @@ export default function VerificationScreen({ route }) {
               <Text style={styles.whyItem}>• Builds trust with potential tenants</Text>
               <Text style={styles.whyItem}>• Increases appointment requests</Text>
             </View>
-            <Pressable style={styles.darkButton} onPress={() => submitMutation.mutate()} disabled={submitMutation.isPending}>
+            <Pressable
+              style={styles.darkButton}
+              onPress={() => submitMutation.mutate()}
+              disabled={submitMutation.isPending}
+              accessibilityRole="button"
+              accessibilityLabel="Start verification"
+              accessibilityState={{ disabled: submitMutation.isPending, busy: submitMutation.isPending }}
+            >
               {submitMutation.isPending ? (
                 <ActivityIndicator color={colors.white} size="small" />
               ) : (
@@ -181,7 +195,14 @@ export default function VerificationScreen({ route }) {
 
             <View style={styles.chipWrap}>
               {DOC_TYPES.map((d) => (
-                <Pressable key={d.value} style={[styles.chip, docType === d.value && styles.chipActive]} onPress={() => setDocType(d.value)}>
+                <Pressable
+                  key={d.value}
+                  style={[styles.chip, docType === d.value && styles.chipActive]}
+                  onPress={() => setDocType(d.value)}
+                  hitSlop={{ top: 4, bottom: 4 }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: docType === d.value }}
+                >
                   <Text style={[styles.chipText, docType === d.value && styles.chipTextActive]}>{d.label}</Text>
                 </Pressable>
               ))}
@@ -198,7 +219,14 @@ export default function VerificationScreen({ route }) {
             />
             {urlError && <Text style={styles.errorText}>{urlError}</Text>}
 
-            <Pressable style={[styles.submitDocButton, !docUrl && styles.disabled]} onPress={handleAddDoc} disabled={!docUrl || docMutation.isPending}>
+            <Pressable
+              style={[styles.submitDocButton, !docUrl && styles.disabled]}
+              onPress={handleAddDoc}
+              disabled={!docUrl || docMutation.isPending}
+              accessibilityRole="button"
+              accessibilityLabel="Add document"
+              accessibilityState={{ disabled: !docUrl || docMutation.isPending, busy: docMutation.isPending }}
+            >
               {docMutation.isPending ? (
                 <ActivityIndicator color={colors.white} size="small" />
               ) : (
@@ -230,17 +258,17 @@ const styles = StyleSheet.create({
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.full },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs },
-  verifiedBox: { backgroundColor: '#F0FDF4', borderWidth: 1, borderColor: '#BBF7D0', borderRadius: radius.md, padding: spacing.md },
+  verifiedBox: { backgroundColor: colors.success50, borderWidth: 1, borderColor: '#BBF7D0', borderRadius: radius.md, padding: spacing.md },
   verifiedTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: '#166534' },
   verifiedBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#16A34A', marginTop: 2 },
-  rejectedBox: { backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA', borderRadius: radius.md, padding: spacing.md },
+  rejectedBox: { backgroundColor: colors.danger50, borderWidth: 1, borderColor: '#FECACA', borderRadius: radius.md, padding: spacing.md },
   rejectedTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: '#B91C1C' },
   rejectedBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: '#DC2626', marginTop: 2 },
   label: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.slate500, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: spacing.xs },
   docRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate100, borderRadius: radius.sm },
   docType: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700, flexShrink: 0 },
   docUrl: { fontFamily: fonts.body, fontSize: 11, color: colors.brand600, flex: 1 },
-  darkButton: { flexDirection: 'row', gap: 6, backgroundColor: '#111111', borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', justifyContent: 'center' },
+  darkButton: { minHeight: 44, flexDirection: 'row', gap: 6, backgroundColor: colors.black, borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', justifyContent: 'center' },
   darkButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   whyBox: { backgroundColor: colors.brand50, borderWidth: 1, borderColor: colors.brand100, borderRadius: radius.md, padding: spacing.md, gap: 4 },
   whyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand900 },

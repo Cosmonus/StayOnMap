@@ -7,14 +7,16 @@ import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { formatCurrency } from '@utils/format'
 import Icon from '@components/common/Icon'
+import ErrorState from '@components/common/ErrorState'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
 
 const STATUS_CFG = {
-  OFFERED:    { label: 'Awaiting signature', bg: '#FFFBEB', text: '#B45309', dot: '#FBBF24' },
-  ACTIVE:     { label: 'Active',             bg: '#F0FDF4', text: '#15803D', dot: '#4ADE80' },
-  REJECTED:   { label: 'Rejected',           bg: '#FEF2F2', text: '#DC2626', dot: '#F87171' },
+  OFFERED:    { label: 'Awaiting signature', bg: colors.warning50, text: '#B45309', dot: '#FBBF24' },
+  ACTIVE:     { label: 'Active',             bg: colors.success50, text: '#15803D', dot: '#4ADE80' },
+  REJECTED:   { label: 'Rejected',           bg: colors.danger50, text: '#DC2626', dot: '#F87171' },
   TERMINATED: { label: 'Terminated',         bg: colors.slate100, text: colors.slate600, dot: colors.slate400 },
   EXPIRED:    { label: 'Expired',            bg: colors.slate100, text: colors.slate400, dot: colors.slate200 },
 }
@@ -114,6 +116,9 @@ function LeaseCard({ lease, currentUserId }) {
               style={[styles.confirmButton, { backgroundColor: showConfirm === 'sign' ? '#16A34A' : colors.danger }]}
               onPress={() => doAction(showConfirm)}
               disabled={isPending}
+              accessibilityRole="button"
+              accessibilityLabel={showConfirm === 'sign' ? 'Confirm and sign lease' : showConfirm === 'reject' ? 'Confirm lease rejection' : 'Confirm lease termination'}
+              accessibilityState={{ disabled: isPending }}
             >
               {isPending ? <ActivityIndicator color={colors.white} size="small" /> : (
                 <Text style={styles.confirmButtonText}>
@@ -121,7 +126,7 @@ function LeaseCard({ lease, currentUserId }) {
                 </Text>
               )}
             </Pressable>
-            <Pressable style={styles.cancelButton} onPress={() => setShowConfirm(null)}>
+            <Pressable style={styles.cancelButton} onPress={() => setShowConfirm(null)} accessibilityRole="button" accessibilityLabel="Cancel">
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </Pressable>
           </View>
@@ -130,18 +135,18 @@ function LeaseCard({ lease, currentUserId }) {
         <View style={styles.actionRow}>
           {iAmTenant && lease.status === 'OFFERED' && (
             <>
-              <Pressable style={styles.signButton} onPress={() => setShowConfirm('sign')}>
+              <Pressable style={styles.signButton} onPress={() => setShowConfirm('sign')} accessibilityRole="button" accessibilityLabel="Sign lease">
                 <Icon name="check" size={13} color={colors.white} />
                 <Text style={styles.confirmButtonText}>Sign lease</Text>
               </Pressable>
-              <Pressable style={styles.rejectButton} onPress={() => setShowConfirm('reject')}>
+              <Pressable style={styles.rejectButton} onPress={() => setShowConfirm('reject')} accessibilityRole="button" accessibilityLabel="Reject lease">
                 <Icon name="close" size={13} color={colors.danger} />
                 <Text style={styles.rejectButtonText}>Reject</Text>
               </Pressable>
             </>
           )}
           {iAmOwner && lease.status === 'ACTIVE' && (
-            <Pressable style={styles.rejectButton} onPress={() => setShowConfirm('terminate')}>
+            <Pressable style={styles.rejectButton} onPress={() => setShowConfirm('terminate')} accessibilityRole="button" accessibilityLabel="Terminate lease">
               <Icon name="close" size={13} color={colors.danger} />
               <Text style={styles.rejectButtonText}>Terminate</Text>
             </Pressable>
@@ -162,7 +167,7 @@ export default function LeasesScreen({ navigation }) {
   })
   const isOwner = profile?.role === 'OWNER'
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['leases'],
     queryFn: () => leaseService.getMyLeases().then((r) => r.data),
     enabled: !!user,
@@ -175,7 +180,12 @@ export default function LeasesScreen({ navigation }) {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
-          <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <Icon name="chevronLeft" size={20} color={colors.slate800} />
           </Pressable>
           <View style={styles.headerTitleRow}>
@@ -188,6 +198,8 @@ export default function LeasesScreen({ navigation }) {
 
       {isLoading ? (
         <View style={styles.center}><ActivityIndicator color={colors.brand600} /></View>
+      ) : isError ? (
+        <ErrorState title="Couldn't load leases" onRetry={refetch} />
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
           {isOwner && asOwner.length > 0 && (
@@ -233,7 +245,7 @@ const styles = StyleSheet.create({
   headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2 },
   scroll: { padding: spacing.lg, paddingTop: spacing.xs },
   sectionLabel: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.slate500, textTransform: 'uppercase', letterSpacing: 0.5 },
-  card: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, padding: spacing.md, marginBottom: spacing.sm, gap: spacing.sm },
+  card: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, padding: spacing.md, marginBottom: spacing.sm, gap: spacing.sm, ...shadows.card },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm },
   propertyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
   propertyCity: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 1 },
@@ -253,12 +265,12 @@ const styles = StyleSheet.create({
   confirmBox: { gap: spacing.sm, backgroundColor: colors.slate50, borderRadius: radius.md, padding: spacing.sm },
   confirmInput: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate800, backgroundColor: colors.white, minHeight: 50, textAlignVertical: 'top' },
   actionRow: { flexDirection: 'row', gap: spacing.sm },
-  confirmButton: { flex: 1, paddingVertical: spacing.sm, borderRadius: radius.md, alignItems: 'center' },
+  confirmButton: { flex: 1, minHeight: 44, paddingVertical: spacing.sm, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   confirmButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
-  cancelButton: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1, borderColor: colors.slate200, alignItems: 'center' },
+  cancelButton: { minHeight: 44, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1, borderColor: colors.slate200, alignItems: 'center', justifyContent: 'center' },
   cancelButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate600 },
-  signButton: { flex: 1, flexDirection: 'row', gap: 5, backgroundColor: '#16A34A', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
-  rejectButton: { flex: 1, flexDirection: 'row', gap: 5, borderWidth: 1, borderColor: '#FECACA', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
+  signButton: { flex: 1, minHeight: 44, flexDirection: 'row', gap: 5, backgroundColor: '#16A34A', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
+  rejectButton: { flex: 1, minHeight: 44, flexDirection: 'row', gap: 5, borderWidth: 1, borderColor: '#FECACA', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
   rejectButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.danger },
   empty: { alignItems: 'center', paddingVertical: spacing.xxl },
   emptyIcon: { width: 48, height: 48, borderRadius: radius.full, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },

@@ -43,6 +43,9 @@ export default function CommuteCalculator({ lat, lng }) {
           style={[styles.button, (!destination.trim() || mutation.isPending) && styles.buttonDisabled]}
           onPress={handleSubmit}
           disabled={!destination.trim() || mutation.isPending}
+          accessibilityRole="button"
+          accessibilityLabel="Check commute time"
+          accessibilityState={{ disabled: !destination.trim() || mutation.isPending, busy: mutation.isPending }}
         >
           {mutation.isPending ? <ActivityIndicator color={colors.white} size="small" /> : <Text style={styles.buttonText}>Check</Text>}
         </Pressable>

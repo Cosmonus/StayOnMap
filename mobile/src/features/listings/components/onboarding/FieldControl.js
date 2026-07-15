@@ -17,7 +17,14 @@ function Seg({ value, onChange, opts }) {
       {opts.map(([val, label]) => {
         const on = value === val
         return (
-          <Pressable key={val} onPress={() => onChange(val)} style={[styles.segButton, on && styles.segButtonActive]}>
+          <Pressable
+            key={val}
+            onPress={() => onChange(val)}
+            style={[styles.segButton, on && styles.segButtonActive]}
+            hitSlop={{ top: 4, bottom: 4 }}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: on }}
+          >
             <Text style={[styles.segText, on && styles.segTextActive]}>{label}</Text>
           </Pressable>
         )
@@ -26,15 +33,29 @@ function Seg({ value, onChange, opts }) {
   )
 }
 
-function Count({ value, onChange }) {
+function Count({ value, onChange, label }) {
   const n = value ?? 0
   return (
     <View style={styles.countRow}>
-      <Pressable onPress={() => onChange(Math.max(0, n - 1))} disabled={n <= 0} style={[styles.countButton, n <= 0 && styles.countButtonDisabled]}>
+      <Pressable
+        onPress={() => onChange(Math.max(0, n - 1))}
+        disabled={n <= 0}
+        style={[styles.countButton, n <= 0 && styles.countButtonDisabled]}
+        hitSlop={4}
+        accessibilityRole="button"
+        accessibilityLabel={`Decrease ${label}`}
+        accessibilityState={{ disabled: n <= 0 }}
+      >
         <Text style={styles.countButtonText}>–</Text>
       </Pressable>
       <Text style={styles.countValue}>{n}</Text>
-      <Pressable onPress={() => onChange(n + 1)} style={styles.countButton}>
+      <Pressable
+        onPress={() => onChange(n + 1)}
+        style={styles.countButton}
+        hitSlop={4}
+        accessibilityRole="button"
+        accessibilityLabel={`Increase ${label}`}
+      >
         <Text style={styles.countButtonText}>+</Text>
       </Pressable>
     </View>
@@ -84,7 +105,7 @@ export default function FieldControl({ field: f, values, onChange }) {
 
   const body =
     f.t === 'seg' ? <Seg value={values[f.field]} onChange={(v) => onChange(f.field, v)} opts={f.opts} /> :
-    f.t === 'count' ? <Count value={values[f.field]} onChange={(v) => onChange(f.field, v)} /> :
+    f.t === 'count' ? <Count value={values[f.field]} onChange={(v) => onChange(f.field, v)} label={f.label} /> :
     f.t === 'txt' ? <Txt value={values[f.field]} onChange={(v) => onChange(f.field, v)} ph={f.ph} suf={f.suf} numeric={NUMERIC_KEYS.has(f.field)} /> :
     null
 

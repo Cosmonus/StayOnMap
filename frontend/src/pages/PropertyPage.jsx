@@ -566,6 +566,64 @@ function OwnerTrustBar({ ownerTrust }) {
   )
 }
 
+// ── Action card — owner: interested people / tenant: price + appointment ────
+// Rendered twice (sticky aside ≥lg, in-flow <lg), so the appointment anchor
+// id must differ per instance — the mobile bottom bar scrolls to the <lg one.
+function ActionCard({ formId, isOwner, property, avail, propertyId, user, onStartChat, onOpenLogin }) {
+  if (isOwner) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-100 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-slate-800">Interested people</h3>
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${avail.bg}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${avail.dot}`} />
+            <span className={`text-xs font-semibold ${avail.text}`}>{avail.label}</span>
+          </div>
+        </div>
+        <InterestedPeoplePanel propertyId={propertyId} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <p className="text-2xl font-bold text-brand-600">{formatRent(Number(property.rent))}</p>
+          {property.deposit > 0 && (
+            <p className="text-xs text-slate-400 mt-0.5">Deposit: {formatCurrency(Number(property.deposit))}</p>
+          )}
+        </div>
+        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${avail.bg}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${avail.dot}`} />
+          <span className={`text-xs font-semibold ${avail.text}`}>{avail.label}</span>
+        </div>
+      </div>
+
+      {user ? (
+        <>
+          <div id={formId} className="border-t border-slate-100 pt-4">
+            <AppointmentSection propertyId={propertyId} windowStart={property.appointmentWindowStart} windowEnd={property.appointmentWindowEnd} />
+          </div>
+          <div className="border-t border-slate-100 pt-4">
+            <button
+              onClick={onStartChat}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-100 text-slate-700 font-semibold text-sm hover:bg-slate-200 transition-colors"
+            >
+              <MessageCircleMore className="w-4 h-4" strokeWidth={2} />
+              Chat with owner
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="border-t border-slate-100 pt-4">
+          <LoginGate onLogin={onOpenLogin} />
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Location map card ────────────────────────────────────────────────────────
 function PropertyLocationMap({ lat, lng }) {
   const containerRef = useRef(null)
@@ -729,6 +787,15 @@ export default function PropertyPage() {
 
   const images = property.images ?? []
   const isOwner = user?.id === property.ownerId
+
+  async function startChat() {
+    try {
+      await chatService.startConversation(id)
+      navigate('/user?tab=messages')
+    } catch {
+      toast.error('Error', 'Could not start conversation')
+    }
+  }
 
   // ── SEO ──────────────────────────────────────────────────────────────────
   const primaryImage = images.find(i => i.isPrimary)?.url ?? images[0]?.url
@@ -1040,6 +1107,23 @@ export default function PropertyPage() {
               <PropertyLocationMap lat={property.lat} lng={property.lng} />
             )}
 
+            {/* <lg: the sticky aside is hidden — its content renders in-flow here */}
+            <div className="lg:hidden space-y-4">
+              <AreaIntelligenceCard lat={property.lat} lng={property.lng} />
+              <PropertyAreaInsight city={property.city} landmark={property.landmark} />
+              <CommuteCalculator lat={property.lat} lng={property.lng} />
+              <ActionCard
+                formId="appointment-form-mobile"
+                isOwner={isOwner}
+                property={property}
+                avail={avail}
+                propertyId={id}
+                user={user}
+                onStartChat={startChat}
+                onOpenLogin={openLoginModal}
+              />
+            </div>
+
             {/* Reviews */}
             <SectionCard id="reviews" title="Community reviews">
               <ReviewsSection propertyId={id} isOwner={isOwner} ownerInfo={property?.owner} />
@@ -1083,68 +1167,23 @@ export default function PropertyPage() {
               {/* 3 — Live neighborhood intelligence (any coordinate) */}
               <AreaIntelligenceCard lat={property.lat} lng={property.lng} />
 
-              {/* 4 — Commute calculator (tenant-supplied destination) */}
-              <CommuteCalculator lat={property.lat} lng={property.lng} />
-
-              {/* 5 — Hand-authored area insight (named neighborhoods only) */}
+              {/* 4 — Hand-authored area insight (named neighborhoods only) */}
               <PropertyAreaInsight city={property.city} landmark={property.landmark} />
 
-              {/* 6 — Owner: Interested people / Tenant: price + appointment form */}
-              {isOwner ? (
-                <div className="bg-white rounded-2xl border border-slate-100 p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-bold text-slate-800">Interested people</h3>
-                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${avail.bg}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${avail.dot}`} />
-                      <span className={`text-xs font-semibold ${avail.text}`}>{avail.label}</span>
-                    </div>
-                  </div>
-                  <InterestedPeoplePanel propertyId={id} />
-                </div>
-              ) : (
-                <div className="bg-white rounded-2xl border border-slate-100 p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <p className="text-2xl font-bold text-brand-600">{formatRent(Number(property.rent))}</p>
-                      {property.deposit > 0 && (
-                        <p className="text-xs text-slate-400 mt-0.5">Deposit: {formatCurrency(Number(property.deposit))}</p>
-                      )}
-                    </div>
-                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${avail.bg}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${avail.dot}`} />
-                      <span className={`text-xs font-semibold ${avail.text}`}>{avail.label}</span>
-                    </div>
-                  </div>
+              {/* 5 — Commute calculator (tenant-supplied destination) */}
+              <CommuteCalculator lat={property.lat} lng={property.lng} />
 
-                  {user ? (
-                    <>
-                      <div id="appointment-form" className="border-t border-slate-100 pt-4">
-                        <AppointmentSection propertyId={id} windowStart={property.appointmentWindowStart} windowEnd={property.appointmentWindowEnd} />
-                      </div>
-                      <div className="border-t border-slate-100 pt-4">
-                        <button
-                          onClick={async () => {
-                            try {
-                              await chatService.startConversation(id)
-                              navigate('/user?tab=messages')
-                            } catch {
-                              toast.error('Error', 'Could not start conversation')
-                            }
-                          }}
-                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-100 text-slate-700 font-semibold text-sm hover:bg-slate-200 transition-colors"
-                        >
-                          <MessageCircleMore className="w-4 h-4" strokeWidth={2} />
-                          Chat with owner
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="border-t border-slate-100 pt-4">
-                      <LoginGate onLogin={openLoginModal} />
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* 6 — Owner: Interested people / Tenant: price + appointment form */}
+              <ActionCard
+                formId="appointment-form"
+                isOwner={isOwner}
+                property={property}
+                avail={avail}
+                propertyId={id}
+                user={user}
+                onStartChat={startChat}
+                onOpenLogin={openLoginModal}
+              />
 
             </div>
           </aside>
@@ -1162,7 +1201,7 @@ export default function PropertyPage() {
           </div>
           {user ? (
             <button
-              onClick={() => document.getElementById('appointment-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+              onClick={() => document.getElementById('appointment-form-mobile')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
               className="px-6 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors"
             >
               Request Visit

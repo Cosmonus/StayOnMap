@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { View, Text, Pressable, ScrollView, ActivityIndicator, StyleSheet } from 'react-native'
+import { useEffect, useState } from 'react'
+import { View, Text, Pressable, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, BackHandler, Alert, StyleSheet } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
 import { verificationService } from '@services/verification.service'
@@ -140,7 +140,7 @@ function TopBar({ title, onClose }) {
   return (
     <View style={styles.topBar}>
       <Text style={styles.topBarTitle}>{title}</Text>
-      <Pressable onPress={onClose} hitSlop={8}>
+      <Pressable onPress={onClose} accessibilityRole="button" hitSlop={14}>
         <Text style={styles.topBarClose}>Close</Text>
       </Pressable>
     </View>
@@ -205,6 +205,27 @@ export default function OnboardingWizard({ onDone }) {
     setStage('flow')
   }
 
+  function back() {
+    setBlockError('')
+    if (screenIdx > 0) { setScreenIdx((i) => i - 1); return }
+    setCategoryKey(null)
+    setStage('picker')
+  }
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (stage === 'done') return false
+      if (stage === 'flow') { back(); return true }
+      if (stage === 'business-gate') { setCategoryKey(null); setStage('picker'); return true }
+      Alert.alert('Discard listing?', 'Anything you entered so far will be lost.', [
+        { text: 'Stay', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: onDone },
+      ])
+      return true
+    })
+    return () => sub.remove()
+  })
+
   if (stage === 'picker') {
     return (
       <View style={{ flex: 1 }}>
@@ -265,18 +286,11 @@ export default function OnboardingWizard({ onDone }) {
     setScreenIdx((i) => i + 1)
   }
 
-  function back() {
-    setBlockError('')
-    if (screenIdx > 0) { setScreenIdx((i) => i - 1); return }
-    setCategoryKey(null)
-    setStage('picker')
-  }
-
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.flowHeader}>
         <Text style={styles.flowHeaderTitle}>{CATEGORIES[categoryKey].label}</Text>
-        <Pressable style={styles.saveExitButton} onPress={onDone}>
+        <Pressable style={styles.saveExitButton} onPress={onDone} accessibilityRole="button" hitSlop={8}>
           <Text style={styles.saveExitText}>Save &amp; exit</Text>
         </Pressable>
       </View>
@@ -292,40 +306,42 @@ export default function OnboardingWizard({ onDone }) {
         ))}
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.flowContent}>
-        {isPhase && <PhaseInterstitial n={screen.n} title={screen.title} blurb={screen.blurb} />}
-        {screen.k === 'describe' && <DescribeScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-        {screen.k === 'fields' && <FieldsScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-        {screen.k === 'location' && <LocationScreen draft={draft} setDraft={setDraft} />}
-        {screen.k === 'features' && <FeaturesScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-        {screen.k === 'photos' && <PhotosScreen draft={draft} setDraft={setDraft} />}
-        {screen.k === 'title' && <TitleScreen draft={draft} setDraft={setDraft} />}
-        {screen.k === 'description' && <DescriptionScreen draft={draft} setDraft={setDraft} />}
-        {screen.k === 'pricing' && <PricingScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-        {screen.k === 'contact' && <ContactScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-        {screen.k === 'verify' && <VerifyScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-        {screen.k === 'review' && <ReviewScreen categoryKey={categoryKey} draft={draft} />}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.flowContent} keyboardShouldPersistTaps="handled">
+          {isPhase && <PhaseInterstitial n={screen.n} title={screen.title} blurb={screen.blurb} />}
+          {screen.k === 'describe' && <DescribeScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
+          {screen.k === 'fields' && <FieldsScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
+          {screen.k === 'location' && <LocationScreen draft={draft} setDraft={setDraft} />}
+          {screen.k === 'features' && <FeaturesScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
+          {screen.k === 'photos' && <PhotosScreen draft={draft} setDraft={setDraft} />}
+          {screen.k === 'title' && <TitleScreen draft={draft} setDraft={setDraft} />}
+          {screen.k === 'description' && <DescriptionScreen draft={draft} setDraft={setDraft} />}
+          {screen.k === 'pricing' && <PricingScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
+          {screen.k === 'contact' && <ContactScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
+          {screen.k === 'verify' && <VerifyScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
+          {screen.k === 'review' && <ReviewScreen categoryKey={categoryKey} draft={draft} />}
 
-        {!!blockError && <Text style={styles.blockError}>{blockError}</Text>}
-      </ScrollView>
+          {!!blockError && <Text style={styles.blockError}>{blockError}</Text>}
+        </ScrollView>
 
-      <View style={styles.flowFooter}>
-        <Pressable onPress={back}>
-          <Text style={styles.backLink}>Back</Text>
-        </Pressable>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-          {!isPhase && <Text style={styles.pctText}>{pct}%</Text>}
-          <Pressable style={[styles.nextButton, isPending && styles.disabled]} onPress={next} disabled={isPending}>
-            {isPending ? (
-              <ActivityIndicator color={colors.white} size="small" />
-            ) : (
-              <Text style={styles.nextButtonText}>
-                {isPhase ? 'Get started' : isLast ? 'Publish listing' : 'Next'}
-              </Text>
-            )}
+        <View style={styles.flowFooter}>
+          <Pressable onPress={back} accessibilityRole="button" hitSlop={14}>
+            <Text style={styles.backLink}>Back</Text>
           </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+            {!isPhase && <Text style={styles.pctText}>{pct}%</Text>}
+            <Pressable style={[styles.nextButton, isPending && styles.disabled]} onPress={next} disabled={isPending} accessibilityRole="button" accessibilityState={{ disabled: isPending }} hitSlop={4}>
+              {isPending ? (
+                <ActivityIndicator color={colors.white} size="small" />
+              ) : (
+                <Text style={styles.nextButtonText}>
+                  {isPhase ? 'Get started' : isLast ? 'Publish listing' : 'Next'}
+                </Text>
+              )}
+            </Pressable>
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </View>
   )
 }

@@ -36,6 +36,7 @@ export default function GetStartedScreen({ navigation }) {
         <Pressable
           style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
           onPress={() => navigation.navigate('Login')}
+          accessibilityRole="button"
         >
           <Text style={styles.ctaText}>Get started</Text>
         </Pressable>

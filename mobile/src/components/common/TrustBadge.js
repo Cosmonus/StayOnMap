@@ -1,19 +1,20 @@
 import { View, Text, StyleSheet } from 'react-native'
 import Icon from '@components/common/Icon'
+import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
 
 // Matches the TrustBadge enum in backend/prisma/schema.prisma exactly —
 // keep in sync with backend/src/features/trust/trust.service.js badge logic.
 const BADGE_CONFIG = {
-  VERIFIED_OWNER:        { label: 'Verified Owner',       bg: '#E9F9F1', text: '#0B7D52', dot: '#0E9D66' },
-  COMMUNITY_TRUSTED:     { label: 'Community Trusted',    bg: '#CDF1E0', text: '#054A32', dot: '#12B579' },
-  HIGHLY_RECOMMENDED:    { label: 'Highly Recommended',   bg: '#F0FDF4', text: '#15803D', dot: '#22C55E' },
+  VERIFIED_OWNER:        { label: 'Verified Owner',       bg: colors.brand50, text: colors.brand700, dot: colors.brand500 },
+  COMMUNITY_TRUSTED:     { label: 'Community Trusted',    bg: colors.brand100, text: colors.brand800, dot: colors.brand400 },
+  HIGHLY_RECOMMENDED:    { label: 'Highly Recommended',   bg: colors.success50, text: '#15803D', dot: colors.success },
   VERIFIED_NEIGHBORHOOD: { label: 'Verified Neighborhood', bg: '#EFF6FF', text: '#1D4ED8', dot: '#3B82F6' },
-  LOW_COMPLAINT:         { label: 'Low Complaint',        bg: '#F1F5F9', text: '#475569', dot: '#94A3B8' },
-  UNDER_REVIEW:          { label: 'Under Review',         bg: '#FFFBEB', text: '#B45309', dot: '#F59E0B' },
-  SUSPICIOUS:            { label: 'Suspicious',           bg: '#FEF2F2', text: '#991B1B', dot: '#EF4444' },
-  NEEDS_ATTENTION:       { label: 'Needs Attention',      bg: '#FEF2F2', text: '#DC2626', dot: '#F87171' },
+  LOW_COMPLAINT:         { label: 'Low Complaint',        bg: colors.slate100, text: colors.slate600, dot: colors.slate400 },
+  UNDER_REVIEW:          { label: 'Under Review',         bg: colors.warning50, text: '#B45309', dot: colors.warning },
+  SUSPICIOUS:            { label: 'Suspicious',           bg: colors.danger50, text: '#991B1B', dot: colors.danger },
+  NEEDS_ATTENTION:       { label: 'Needs Attention',      bg: colors.danger50, text: '#DC2626', dot: '#F87171' },
 }
 
 const BADGE_ICON = {

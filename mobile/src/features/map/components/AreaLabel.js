@@ -1,6 +1,7 @@
 import { Marker } from 'react-native-maps'
 import { View, Text, StyleSheet } from 'react-native'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius } from '@theme/spacing'
 import { useMarkerRedraw } from '../hooks/useMarkerRedraw'
@@ -42,7 +43,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate200,
     borderRadius: radius.full, paddingVertical: 3, paddingRight: 10, paddingLeft: 7,
-    shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 3,
+    ...shadows.md,
   },
   dot: { width: 7, height: 7, borderRadius: 4 },
   text: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate800 },

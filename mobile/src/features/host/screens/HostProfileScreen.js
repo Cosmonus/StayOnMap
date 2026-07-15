@@ -48,7 +48,7 @@ export default function HostProfileScreen({ navigation }) {
         <MenuItem icon="map" label="Switch to renter" onPress={() => setHostMode(false)} />
       </View>
 
-      <Pressable style={styles.signOutButton} onPress={signOut}>
+      <Pressable style={styles.signOutButton} onPress={signOut} accessibilityRole="button">
         <Icon name="logout" size={16} color={colors.danger} />
         <Text style={styles.signOutText}>Sign out</Text>
       </Pressable>
@@ -57,7 +57,7 @@ export default function HostProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white, padding: spacing.lg },
+  container: { flex: 1, backgroundColor: colors.slate50, padding: spacing.lg },
   card: { alignItems: 'center', paddingVertical: spacing.xl },
   avatar: {
     width: 72,

@@ -7,6 +7,7 @@ import { usePlaceSuggestions } from '../hooks/usePlaceSuggestions'
 import { geocodeAddress } from '@lib/googleGeocoding'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -153,13 +154,20 @@ const MapSearchBar = forwardRef(function MapSearchBar(_props, ref) {
           />
           {(resolving || loading) && <ActivityIndicator size="small" color={colors.brand600} />}
           {!!query && !resolving && !loading && (
-            <Pressable onPress={clear} hitSlop={8}>
+            <Pressable onPress={clear} hitSlop={16} accessibilityRole="button" accessibilityLabel="Clear search">
               <Icon name="close" size={14} color={colors.slate400} />
             </Pressable>
           )}
         </View>
 
-        <Pressable style={[styles.goButton, resolving && styles.goButtonDisabled]} onPress={handleSubmit} disabled={resolving}>
+        <Pressable
+          style={[styles.goButton, resolving && styles.goButtonDisabled]}
+          onPress={handleSubmit}
+          disabled={resolving}
+          accessibilityRole="button"
+          accessibilityLabel="Search"
+          accessibilityState={{ disabled: resolving, busy: resolving }}
+        >
           <Text style={styles.goButtonText}>{resolving ? '…' : 'Go'}</Text>
         </Pressable>
       </View>
@@ -178,7 +186,7 @@ const MapSearchBar = forwardRef(function MapSearchBar(_props, ref) {
             }
             renderItem={({ item }) =>
               item.recent ? (
-                <Pressable style={styles.option} onPress={() => setQuery(item.label)}>
+                <Pressable style={styles.option} onPress={() => setQuery(item.label)} accessibilityRole="button" accessibilityLabel={`Recent search ${item.label}`}>
                   <Icon name="clock" size={14} color={colors.slate400} />
                   <Text style={styles.optionText} numberOfLines={1}>{item.label}</Text>
                 </Pressable>
@@ -186,6 +194,7 @@ const MapSearchBar = forwardRef(function MapSearchBar(_props, ref) {
                 <Pressable
                   style={styles.option}
                   onPress={() => selectPlace(item)}
+                  accessibilityRole="button"
                 >
                   <Icon name="mapPin" size={14} color={colors.brand600} />
                   <View style={styles.optionTextWrap}>
@@ -217,19 +226,19 @@ const styles = StyleSheet.create({
     flex: 1, height: BAR_HEIGHT, flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     backgroundColor: colors.white, borderRadius: radius.full,
     paddingHorizontal: spacing.md,
-    shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3,
+    ...shadows.md,
   },
   input: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800 },
   goButton: {
     height: BAR_HEIGHT, paddingHorizontal: spacing.lg, borderRadius: radius.full, backgroundColor: colors.brand600,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3,
+    ...shadows.md,
   },
   goButtonDisabled: { opacity: 0.6 },
   goButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   dropdown: {
     marginTop: spacing.sm, backgroundColor: colors.white, borderRadius: radius.lg, maxHeight: 260,
-    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4,
+    ...shadows.float,
   },
   option: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2 },
   optionTextWrap: { flex: 1, minWidth: 0 },

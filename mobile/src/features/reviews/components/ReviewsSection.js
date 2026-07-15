@@ -22,6 +22,7 @@ const REVIEWER_TYPES = [
 ]
 
 const MIN_CHARS = 10
+const INITIAL_VISIBLE_REVIEWS = 5
 
 function avgRating(review) {
   const keys = Object.keys(RATING_LABELS)
@@ -33,7 +34,7 @@ function StarPicker({ value, onChange }) {
     <View style={{ flexDirection: 'row', gap: 2 }}>
       {[1, 2, 3, 4, 5].map((n) => (
         <Pressable key={n} onPress={() => onChange(n)} hitSlop={4}>
-          <Icon name={n <= value ? 'star' : 'starOutline'} size={20} color={n <= value ? '#F59E0B' : colors.slate200} />
+          <Icon name={n <= value ? 'star' : 'starOutline'} size={20} color={n <= value ? colors.warning : colors.slate200} />
         </Pressable>
       ))}
     </View>
@@ -45,7 +46,7 @@ function StarDisplay({ value, size = 14 }) {
   return (
     <View style={{ flexDirection: 'row', gap: 1 }}>
       {[0, 1, 2, 3, 4].map((i) => (
-        <Icon key={i} name={i < rounded ? 'star' : 'starOutline'} size={size} color={i < rounded ? '#F59E0B' : colors.slate200} />
+        <Icon key={i} name={i < rounded ? 'star' : 'starOutline'} size={size} color={i < rounded ? colors.warning : colors.slate200} />
       ))}
     </View>
   )
@@ -94,7 +95,7 @@ function WriteReviewForm({ propertyId, onCancel, onSuccess }) {
             style={[styles.toggle, form[key] && styles.toggleActive]}
             onPress={() => setForm((f) => ({ ...f, [key]: !f[key] }))}
           >
-            {form[key] && <Icon name="check" size={11} color="#059669" />}
+            {form[key] && <Icon name="check" size={11} color={colors.brand600} />}
             <Text style={[styles.toggleText, form[key] && styles.toggleTextActive]}>{label}</Text>
           </Pressable>
         ))}
@@ -161,15 +162,15 @@ function ReviewCard({ review, propertyId, isOwner, ownerName }) {
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
           <Text style={styles.reviewAvgScore}>{avg.toFixed(1)}</Text>
-          <Icon name="star" size={13} color="#F59E0B" />
+          <Icon name="star" size={13} color={colors.warning} />
         </View>
       </View>
 
       <Text style={styles.reviewBody}>{review.body}</Text>
 
       <View style={styles.recommendRow}>
-        <Icon name={review.recommend ? 'check' : 'close'} size={12} color={review.recommend ? '#059669' : colors.danger} />
-        <Text style={[styles.recommendText, { color: review.recommend ? '#059669' : colors.danger }]}>
+        <Icon name={review.recommend ? 'check' : 'close'} size={12} color={review.recommend ? colors.brand600 : colors.danger} />
+        <Text style={[styles.recommendText, { color: review.recommend ? colors.brand600 : colors.danger }]}>
           {review.recommend ? 'Recommends this property' : 'Does not recommend'}
         </Text>
       </View>
@@ -216,6 +217,7 @@ function ReviewCard({ review, propertyId, isOwner, ownerName }) {
 
 export default function ReviewsSection({ propertyId, title, isOwner = false, ownerName = null }) {
   const [writeOpen, setWriteOpen] = useState(false)
+  const [showAll, setShowAll] = useState(false)
 
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ['reviews', propertyId],
@@ -266,9 +268,19 @@ export default function ReviewsSection({ propertyId, title, isOwner = false, own
         </View>
       ) : (
         <View style={{ gap: spacing.sm }}>
-          {reviews.map((r) => (
+          {(showAll ? reviews : reviews.slice(0, INITIAL_VISIBLE_REVIEWS)).map((r) => (
             <ReviewCard key={r.id} review={r} propertyId={propertyId} isOwner={isOwner} ownerName={ownerName} />
           ))}
+          {!showAll && count > INITIAL_VISIBLE_REVIEWS && (
+            <Pressable
+              style={styles.showAllButton}
+              onPress={() => setShowAll(true)}
+              accessibilityRole="button"
+              accessibilityLabel={`Show all ${count} reviews`}
+            >
+              <Text style={styles.showAllText}>Show all {count} reviews</Text>
+            </Pressable>
+          )}
         </View>
       )}
     </View>
@@ -287,10 +299,12 @@ const styles = StyleSheet.create({
   writeButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate600 },
   recommendBarRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   recommendBarTrack: { flex: 1, height: 8, backgroundColor: colors.slate100, borderRadius: radius.full, overflow: 'hidden' },
-  recommendBarFill: { height: '100%', backgroundColor: '#22C55E' },
+  recommendBarFill: { height: '100%', backgroundColor: colors.success },
   recommendBarText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate600 },
   emptyBox: { paddingVertical: spacing.xl, backgroundColor: colors.slate50, borderRadius: radius.lg, alignItems: 'center', gap: 6 },
   emptyText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  showAllButton: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md },
+  showAllText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate600 },
 
   formCard: { borderWidth: 1, borderColor: colors.brand100, backgroundColor: colors.brand50, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm },
   formHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -304,9 +318,9 @@ const styles = StyleSheet.create({
   chipTextActive: { color: colors.white },
   toggleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.md, borderWidth: 1, borderColor: colors.slate200, backgroundColor: colors.white },
-  toggleActive: { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' },
+  toggleActive: { backgroundColor: colors.brand50, borderColor: colors.brand200 },
   toggleText: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.slate500 },
-  toggleTextActive: { color: '#059669' },
+  toggleTextActive: { color: colors.brand600 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 },
   ratingLabel: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate600 },
   input: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate800, backgroundColor: colors.white },

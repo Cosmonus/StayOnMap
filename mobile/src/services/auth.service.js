@@ -7,4 +7,5 @@ export const authService = {
   upgradeRole: () => api.patch('/auth/role', { role: 'OWNER' }),
   upgradeBusiness: () => api.patch('/auth/business'),
   requestPasswordReset: (data) => api.post('/auth/forgot-password', data),
+  sendEmailVerification: () => api.post('/auth/send-verification'),
 }

@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native'
+import { View, Text, Image, Pressable, StyleSheet, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
@@ -22,19 +22,9 @@ export default function ProfileScreen({ navigation }) {
   const { user, signOut } = useAuth()
   const setHostMode = useUiStore((s) => s.setHostMode)
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, isError, refetch } = useQuery({
     queryKey: ['me'],
-    queryFn: async () => {
-      try {
-        return await authService.getMe().then((r) => r.data)
-      } catch (err) {
-        if (err?.error === 'PROFILE_NOT_FOUND') {
-          await authService.syncProfile({})
-          return authService.getMe().then((r) => r.data)
-        }
-        throw err
-      }
-    },
+    queryFn: () => authService.getMe().then((r) => r.data),
     enabled: !!user,
     staleTime: 0,
   })
@@ -42,11 +32,27 @@ export default function ProfileScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.card}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{(profile?.name || user?.email || '?')[0].toUpperCase()}</Text>
-        </View>
+        {profile?.avatarUrl ? (
+          <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} resizeMode="cover" />
+        ) : (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{(profile?.name || user?.email || '?')[0].toUpperCase()}</Text>
+          </View>
+        )}
         {isLoading ? (
           <ActivityIndicator color={colors.brand600} style={{ marginTop: spacing.sm }} />
+        ) : isError ? (
+          <>
+            <Text style={styles.errorText}>Could not load your profile.</Text>
+            <Pressable
+              style={styles.retryButton}
+              onPress={() => refetch()}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading profile"
+            >
+              <Text style={styles.retryText}>Retry</Text>
+            </Pressable>
+          </>
         ) : (
           <>
             <Text style={styles.name}>{profile?.name || 'StayOnMap user'}</Text>
@@ -70,7 +76,12 @@ export default function ProfileScreen({ navigation }) {
         />
       </View>
 
-      <Pressable style={styles.signOutButton} onPress={signOut}>
+      <Pressable
+        style={styles.signOutButton}
+        onPress={signOut}
+        accessibilityRole="button"
+        accessibilityLabel="Sign out"
+      >
         <Icon name="logout" size={16} color={colors.danger} />
         <Text style={styles.signOutText}>Sign out</Text>
       </Pressable>
@@ -79,7 +90,7 @@ export default function ProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white, padding: spacing.lg },
+  container: { flex: 1, backgroundColor: colors.slate50, padding: spacing.lg },
   card: { alignItems: 'center', paddingVertical: spacing.xl },
   avatar: {
     width: 72,
@@ -90,9 +101,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.md,
   },
+  avatarImage: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.full,
+    backgroundColor: colors.slate100,
+    marginBottom: spacing.md,
+  },
   avatarText: { fontFamily: fonts.displayBold, fontSize: fontSizes.xxl, color: colors.brand700 },
   name: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
   email: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: spacing.xs },
+  errorText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate600, marginTop: spacing.sm },
+  retryButton: {
+    minHeight: 44, borderRadius: radius.md, backgroundColor: colors.brand600,
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: spacing.lg, marginTop: spacing.sm,
+  },
+  retryText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   roleBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     marginTop: spacing.sm,

@@ -36,7 +36,13 @@ export function DescribeScreen({ categoryKey, draft, setDraft }) {
         {d.opts.map(([val, label, hint]) => {
           const on = value === val
           return (
-            <Pressable key={val} onPress={() => setField(setDraft)(d.k, val)} style={[styles.optionCard, on && styles.optionCardActive]}>
+            <Pressable
+              key={val}
+              onPress={() => setField(setDraft)(d.k, val)}
+              style={[styles.optionCard, on && styles.optionCardActive]}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: on }}
+            >
               <Text style={styles.optionLabel}>{label}</Text>
               <Text style={styles.optionHint}>{hint}</Text>
             </Pressable>
@@ -118,7 +124,14 @@ export function FeaturesScreen({ categoryKey, draft, setDraft }) {
         {f.opts.map((name) => {
           const on = selected.includes(name)
           return (
-            <Pressable key={name} onPress={() => toggle(name)} style={[styles.chip, on && styles.chipActive]}>
+            <Pressable
+              key={name}
+              onPress={() => toggle(name)}
+              style={[styles.chip, on && styles.chipActive]}
+              hitSlop={{ top: 4, bottom: 4 }}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: on }}
+            >
               <Text style={[styles.chipText, on && styles.chipTextActive]}>{name}</Text>
             </Pressable>
           )
@@ -367,7 +380,7 @@ const styles = StyleSheet.create({
   reviewIconBiz: { backgroundColor: colors.slate800 },
   reviewTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
   reviewSub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
-  draftBadge: { backgroundColor: '#FFFBEB', borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 4 },
+  draftBadge: { backgroundColor: colors.warning50, borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 4 },
   draftBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: '#B45309', textTransform: 'uppercase' },
   factRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2 },
   factRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.slate50 },
