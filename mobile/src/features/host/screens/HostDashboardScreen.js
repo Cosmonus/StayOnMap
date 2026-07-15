@@ -6,6 +6,7 @@ import { authService } from '@services/auth.service'
 import { propertyService } from '@services/property.service'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -60,6 +61,7 @@ export default function HostDashboardScreen({ navigation }) {
         <Pressable
           style={styles.quickAction}
           onPress={() => navigation.getParent()?.navigate('MyListing')}
+          accessibilityRole="button"
         >
           <View style={styles.quickActionIcon}>
             <Icon name="plus" size={16} color={colors.white} />
@@ -70,7 +72,7 @@ export default function HostDashboardScreen({ navigation }) {
           </View>
         </Pressable>
 
-        <Pressable style={styles.quickAction} onPress={() => navigation.navigate('Calendar')}>
+        <Pressable style={styles.quickAction} onPress={() => navigation.navigate('Calendar')} accessibilityRole="button">
           <View style={[styles.quickActionIcon, styles.quickActionIconAlt]}>
             <Icon name="calendar" size={16} color={colors.white} />
           </View>
@@ -85,14 +87,15 @@ export default function HostDashboardScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
+  container: { flex: 1, backgroundColor: colors.slate50 },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
   title: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
   subtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2, marginBottom: spacing.lg },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   statTile: {
-    width: '47%', backgroundColor: colors.slate50, borderRadius: radius.lg,
+    width: '47%', backgroundColor: colors.white, borderRadius: radius.lg,
     borderWidth: 1, borderColor: colors.slate100, padding: spacing.md,
+    ...shadows.card,
   },
   statLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.slate400, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: spacing.xs },
   statValue: { fontFamily: fonts.displayBold, fontSize: fontSizes.xxl, color: colors.slate800 },
@@ -100,8 +103,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
     backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.lg,
     padding: spacing.md, marginTop: spacing.lg,
+    ...shadows.card,
   },
-  quickActionIcon: { width: 40, height: 40, borderRadius: radius.md, backgroundColor: '#111111', alignItems: 'center', justifyContent: 'center' },
+  quickActionIcon: { width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center' },
   quickActionIconAlt: { backgroundColor: colors.brand600 },
   quickActionTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
   quickActionBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 1 },

@@ -18,18 +18,18 @@ export default function ImageUploader({ value, onChange }) {
     const remaining = MAX_IMAGES - value.length
     if (remaining <= 0) return
 
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
-    if (status !== 'granted') {
-      setError('Photo library permission is required to add images.')
+    let result
+    try {
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        selectionLimit: remaining,
+        quality: 0.7,
+      })
+    } catch {
+      setError('Could not open the photo picker. Please try again.')
       return
     }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      selectionLimit: remaining,
-      quality: 0.7,
-    })
     if (result.canceled || !result.assets?.length) return
 
     setUploading(true)
@@ -56,14 +56,14 @@ export default function ImageUploader({ value, onChange }) {
             {i === 0 && (
               <View style={styles.coverBadge}><Text style={styles.coverBadgeText}>Cover</Text></View>
             )}
-            <Pressable style={styles.removeButton} onPress={() => removeAt(i)}>
+            <Pressable style={styles.removeButton} onPress={() => removeAt(i)} hitSlop={14} accessibilityRole="button" accessibilityLabel={`Remove photo ${i + 1}`}>
               <Icon name="close" size={12} color={colors.white} />
             </Pressable>
           </View>
         ))}
 
         {value.length < MAX_IMAGES && (
-          <Pressable style={styles.addButton} onPress={handlePick} disabled={uploading}>
+          <Pressable style={styles.addButton} onPress={handlePick} disabled={uploading} accessibilityRole="button" accessibilityLabel="Add photos" accessibilityState={{ disabled: uploading }}>
             {uploading ? (
               <ActivityIndicator color={colors.brand600} />
             ) : (

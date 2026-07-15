@@ -1,7 +1,7 @@
 import {
   Compass, Search, MessageCircle, User, Heart, Star,
   Share2, Camera, Send, Plus, Pencil, Trash2, Repeat2, LogOut,
-  ChevronLeft, ChevronRight, ChevronDown, X, SlidersHorizontal, Layers, List, LayoutGrid, Map,
+  ChevronLeft, ChevronRight, ChevronDown, X, SlidersHorizontal, Layers, List, LayoutGrid, Map, LocateFixed,
   Check, CircleCheck, TriangleAlert, Info, Bell, Shield, ShieldCheck, Clock, Calendar, Eye,
   Users, Phone, Mail, Lock, Key, Settings,
   House, Building2, MapPin, BedDouble, Ruler, IndianRupee, Sofa, Package, Wifi,
@@ -9,6 +9,7 @@ import {
   ArrowUpDown, Dumbbell, WavesLadder, Video, Zap, Droplet, Wind, Refrigerator, WashingMachine,
   TreePine, DoorClosed, SquareParking,
 } from 'lucide-react-native'
+import { colors } from '@theme/colors'
 
 // Semantic name -> lucide-react-native component. Lucide is a minimal,
 // consistent thin-stroke icon set (the spiritual successor to Feather,
@@ -50,6 +51,7 @@ const ICONS = {
   list: List,
   grid: LayoutGrid,
   map: Map,
+  locate: LocateFixed,
 
   // Status / feedback
   check: Check,
@@ -107,7 +109,7 @@ const ICONS = {
 // these two names previously pointed at Ionicons' separate solid glyphs.
 const FILLED_NAMES = new Set(['heartFilled', 'star'])
 
-export default function Icon({ name, size = 22, color = '#1E293B' }) {
+export default function Icon({ name, size = 22, color = colors.slate800 }) {
   const Component = ICONS[name]
   if (!Component) return null
 

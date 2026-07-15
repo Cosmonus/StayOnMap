@@ -5,6 +5,7 @@ import Icon from '@components/common/Icon'
 import { propertyService } from '@services/property.service'
 import { formatCompact, imgUrl } from '@utils/format'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -26,7 +27,12 @@ export default function PinPreviewCard({ propertyId, onPress }) {
           <View style={styles.skeleton} />
         </View>
       ) : (
-        <Pressable style={styles.card} onPress={onPress}>
+        <Pressable
+          style={styles.card}
+          onPress={onPress}
+          accessibilityRole="button"
+          accessibilityLabel={`View details for ${property.title}`}
+        >
           <View style={styles.imageWrap}>
             {property.images?.[0] ? (
               <Image source={{ uri: imgUrl(property.images[0].url, 'card') }} style={styles.image} resizeMode="cover" />
@@ -70,7 +76,8 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
     backgroundColor: colors.white, borderRadius: radius.xl, padding: spacing.sm + 2,
-    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+    borderWidth: 1, borderColor: colors.slate100,
+    ...shadows.float,
   },
   skeleton: { height: 72, width: '100%', borderRadius: radius.lg, backgroundColor: colors.slate100 },
   imageWrap: { width: 72, height: 72, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.slate100 },

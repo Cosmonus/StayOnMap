@@ -2,10 +2,9 @@
 // counterpart of the backend's features/properties/filters.registry.js).
 // Filter ids are the contract: this file decides how a filter looks; the
 // backend registry decides validation + Prisma mapping. Kept logically
-// identical to web except: icons are lucide-react-native components, there's
-// no URL-sync parser (no URL on mobile), no slider domains (no dual-thumb
-// primitive in RN — ranges render as preset chips + min/max inputs), and
-// "Move-in by" is preset chips instead of a date input (no native date field).
+// identical to web except: icons are lucide-react-native components and
+// there's no URL-sync parser (no URL on mobile). Slider domains and the
+// "Move-in by" date row match web's config exactly.
 import { Building2, House, LandPlot, BedDouble, Store, Luggage } from 'lucide-react-native'
 
 // ── Property-type categories (mirror the listing wizard's 6 cards) ─
@@ -123,15 +122,6 @@ const CORE_AMENITIES = [
 ].map((v) => ({ value: v, label: v }))
 const asOptions = (list) => list.map((v) => ({ value: v, label: v }))
 
-// "Move-in by" as relative presets (web uses a native date input; RN has none)
-const dayOffsetISO = (days) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10)
-const AVAILABLE_BY_OPTIONS = [
-  { value: dayOffsetISO(7), label: 'Within a week' },
-  { value: dayOffsetISO(14), label: '2 weeks' },
-  { value: dayOffsetISO(30), label: '1 month' },
-  { value: dayOffsetISO(60), label: '2 months' },
-]
-
 // ── Sections ───────────────────────────────────────────────────────
 // types: null → universal · array + requiresType → only when that type is
 // explicitly selected · array without requiresType → hidden only when the
@@ -149,6 +139,7 @@ export const FILTER_SECTIONS = [
         // sections at lakh/crore scale, reusing the same rentMin/rentMax ids
         kind: 'range', label: 'Monthly rent', unit: '₹', idMin: 'rentMin', idMax: 'rentMax',
         types: [...HOMES, 'PG'],
+        slider: { min: 0, max: 500000, step: 2500 },
         chips: [
           { label: 'Under ₹10k', min: null, max: 10000 }, { label: '₹10–20k', min: 10000, max: 20000 },
           { label: '₹20–35k', min: 20000, max: 35000 }, { label: '₹35–60k', min: 35000, max: 60000 },
@@ -165,7 +156,7 @@ export const FILTER_SECTIONS = [
       { kind: 'chips', label: 'Bedrooms', id: 'bhk', options: BHK_OPTIONS },
       { kind: 'chips', label: 'Bathrooms', id: 'bathroomsMin', single: true, options: [{ value: 1, label: '1+' }, { value: 2, label: '2+' }, { value: 3, label: '3+' }] },
       { kind: 'chips', label: 'Furnishing', id: 'furnished', options: FURNISHED_OPTIONS, types: HOMES },
-      { kind: 'range', label: 'Built-up area', unit: 'sq.ft', idMin: 'areaMin', idMax: 'areaMax', types: HOMES },
+      { kind: 'range', label: 'Built-up area', unit: 'sq.ft', idMin: 'areaMin', idMax: 'areaMax', types: HOMES, slider: { min: 0, max: 5000, step: 100 } },
       { kind: 'chips', label: 'Facing', id: 'facing', options: FACING_OPTIONS, types: HOMES },
       { kind: 'chips', label: 'Highest floor', id: 'floorMax', single: true, types: ['APARTMENT'], options: [{ value: 0, label: 'Ground only' }, { value: 2, label: 'Up to 2nd' }, { value: 5, label: 'Up to 5th' }, { value: 10, label: 'Up to 10th' }] },
     ],
@@ -173,7 +164,7 @@ export const FILTER_SECTIONS = [
   {
     id: 'availability', label: 'Availability', types: [...HOMES, 'PG', 'COMMERCIAL'],
     rows: [
-      { kind: 'chips', label: 'Move-in by', id: 'availableBy', single: true, options: AVAILABLE_BY_OPTIONS },
+      { kind: 'date', label: 'Move-in by', id: 'availableBy' },
       { kind: 'chips', label: 'Max lease duration', id: 'leaseDurationMax', single: true, options: [{ value: 6, label: '6 months' }, { value: 11, label: '11 months' }, { value: 12, label: '1 year' }, { value: 24, label: '2 years' }] },
     ],
   },
@@ -210,6 +201,7 @@ export const FILTER_SECTIONS = [
     rows: [
       {
         kind: 'range', label: 'Monthly rent', unit: '₹', idMin: 'rentMin', idMax: 'rentMax',
+        slider: { min: 0, max: 1000000, step: 5000 },
         chips: [
           { label: 'Under ₹50k', min: null, max: 50000 }, { label: '₹50k–1L', min: 50000, max: 100000 },
           { label: '₹1–2.5L', min: 100000, max: 250000 }, { label: '₹2.5–5L', min: 250000, max: 500000 },
@@ -248,7 +240,7 @@ export const FILTER_SECTIONS = [
     rows: [
       { kind: 'chips', label: 'Place type', id: 'placeType', options: asOptions(['Entire place', 'Private room', 'Shared room']) },
       { kind: 'chips', label: 'Guests', id: 'guestsMin', single: true, options: [{ value: 2, label: '2+' }, { value: 4, label: '4+' }, { value: 6, label: '6+' }] },
-      { kind: 'range', label: 'Nightly rate', unit: '₹', idMin: 'nightlyMin', idMax: 'nightlyMax' },
+      { kind: 'range', label: 'Nightly rate', unit: '₹', idMin: 'nightlyMin', idMax: 'nightlyMax', slider: { min: 0, max: 20000, step: 250 } },
       { kind: 'chips', label: 'Nights you’ll stay', id: 'stayNights', single: true, options: [{ value: 2, label: '2 nights' }, { value: 3, label: '3 nights' }, { value: 7, label: '1 week' }, { value: 30, label: '1 month' }] },
       { kind: 'toggles', items: [{ id: 'instantBook', label: 'Instant booking' }] },
       { kind: 'chips', label: 'Stay features', id: 'amenities', withIcons: true, options: asOptions(['TV', 'Workspace', 'Kitchen', 'AC', 'WiFi', 'Beachfront']) },

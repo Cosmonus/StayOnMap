@@ -1,7 +1,19 @@
-import { View, Text, Pressable, ActivityIndicator, StyleSheet, Linking } from 'react-native'
+import { useState } from 'react'
+import {
+  View, Text, Image, Pressable, ScrollView, ActivityIndicator,
+  Alert, Linking, StyleSheet,
+} from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import * as ImagePicker from 'expo-image-picker'
 import { userService } from '@services/user.service'
+import { authService } from '@services/auth.service'
+import MenuItem from '@features/profile/components/MenuItem'
+import SettingsToggle from '@features/profile/components/SettingsToggle'
+import EditProfileSheet from '@features/profile/components/EditProfileSheet'
+import SocialLinksSheet from '@features/profile/components/SocialLinksSheet'
+import PrivacySheet from '@features/profile/components/PrivacySheet'
+import DeleteAccountSheet from '@features/profile/components/DeleteAccountSheet'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -9,16 +21,73 @@ import { spacing, radius } from '@theme/spacing'
 
 export default function SettingsScreen({ navigation }) {
   const qc = useQueryClient()
+  const [activeSheet, setActiveSheet] = useState(null) // 'profile' | 'social' | 'privacy' | 'delete'
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
-  const { data: settings, isLoading } = useQuery({
+  const { data: settings, isLoading, isError, refetch } = useQuery({
     queryKey: ['user-settings'],
     queryFn: () => userService.getSettings().then((r) => r.data),
   })
 
-  const mutation = useMutation({
-    mutationFn: (pushNotifs) => userService.updateProfile({ pushNotifs }),
+  const { mutate: saveToggle, isPending: togglePending } = useMutation({
+    mutationFn: (data) => userService.updateProfile(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['user-settings'] }),
+    onError: () => Alert.alert('Error', 'Could not update the setting. Please try again.'),
   })
+
+  const { mutate: sendPasswordReset, isPending: sendingReset } = useMutation({
+    mutationFn: () => userService.changePassword(),
+    onSuccess: () => Alert.alert('Email sent', 'Check your inbox for the password reset link.'),
+    onError: () => Alert.alert('Error', 'Could not send the reset email. Please try again.'),
+  })
+
+  const { mutate: resendVerification, isPending: sendingVerification } = useMutation({
+    mutationFn: () => authService.sendEmailVerification(),
+    onSuccess: () => Alert.alert('Email sent', 'Check your inbox for the verification link.'),
+    onError: () => Alert.alert('Error', 'Could not send the verification email. Please try again.'),
+  })
+
+  const { mutate: upgradeRole, isPending: upgrading } = useMutation({
+    mutationFn: () => authService.upgradeRole(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['me'] })
+      qc.invalidateQueries({ queryKey: ['user-settings'] })
+      Alert.alert('Upgraded', 'You are now an owner and can list properties.')
+    },
+    onError: () => Alert.alert('Error', 'Could not upgrade your account. Please try again.'),
+  })
+
+  async function handleAvatar() {
+    // Android photo picker / iOS limited picker — no permission request needed.
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    })
+    if (result.canceled || !result.assets?.length) return
+    setUploadingAvatar(true)
+    try {
+      await userService.uploadAvatar(result.assets[0])
+      qc.invalidateQueries({ queryKey: ['user-settings'] })
+      qc.invalidateQueries({ queryKey: ['me'] })
+    } catch {
+      Alert.alert('Upload failed', 'Could not update your photo. Please try again.')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
+  function confirmUpgrade() {
+    Alert.alert(
+      'Become an owner?',
+      'Owner accounts can list and manage rental properties. This cannot be reversed.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Upgrade', onPress: () => upgradeRole() },
+      ],
+    )
+  }
 
   if (isLoading) {
     return (
@@ -28,76 +97,223 @@ export default function SettingsScreen({ navigation }) {
     )
   }
 
-  const pushNotifs = settings?.pushNotifs ?? true
+  if (isError) {
+    return (
+      <SafeAreaView style={styles.center} edges={['top']}>
+        <Icon name="alertTriangle" size={28} color={colors.slate400} />
+        <Text style={styles.errorText}>Could not load your settings.</Text>
+        <Pressable
+          style={styles.retryButton}
+          onPress={() => refetch()}
+          accessibilityRole="button"
+          accessibilityLabel="Retry loading settings"
+        >
+          <Text style={styles.retryText}>Retry</Text>
+        </Pressable>
+      </SafeAreaView>
+    )
+  }
+
+  const isOwner = settings?.role === 'OWNER'
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.headerRow}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <Icon name="chevronLeft" size={22} color={colors.slate800} />
         </Pressable>
         <Text style={styles.heading}>Settings</Text>
-        <View style={{ width: 22 }} />
+        <View style={styles.headerSpacer} />
       </View>
 
-      <View style={styles.row}>
-        <View style={styles.rowIconLabel}>
-          <View style={styles.rowIcon}>
-            <Icon name="bell" size={16} color={colors.brand600} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.rowLabel}>Push notifications</Text>
-            <Text style={styles.rowHint}>Appointment updates and new messages</Text>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        {/* Profile card */}
+        <View style={styles.profileCard}>
+          <Pressable
+            onPress={handleAvatar}
+            disabled={uploadingAvatar}
+            style={styles.avatarWrap}
+            accessibilityRole="button"
+            accessibilityLabel="Change profile photo"
+            accessibilityState={{ disabled: uploadingAvatar }}
+          >
+            {settings?.avatarUrl ? (
+              <Image source={{ uri: settings.avatarUrl }} style={styles.avatar} resizeMode="cover" />
+            ) : (
+              <View style={styles.avatarFallback}>
+                <Text style={styles.avatarInitial}>{(settings?.name || '?')[0].toUpperCase()}</Text>
+              </View>
+            )}
+            <View style={styles.avatarBadge}>
+              {uploadingAvatar ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <Icon name="camera" size={13} color={colors.white} />
+              )}
+            </View>
+          </Pressable>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName} numberOfLines={1}>{settings?.name || 'StayOnMap user'}</Text>
+            <Text style={styles.profileEmail} numberOfLines={1}>{settings?.email}</Text>
+            <View style={styles.roleBadge}>
+              <Icon name={isOwner ? 'home' : 'key'} size={11} color={colors.brand700} />
+              <Text style={styles.roleBadgeText}>{isOwner ? 'Owner' : 'Tenant'}</Text>
+            </View>
           </View>
         </View>
-        <Pressable
-          style={[styles.switchTrack, pushNotifs && styles.switchTrackActive]}
-          onPress={() => mutation.mutate(!pushNotifs)}
-          disabled={mutation.isPending}
-        >
-          <View style={[styles.switchThumb, pushNotifs && styles.switchThumbActive]} />
-        </Pressable>
-      </View>
 
-      <Text style={styles.sectionLabel}>Legal</Text>
-      <Pressable style={styles.row} onPress={() => Linking.openURL('https://www.stayonmap.com/privacy')}>
-        <View style={styles.rowIconLabel}>
-          <View style={styles.rowIcon}>
-            <Icon name="document" size={16} color={colors.brand600} />
+        <Text style={styles.sectionLabel}>Profile</Text>
+        <MenuItem icon="edit" label="Edit profile" hint="Name, phone, and bio" onPress={() => setActiveSheet('profile')} />
+        <MenuItem icon="link" label="Social links" hint="Website, LinkedIn, Instagram, X" onPress={() => setActiveSheet('social')} />
+        <MenuItem
+          icon="eye"
+          label="Privacy & visibility"
+          hint={isOwner ? 'Listing, contact, and location visibility' : 'Contact and location visibility'}
+          onPress={() => setActiveSheet('privacy')}
+        />
+
+        <Text style={styles.sectionLabel}>Notifications</Text>
+        <SettingsToggle
+          icon="mail"
+          label="Email notifications"
+          hint="Appointments, leases, alerts"
+          value={settings?.emailNotifs ?? true}
+          onChange={(v) => saveToggle({ emailNotifs: v })}
+          disabled={togglePending}
+        />
+        <SettingsToggle
+          icon="bell"
+          label="Push notifications"
+          hint="Appointment updates and new messages"
+          value={settings?.pushNotifs ?? true}
+          onChange={(v) => saveToggle({ pushNotifs: v })}
+          disabled={togglePending}
+        />
+
+        <Text style={styles.sectionLabel}>Account</Text>
+        {settings?.isVerified ? (
+          <View style={styles.verifiedRow}>
+            <View style={styles.verifiedIcon}>
+              <Icon name="shieldCheck" size={16} color={colors.brand600} />
+            </View>
+            <View style={styles.verifiedLabels}>
+              <Text style={styles.verifiedLabel}>Email verification</Text>
+              <Text style={styles.verifiedHint}>Your email address is confirmed</Text>
+            </View>
+            <View style={styles.verifiedPill}>
+              <Text style={styles.verifiedPillText}>Verified</Text>
+            </View>
           </View>
-          <Text style={styles.rowLabel}>Privacy Policy</Text>
-        </View>
-        <Icon name="chevronRight" size={16} color={colors.slate400} />
-      </Pressable>
-      <Pressable style={styles.row} onPress={() => Linking.openURL('https://www.stayonmap.com/terms')}>
-        <View style={styles.rowIconLabel}>
-          <View style={styles.rowIcon}>
-            <Icon name="document" size={16} color={colors.brand600} />
-          </View>
-          <Text style={styles.rowLabel}>Terms of Service</Text>
-        </View>
-        <Icon name="chevronRight" size={16} color={colors.slate400} />
-      </Pressable>
+        ) : (
+          <MenuItem
+            icon="shield"
+            label={sendingVerification ? 'Sending...' : 'Verify email'}
+            hint="Confirm your email to mark your account as trusted"
+            onPress={() => !sendingVerification && resendVerification()}
+          />
+        )}
+        <MenuItem
+          icon="lock"
+          label={sendingReset ? 'Sending...' : 'Reset password'}
+          hint="We will email you a reset link"
+          onPress={() => !sendingReset && sendPasswordReset()}
+        />
+        {!isOwner && (
+          <MenuItem
+            icon="home"
+            label={upgrading ? 'Upgrading...' : 'Become an owner'}
+            hint="Start listing and managing rentals"
+            onPress={() => !upgrading && confirmUpgrade()}
+          />
+        )}
+
+        <Text style={styles.sectionLabel}>Legal</Text>
+        <MenuItem icon="document" label="Privacy Policy" onPress={() => Linking.openURL('https://www.stayonmap.com/privacy')} />
+        <MenuItem icon="document" label="Terms of Service" onPress={() => Linking.openURL('https://www.stayonmap.com/terms')} />
+
+        <Text style={styles.sectionLabel}>Danger zone</Text>
+        <MenuItem
+          icon="trash"
+          label="Delete account"
+          hint="Removes all data permanently"
+          danger
+          onPress={() => setActiveSheet('delete')}
+        />
+      </ScrollView>
+
+      <EditProfileSheet visible={activeSheet === 'profile'} onClose={() => setActiveSheet(null)} settings={settings} />
+      <SocialLinksSheet visible={activeSheet === 'social'} onClose={() => setActiveSheet(null)} settings={settings} />
+      <PrivacySheet visible={activeSheet === 'privacy'} onClose={() => setActiveSheet(null)} settings={settings} />
+      <DeleteAccountSheet visible={activeSheet === 'delete'} onClose={() => setActiveSheet(null)} />
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white, padding: spacing.lg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
-  heading: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  sectionLabel: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: spacing.lg, marginBottom: spacing.xs },
-  row: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.slate100,
+  container: { flex: 1, backgroundColor: colors.slate50 },
+  center: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.white, gap: spacing.sm, padding: spacing.lg,
   },
-  rowIconLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 },
-  rowIcon: { width: 36, height: 36, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center' },
-  rowLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate800 },
-  rowHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
-  switchTrack: { width: 44, height: 26, borderRadius: 13, backgroundColor: colors.slate200, padding: 3 },
-  switchTrackActive: { backgroundColor: colors.brand600 },
-  switchThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.white },
-  switchThumbActive: { transform: [{ translateX: 18 }] },
+  errorText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate600 },
+  retryButton: {
+    minHeight: 48, minWidth: 120, borderRadius: radius.md, backgroundColor: colors.brand600,
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg, marginTop: spacing.sm,
+  },
+  retryText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.white },
+  headerRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
+  },
+  backButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  headerSpacer: { width: 48 },
+  heading: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
+  profileCard: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  avatarWrap: { width: 64, height: 64 },
+  avatar: { width: 64, height: 64, borderRadius: radius.full, backgroundColor: colors.slate100 },
+  avatarFallback: {
+    width: 64, height: 64, borderRadius: radius.full, backgroundColor: colors.brand100,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  avatarInitial: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.brand700 },
+  avatarBadge: {
+    position: 'absolute', bottom: -2, right: -2,
+    width: 26, height: 26, borderRadius: 13, backgroundColor: colors.slate800,
+    borderWidth: 2, borderColor: colors.white,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  profileInfo: { flex: 1 },
+  profileName: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
+  profileEmail: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2 },
+  roleBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start',
+    marginTop: spacing.xs, backgroundColor: colors.brand50, borderRadius: radius.full,
+    paddingHorizontal: spacing.sm, paddingVertical: 3,
+  },
+  roleBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
+  sectionLabel: {
+    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400,
+    textTransform: 'uppercase', letterSpacing: 0.5,
+    marginTop: spacing.lg, marginBottom: spacing.xs,
+  },
+  verifiedRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 48,
+    paddingVertical: spacing.sm + 2, borderBottomWidth: 1, borderBottomColor: colors.slate100,
+  },
+  verifiedIcon: { width: 34, height: 34, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center' },
+  verifiedLabels: { flex: 1 },
+  verifiedLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate800 },
+  verifiedHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
+  verifiedPill: { backgroundColor: colors.brand50, borderRadius: radius.full, paddingHorizontal: spacing.sm + 2, paddingVertical: 4 },
+  verifiedPillText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
 })

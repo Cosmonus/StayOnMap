@@ -1,27 +1,43 @@
-// Mobile-specific palette per the StayOnMap Mobile PDF spec (#0E9D66 anchor).
-// Deliberately distinct from web's brand-* Tailwind scale (#0284c7/sky-blue,
-// see .claude/ui-ux.md) — not a reconciliation, two separate surfaces.
+// Terrain Jade — ported verbatim from web's tailwind.config.js (the
+// 2026 design-system overhaul: jade brand, warm neutral slates, sun-orange
+// accent). Web and mobile now share one palette; only typography stays
+// platform-specific (Sora/Inter here vs Plus Jakarta Sans on web).
 export const colors = {
-  brand50: '#E9F9F1',
-  brand100: '#CDF1E0',
-  brand500: '#12B579',
-  brand600: '#0E9D66',
-  brand700: '#0B7D52',
-  brand900: '#054A32',
+  brand50: '#edfaf7',
+  brand100: '#d0f3e8',
+  brand200: '#9de5cc',
+  brand300: '#5dcfad',
+  brand400: '#2bba8d',
+  brand500: '#12a374',
+  brand600: '#0d8a5f',
+  brand700: '#0a6e4b',
+  brand800: '#085539',
+  brand900: '#053d29',
 
-  slate50: '#F8FAFC',
-  slate100: '#F1F5F9',
-  slate200: '#E2E8F0',
-  slate400: '#94A3B8',
-  slate500: '#64748B',
-  slate600: '#475569',
-  slate700: '#334155',
-  slate800: '#1E293B',
+  // Warm neutral slate override — replaces the cold blue-gray Tailwind scale
+  slate50: '#fafaf8',
+  slate100: '#f5f4f0',
+  slate200: '#eceae4',
+  slate300: '#d6d2c8',
+  slate400: '#a8a49b',
+  slate500: '#78736a',
+  slate600: '#524e47',
+  slate700: '#312e28',
+  slate800: '#1c1a16',
+  slate900: '#0d0c0a',
+
+  // Map accent — Sun Orange (search pin, navigation)
+  accent400: '#ff6b3d',
+  accent500: '#f4511e',
+  accent600: '#c93d11',
 
   white: '#FFFFFF',
   black: '#0A0A0A',
 
   danger: '#EF4444',
+  danger50: '#fef2f2',
   warning: '#F59E0B',
+  warning50: '#fffbeb',
   success: '#22C55E',
+  success50: '#f0fdf4',
 }

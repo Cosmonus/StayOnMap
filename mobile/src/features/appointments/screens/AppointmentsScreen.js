@@ -5,14 +5,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
 import { imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
+import ErrorState from '@components/common/ErrorState'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
 const STATUS = {
-  PENDING: { bg: '#FFFBEB', text: '#B45309', dot: '#FBBF24', label: 'Pending' },
-  ACCEPTED: { bg: '#F0FDF4', text: '#15803D', dot: '#4ADE80', label: 'Accepted' },
-  REJECTED: { bg: '#FEF2F2', text: '#DC2626', dot: '#F87171', label: 'Rejected' },
+  PENDING: { bg: colors.warning50, text: '#B45309', dot: '#FBBF24', label: 'Pending' },
+  ACCEPTED: { bg: colors.success50, text: '#15803D', dot: '#4ADE80', label: 'Accepted' },
+  REJECTED: { bg: colors.danger50, text: '#DC2626', dot: '#F87171', label: 'Rejected' },
   RESCHEDULED: { bg: colors.brand50, text: colors.brand700, dot: colors.brand500, label: 'Rescheduled' },
   CANCELLED: { bg: colors.slate50, text: colors.slate600, dot: colors.slate400, label: 'Cancelled' },
 }
@@ -43,7 +45,12 @@ function FilterDropdown({ value, options, onChange }) {
 
   return (
     <View>
-      <Pressable style={styles.filterTrigger} onPress={() => setOpen(true)}>
+      <Pressable
+        style={styles.filterTrigger}
+        onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`Filter by status, currently ${selected?.[1] ?? 'All'}`}
+      >
         <Text style={styles.filterTriggerText}>{selected?.[1] ?? 'All'}</Text>
         <Icon name="chevronDown" size={14} color={colors.slate500} />
       </Pressable>
@@ -53,7 +60,7 @@ function FilterDropdown({ value, options, onChange }) {
           <Pressable style={styles.dropdownSheet} onPress={(e) => e.stopPropagation()}>
             <View style={styles.dropdownSheetHeader}>
               <Text style={styles.dropdownSheetTitle}>Filter by status</Text>
-              <Pressable onPress={() => setOpen(false)} hitSlop={8}>
+              <Pressable onPress={() => setOpen(false)} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close filter options">
                 <Icon name="close" size={18} color={colors.slate400} />
               </Pressable>
             </View>
@@ -62,7 +69,13 @@ function FilterDropdown({ value, options, onChange }) {
               keyExtractor={([key]) => key}
               ItemSeparatorComponent={() => <View style={styles.dropdownSeparator} />}
               renderItem={({ item: [key, label] }) => (
-                <Pressable style={styles.dropdownOption} onPress={() => { onChange(key); setOpen(false) }}>
+                <Pressable
+                  style={styles.dropdownOption}
+                  onPress={() => { onChange(key); setOpen(false) }}
+                  accessibilityRole="button"
+                  accessibilityLabel={label}
+                  accessibilityState={{ selected: key === value }}
+                >
                   <Text style={[styles.dropdownOptionText, key === value && styles.dropdownOptionTextActive]}>{label}</Text>
                   {key === value && <Icon name="check" size={16} color={colors.brand600} />}
                 </Pressable>
@@ -131,11 +144,11 @@ function OwnerCard({ appt, onAction }) {
 
       {isPending && !rejecting && (
         <View style={styles.actionRow}>
-          <Pressable style={styles.acceptButton} onPress={() => onAction(appt.id, 'ACCEPTED')}>
+          <Pressable style={styles.acceptButton} onPress={() => onAction(appt.id, 'ACCEPTED')} accessibilityRole="button" accessibilityLabel="Accept appointment">
             <Icon name="check" size={14} color={colors.white} />
             <Text style={styles.acceptButtonText}>Accept</Text>
           </Pressable>
-          <Pressable style={styles.rejectButton} onPress={() => setRejecting(true)}>
+          <Pressable style={styles.rejectButton} onPress={() => setRejecting(true)} accessibilityRole="button" accessibilityLabel="Reject appointment">
             <Icon name="close" size={14} color="#DC2626" />
             <Text style={styles.rejectButtonText}>Reject</Text>
           </Pressable>
@@ -153,10 +166,10 @@ function OwnerCard({ appt, onAction }) {
             multiline
           />
           <View style={styles.actionRow}>
-            <Pressable style={styles.cancelButton} onPress={() => { setRejecting(false); setNote('') }}>
+            <Pressable style={styles.cancelButton} onPress={() => { setRejecting(false); setNote('') }} accessibilityRole="button" accessibilityLabel="Cancel rejection">
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </Pressable>
-            <Pressable style={styles.confirmRejectButton} onPress={() => onAction(appt.id, 'REJECTED', note || undefined)}>
+            <Pressable style={styles.confirmRejectButton} onPress={() => onAction(appt.id, 'REJECTED', note || undefined)} accessibilityRole="button" accessibilityLabel="Confirm rejection">
               <Text style={styles.acceptButtonText}>Confirm</Text>
             </Pressable>
           </View>
@@ -212,13 +225,13 @@ export default function AppointmentsScreen({ navigation, route }) {
   const isIncoming = route?.params?.initialTab === 'incoming'
   const [filter, setFilter] = useState('all')
 
-  const { data: ownerAppts = [], isLoading: loadingOwner } = useQuery({
+  const { data: ownerAppts = [], isLoading: loadingOwner, isError: errorOwner, refetch: refetchOwner } = useQuery({
     queryKey: ['owner-appointments'],
     queryFn: () => appointmentService.owner().then((r) => r.data),
     enabled: isIncoming,
   })
 
-  const { data: myAppts = [], isLoading: loadingMine } = useQuery({
+  const { data: myAppts = [], isLoading: loadingMine, isError: errorMine, refetch: refetchMine } = useQuery({
     queryKey: ['my-appointments'],
     queryFn: () => appointmentService.mine().then((r) => r.data),
     enabled: !isIncoming,
@@ -232,13 +245,20 @@ export default function AppointmentsScreen({ navigation, route }) {
   const pendingCount = ownerAppts.filter((a) => a.status === 'PENDING').length
   const filteredOwner = filter === 'all' ? ownerAppts : ownerAppts.filter((a) => a.status === filter)
   const isLoading = isIncoming ? loadingOwner : loadingMine
+  const isError = isIncoming ? errorOwner : errorMine
+  const refetch = isIncoming ? refetchOwner : refetchMine
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
           {navigation.canGoBack() && (
-            <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
+            <Pressable
+              onPress={() => navigation.goBack()}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
               <Icon name="chevronLeft" size={20} color={colors.slate800} />
             </Pressable>
           )}
@@ -256,6 +276,8 @@ export default function AppointmentsScreen({ navigation, route }) {
 
       {isLoading ? (
         <View style={styles.center}><ActivityIndicator color={colors.brand600} /></View>
+      ) : isError ? (
+        <ErrorState title="Couldn't load appointments" onRetry={refetch} />
       ) : isIncoming ? (
         <FlatList
           data={filteredOwner}
@@ -301,14 +323,14 @@ const styles = StyleSheet.create({
   },
   filterTriggerText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
   dropdownBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  dropdownSheet: { backgroundColor: colors.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, maxHeight: '70%' },
+  dropdownSheet: { backgroundColor: colors.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, maxHeight: '70%', ...shadows.sheet },
   dropdownSheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.slate100 },
   dropdownSheetTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
   dropdownOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   dropdownOptionText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate700 },
   dropdownOptionTextActive: { color: colors.brand700, fontFamily: fonts.bodySemiBold },
   dropdownSeparator: { height: 1, backgroundColor: colors.slate100, marginHorizontal: spacing.lg },
-  card: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, padding: spacing.md, marginBottom: spacing.sm },
+  card: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, padding: spacing.md, marginBottom: spacing.sm, ...shadows.card },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   personRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },
   avatar: { width: 32, height: 32, borderRadius: radius.full, backgroundColor: colors.slate800, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
@@ -331,14 +353,14 @@ const styles = StyleSheet.create({
   replyNote: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#2563EB', marginBottom: spacing.sm, lineHeight: 18 },
   replyNoteLabel: { fontFamily: fonts.bodyMedium, color: '#60A5FA' },
   actionRow: { flexDirection: 'row', gap: spacing.sm },
-  acceptButton: { flex: 1, flexDirection: 'row', gap: 5, backgroundColor: '#111111', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
+  acceptButton: { flex: 1, minHeight: 44, flexDirection: 'row', gap: 5, backgroundColor: colors.black, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
   acceptButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
-  rejectButton: { flex: 1, flexDirection: 'row', gap: 5, backgroundColor: '#FEF2F2', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
+  rejectButton: { flex: 1, minHeight: 44, flexDirection: 'row', gap: 5, backgroundColor: colors.danger50, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
   rejectButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: '#DC2626' },
   rejectInput: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, padding: spacing.sm, fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate800, minHeight: 48, textAlignVertical: 'top' },
-  cancelButton: { flex: 1, backgroundColor: colors.slate100, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center' },
+  cancelButton: { flex: 1, minHeight: 44, backgroundColor: colors.slate100, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
   cancelButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate600 },
-  confirmRejectButton: { flex: 1, backgroundColor: colors.danger, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center' },
+  confirmRejectButton: { flex: 1, minHeight: 44, backgroundColor: colors.danger, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
   empty: { alignItems: 'center', paddingVertical: spacing.xxl },
   emptyIcon: { width: 48, height: 48, borderRadius: radius.full, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700 },

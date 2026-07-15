@@ -22,13 +22,13 @@ export default function LocationMapCard({ lat, lng }) {
     <View style={styles.section}>
       <View style={styles.header}>
         <Text style={styles.sectionTitle}>Location</Text>
-        <Pressable style={styles.directionsButton} onPress={openDirections}>
+        <Pressable style={styles.directionsButton} onPress={openDirections} hitSlop={{ top: 8, bottom: 8 }} accessibilityRole="button" accessibilityLabel="Get directions">
           <Icon name="arrowRight" size={14} color={colors.white} />
           <Text style={styles.directionsText}>Directions</Text>
         </Pressable>
       </View>
 
-      <Pressable style={styles.mapWrap} onPress={openDirections}>
+      <Pressable style={styles.mapWrap} onPress={openDirections} accessibilityRole="button" accessibilityLabel="Open location in maps app">
         <NativeMapView
           provider={PROVIDER_GOOGLE}
           style={StyleSheet.absoluteFill}

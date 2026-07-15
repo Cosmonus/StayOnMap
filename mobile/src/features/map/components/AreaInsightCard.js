@@ -5,6 +5,7 @@ import { areasService } from '@services/areas.service'
 import { formatCurrency } from '@utils/format'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -60,7 +61,12 @@ export default function AreaInsightCard({ slug, onClose }) {
               <Text style={styles.fullName} numberOfLines={1}>{area.fullName}</Text>
             )}
           </View>
-          <Pressable onPress={onClose} hitSlop={8}>
+          <Pressable
+            onPress={onClose}
+            hitSlop={14}
+            accessibilityLabel="Close area insights"
+            accessibilityRole="button"
+          >
             <Icon name="close" size={18} color={colors.slate400} />
           </Pressable>
         </View>
@@ -102,7 +108,8 @@ const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
   card: {
     backgroundColor: colors.white, borderRadius: radius.xl, padding: spacing.md,
-    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+    borderWidth: 1, borderColor: colors.slate100,
+    ...shadows.float,
   },
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm },
   headerText: { flex: 1, minWidth: 0 },

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { leaseService } from '@services/lease.service'
@@ -47,70 +47,72 @@ export default function CreateLeaseScreen({ route, navigation }) {
           <Icon name="document" size={18} color={colors.slate800} />
           <Text style={styles.headerTitle}>Offer Lease</Text>
         </View>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
+        <Pressable onPress={() => navigation.goBack()} hitSlop={16} accessibilityRole="button" accessibilityLabel="Close">
           <Icon name="close" size={18} color={colors.brand600} />
         </Pressable>
       </View>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.propertyTitle}>{propertyTitle}</Text>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <Text style={styles.propertyTitle}>{propertyTitle}</Text>
 
-        {err ? <Text style={styles.errorText}>{err}</Text> : null}
+          {err ? <Text style={styles.errorText}>{err}</Text> : null}
 
-        <Text style={styles.label}>Tenant User ID</Text>
-        <TextInput
-          style={styles.input}
-          value={form.tenantId}
-          onChangeText={(v) => setForm((f) => ({ ...f, tenantId: v }))}
-          placeholder="Paste tenant's user ID"
-          placeholderTextColor={colors.slate400}
-          autoCapitalize="none"
-        />
-        <Text style={styles.hint}>Find the tenant ID in their appointment details</Text>
+          <Text style={styles.label}>Tenant User ID</Text>
+          <TextInput
+            style={styles.input}
+            value={form.tenantId}
+            onChangeText={(v) => setForm((f) => ({ ...f, tenantId: v }))}
+            placeholder="Paste tenant's user ID"
+            placeholderTextColor={colors.slate400}
+            autoCapitalize="none"
+          />
+          <Text style={styles.hint}>Find the tenant ID in their appointment details</Text>
 
-        <View style={styles.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Start date</Text>
-            <TextInput style={styles.input} value={form.startDate} onChangeText={(v) => setForm((f) => ({ ...f, startDate: v }))} placeholder="YYYY-MM-DD" placeholderTextColor={colors.slate400} />
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.label}>Start date</Text>
+              <TextInput style={styles.input} value={form.startDate} onChangeText={(v) => setForm((f) => ({ ...f, startDate: v }))} placeholder="YYYY-MM-DD" placeholderTextColor={colors.slate400} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.label}>End date</Text>
+              <TextInput style={styles.input} value={form.endDate} onChangeText={(v) => setForm((f) => ({ ...f, endDate: v }))} placeholder="YYYY-MM-DD" placeholderTextColor={colors.slate400} />
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>End date</Text>
-            <TextInput style={styles.input} value={form.endDate} onChangeText={(v) => setForm((f) => ({ ...f, endDate: v }))} placeholder="YYYY-MM-DD" placeholderTextColor={colors.slate400} />
-          </View>
-        </View>
 
-        <View style={styles.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Monthly rent (₹)</Text>
-            <TextInput style={styles.input} value={form.rentAmount} onChangeText={(v) => setForm((f) => ({ ...f, rentAmount: v }))} placeholder="28000" placeholderTextColor={colors.slate400} keyboardType="numeric" />
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.label}>Monthly rent (₹)</Text>
+              <TextInput style={styles.input} value={form.rentAmount} onChangeText={(v) => setForm((f) => ({ ...f, rentAmount: v }))} placeholder="28000" placeholderTextColor={colors.slate400} keyboardType="numeric" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.label}>Deposit (₹)</Text>
+              <TextInput style={styles.input} value={form.depositAmount} onChangeText={(v) => setForm((f) => ({ ...f, depositAmount: v }))} placeholder="56000" placeholderTextColor={colors.slate400} keyboardType="numeric" />
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Deposit (₹)</Text>
-            <TextInput style={styles.input} value={form.depositAmount} onChangeText={(v) => setForm((f) => ({ ...f, depositAmount: v }))} placeholder="56000" placeholderTextColor={colors.slate400} keyboardType="numeric" />
-          </View>
-        </View>
 
-        <Text style={styles.label}>Note to tenant (optional)</Text>
-        <TextInput
-          style={[styles.input, styles.textarea]}
-          value={form.ownerNote}
-          onChangeText={(v) => setForm((f) => ({ ...f, ownerNote: v }))}
-          placeholder="Any specific terms or notes..."
-          placeholderTextColor={colors.slate400}
-          multiline
-          numberOfLines={2}
-        />
+          <Text style={styles.label}>Note to tenant (optional)</Text>
+          <TextInput
+            style={[styles.input, styles.textarea]}
+            value={form.ownerNote}
+            onChangeText={(v) => setForm((f) => ({ ...f, ownerNote: v }))}
+            placeholder="Any specific terms or notes..."
+            placeholderTextColor={colors.slate400}
+            multiline
+            numberOfLines={2}
+          />
 
-        <Pressable style={[styles.submitButton, isPending && styles.disabled]} onPress={handleSubmit} disabled={isPending}>
-          {isPending ? (
-            <ActivityIndicator color={colors.white} size="small" />
-          ) : (
-            <>
-              <Icon name="send" size={14} color={colors.white} />
-              <Text style={styles.submitButtonText}>Send lease offer</Text>
-            </>
-          )}
-        </Pressable>
-      </ScrollView>
+          <Pressable style={[styles.submitButton, isPending && styles.disabled]} onPress={handleSubmit} disabled={isPending} accessibilityRole="button" accessibilityState={{ disabled: isPending }}>
+            {isPending ? (
+              <ActivityIndicator color={colors.white} size="small" />
+            ) : (
+              <>
+                <Icon name="send" size={14} color={colors.white} />
+                <Text style={styles.submitButtonText}>Send lease offer</Text>
+              </>
+            )}
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   )
 }
@@ -132,7 +134,7 @@ const styles = StyleSheet.create({
   textarea: { minHeight: 60, textAlignVertical: 'top' },
   hint: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400, marginTop: 2 },
   row: { flexDirection: 'row', gap: spacing.sm },
-  submitButton: { flexDirection: 'row', gap: 6, backgroundColor: '#111111', borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', justifyContent: 'center', marginTop: spacing.lg },
+  submitButton: { minHeight: 44, flexDirection: 'row', gap: 6, backgroundColor: colors.black, borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', justifyContent: 'center', marginTop: spacing.lg },
   submitButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   disabled: { opacity: 0.6 },
 })

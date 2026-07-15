@@ -71,15 +71,19 @@ export default function CalendarScreen() {
           <>
             <View style={styles.monthNav}>
               <Pressable
-                hitSlop={8}
+                hitSlop={14}
                 onPress={() => setCursor((c) => (c.month === 0 ? { year: c.year - 1, month: 11 } : { ...c, month: c.month - 1 }))}
+                accessibilityRole="button"
+                accessibilityLabel="Previous month"
               >
                 <Icon name="chevronLeft" size={18} color={colors.slate500} />
               </Pressable>
               <Text style={styles.monthLabel}>{monthLabel}</Text>
               <Pressable
-                hitSlop={8}
+                hitSlop={14}
                 onPress={() => setCursor((c) => (c.month === 11 ? { year: c.year + 1, month: 0 } : { ...c, month: c.month + 1 }))}
+                accessibilityRole="button"
+                accessibilityLabel="Next month"
               >
                 <Icon name="chevronRight" size={18} color={colors.slate500} />
               </Pressable>
@@ -135,7 +139,7 @@ export default function CalendarScreen() {
 const CELL_WIDTH = `${100 / 7}%`
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
+  container: { flex: 1, backgroundColor: colors.slate50 },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
   title: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
   subtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2, marginBottom: spacing.lg },

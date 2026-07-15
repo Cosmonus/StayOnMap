@@ -2,6 +2,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useMapStore } from '@store/mapStore'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -26,6 +27,10 @@ export default function MapLayerPills() {
             key={key}
             style={[styles.pill, active && { backgroundColor: activeColor, borderColor: activeColor }]}
             onPress={() => toggleLayer(key)}
+            hitSlop={{ top: 8, bottom: 8 }}
+            accessibilityLabel={`${label} layer`}
+            accessibilityRole="button"
+            accessibilityState={{ selected: !!active }}
           >
             <Icon name={icon} size={14} color={active ? colors.white : colors.slate600} />
             <Text style={[styles.pillText, active && styles.pillTextActive]}>{label}</Text>
@@ -42,7 +47,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     borderWidth: 1, borderColor: colors.slate200, backgroundColor: colors.white,
     borderRadius: radius.md, paddingHorizontal: spacing.sm + 2, paddingVertical: spacing.xs + 2,
-    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2,
+    ...shadows.md,
   },
   pillText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate600 },
   pillTextActive: { color: colors.white },

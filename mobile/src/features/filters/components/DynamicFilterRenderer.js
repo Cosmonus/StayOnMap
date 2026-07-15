@@ -9,6 +9,7 @@ import FilterSection from './FilterSection'
 import ChipGroup from './ChipGroup'
 import RangeControl from './RangeControl'
 import ToggleRow from './ToggleRow'
+import FieldRow from './FieldRow'
 
 function Row({ row, draft, patch }) {
   switch (row.kind) {
@@ -18,6 +19,7 @@ function Row({ row, draft, patch }) {
           label={row.label}
           unit={row.unit}
           chips={row.chips}
+          slider={row.slider}
           min={draft[row.idMin]}
           max={draft[row.idMax]}
           onChange={({ min, max }) => patch({ [row.idMin]: min, [row.idMax]: max })}
@@ -50,6 +52,18 @@ function Row({ row, draft, patch }) {
             />
           ))}
         </View>
+      )
+    case 'number':
+    case 'date':
+      return (
+        <FieldRow
+          label={row.label}
+          type={row.kind}
+          unit={row.unit}
+          placeholder={row.placeholder}
+          value={draft[row.id]}
+          onChange={(v) => patch({ [row.id]: v })}
+        />
       )
     default:
       return null

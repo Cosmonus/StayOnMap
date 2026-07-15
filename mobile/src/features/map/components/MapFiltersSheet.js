@@ -4,6 +4,7 @@
 // config/filters.js; location search lives in MapSearchBar, not here.
 import { useState, useEffect } from 'react'
 import { View, Text, Modal, Pressable, ScrollView, StyleSheet } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFilterStore } from '@store/filterStore'
 import { DEFAULT_FILTERS, SEARCH_KEYS, countActiveFilters, staleFilterPatch } from '@config/filters'
@@ -12,6 +13,7 @@ import PropertyTypeSwitcher from '@features/filters/components/PropertyTypeSwitc
 import DynamicFilterRenderer from '@features/filters/components/DynamicFilterRenderer'
 import { useFilterCount } from '@features/filters/hooks/useFilterCount'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -47,47 +49,61 @@ export default function MapFiltersSheet({ visible, onClose }) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.handle} />
-          <View style={styles.header}>
-            <Text style={styles.heading}>Filters</Text>
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Icon name="close" size={20} color={colors.slate500} />
-            </Pressable>
-          </View>
-
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            <Text style={styles.groupLabel}>Property type</Text>
-            <View style={styles.typeSwitcher}>
-              <PropertyTypeSwitcher
-                selectedTypes={draft.types ?? []}
-                onChange={(types) => patch({ types, ...staleFilterPatch(types) })}
-              />
+      {/* RN <Modal> hosts a separate native root — RangeSlider's Pan gestures
+          need their own GestureHandlerRootView inside it (App.js's root
+          doesn't reach across the modal boundary on Android). */}
+      <GestureHandlerRootView style={styles.gestureRoot}>
+        <Pressable style={styles.backdrop} onPress={onClose}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.handle} />
+            <View style={styles.header}>
+              <Text style={styles.heading}>Filters</Text>
+              <Pressable onPress={onClose} hitSlop={14} accessibilityRole="button" accessibilityLabel="Close filters">
+                <Icon name="close" size={20} color={colors.slate500} />
+              </Pressable>
             </View>
-            <DynamicFilterRenderer draft={draft} patch={patch} />
-          </ScrollView>
 
-          <View style={styles.footer}>
-            <Pressable onPress={handleReset} disabled={activeCount === 0} hitSlop={8}>
-              <Text style={[styles.resetText, activeCount === 0 && styles.resetDisabled]}>Clear all</Text>
-            </Pressable>
-            <Pressable style={[styles.applyButton, isFetching && styles.applyFetching]} onPress={handleApply}>
-              <Text style={styles.applyButtonText}>{applyLabel}</Text>
-            </Pressable>
-          </View>
-          <SafeAreaView edges={['bottom']} />
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Text style={styles.groupLabel}>Property type</Text>
+              <View style={styles.typeSwitcher}>
+                <PropertyTypeSwitcher
+                  selectedTypes={draft.types ?? []}
+                  onChange={(types) => patch({ types, ...staleFilterPatch(types) })}
+                />
+              </View>
+              <DynamicFilterRenderer draft={draft} patch={patch} />
+            </ScrollView>
+
+            <View style={styles.footer}>
+              <Pressable
+                onPress={handleReset}
+                disabled={activeCount === 0}
+                hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel="Clear all filters"
+                accessibilityState={{ disabled: activeCount === 0 }}
+              >
+                <Text style={[styles.resetText, activeCount === 0 && styles.resetDisabled]}>Clear all</Text>
+              </Pressable>
+              <Pressable style={[styles.applyButton, isFetching && styles.applyFetching]} onPress={handleApply} accessibilityRole="button">
+                <Text style={styles.applyButtonText}>{applyLabel}</Text>
+              </Pressable>
+            </View>
+            <SafeAreaView edges={['bottom']} />
+          </Pressable>
         </Pressable>
-      </Pressable>
+      </GestureHandlerRootView>
     </Modal>
   )
 }
 
 const styles = StyleSheet.create({
+  gestureRoot: { flex: 1 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
     paddingHorizontal: spacing.lg, maxHeight: '90%',
+    ...shadows.sheet,
   },
   handle: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: colors.slate200, marginTop: spacing.sm + 2 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.md - 2 },
@@ -100,7 +116,7 @@ const styles = StyleSheet.create({
   },
   resetText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600, textDecorationLine: 'underline' },
   resetDisabled: { color: colors.slate200, textDecorationLine: 'none' },
-  applyButton: { backgroundColor: colors.slate800, borderRadius: radius.md, paddingVertical: spacing.md - 4, paddingHorizontal: spacing.lg, alignItems: 'center' },
+  applyButton: { minHeight: 44, justifyContent: 'center', backgroundColor: colors.slate800, borderRadius: radius.md, paddingVertical: spacing.md - 4, paddingHorizontal: spacing.lg, alignItems: 'center' },
   applyFetching: { opacity: 0.8 },
   applyButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
 })

@@ -20,7 +20,7 @@ export default function TypePicker({ onPick }) {
         {Object.entries(CATEGORIES).map(([key, c]) => {
           const biz = c.tier === 'biz'
           return (
-            <Pressable key={key} style={styles.card} onPress={() => onPick(key)}>
+            <Pressable key={key} style={styles.card} onPress={() => onPick(key)} accessibilityRole="button">
               <View style={[styles.cardIcon, biz && styles.cardIconBiz]}>
                 <Icon name="building" size={22} color={biz ? colors.white : colors.brand600} />
               </View>
@@ -61,10 +61,17 @@ export function BusinessGate({ onUpgraded, onChooseDifferent }) {
       </Text>
       {mutation.isError && <Text style={styles.gateError}>{mutation.error?.message ?? 'Something went wrong'}</Text>}
       <View style={styles.gateActions}>
-        <Pressable style={styles.gateSecondaryButton} onPress={onChooseDifferent}>
+        <Pressable style={styles.gateSecondaryButton} onPress={onChooseDifferent} accessibilityRole="button">
           <Text style={styles.gateSecondaryText}>Choose a different type</Text>
         </Pressable>
-        <Pressable style={[styles.gatePrimaryButton, mutation.isPending && styles.disabled]} onPress={() => mutation.mutate()} disabled={mutation.isPending}>
+        <Pressable
+          style={[styles.gatePrimaryButton, mutation.isPending && styles.disabled]}
+          onPress={() => mutation.mutate()}
+          disabled={mutation.isPending}
+          accessibilityRole="button"
+          accessibilityLabel="Upgrade to Business"
+          accessibilityState={{ disabled: mutation.isPending, busy: mutation.isPending }}
+        >
           {mutation.isPending ? <ActivityIndicator color={colors.white} size="small" /> : <Text style={styles.gatePrimaryText}>Upgrade to Business</Text>}
         </Pressable>
       </View>

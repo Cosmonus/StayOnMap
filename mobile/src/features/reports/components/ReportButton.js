@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query'
 import { reportService } from '@services/report.service'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
 
@@ -44,7 +45,7 @@ export default function ReportButton({ propertyId }) {
 
   return (
     <>
-      <Pressable style={styles.trigger} onPress={() => setOpen(true)} hitSlop={8}>
+      <Pressable style={styles.trigger} onPress={() => setOpen(true)} hitSlop={14} accessibilityRole="button" accessibilityLabel="Report listing">
         <Icon name="alertTriangle" size={13} color={colors.danger} />
         <Text style={styles.triggerText}>Report listing</Text>
       </Pressable>
@@ -55,11 +56,11 @@ export default function ReportButton({ propertyId }) {
             {submitted ? (
               <View style={styles.successBox}>
                 <View style={styles.successIcon}>
-                  <Icon name="checkCircle" size={22} color="#059669" />
+                  <Icon name="checkCircle" size={22} color={colors.brand600} />
                 </View>
                 <Text style={styles.successTitle}>Report submitted</Text>
                 <Text style={styles.successBody}>Our team will review it within 24–48 hours.</Text>
-                <Pressable style={styles.closeButton} onPress={close}>
+                <Pressable style={styles.closeButton} onPress={close} accessibilityRole="button">
                   <Text style={styles.closeButtonText}>Close</Text>
                 </Pressable>
               </View>
@@ -67,7 +68,7 @@ export default function ReportButton({ propertyId }) {
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.headerRow}>
                   <Text style={styles.title}>Report this listing</Text>
-                  <Pressable onPress={close} hitSlop={8}><Icon name="close" size={18} color={colors.slate400} /></Pressable>
+                  <Pressable onPress={close} hitSlop={14} accessibilityRole="button" accessibilityLabel="Close report form"><Icon name="close" size={18} color={colors.slate400} /></Pressable>
                 </View>
 
                 <Text style={styles.label}>Category</Text>
@@ -77,6 +78,9 @@ export default function ReportButton({ propertyId }) {
                       key={c.value}
                       style={[styles.chip, form.category === c.value && styles.chipActive]}
                       onPress={() => setForm((f) => ({ ...f, category: c.value }))}
+                      hitSlop={{ top: 4, bottom: 4 }}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: form.category === c.value }}
                     >
                       <Text style={[styles.chipText, form.category === c.value && styles.chipTextActive]}>{c.label}</Text>
                     </Pressable>
@@ -90,6 +94,9 @@ export default function ReportButton({ propertyId }) {
                       key={s}
                       style={[styles.chip, form.severity === s && styles.chipActiveDanger]}
                       onPress={() => setForm((f) => ({ ...f, severity: s }))}
+                      hitSlop={{ top: 4, bottom: 4 }}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: form.severity === s }}
                     >
                       <Text style={[styles.chipText, form.severity === s && styles.chipTextActive]}>{s}</Text>
                     </Pressable>
@@ -107,7 +114,14 @@ export default function ReportButton({ propertyId }) {
                   numberOfLines={4}
                 />
 
-                <Pressable style={styles.anonRow} onPress={() => setForm((f) => ({ ...f, isAnonymous: !f.isAnonymous }))}>
+                <Pressable
+                  style={styles.anonRow}
+                  onPress={() => setForm((f) => ({ ...f, isAnonymous: !f.isAnonymous }))}
+                  hitSlop={{ top: 10, bottom: 10 }}
+                  accessibilityRole="checkbox"
+                  accessibilityLabel="Submit anonymously"
+                  accessibilityState={{ checked: form.isAnonymous }}
+                >
                   <View style={[styles.checkbox, form.isAnonymous && styles.checkboxChecked]}>
                     {form.isAnonymous && <Icon name="check" size={11} color={colors.white} />}
                   </View>
@@ -117,13 +131,16 @@ export default function ReportButton({ propertyId }) {
                 {mutation.isError && <Text style={styles.errorText}>{mutation.error?.message || 'Failed to submit. Please try again.'}</Text>}
 
                 <View style={styles.actionRow}>
-                  <Pressable style={styles.cancelButton} onPress={close}>
+                  <Pressable style={styles.cancelButton} onPress={close} accessibilityRole="button">
                     <Text style={styles.cancelButtonText}>Cancel</Text>
                   </Pressable>
                   <Pressable
                     style={[styles.submitButton, !isValid && styles.disabled]}
                     onPress={() => mutation.mutate(form)}
                     disabled={!isValid || mutation.isPending}
+                    accessibilityRole="button"
+                    accessibilityLabel="Submit report"
+                    accessibilityState={{ disabled: !isValid || mutation.isPending, busy: mutation.isPending }}
                   >
                     {mutation.isPending ? (
                       <ActivityIndicator color={colors.white} size="small" />
@@ -145,7 +162,7 @@ const styles = StyleSheet.create({
   trigger: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start' },
   triggerText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.danger },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg, maxHeight: '85%' },
+  sheet: { backgroundColor: colors.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg, maxHeight: '85%', ...shadows.sheet },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
   label: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700, marginTop: spacing.md, marginBottom: spacing.xs },
@@ -169,7 +186,7 @@ const styles = StyleSheet.create({
   submitButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   disabled: { opacity: 0.5 },
   successBox: { alignItems: 'center', paddingVertical: spacing.xl },
-  successIcon: { width: 48, height: 48, borderRadius: radius.full, backgroundColor: '#ECFDF5', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
+  successIcon: { width: 48, height: 48, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   successTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.lg, color: colors.slate800 },
   successBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: spacing.xs, textAlign: 'center' },
   closeButton: { marginTop: spacing.lg, backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm + 4 },

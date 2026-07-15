@@ -4,7 +4,22 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import { colors } from '@theme/colors'
 import AuthStack from './AuthStack'
 import AppTabs from './AppTabs'
-import { navigationRef } from './navigationRef'
+import { navigationRef, flushPendingReference } from './navigationRef'
+
+// Deep links resolve against the renter tab set (AppTabs.js's RENTER_TABS) —
+// the Explore stack owns PropertyDetail there.
+const linking = {
+  prefixes: ['stayonmap://'],
+  config: {
+    screens: {
+      Explore: {
+        screens: {
+          PropertyDetail: 'property/:propertyId',
+        },
+      },
+    },
+  },
+}
 
 export default function RootNavigator() {
   const { user, loading } = useAuth()
@@ -18,7 +33,7 @@ export default function RootNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} linking={linking} onReady={flushPendingReference}>
       {user ? <AppTabs /> : <AuthStack />}
     </NavigationContainer>
   )

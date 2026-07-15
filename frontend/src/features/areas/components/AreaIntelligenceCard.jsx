@@ -76,7 +76,7 @@ export default function AreaIntelligenceCard({ lat, lng }) {
 
   if (lat == null || lng == null) return null
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-2 animate-pulse">
         <div className="h-4 w-40 bg-slate-100 rounded" />
@@ -87,6 +87,10 @@ export default function AreaIntelligenceCard({ lat, lng }) {
       </div>
     )
   }
+
+  // Errored or empty response — the section is optional intelligence, so
+  // render nothing rather than a permanent skeleton or an error banner.
+  if (!data) return null
 
   const { transit, essentials, itCorridor, traffic } = data
   const nearbyEssentials = Object.entries(essentials ?? {}).filter(([, v]) => v.nearest)

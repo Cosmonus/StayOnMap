@@ -3,6 +3,7 @@ import { View, Text, Pressable, Modal, FlatList, StyleSheet } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Icon from './Icon'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -34,7 +35,12 @@ export default function Dropdown({ label, value, values, multiple = false, optio
 
   return (
     <View>
-      <Pressable style={styles.trigger} onPress={() => setOpen(true)}>
+      <Pressable
+        style={styles.trigger}
+        onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`${label ?? placeholder}, ${displayText}`}
+      >
         <Text style={[styles.triggerText, !selectedLabels.length && styles.placeholder]} numberOfLines={1}>
           {displayText}
         </Text>
@@ -46,7 +52,12 @@ export default function Dropdown({ label, value, values, multiple = false, optio
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>{label ?? placeholder}</Text>
-              <Pressable onPress={() => setOpen(false)} hitSlop={8}>
+              <Pressable
+                onPress={() => setOpen(false)}
+                hitSlop={14}
+                accessibilityRole="button"
+                accessibilityLabel={`Close ${label ?? placeholder} picker`}
+              >
                 <Icon name="close" size={18} color={colors.slate400} />
               </Pressable>
             </View>
@@ -57,7 +68,12 @@ export default function Dropdown({ label, value, values, multiple = false, optio
               renderItem={({ item }) => {
                 const active = selectedValues.includes(item.value)
                 return (
-                  <Pressable style={styles.option} onPress={() => handlePick(item.value)}>
+                  <Pressable
+                    style={styles.option}
+                    onPress={() => handlePick(item.value)}
+                    accessibilityRole={multiple ? 'checkbox' : 'radio'}
+                    accessibilityState={{ checked: active }}
+                  >
                     <Text style={[styles.optionText, active && styles.optionTextActive]}>{item.label}</Text>
                     {active && <Icon name="check" size={16} color={colors.brand600} />}
                   </Pressable>
@@ -66,7 +82,7 @@ export default function Dropdown({ label, value, values, multiple = false, optio
             />
             {multiple && (
               <View style={styles.doneRow}>
-                <Pressable style={styles.doneButton} onPress={() => setOpen(false)}>
+                <Pressable style={styles.doneButton} onPress={() => setOpen(false)} accessibilityRole="button">
                   <Text style={styles.doneButtonText}>Done</Text>
                 </Pressable>
               </View>
@@ -88,7 +104,7 @@ const styles = StyleSheet.create({
   triggerText: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.base, color: colors.slate800 },
   placeholder: { color: colors.slate400 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, maxHeight: '70%' },
+  sheet: { backgroundColor: colors.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, maxHeight: '70%', ...shadows.sheet },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.slate100 },
   sheetTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
   option: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
@@ -96,6 +112,6 @@ const styles = StyleSheet.create({
   optionTextActive: { color: colors.brand700, fontFamily: fonts.bodySemiBold },
   separator: { height: 1, backgroundColor: colors.slate100, marginHorizontal: spacing.lg },
   doneRow: { padding: spacing.md, borderTopWidth: 1, borderTopColor: colors.slate100 },
-  doneButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.sm + 2, alignItems: 'center' },
+  doneButton: { minHeight: 44, justifyContent: 'center', backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.sm + 2, alignItems: 'center' },
   doneButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
 })

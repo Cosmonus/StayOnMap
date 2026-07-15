@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { View, Text, Pressable, StyleSheet, BackHandler } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useFocusEffect } from '@react-navigation/native'
 import MapView from '@features/map/components/MapView'
 import MapSearchBar from '@features/map/components/MapSearchBar'
 import MapFiltersSheet from '@features/map/components/MapFiltersSheet'
 import MapLayerPills from '@features/map/components/MapLayerPills'
+import MapLegend from '@features/map/components/MapLegend'
 import AreaInsightCard from '@features/map/components/AreaInsightCard'
 import PinPreviewCard from '../components/PinPreviewCard'
 import Logo from '@components/common/Logo'
@@ -13,6 +15,7 @@ import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
 import { countActiveFilters } from '@config/filters'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -28,6 +31,25 @@ export default function ExploreScreen({ navigation }) {
   const searchBarRef = useRef(null)
 
   const activeFilterCount = countActiveFilters(filters)
+  const overlayOpen = !!(selectedPinId || selectedAreaSlug)
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!overlayOpen && !searchOpen) return undefined
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (overlayOpen) {
+          clearSelection()
+          return true
+        }
+        if (searchOpen) {
+          setSearchOpen(false)
+          return true
+        }
+        return false
+      })
+      return () => sub.remove()
+    }, [overlayOpen, searchOpen, clearSelection])
+  )
 
   // Search starts collapsed to just the header icon — MapSearchBar (with its
   // full input + Go button) only mounts once opened, so focus it right after
@@ -50,10 +72,23 @@ export default function ExploreScreen({ navigation }) {
         <SafeAreaView edges={['top']} style={styles.header}>
           <Logo />
           <View style={styles.headerActions}>
-            <Pressable style={styles.iconButton} onPress={() => setSearchOpen((v) => !v)}>
+            <Pressable
+              style={styles.iconButton}
+              onPress={() => setSearchOpen((v) => !v)}
+              hitSlop={6}
+              accessibilityLabel="Search places"
+              accessibilityRole="button"
+              accessibilityState={{ expanded: searchOpen }}
+            >
               <Icon name="search" size={16} color={colors.slate700} />
             </Pressable>
-            <Pressable style={styles.filterButton} onPress={() => setFiltersOpen(true)}>
+            <Pressable
+              style={styles.filterButton}
+              onPress={() => setFiltersOpen(true)}
+              hitSlop={6}
+              accessibilityLabel={activeFilterCount > 0 ? `Filters, ${activeFilterCount} active` : 'Filters'}
+              accessibilityRole="button"
+            >
               <Icon name="filter" size={16} color={colors.slate700} />
               <Text style={styles.filterButtonText}>Filters</Text>
               {activeFilterCount > 0 && (
@@ -70,6 +105,7 @@ export default function ExploreScreen({ navigation }) {
           </View>
         )}
         <MapLayerPills />
+        <MapLegend />
       </View>
 
       {selectedPinId && (
@@ -95,7 +131,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: colors.white,
     paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.sm,
-    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3,
+    ...shadows.md,
   },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   iconButton: {

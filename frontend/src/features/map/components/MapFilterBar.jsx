@@ -1,6 +1,8 @@
-// The map header's search bar — just a place search + submit. Everything
-// else (property type, BHK, furnishing, budget, …) lives in the filter
-// modal next to this bar.
+// The map header's search bar — a location search + submit, nothing else.
+// Search is location-only by design (no city selector); every other filter
+// (property type, BHK, furnishing, budget, …) lives in the filter modal next
+// to this bar. Rendered on all screen sizes: on mobile this is the only
+// search surface (the map itself has no floating search controls).
 import { useState, useEffect } from 'react'
 import { Search } from 'lucide-react'
 import { useFilterStore } from '@store/filterStore'
@@ -30,8 +32,8 @@ export default function MapFilterBar() {
   }
 
   return (
-    <div className="hidden md:flex items-center gap-2.5 h-14 pl-4 pr-2 bg-white rounded-full border border-slate-200">
-      <div className="w-96">
+    <div className="flex flex-1 md:flex-initial items-center gap-2 md:gap-2.5 h-12 md:h-14 pl-4 pr-1.5 md:pr-2 bg-white rounded-full border border-slate-200">
+      <div className="flex-1 min-w-0 md:flex-none md:w-96">
         <AreaInput
           value={area}
           city={city}
@@ -44,7 +46,7 @@ export default function MapFilterBar() {
         type="button"
         onClick={handleSearch}
         aria-label="Search rentals"
-        className="w-10 h-10 rounded-full bg-brand-600 hover:bg-brand-700 flex items-center justify-center text-white shrink-0 transition-colors"
+        className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-brand-600 hover:bg-brand-700 flex items-center justify-center text-white shrink-0 transition-colors"
       >
         <Search size={16} strokeWidth={2.5} />
       </button>

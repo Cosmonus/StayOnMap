@@ -1,4 +1,4 @@
-import { ScrollView, Pressable, Text, View, StyleSheet } from 'react-native'
+import { ScrollView, Pressable, Text, View, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import AppointmentForm from '@features/appointments/components/AppointmentForm'
 import Icon from '@components/common/Icon'
@@ -16,18 +16,20 @@ export default function BookViewingScreen({ route, navigation }) {
           <Icon name="calendar" size={18} color={colors.slate800} />
           <Text style={styles.headerTitle}>Book a viewing</Text>
         </View>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={8} style={styles.closeButton}>
+        <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.closeButton} accessibilityRole="button" accessibilityLabel="Close">
           <Icon name="close" size={18} color={colors.brand600} />
         </Pressable>
       </View>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <AppointmentForm
-          propertyId={propertyId}
-          windowStart={windowStart}
-          windowEnd={windowEnd}
-          onSuccess={() => {}}
-        />
-      </ScrollView>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <AppointmentForm
+            propertyId={propertyId}
+            windowStart={windowStart}
+            windowEnd={windowEnd}
+            onSuccess={() => {}}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   )
 }

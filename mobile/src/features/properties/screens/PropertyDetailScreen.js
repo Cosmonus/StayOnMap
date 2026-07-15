@@ -14,16 +14,29 @@ import TrustScoreWidget from '@features/trust/components/TrustScoreWidget'
 import LocationMapCard from '../components/LocationMapCard'
 import AreaIntelligenceSection from '../components/AreaIntelligenceSection'
 import CommuteCalculator from '../components/CommuteCalculator'
+import AvailabilityBadge from '../components/AvailabilityBadge'
+import PropertyDetailsSection from '../components/PropertyDetailsSection'
+import PricingBreakdownSection from '../components/PricingBreakdownSection'
+import ZeroBrokerageBanner from '../components/ZeroBrokerageBanner'
+import HouseRulesSection from '../components/HouseRulesSection'
+import OwnerCard from '../components/OwnerCard'
+import PropertyAreaInsightCard from '../components/PropertyAreaInsightCard'
 import ReviewsSection from '@features/reviews/components/ReviewsSection'
 import ReportButton from '@features/reports/components/ReportButton'
 import Icon from '@components/common/Icon'
 import { imgUrl, formatCompact } from '@utils/format'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
 const FURNISHED_LABEL = { FULLY: 'Fully furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
 const SCREEN_WIDTH = Dimensions.get('window').width
+
+function formatType(type) {
+  if (!type) return null
+  return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
+}
 
 const AMENITY_ICON_RULES = [
   [/wifi|internet/, 'wifi'], [/lift|elevator/, 'elevator'], [/gym|fitness/, 'gym'],
@@ -109,7 +122,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.center} edges={['top']}>
-        <Pressable style={[styles.circleButton, styles.centerBack]} onPress={() => navigation.goBack()} hitSlop={8}>
+        <Pressable style={[styles.circleButton, styles.centerBack]} onPress={() => navigation.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Go back">
           <Icon name="chevronLeft" size={20} color={colors.slate800} />
         </Pressable>
         <ActivityIndicator color={colors.brand600} size="large" />
@@ -120,7 +133,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
   if (isError || !property) {
     return (
       <SafeAreaView style={styles.center} edges={['top']}>
-        <Pressable style={[styles.circleButton, styles.centerBack]} onPress={() => navigation.goBack()} hitSlop={8}>
+        <Pressable style={[styles.circleButton, styles.centerBack]} onPress={() => navigation.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Go back">
           <Icon name="chevronLeft" size={20} color={colors.slate800} />
         </Pressable>
         <Text style={styles.emptyText}>This listing isn&apos;t available anymore.</Text>
@@ -155,14 +168,21 @@ export default function PropertyDetailScreen({ route, navigation }) {
           </ScrollView>
 
           <SafeAreaView edges={['top']} style={styles.galleryHeader} pointerEvents="box-none">
-            <Pressable style={styles.circleButton} onPress={() => navigation.goBack()} hitSlop={8}>
+            <Pressable style={styles.circleButton} onPress={() => navigation.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Go back">
               <Icon name="chevronLeft" size={20} color={colors.slate800} />
             </Pressable>
             <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-              <Pressable style={styles.circleButton} onPress={handleShare} hitSlop={8}>
+              <Pressable style={styles.circleButton} onPress={handleShare} hitSlop={8} accessibilityRole="button" accessibilityLabel="Share this listing">
                 <Icon name="share" size={18} color={colors.slate800} />
               </Pressable>
-              <Pressable style={styles.circleButton} onPress={handleSave} hitSlop={8}>
+              <Pressable
+                style={styles.circleButton}
+                onPress={handleSave}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={isSaved ? 'Remove from saved' : 'Save this listing'}
+                accessibilityState={{ selected: isSaved }}
+              >
                 <Icon name={isSaved ? 'heartFilled' : 'heart'} size={18} color={isSaved ? colors.danger : colors.slate800} />
               </Pressable>
             </View>
@@ -176,6 +196,8 @@ export default function PropertyDetailScreen({ route, navigation }) {
             </View>
           )}
 
+          <AvailabilityBadge status={property.status} availableFrom={property.availableFrom} />
+
           <View style={styles.priceRow}>
             <Text style={styles.price}>{formatCompact(Number(property.rent))}<Text style={styles.priceUnit}>/mo</Text></Text>
             {property.deposit > 0 && <Text style={styles.deposit}>{formatCompact(Number(property.deposit))} deposit</Text>}
@@ -187,6 +209,11 @@ export default function PropertyDetailScreen({ route, navigation }) {
           })()}
 
           <Text style={styles.title}>{property.title}</Text>
+          {!!property.displayId && (
+            <View style={styles.idChip}>
+              <Text style={styles.idChipText}>{property.displayId}</Text>
+            </View>
+          )}
           <Text style={styles.location}>{property.address}, {property.city}</Text>
 
           {property.trustScore?.badge && (
@@ -208,6 +235,12 @@ export default function PropertyDetailScreen({ route, navigation }) {
                 <Text style={styles.chipText}>{FURNISHED_LABEL[property.furnished]}</Text>
               </View>
             )}
+            {!!property.type && (
+              <View style={styles.chip}>
+                <Icon name="home" size={13} color={colors.slate600} />
+                <Text style={styles.chipText}>{formatType(property.type)}</Text>
+              </View>
+            )}
             {property.area && (
               <View style={styles.chip}>
                 <Icon name="area" size={13} color={colors.slate600} />
@@ -223,8 +256,14 @@ export default function PropertyDetailScreen({ route, navigation }) {
             </View>
           )}
 
+          <PropertyDetailsSection property={property} />
+          <PricingBreakdownSection property={property} />
+          <ZeroBrokerageBanner brokerage={property.brokerage} />
+          <HouseRulesSection rules={property.rules} />
+
           <LocationMapCard lat={lat} lng={lng} />
           <AreaIntelligenceSection lat={lat} lng={lng} />
+          <PropertyAreaInsightCard city={property.city} landmark={property.landmark} />
           <CommuteCalculator lat={lat} lng={lng} />
 
           {!!amenities.length && (
@@ -241,17 +280,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
             </View>
           )}
 
-          {property.owner && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Posted by</Text>
-              <View style={styles.ownerRow}>
-                <View style={styles.ownerAvatar}>
-                  <Text style={styles.ownerAvatarText}>{(property.owner.name || '?')[0].toUpperCase()}</Text>
-                </View>
-                <Text style={styles.ownerName}>{property.owner.name || 'Property owner'}</Text>
-              </View>
-            </View>
-          )}
+          <OwnerCard owner={property.owner} />
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Trust & Safety</Text>
@@ -314,7 +343,7 @@ const styles = StyleSheet.create({
   circleButton: {
     width: 36, height: 36, borderRadius: radius.full, backgroundColor: 'rgba(255,255,255,0.92)',
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, elevation: 2,
+    ...shadows.md,
   },
   body: { padding: spacing.lg },
   priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm, marginBottom: spacing.xs },
@@ -323,6 +352,8 @@ const styles = StyleSheet.create({
   deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
   benchmark: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, marginBottom: spacing.xs },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.lg, color: colors.slate800, marginTop: spacing.xs },
+  idChip: { alignSelf: 'flex-start', backgroundColor: colors.slate100, borderRadius: radius.md, paddingHorizontal: 8, paddingVertical: 2, marginTop: 4 },
+  idChipText: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.slate500, letterSpacing: 0.5 },
   location: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2, marginBottom: spacing.md },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.slate100, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 6 },
@@ -332,17 +363,13 @@ const styles = StyleSheet.create({
   section: { marginTop: spacing.lg },
   sectionTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800, marginBottom: spacing.sm },
   description: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate600, lineHeight: 21 },
-  ownerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  ownerAvatar: { width: 40, height: 40, borderRadius: radius.full, backgroundColor: colors.brand100, alignItems: 'center', justifyContent: 'center' },
-  ownerAvatarText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.brand700 },
-  ownerName: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate800 },
   footer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     flexDirection: 'row', gap: spacing.sm, padding: spacing.md,
     backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.slate200,
   },
-  messageButton: { flex: 1, flexDirection: 'row', gap: 6, borderWidth: 1, borderColor: colors.brand600, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.sm + 4 },
+  messageButton: { flex: 1, minHeight: 44, flexDirection: 'row', gap: 6, borderWidth: 1, borderColor: colors.brand600, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.sm + 4 },
   messageButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand700 },
-  bookButton: { flex: 2, flexDirection: 'row', gap: 6, backgroundColor: colors.brand600, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.sm + 4 },
+  bookButton: { flex: 2, minHeight: 44, flexDirection: 'row', gap: 6, backgroundColor: colors.brand600, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.sm + 4 },
   bookButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
 })

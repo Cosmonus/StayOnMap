@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { View, Text, Image, FlatList, Pressable, StyleSheet } from 'react-native'
+import { View, Text, Image, FlatList, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { chatService } from '@services/chat.service'
@@ -7,6 +7,7 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import { getSocket } from '@lib/socket'
 import { imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
+import ErrorState from '@components/common/ErrorState'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -28,7 +29,7 @@ export default function ConversationListScreen({ navigation }) {
   const { user } = useAuth()
   const [onlineUsers, setOnlineUsers] = useState(new Set())
 
-  const { data: conversations = [] } = useQuery({
+  const { data: conversations = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['conversations'],
     queryFn: () => chatService.conversations().then((r) => r.data),
     refetchInterval: 15000,
@@ -43,6 +44,22 @@ export default function ConversationListScreen({ navigation }) {
     socket.on('user:offline', onOffline)
     return () => { socket.off('user:online', onOnline); socket.off('user:offline', onOffline) }
   }, [])
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.emptyContainer}>
+        <ActivityIndicator color={colors.brand600} />
+      </SafeAreaView>
+    )
+  }
+
+  if (isError) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <ErrorState title="Couldn't load conversations" onRetry={refetch} />
+      </SafeAreaView>
+    )
+  }
 
   if (!conversations.length) {
     return (
@@ -70,7 +87,12 @@ export default function ConversationListScreen({ navigation }) {
           const isOnline = onlineUsers.has(other?.id)
 
           return (
-            <Pressable style={styles.row} onPress={() => navigation.navigate('Conversation', { conversationId: c.id, other, otherRole })}>
+            <Pressable
+              style={styles.row}
+              onPress={() => navigation.navigate('Conversation', { conversationId: c.id, other, otherRole })}
+              accessibilityRole="button"
+              accessibilityLabel={`Conversation with ${displayName(other)} about ${c.property?.title ?? 'a property'}${unread > 0 ? `, ${unread} unread` : ''}`}
+            >
               <View>
                 {other?.avatarUrl || propertyImg ? (
                   <Image source={{ uri: imgUrl(other?.avatarUrl ?? propertyImg) }} style={styles.avatar} />
@@ -114,8 +136,8 @@ export default function ConversationListScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
-  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg, backgroundColor: colors.white },
+  container: { flex: 1, backgroundColor: colors.slate50 },
+  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg, backgroundColor: colors.slate50 },
   emptyIcon: { width: 52, height: 52, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate700 },
   emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: spacing.xs, textAlign: 'center' },
@@ -130,7 +152,7 @@ const styles = StyleSheet.create({
   name: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700, flexShrink: 1 },
   nameBold: { color: colors.slate900 },
   roleBadge: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 },
-  roleBadgeOwner: { backgroundColor: '#FFFBEB' },
+  roleBadgeOwner: { backgroundColor: colors.warning50 },
   roleBadgeTenant: { backgroundColor: '#EFF6FF' },
   roleBadgeText: { fontSize: 9, fontFamily: fonts.bodySemiBold },
   roleBadgeTextOwner: { color: '#D97706' },

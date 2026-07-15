@@ -38,11 +38,21 @@ export default function AvailabilityCalendar({ blockedDates, onChange }) {
       <Text style={styles.title}>Availability calendar</Text>
       <View style={styles.card}>
         <View style={styles.monthNav}>
-          <Pressable hitSlop={8} onPress={() => setCursor((c) => (c.month === 0 ? { year: c.year - 1, month: 11 } : { ...c, month: c.month - 1 }))}>
+          <Pressable
+            hitSlop={14}
+            onPress={() => setCursor((c) => (c.month === 0 ? { year: c.year - 1, month: 11 } : { ...c, month: c.month - 1 }))}
+            accessibilityRole="button"
+            accessibilityLabel="Previous month"
+          >
             <Text style={styles.navArrow}>‹</Text>
           </Pressable>
           <Text style={styles.monthLabel}>{monthLabel}</Text>
-          <Pressable hitSlop={8} onPress={() => setCursor((c) => (c.month === 11 ? { year: c.year + 1, month: 0 } : { ...c, month: c.month + 1 }))}>
+          <Pressable
+            hitSlop={14}
+            onPress={() => setCursor((c) => (c.month === 11 ? { year: c.year + 1, month: 0 } : { ...c, month: c.month + 1 }))}
+            accessibilityRole="button"
+            accessibilityLabel="Next month"
+          >
             <Text style={styles.navArrow}>›</Text>
           </Pressable>
         </View>
@@ -56,7 +66,14 @@ export default function AvailabilityCalendar({ blockedDates, onChange }) {
             if (!day) return <View key={i} style={styles.cell} />
             const blocked = blockedDates.includes(keyFor(day))
             return (
-              <Pressable key={i} style={styles.cell} onPress={() => toggle(day)}>
+              <Pressable
+                key={i}
+                style={styles.cell}
+                onPress={() => toggle(day)}
+                accessibilityRole="checkbox"
+                accessibilityLabel={`Block ${day} ${monthLabel}`}
+                accessibilityState={{ checked: blocked }}
+              >
                 <Text style={[styles.dayText, blocked && styles.dayTextBlocked]}>{day}</Text>
               </Pressable>
             )

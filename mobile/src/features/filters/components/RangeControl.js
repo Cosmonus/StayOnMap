@@ -1,8 +1,9 @@
-// Min/max numeric pair with optional one-tap preset chips — same semantics
-// as web's RangeControl; RN has no dual-thumb slider primitive so ranges are
-// chips + inputs here (an intentional simplification, not a gap).
+// Min/max numeric pair with optional dual-thumb slider and one-tap preset
+// chips — all three stay in sync through the same min/max values, matching
+// web's RangeControl layout exactly (slider + chips + inputs).
 import { View, Text, TextInput, StyleSheet } from 'react-native'
 import FilterChip from './FilterChip'
+import RangeSlider from './RangeSlider'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -27,12 +28,17 @@ function NumberInput({ value, placeholder, unit, onChange }) {
   )
 }
 
-export default function RangeControl({ label, unit, min, max, chips, onChange }) {
+export default function RangeControl({ label, unit, min, max, chips, slider, onChange }) {
   const chipActive = (c) => min === c.min && max === c.max
 
   return (
     <View>
       <Text style={styles.label}>{label}</Text>
+      {slider && (
+        <View style={styles.slider}>
+          <RangeSlider domain={slider} unit={unit} min={min} max={max} onChange={onChange} />
+        </View>
+      )}
       {chips && (
         <View style={styles.chips}>
           {chips.map((c) => (
@@ -56,6 +62,7 @@ export default function RangeControl({ label, unit, min, max, chips, onChange })
 
 const styles = StyleSheet.create({
   label: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700, marginBottom: spacing.sm },
+  slider: { marginBottom: spacing.sm + 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.sm + 2 },
   inputsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   inputWrap: {
