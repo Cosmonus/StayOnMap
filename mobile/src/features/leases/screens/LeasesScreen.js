@@ -9,7 +9,6 @@ import { formatCurrency } from '@utils/format'
 import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
 import { colors } from '@theme/colors'
-import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
 
@@ -245,7 +244,7 @@ const styles = StyleSheet.create({
   headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2 },
   scroll: { padding: spacing.lg, paddingTop: spacing.xs },
   sectionLabel: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.slate500, textTransform: 'uppercase', letterSpacing: 0.5 },
-  card: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, padding: spacing.md, marginBottom: spacing.sm, gap: spacing.sm, ...shadows.card },
+  card: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, padding: spacing.md, marginBottom: spacing.sm, gap: spacing.sm },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm },
   propertyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
   propertyCity: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 1 },

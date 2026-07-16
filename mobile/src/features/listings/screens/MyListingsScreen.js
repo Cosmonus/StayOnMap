@@ -7,7 +7,6 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import { formatRent } from '@utils/format'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
-import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -164,7 +163,7 @@ const styles = StyleSheet.create({
   addButton: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   addButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   list: { padding: spacing.lg, gap: spacing.md },
-  card: { flex: 1, backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, overflow: 'hidden', marginBottom: spacing.md, ...shadows.card },
+  card: { flex: 1, backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, overflow: 'hidden', marginBottom: spacing.md },
   cardImageWrap: { aspectRatio: 16 / 10, backgroundColor: colors.slate100 },
   cardImage: { width: '100%', height: '100%' },
   statusPillWrap: { position: 'absolute', top: 6, left: 6 },
