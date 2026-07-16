@@ -106,6 +106,10 @@ function EditForm({ property, navigation, onSaved }) {
   // leave without re-prompting.
   const dirtyRef = useRef(false)
   const savedRef = useRef(false)
+  // Recomputed every render so the `beforeRemove` listener below (subscribed
+  // once, not re-subscribed per keystroke) always reads the latest dirty
+  // state instead of a stale closure — deliberate, not an oversight.
+  // eslint-disable-next-line react-hooks/refs
   dirtyRef.current = JSON.stringify(form) !== JSON.stringify(fromProperty(property))
 
   useEffect(() => {

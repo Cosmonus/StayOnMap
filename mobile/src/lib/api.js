@@ -1,6 +1,7 @@
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
+// eslint-disable-next-line import/no-named-as-default-member -- axios.create is the documented usage; axios's dual CJS/ESM export shape is a known false positive for this rule
 export const api = axios.create({
   baseURL: process.env.EXPO_PUBLIC_API_BASE_URL,
   timeout: 10000,

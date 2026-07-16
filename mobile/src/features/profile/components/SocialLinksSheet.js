@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Text, StyleSheet } from 'react-native'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { userService } from '@services/user.service'
+import { useResetOnOpen } from '@/hooks/useResetOnOpen'
 import FormSheet from './FormSheet'
 import LabeledInput from './LabeledInput'
 import { colors } from '@theme/colors'
@@ -20,12 +21,10 @@ export default function SocialLinksSheet({ visible, onClose, settings }) {
   const [links, setLinks] = useState({})
   const [submitError, setSubmitError] = useState('')
 
-  useEffect(() => {
-    if (visible) {
-      setLinks(settings?.socialLinks ?? {})
-      setSubmitError('')
-    }
-  }, [visible, settings])
+  useResetOnOpen(visible, () => {
+    setLinks(settings?.socialLinks ?? {})
+    setSubmitError('')
+  })
 
   const { mutate: save, isPending } = useMutation({
     mutationFn: (socialLinks) => userService.updateProfile({ socialLinks }),

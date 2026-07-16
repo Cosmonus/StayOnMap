@@ -2,9 +2,10 @@
 // AvailabilityCalendar's month-grid pattern, but selects ONE date (an ISO
 // yyyy-mm-dd string, wire-compatible with web's native date input) instead
 // of toggling blocked dates.
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { View, Text, Modal, Pressable, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useResetOnOpen } from '@/hooks/useResetOnOpen'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { shadows } from '@theme/shadows'
@@ -24,12 +25,11 @@ export default function DatePickerSheet({ visible, title, value, onSelect, onClo
   })
 
   // Re-seed the cursor to the selected date's month (or today) each open
-  useEffect(() => {
-    if (!visible) return
+  useResetOnOpen(visible, () => {
     const d = value ? new Date(`${value}T00:00:00`) : new Date()
     const seed = Number.isNaN(d.getTime()) ? new Date() : d
     setCursor({ year: seed.getFullYear(), month: seed.getMonth() })
-  }, [visible, value])
+  })
 
   const total = daysInMonth(cursor.year, cursor.month)
   const firstWeekday = new Date(cursor.year, cursor.month, 1).getDay()

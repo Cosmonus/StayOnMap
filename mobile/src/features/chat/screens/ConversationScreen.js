@@ -273,16 +273,19 @@ export default function ConversationScreen({ route, navigation }) {
   const listData = useMemo(() => {
     const visible = searchQuery.length > 0 ? searchResults : messages
 
-    let lastDate = null
-    const annotated = visible.map((msg, i) => {
+    // Immutable reduce (fresh accumulator per iteration, no captured-variable
+    // reassignment) instead of a `let` mutated across .map() calls.
+    const { out: annotated } = visible.reduce((acc, msg, i) => {
       const msgDate = dateSeparator(msg.createdAt)
-      const showDate = msgDate !== lastDate
-      lastDate = msgDate
+      const showDate = msgDate !== acc.lastDate
       const prev = visible[i - 1]
       const isGrouped = !showDate && !!prev && prev.senderId === msg.senderId &&
         (new Date(msg.createdAt) - new Date(prev.createdAt)) < 120000
-      return { ...msg, _dateLabel: showDate ? msgDate : null, _isGrouped: isGrouped }
-    })
+      return {
+        lastDate: msgDate,
+        out: [...acc.out, { ...msg, _dateLabel: showDate ? msgDate : null, _isGrouped: isGrouped }],
+      }
+    }, { lastDate: null, out: [] })
     return annotated.reverse()
   }, [messages, searchResults, searchQuery])
 

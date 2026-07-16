@@ -19,6 +19,10 @@ export function useMarkerRedraw(key) {
 
   useEffect(() => {
     laidOutRef.current = false
+    // Genuinely synchronizing with an external system (a setTimeout failsafe)
+    // rather than deriving state from a prop — not the "adjust state during
+    // render" case the lint rule is steering toward.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTracksViewChanges(true)
     const failsafe = setTimeout(() => setTracksViewChanges(false), 1200)
     return () => clearTimeout(failsafe)

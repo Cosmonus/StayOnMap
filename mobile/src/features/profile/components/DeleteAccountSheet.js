@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
 import { useMutation } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { userService } from '@services/user.service'
+import { useResetOnOpen } from '@/hooks/useResetOnOpen'
 import FormSheet from './FormSheet'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -15,12 +16,10 @@ export default function DeleteAccountSheet({ visible, onClose }) {
   const [typed, setTyped] = useState('')
   const [submitError, setSubmitError] = useState('')
 
-  useEffect(() => {
-    if (visible) {
-      setTyped('')
-      setSubmitError('')
-    }
-  }, [visible])
+  useResetOnOpen(visible, () => {
+    setTyped('')
+    setSubmitError('')
+  })
 
   const { mutate: deleteAccount, isPending } = useMutation({
     mutationFn: () => userService.deleteAccount(),

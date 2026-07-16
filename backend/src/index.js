@@ -10,6 +10,10 @@ import morgan from 'morgan'
 import compression from 'compression'
 import { initSocket } from './lib/socket.js'
 import { corsOriginHandler } from './lib/corsOrigin.js'
+import { initSentry, setupExpressErrorHandler } from './lib/sentry.js'
+
+// Must run before the app is built — instruments Express/http/Prisma automatically
+initSentry()
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const publicDir = path.join(__dirname, '../../public')
@@ -100,6 +104,7 @@ if (existsSync(publicDir)) {
   })
 }
 
+setupExpressErrorHandler(app)
 app.use(errorMiddleware)
 
 const httpServer = createServer(app)

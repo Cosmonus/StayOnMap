@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Text, StyleSheet } from 'react-native'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { userService } from '@services/user.service'
+import { useResetOnOpen } from '@/hooks/useResetOnOpen'
 import FormSheet from './FormSheet'
 import LabeledInput from './LabeledInput'
 import { colors } from '@theme/colors'
@@ -26,15 +27,16 @@ export default function EditProfileSheet({ visible, onClose, settings }) {
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
 
-  useEffect(() => {
-    if (visible) {
-      setName(settings?.name ?? '')
-      setPhone(settings?.phone ?? '')
-      setBio(settings?.bio ?? '')
-      setErrors({})
-      setSubmitError('')
-    }
-  }, [visible, settings])
+  // Seeds once per open from whatever `settings` is at that moment — not
+  // re-keyed on `settings` itself, so an in-progress edit survives a
+  // background refetch instead of being silently overwritten.
+  useResetOnOpen(visible, () => {
+    setName(settings?.name ?? '')
+    setPhone(settings?.phone ?? '')
+    setBio(settings?.bio ?? '')
+    setErrors({})
+    setSubmitError('')
+  })
 
   const { mutate: save, isPending } = useMutation({
     mutationFn: (data) => userService.updateProfile(data),

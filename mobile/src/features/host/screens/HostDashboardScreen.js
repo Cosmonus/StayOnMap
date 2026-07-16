@@ -22,7 +22,7 @@ function StatTile({ label, value }) {
 export default function HostDashboardScreen({ navigation }) {
   const { user } = useAuth()
 
-  const { data: profile, isLoading: loadingProfile } = useQuery({
+  const { isLoading: loadingProfile } = useQuery({
     queryKey: ['me'],
     queryFn: () => authService.getMe().then((r) => r.data),
     enabled: !!user,
