@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-05T15:34:53.669Z",
+  "generatedAt": "2026-07-16T04:50:44.421Z",
   "note": "Known, already-reviewed WARNING-tier issues — see .claude/roadmap.md for the metro-validation addendum. ERROR-tier issues are never baselined here.",
   "entries": [
     {
@@ -11,269 +11,31 @@
     },
     {
       "severity": "warning",
-      "code": "residual-path-gap",
+      "code": "self-intersecting-geometry",
       "city": "Bengaluru",
       "line": "Purple Line",
-      "message": "Line \"Purple Line\" has a 2.19km gap at path index 141-142.",
-      "detail": {
-        "gapMeters": 2185.8826426049463,
-        "index": 142
-      }
-    },
-    {
-      "severity": "warning",
-      "code": "residual-path-gap",
-      "city": "Bengaluru",
-      "line": "Green Line",
-      "message": "Line \"Green Line\" has a 2.33km gap at path index 24-25.",
-      "detail": {
-        "gapMeters": 2327.1115613380457,
-        "index": 25
-      }
-    },
-    {
-      "severity": "warning",
-      "code": "disconnected-line-components",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" splits into 2 disconnected components after accounting for the 2000m gap tolerance.",
-      "detail": {
-        "componentCount": 2
-      }
-    },
-    {
-      "severity": "warning",
-      "code": "disconnected-line-components",
-      "city": "Bengaluru",
-      "line": "Green Line",
-      "message": "Line \"Green Line\" splits into 2 disconnected components after accounting for the 2000m gap tolerance.",
-      "detail": {
-        "componentCount": 2
-      }
+      "message": "Line \"Purple Line\" crosses itself near segments 0 and 20 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
     },
     {
       "severity": "warning",
       "code": "self-intersecting-geometry",
       "city": "Bengaluru",
       "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 6 and 11 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 6 and 16 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 6 and 21 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 16 and 21 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 38 and 40 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 38 and 45 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 42 and 45 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 45 and 53 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 47 and 49 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 54 and 58 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 59 and 62 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 63 and 69 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 69 and 72 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 106 and 109 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 114 and 117 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 117 and 122 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 122 and 126 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 127 and 130 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 130 and 134 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 136 and 141 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 142 and 146 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 146 and 148 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 150 and 153 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Purple Line",
-      "message": "Line \"Purple Line\" crosses itself near segments 154 and 159 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+      "message": "Line \"Purple Line\" crosses itself near segments 8 and 20 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
     },
     {
       "severity": "warning",
       "code": "self-intersecting-geometry",
       "city": "Bengaluru",
       "line": "Green Line",
-      "message": "Line \"Green Line\" crosses itself near segments 14 and 23 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+      "message": "Line \"Green Line\" crosses itself near segments 0 and 18 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
     },
     {
       "severity": "warning",
-      "code": "self-intersecting-geometry",
+      "code": "unexpected-termination",
       "city": "Bengaluru",
       "line": "Green Line",
-      "message": "Line \"Green Line\" crosses itself near segments 15 and 18 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Green Line",
-      "message": "Line \"Green Line\" crosses itself near segments 18 and 23 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Green Line",
-      "message": "Line \"Green Line\" crosses itself near segments 24 and 28 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Green Line",
-      "message": "Line \"Green Line\" crosses itself near segments 32 and 36 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Green Line",
-      "message": "Line \"Green Line\" crosses itself near segments 39 and 51 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Green Line",
-      "message": "Line \"Green Line\" crosses itself near segments 44 and 62 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Bengaluru",
-      "line": "Green Line",
-      "message": "Line \"Green Line\" crosses itself near segments 52 and 63 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
+      "message": "Line \"Green Line\"'s start point has no station within 500m (nearest: 0.61km)."
     },
     {
       "severity": "warning",
@@ -301,10 +63,10 @@
       "code": "residual-path-gap",
       "city": "Delhi",
       "line": "Delhi–Meerut RRTS",
-      "message": "Line \"Delhi–Meerut RRTS\" has a 2.69km gap at path index 27-28.",
+      "message": "Line \"Delhi–Meerut RRTS\" has a 2.25km gap at path index 45-46.",
       "detail": {
-        "gapMeters": 2686.66753067506,
-        "index": 28
+        "gapMeters": 2246.0143013766524,
+        "index": 46
       }
     },
     {
@@ -519,230 +281,6 @@
       "city": "Delhi",
       "line": "Magenta Line",
       "message": "Line \"Magenta Line\" repeats the same segment (index 86) elsewhere in its path."
-    },
-    {
-      "severity": "warning",
-      "code": "residual-path-gap",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" has a 2.26km gap at path index 171-172.",
-      "detail": {
-        "gapMeters": 2260.6367571055134,
-        "index": 172
-      }
-    },
-    {
-      "severity": "warning",
-      "code": "disconnected-line-components",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" splits into 2 disconnected components after accounting for the 2000m gap tolerance.",
-      "detail": {
-        "componentCount": 2
-      }
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 0 and 3 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 0 and 23 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 4 and 7 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 7 and 24 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 70 and 79 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 80 and 93 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 93 and 97 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 93 and 119 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 97 and 104 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 104 and 118 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 120 and 123 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 127 and 129 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 129 and 133 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 129 and 142 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 138 and 143 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 146 and 157 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 157 and 159 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 160 and 171 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 171 and 189 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 189 and 196 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 196 and 206 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 206 and 210 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 216 and 232 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 232 and 257 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 234 and 243 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 234 and 250 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 252 and 258 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 283 and 287 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
-    },
-    {
-      "severity": "warning",
-      "code": "self-intersecting-geometry",
-      "city": "Hyderabad",
-      "line": "Red Line",
-      "message": "Line \"Red Line\" crosses itself near segments 287 and 294 — may be legitimate out-and-back geometry on a spur/branch line, not necessarily a bug."
     },
     {
       "severity": "warning",

@@ -7,7 +7,6 @@ import { useMapBounds } from '../hooks/useMapBounds'
 import { useMapLayers } from '../hooks/useMapLayers'
 import { useUserLocation } from '../hooks/useUserLocation'
 import MapControls from './MapControls'
-// import { useAreaLabels } from '../hooks/useAreaLabels'  // TODO: re-enable after area research
 import { CITIES } from '@/config/cities'
 
 const CITY_ZOOM = 12
@@ -22,7 +21,6 @@ export default function MapView({ contained = false }) {
   useMapBounds(mapRef)
   useMapLayers(mapRef)
   useUserLocation(mapRef)
-  // useAreaLabels(mapRef)  // TODO: re-enable after area research
 
   const city          = useFilterStore((s) => s.filters.city)
   const area          = useFilterStore((s) => s.filters.area)

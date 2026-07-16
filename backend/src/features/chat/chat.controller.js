@@ -31,8 +31,29 @@ export async function listMessages(req, res, next) {
 
 export async function sendMessage(req, res, next) {
   try {
-    const message = await chatService.sendMessage(req.params.conversationId, req.user.id, req.body.body)
+    const message = await chatService.sendMessage(req.params.conversationId, req.user.id, req.body.body, req.body.attachmentUrl)
     created(res, message)
+  } catch (err) { next(err) }
+}
+
+export async function editMessage(req, res, next) {
+  try {
+    const message = await chatService.editMessage(req.params.conversationId, req.params.messageId, req.user.id, req.body.body)
+    ok(res, message)
+  } catch (err) { next(err) }
+}
+
+export async function deleteMessage(req, res, next) {
+  try {
+    const result = await chatService.deleteMessage(req.params.conversationId, req.params.messageId, req.user.id)
+    ok(res, result)
+  } catch (err) { next(err) }
+}
+
+export async function searchMessages(req, res, next) {
+  try {
+    const messages = await chatService.searchMessages(req.params.conversationId, req.user.id, req.query.q)
+    ok(res, messages)
   } catch (err) { next(err) }
 }
 

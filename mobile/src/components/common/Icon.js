@@ -1,6 +1,6 @@
 import {
   Compass, Search, MessageCircle, User, Heart, Star,
-  Share2, Camera, Send, Plus, Pencil, Trash2, Repeat2, LogOut,
+  Share2, Camera, Send, Plus, Pencil, Trash2, Repeat2, LogOut, Paperclip,
   ChevronLeft, ChevronRight, ChevronDown, X, SlidersHorizontal, Layers, List, LayoutGrid, Map, LocateFixed,
   Check, CircleCheck, TriangleAlert, Info, Bell, Shield, ShieldCheck, Clock, Calendar, Eye,
   Users, Phone, Mail, Lock, Key, Settings,
@@ -38,6 +38,7 @@ const ICONS = {
   plus: Plus,
   edit: Pencil,
   trash: Trash2,
+  attach: Paperclip,
   compare: Repeat2,
   logout: LogOut,
 

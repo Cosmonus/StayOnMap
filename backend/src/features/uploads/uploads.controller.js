@@ -16,3 +16,10 @@ export async function uploadAvatar(req, res, next) {
     created(res, { url })
   } catch (err) { next(err) }
 }
+
+export async function uploadChatImage(req, res, next) {
+  try {
+    const url = await service.uploadToSupabase(req.file, req.user.id, 'chat')
+    created(res, { url })
+  } catch (err) { next(err) }
+}

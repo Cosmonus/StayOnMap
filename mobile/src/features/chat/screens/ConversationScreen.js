@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, TextInput, Image, Pressable, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, StyleSheet } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import * as ImagePicker from 'expo-image-picker'
 import { chatService } from '@services/chat.service'
+import { uploadService } from '@services/upload.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
 import { getSocket } from '@lib/socket'
@@ -53,6 +55,9 @@ export default function ConversationScreen({ route, navigation }) {
   const [typing, setTyping] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [msgSearch, setMsgSearch] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [editingId, setEditingId] = useState(null)
+  const [uploading, setUploading] = useState(false)
   const typingTimer = useRef(null)
   const typingDebounce = useRef(null)
 
@@ -84,23 +89,50 @@ export default function ConversationScreen({ route, navigation }) {
     })
   }, [navigation, other, searchOpen])
 
-  // Fetching messages also marks incoming ones read server-side; the same
-  // poll is what refreshes our own messages' read ticks (no socket event
-  // exists for read state — verified against backend chat.service.js).
+  // Debounce the search box 300ms before hitting the backend search endpoint
+  useEffect(() => {
+    const t = setTimeout(() => setSearchQuery(msgSearch.trim()), 300)
+    return () => clearTimeout(t)
+  }, [msgSearch])
+
   const { data: messages = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['chat-messages', conversationId],
     queryFn: () => chatService.messages(conversationId).then((r) => r.data),
     enabled: !!conversationId,
-    refetchInterval: 10000,
+  })
+
+  const { data: searchResults = [] } = useQuery({
+    queryKey: ['chat-search', conversationId, searchQuery],
+    queryFn: () => chatService.searchMessages(conversationId, searchQuery).then((r) => r.data.slice().reverse()),
+    enabled: !!conversationId && searchQuery.length > 0,
   })
 
   const { mutate: send, isPending } = useMutation({
-    mutationFn: (body) => chatService.sendMessage(conversationId, body),
+    mutationFn: ({ body, attachmentUrl }) => chatService.sendMessage(conversationId, body, attachmentUrl),
     onSuccess: (res) => {
       qc.setQueryData(['chat-messages', conversationId], (old = []) => [...old, res.data])
       qc.invalidateQueries({ queryKey: ['conversations'] })
     },
     onError: () => Alert.alert('Message not sent', 'Check your connection and try again.'),
+  })
+
+  const { mutate: editMsg, isPending: isEditPending } = useMutation({
+    mutationFn: ({ messageId, body }) => chatService.editMessage(conversationId, messageId, body).then((r) => r.data),
+    onSuccess: (updated) => {
+      qc.setQueryData(['chat-messages', conversationId], (old = []) => old.map((m) => (m.id === updated.id ? updated : m)))
+      setEditingId(null)
+      setInput('')
+    },
+    onError: () => Alert.alert('Edit failed', 'Could not save your changes. Please try again.'),
+  })
+
+  const { mutate: deleteMsg } = useMutation({
+    mutationFn: (messageId) => chatService.deleteMessage(conversationId, messageId),
+    onSuccess: (_res, messageId) => {
+      qc.setQueryData(['chat-messages', conversationId], (old = []) =>
+        old.map((m) => (m.id === messageId ? { ...m, deletedAt: new Date().toISOString(), body: '', attachmentUrl: null } : m)))
+    },
+    onError: () => Alert.alert('Delete failed', 'Could not delete the message. Please try again.'),
   })
 
   useEffect(() => {
@@ -126,13 +158,45 @@ export default function ConversationScreen({ route, navigation }) {
       }
     }
 
+    function onMessageRead(data) {
+      if (data.conversationId !== conversationId || data.readerId === user?.id) return
+      qc.setQueryData(['chat-messages', conversationId], (old = []) =>
+        old.map((m) => (m.senderId === user?.id ? { ...m, isRead: true } : m)))
+      qc.invalidateQueries({ queryKey: ['conversations'] })
+    }
+
+    function onMessageEdited(msg) {
+      if (msg.conversationId !== conversationId) return
+      qc.setQueryData(['chat-messages', conversationId], (old = []) => old.map((m) => (m.id === msg.id ? msg : m)))
+    }
+
+    function onMessageDeleted(data) {
+      if (data.conversationId !== conversationId) return
+      qc.setQueryData(['chat-messages', conversationId], (old = []) =>
+        old.map((m) => (m.id === data.id ? { ...m, deletedAt: new Date().toISOString(), body: '', attachmentUrl: null } : m)))
+    }
+
+    // Reconnect safety net (also covers foreground-after-background): catch
+    // up on anything missed while the socket was disconnected.
+    function onConnect() {
+      qc.invalidateQueries({ queryKey: ['chat-messages', conversationId] })
+    }
+
     socket.on('message:new', onNewMessage)
     socket.on('typing', onTypingEvent)
+    socket.on('message:read', onMessageRead)
+    socket.on('message:edited', onMessageEdited)
+    socket.on('message:deleted', onMessageDeleted)
+    socket.on('connect', onConnect)
 
     return () => {
       socket.emit('leave:conversation', conversationId)
       socket.off('message:new', onNewMessage)
       socket.off('typing', onTypingEvent)
+      socket.off('message:read', onMessageRead)
+      socket.off('message:edited', onMessageEdited)
+      socket.off('message:deleted', onMessageDeleted)
+      socket.off('connect', onConnect)
     }
   }, [conversationId, user?.id, qc])
 
@@ -142,11 +206,55 @@ export default function ConversationScreen({ route, navigation }) {
     typingDebounce.current = setTimeout(() => { typingDebounce.current = null }, 2000)
   }
 
+  const busy = isPending || isEditPending || uploading
+
   function handleSend() {
     const body = input.trim()
-    if (!body || isPending) return
-    send(body)
+    if (!body || busy) return
+    if (editingId) {
+      editMsg({ messageId: editingId, body })
+      return
+    }
+    send({ body })
     setInput('')
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setInput('')
+  }
+
+  async function handleAttach() {
+    // Permissionless OS photo picker — matches ImageUploader.js's convention,
+    // no requestMediaLibraryPermissionsAsync needed for launchImageLibraryAsync.
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 })
+    if (result.canceled || !result.assets?.length) return
+    setUploading(true)
+    try {
+      const res = await uploadService.uploadChatImage(result.assets[0])
+      send({ body: input.trim(), attachmentUrl: res.data.url })
+      setInput('')
+    } catch {
+      Alert.alert('Upload failed', 'Could not send the image. Please try again.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  function confirmDelete(messageId) {
+    Alert.alert('Delete message?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteMsg(messageId) },
+    ])
+  }
+
+  function handleLongPressOwn(item) {
+    if (item.deletedAt) return
+    Alert.alert('Message options', undefined, [
+      { text: 'Edit', onPress: () => { setEditingId(item.id); setInput(item.body) } },
+      { text: 'Delete', style: 'destructive', onPress: () => confirmDelete(item.id) },
+      { text: 'Cancel', style: 'cancel' },
+    ])
   }
 
   function openProperty() {
@@ -159,12 +267,11 @@ export default function ConversationScreen({ route, navigation }) {
     })
   }
 
-  // Search filters loaded messages client-side (same as web ChatPanel — the
-  // backend has no message-search endpoint), then annotate chronologically
-  // with date-separator + grouping flags, then reverse for the inverted list.
+  // Search hits the backend once the box settles (300ms debounce); otherwise
+  // show the live-loaded page. Both are annotated chronologically with
+  // date-separator + grouping flags, then reversed for the inverted list.
   const listData = useMemo(() => {
-    const query = msgSearch.trim().toLowerCase()
-    const visible = query ? messages.filter((m) => m.body.toLowerCase().includes(query)) : messages
+    const visible = searchQuery.length > 0 ? searchResults : messages
 
     let lastDate = null
     const annotated = visible.map((msg, i) => {
@@ -177,9 +284,9 @@ export default function ConversationScreen({ route, navigation }) {
       return { ...msg, _dateLabel: showDate ? msgDate : null, _isGrouped: isGrouped }
     })
     return annotated.reverse()
-  }, [messages, msgSearch])
+  }, [messages, searchResults, searchQuery])
 
-  const resultCount = msgSearch.trim() ? listData.length : null
+  const resultCount = searchQuery.length > 0 ? listData.length : null
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
@@ -225,13 +332,28 @@ export default function ConversationScreen({ route, navigation }) {
                     ? <View style={styles.senderAvatarSpacer} />
                     : <SenderAvatar sender={item.sender ?? other} />
                   )}
-                  <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
-                    <Text style={[styles.bubbleText, isOwn && styles.bubbleTextOwn]}>{item.body}</Text>
+                  <Pressable
+                    onLongPress={isOwn ? () => handleLongPressOwn(item) : undefined}
+                    style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}
+                  >
+                    {item.deletedAt ? (
+                      <Text style={[styles.bubbleText, isOwn && styles.bubbleTextOwn, styles.bubbleDeletedText]}>This message was deleted</Text>
+                    ) : (
+                      <>
+                        {item.attachmentUrl && (
+                          <Image source={{ uri: item.attachmentUrl }} style={styles.attachmentImage} resizeMode="cover" />
+                        )}
+                        {!!item.body && <Text style={[styles.bubbleText, isOwn && styles.bubbleTextOwn]}>{item.body}</Text>}
+                      </>
+                    )}
                     <View style={styles.bubbleMeta}>
+                      {item.editedAt && !item.deletedAt && (
+                        <Text style={[styles.bubbleTime, isOwn && styles.bubbleTimeOwn]}>edited</Text>
+                      )}
                       <Text style={[styles.bubbleTime, isOwn && styles.bubbleTimeOwn]}>{chatTime(item.createdAt)}</Text>
                       {isOwn && <ReadReceipt isRead={item.isRead} />}
                     </View>
-                  </View>
+                  </Pressable>
                 </View>
               </View>
             )
@@ -245,15 +367,33 @@ export default function ConversationScreen({ route, navigation }) {
             // Inverted list: the footer renders at the visual top of the chat.
             <ChatPropertyCard property={property} onPress={openProperty} />
           }
-          ListEmptyComponent={msgSearch.trim() ? (
+          ListEmptyComponent={searchQuery.length > 0 ? (
             <View style={styles.noResults}>
-              <Text style={styles.noResultsText}>No messages match &ldquo;{msgSearch.trim()}&rdquo;</Text>
+              <Text style={styles.noResultsText}>No messages match &ldquo;{searchQuery}&rdquo;</Text>
             </View>
           ) : null}
         />
       )}
 
+      {editingId && (
+        <View style={styles.editingBanner}>
+          <Text style={styles.editingBannerText}>Editing message</Text>
+          <Pressable onPress={cancelEdit} hitSlop={8} accessibilityRole="button" accessibilityLabel="Cancel edit">
+            <Icon name="close" size={16} color={colors.slate500} />
+          </Pressable>
+        </View>
+      )}
+
       <View style={styles.inputBar}>
+        <Pressable
+          style={[styles.attachButton, busy && styles.disabled]}
+          onPress={handleAttach}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel="Attach an image"
+        >
+          {uploading ? <ActivityIndicator size="small" color={colors.slate500} /> : <Icon name="attach" size={18} color={colors.slate500} />}
+        </Pressable>
         <TextInput
           style={styles.input}
           value={input}
@@ -264,14 +404,14 @@ export default function ConversationScreen({ route, navigation }) {
           accessibilityLabel="Message text"
         />
         <Pressable
-          style={[styles.sendButton, (!input.trim() || isPending) && styles.disabled]}
+          style={[styles.sendButton, (!input.trim() || busy) && styles.disabled]}
           onPress={handleSend}
-          disabled={!input.trim() || isPending}
+          disabled={!input.trim() || busy}
           accessibilityRole="button"
-          accessibilityLabel="Send message"
-          accessibilityState={{ disabled: !input.trim() || isPending }}
+          accessibilityLabel={editingId ? 'Save edit' : 'Send message'}
+          accessibilityState={{ disabled: !input.trim() || busy }}
         >
-          <Icon name="send" size={16} color={colors.white} />
+          <Icon name={editingId ? 'check' : 'send'} size={16} color={colors.white} />
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -313,13 +453,22 @@ const styles = StyleSheet.create({
   bubbleOwn: { backgroundColor: colors.brand600, borderBottomRightRadius: 4 },
   bubbleText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800 },
   bubbleTextOwn: { color: colors.white },
+  bubbleDeletedText: { fontStyle: 'italic', opacity: 0.7 },
+  attachmentImage: { width: 200, height: 200, borderRadius: radius.md, marginBottom: spacing.xs },
   bubbleMeta: { flexDirection: 'row', alignItems: 'center', gap: 3, alignSelf: 'flex-end', marginTop: 4 },
   bubbleTime: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400 },
   bubbleTimeOwn: { color: 'rgba(255,255,255,0.75)' },
+  editingBanner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
+    backgroundColor: colors.brand50, borderTopWidth: 1, borderTopColor: colors.brand100,
+  },
+  editingBannerText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
   inputBar: {
     flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm,
     padding: spacing.sm, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.slate200,
   },
+  attachButton: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
   input: {
     flex: 1, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.lg,
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm, maxHeight: 100, minHeight: 44,
