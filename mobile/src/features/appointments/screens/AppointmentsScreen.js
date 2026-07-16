@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   dropdownOptionText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate700 },
   dropdownOptionTextActive: { color: colors.brand700, fontFamily: fonts.bodySemiBold },
   dropdownSeparator: { height: 1, backgroundColor: colors.slate100, marginHorizontal: spacing.lg },
-  card: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, padding: spacing.md, marginBottom: spacing.sm, ...shadows.card },
+  card: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, padding: spacing.md, marginBottom: spacing.sm },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   personRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },
   avatar: { width: 32, height: 32, borderRadius: radius.full, backgroundColor: colors.slate800, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },

@@ -6,7 +6,6 @@ import { authService } from '@services/auth.service'
 import { propertyService } from '@services/property.service'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
-import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -95,7 +94,6 @@ const styles = StyleSheet.create({
   statTile: {
     width: '47%', backgroundColor: colors.white, borderRadius: radius.lg,
     borderWidth: 1, borderColor: colors.slate100, padding: spacing.md,
-    ...shadows.card,
   },
   statLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.slate400, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: spacing.xs },
   statValue: { fontFamily: fonts.displayBold, fontSize: fontSizes.xxl, color: colors.slate800 },
@@ -103,7 +101,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
     backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.lg,
     padding: spacing.md, marginTop: spacing.lg,
-    ...shadows.card,
   },
   quickActionIcon: { width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.black, alignItems: 'center', justifyContent: 'center' },
   quickActionIconAlt: { backgroundColor: colors.brand600 },

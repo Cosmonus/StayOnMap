@@ -7,7 +7,6 @@ import { getSocket } from '@lib/socket'
 import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
 import { colors } from '@theme/colors'
-import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -191,7 +190,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', letterSpacing: 0.8,
     paddingTop: spacing.md, paddingBottom: spacing.sm, paddingHorizontal: spacing.xs,
   },
-  row: { flexDirection: 'row', gap: spacing.sm, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate100, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm, ...shadows.card },
+  row: { flexDirection: 'row', gap: spacing.sm, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate100, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm },
   rowUnread: { backgroundColor: colors.brand50, borderColor: colors.brand100 },
   rowIcon: { width: 32, height: 32, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   rowTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm },
