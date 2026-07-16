@@ -98,7 +98,9 @@ app.use('/api/v1/admin/ai',            adminLimiter, aiRoutes)
 import { existsSync } from 'fs'
 if (existsSync(publicDir)) {
   app.use(express.static(publicDir))
-  app.get('*', (req, res, next) => {
+  // Express 5's path-to-regexp requires a named wildcard — bare '*' throws
+  // "Missing parameter name" at route-registration time now, not a lint nit.
+  app.get('*splat', (req, res, next) => {
     if (req.path.startsWith('/api/') || req.path.startsWith('/socket.io/')) return next()
     res.sendFile(path.join(publicDir, 'index.html'))
   })
