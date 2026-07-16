@@ -33,10 +33,30 @@ jobs:
           echo "No blocked env/credential files tracked."
 
       - name: Scan for hardcoded secrets
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_CONFIG: .gitleaks.toml
+        # gitleaks/gitleaks-action@v2 now requires a paid GITLEAKS_LICENSE
+        # secret for orgs (see github.com/gitleaks/gitleaks-action#-announcement)
+        # — that gate is in the Action wrapper, not the underlying gitleaks
+        # CLI, which stays free/open-source. Run the CLI directly instead.
+        run: |
+          set -e
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            | tar -xz gitleaks
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.event.after }}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            RANGE="${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            RANGE="$BEFORE..$AFTER"
+          else
+            RANGE=""
+          fi
+          if [ -n "$RANGE" ]; then
+            ./gitleaks detect --source . --config .gitleaks.toml --log-opts="$RANGE" --redact -v
+          else
+            # First push to an empty branch (or a force-push with no valid
+            # 'before') — no meaningful range, fall back to the latest commit only.
+            ./gitleaks detect --source . --config .gitleaks.toml --log-opts="-1" --redact -v
+          fi
 
   backend:
     name: Backend (lint + test)
