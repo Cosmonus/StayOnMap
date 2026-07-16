@@ -8,6 +8,11 @@ jobs:
   check-title:
     name: Enforce "stayonmap - <title>" format
     runs-on: ubuntu-latest
+    # Dependabot's auto-generated PR titles (e.g. "chore(backend): bump
+    # express from 4.18.2 to 4.19.0") never match ^stayonmap - .+ — exempt
+    # its PRs rather than let dependabot.yml's automation get blocked on a
+    # title format it has no way to produce.
+    if: github.actor != 'dependabot[bot]'
     steps:
       - name: Validate PR title
         env:
