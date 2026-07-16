@@ -63,7 +63,10 @@ export default {
     ],
     extra: {
       eas: {
-        projectId: process.env.EAS_PROJECT_ID,
+        // Public project identifier, not a secret — EAS CLI requires this as a
+        // literal for dynamic (.js) app configs; it won't write it in for you
+        // the way it would for a static app.json.
+        projectId: '73936213-4d88-4224-a821-e6056cb8807c',
       },
     },
   },
