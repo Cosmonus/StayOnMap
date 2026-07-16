@@ -176,7 +176,7 @@ export async function getAdminPropertyById(id) {
           id: true, tenantId: true, lastMessageAt: true,
           tenant: { select: { id: true, name: true, email: true, avatarUrl: true } },
           messages: {
-            select: { id: true, senderId: true, body: true, createdAt: true, sender: { select: { id: true, name: true } } },
+            select: { id: true, senderId: true, body: true, attachmentUrl: true, editedAt: true, deletedAt: true, createdAt: true, sender: { select: { id: true, name: true } } },
             orderBy: { createdAt: 'desc' },
             take: 50,
           },
@@ -232,7 +232,7 @@ export async function listAdminProperties({ status, city, riskLevel: _riskLevel,
             id: true, tenantId: true, lastMessageAt: true,
             tenant: { select: { id: true, name: true, email: true, avatarUrl: true } },
             messages: {
-              select: { id: true, senderId: true, body: true, createdAt: true, sender: { select: { id: true, name: true } } },
+              select: { id: true, senderId: true, body: true, attachmentUrl: true, editedAt: true, deletedAt: true, createdAt: true, sender: { select: { id: true, name: true } } },
               orderBy: { createdAt: 'desc' },
               take: 50,
             },
