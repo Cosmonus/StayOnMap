@@ -13,6 +13,12 @@ export default {
       config: {
         googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
       },
+      infoPlist: {
+        // StayOnMap only uses standard HTTPS/TLS, no custom cryptography —
+        // declaring this upfront skips App Store Connect's export-compliance
+        // prompt on every single submission.
+        ITSAppUsesNonExemptEncryption: false,
+      },
     },
     android: {
       package: 'com.stayonmap.app',
