@@ -17,7 +17,7 @@ export default {
     android: {
       package: 'com.stayonmap.app',
       adaptiveIcon: {
-        backgroundColor: '#edfaf7',
+        backgroundColor: '#0d8a5f',
         foregroundImage: './assets/android-icon-foreground.png',
         backgroundImage: './assets/android-icon-background.png',
         monochromeImage: './assets/android-icon-monochrome.png',
