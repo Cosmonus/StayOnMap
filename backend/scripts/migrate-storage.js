@@ -9,6 +9,7 @@
 import 'dotenv/config'
 import { createClient } from '@supabase/supabase-js'
 import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
 
 const OLD_BUCKET = 'StayNear'
 const NEW_BUCKET = 'StayOnMap'
@@ -19,7 +20,8 @@ const supabase = createClient(
   { auth: { persistSession: false } }
 )
 
-const prisma = new PrismaClient()
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+const prisma = new PrismaClient({ adapter })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
