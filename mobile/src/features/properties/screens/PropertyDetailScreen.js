@@ -122,9 +122,11 @@ export default function PropertyDetailScreen({ route, navigation }) {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.center} edges={['top']}>
-        <Pressable style={[styles.circleButton, styles.centerBack]} onPress={() => navigation.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Go back">
-          <Icon name="chevronLeft" size={20} color={colors.slate800} />
-        </Pressable>
+        {navigation.canGoBack() && (
+          <Pressable style={[styles.circleButton, styles.centerBack]} onPress={() => navigation.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Go back">
+            <Icon name="chevronLeft" size={20} color={colors.slate800} />
+          </Pressable>
+        )}
         <ActivityIndicator color={colors.brand600} size="large" />
       </SafeAreaView>
     )
@@ -133,9 +135,11 @@ export default function PropertyDetailScreen({ route, navigation }) {
   if (isError || !property) {
     return (
       <SafeAreaView style={styles.center} edges={['top']}>
-        <Pressable style={[styles.circleButton, styles.centerBack]} onPress={() => navigation.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Go back">
-          <Icon name="chevronLeft" size={20} color={colors.slate800} />
-        </Pressable>
+        {navigation.canGoBack() && (
+          <Pressable style={[styles.circleButton, styles.centerBack]} onPress={() => navigation.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Go back">
+            <Icon name="chevronLeft" size={20} color={colors.slate800} />
+          </Pressable>
+        )}
         <Text style={styles.emptyText}>This listing isn&apos;t available anymore.</Text>
       </SafeAreaView>
     )
@@ -168,9 +172,11 @@ export default function PropertyDetailScreen({ route, navigation }) {
           </ScrollView>
 
           <SafeAreaView edges={['top']} style={styles.galleryHeader} pointerEvents="box-none">
-            <Pressable style={styles.circleButton} onPress={() => navigation.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Go back">
-              <Icon name="chevronLeft" size={20} color={colors.slate800} />
-            </Pressable>
+            {navigation.canGoBack() ? (
+              <Pressable style={styles.circleButton} onPress={() => navigation.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Go back">
+                <Icon name="chevronLeft" size={20} color={colors.slate800} />
+              </Pressable>
+            ) : <View />}
             <View style={{ flexDirection: 'row', gap: spacing.sm }}>
               <Pressable style={styles.circleButton} onPress={handleShare} hitSlop={8} accessibilityRole="button" accessibilityLabel="Share this listing">
                 <Icon name="share" size={18} color={colors.slate800} />

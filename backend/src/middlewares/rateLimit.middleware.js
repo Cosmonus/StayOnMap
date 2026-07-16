@@ -69,6 +69,15 @@ export const uploadLimiter = makeLimiter({
   message: { success: false, message: 'Too many uploads, try again later', statusCode: 429 },
 })
 
+// Scoped to sending messages only (not the whole /chat router) — ~8 msgs/min
+// average is generous for a real conversation but blocks spam/bot floods
+export const chatLimiter = makeLimiter({
+  prefix: 'rl:chat:',
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  message: { success: false, message: 'Too many messages, slow down', statusCode: 429 },
+})
+
 // Admin users are trusted operators — generous limit so moderation actions never get throttled
 export const adminLimiter = makeLimiter({
   prefix: 'rl:admin:',

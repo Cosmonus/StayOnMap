@@ -12,4 +12,12 @@ export const uploadService = {
       timeout: 30000,
     })
   },
+  uploadChatImage: async (file) => {
+    const form = new FormData()
+    form.append('image', file)
+    return api.post('/uploads/chat-image', form, {
+      headers: { 'Content-Type': undefined },
+      timeout: 30000,
+    })
+  },
 }

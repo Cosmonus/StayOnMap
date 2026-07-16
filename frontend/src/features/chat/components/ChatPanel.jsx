@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Check, CheckCheck, Search, MessageCircle, Home, ChevronRight,
-  Paperclip, Smile, Send, SquarePen, ChevronLeft,
+  Paperclip, Send, SquarePen, ChevronLeft, Pencil, Trash2,
 } from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { chatService } from '@services/chat.service'
+import { uploadService } from '@services/upload.service'
 import { getSocket, connectSocket } from '@lib/socket'
 import { toast } from '@components/common/Toaster'
+import { confirm } from '@components/common/ConfirmDialog'
 import { formatRent } from '@utils/format'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -262,7 +264,10 @@ function ChatPropertyCard({ property }) {
 }
 
 // ── Right panel: message area ───────────────────────────────────────────────
-function MessageArea({ messages, userId, conversation }) {
+function MessageArea({
+  messages, userId, conversation,
+  editingId, editValue, onEditValueChange, onStartEdit, onCancelEdit, onSaveEdit, onDeleteRequest,
+}) {
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -308,12 +313,32 @@ function MessageArea({ messages, userId, conversation }) {
               </div>
             )}
 
-            <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} ${isGrouped ? 'mt-1' : 'mt-4'}`}>
+            <div className={`group flex items-center ${isMe ? 'justify-end' : 'justify-start'} ${isGrouped ? 'mt-1' : 'mt-4'}`}>
               {/* Sender avatar (left side only, only on first of group) */}
               {!isMe && !isGrouped && (
-                <Avatar name={displayName(msg.sender)} url={msg.sender?.avatarUrl} size={32} className="mt-1 mr-2.5" />
+                <Avatar name={displayName(msg.sender)} url={msg.sender?.avatarUrl} size={32} className="mt-1 mr-2.5 self-start" />
               )}
               {!isMe && isGrouped && <div className="w-[32px] mr-2.5 shrink-0" />}
+
+              {/* Hover edit/delete actions — own, non-deleted messages only */}
+              {isMe && !msg.deletedAt && editingId !== msg.id && (
+                <div className="hidden group-hover:flex items-center gap-1 mr-1.5">
+                  <button
+                    onClick={() => onStartEdit(msg)}
+                    className="w-6 h-6 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600"
+                    title="Edit message"
+                  >
+                    <Pencil className="w-3 h-3" strokeWidth={2} />
+                  </button>
+                  <button
+                    onClick={() => onDeleteRequest(msg)}
+                    className="w-6 h-6 rounded-full hover:bg-red-50 flex items-center justify-center text-slate-400 hover:text-red-500"
+                    title="Delete message"
+                  >
+                    <Trash2 className="w-3 h-3" strokeWidth={2} />
+                  </button>
+                </div>
+              )}
 
               <div className="max-w-[65%]">
                 {/* Sender name + role + time header */}
@@ -333,21 +358,49 @@ function MessageArea({ messages, userId, conversation }) {
                 )}
 
                 {/* Bubble */}
-                <div className={`px-4 py-2.5 text-sm leading-relaxed ${isMe
-                  ? 'bg-brand-500 text-white rounded-2xl rounded-br-md'
-                  : 'bg-white text-slate-800 rounded-2xl rounded-bl-md border border-slate-100 shadow-xs'
-                }`}>
-                  <span>{msg.body}</span>
-                  <span className="inline-flex items-center gap-1 ml-2 align-bottom translate-y-0.5">
-                    <span className={`text-[10px] ${isMe ? 'opacity-70' : 'text-slate-400'}`}>{chatTime(msg.createdAt)}</span>
-                    {isMe && <ReadReceipt isRead={msg.isRead} />}
-                  </span>
-                </div>
+                {editingId === msg.id ? (
+                  <div className="px-3 py-2 rounded-2xl bg-white border border-brand-300 shadow-xs">
+                    <textarea
+                      autoFocus
+                      value={editValue}
+                      onChange={(e) => onEditValueChange(e.target.value)}
+                      rows={2}
+                      className="w-full text-sm text-slate-800 resize-none focus:outline-none"
+                    />
+                    <div className="flex items-center justify-end gap-2 mt-1">
+                      <button onClick={onCancelEdit} className="text-xs font-semibold text-slate-400 hover:text-slate-600 px-2 py-1">Cancel</button>
+                      <button onClick={onSaveEdit} className="text-xs font-semibold text-brand-600 hover:text-brand-700 px-2 py-1">Save</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={`px-4 py-2.5 text-sm leading-relaxed ${isMe
+                    ? 'bg-brand-500 text-white rounded-2xl rounded-br-md'
+                    : 'bg-white text-slate-800 rounded-2xl rounded-bl-md border border-slate-100 shadow-xs'
+                  }`}>
+                    {msg.deletedAt ? (
+                      <span className={`italic ${isMe ? 'text-white/70' : 'text-slate-400'}`}>This message was deleted</span>
+                    ) : (
+                      <>
+                        {msg.attachmentUrl && (
+                          <img src={msg.attachmentUrl} alt="Attachment" className="max-w-[220px] max-h-[220px] rounded-lg object-cover block mb-1" />
+                        )}
+                        {msg.body && <span>{msg.body}</span>}
+                      </>
+                    )}
+                    <span className="inline-flex items-center gap-1 ml-2 align-bottom translate-y-0.5">
+                      {msg.editedAt && !msg.deletedAt && (
+                        <span className={`text-[10px] ${isMe ? 'opacity-70' : 'text-slate-400'}`}>edited</span>
+                      )}
+                      <span className={`text-[10px] ${isMe ? 'opacity-70' : 'text-slate-400'}`}>{chatTime(msg.createdAt)}</span>
+                      {isMe && <ReadReceipt isRead={msg.isRead} />}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* My avatar (right side, only on first of group) */}
               {isMe && !isGrouped && (
-                <Avatar name={displayName(msg.sender)} url={msg.sender?.avatarUrl} size={32} className="mt-1 ml-2.5" />
+                <Avatar name={displayName(msg.sender)} url={msg.sender?.avatarUrl} size={32} className="mt-1 ml-2.5 self-start" />
               )}
               {isMe && isGrouped && <div className="w-[32px] ml-2.5 shrink-0" />}
             </div>
@@ -364,12 +417,15 @@ function MessageArea({ messages, userId, conversation }) {
 // ── Right panel: input bar ──────────────────────────────────────────────────
 function InputBar({ onSend, onTyping, isPending }) {
   const [input, setInput] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef(null)
+  const busy = isPending || uploading
 
   function handleSubmit(e) {
     e.preventDefault()
     const body = input.trim()
-    if (!body || isPending) return
-    onSend(body)
+    if (!body || busy) return
+    onSend({ body })
     setInput('')
   }
 
@@ -385,10 +441,33 @@ function InputBar({ onSend, onTyping, isPending }) {
     }
   }
 
+  async function handleFileChange(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setUploading(true)
+    try {
+      const res = await uploadService.uploadChatImage(file)
+      onSend({ body: input.trim(), attachmentUrl: res.data.url })
+      setInput('')
+    } catch {
+      toast.error('Error', 'Failed to upload image')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-100 bg-white px-5 py-3.5 flex items-end gap-3">
       {/* Attachment button */}
-      <button type="button" className="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-400 shrink-0 mb-0.5">
+      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} className="hidden" />
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={busy}
+        className="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-400 shrink-0 mb-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
+        title="Attach an image"
+      >
         <Paperclip className="w-5 h-5" strokeWidth={2} />
       </button>
 
@@ -398,22 +477,18 @@ function InputBar({ onSend, onTyping, isPending }) {
           value={input}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
+          placeholder={uploading ? 'Uploading image...' : 'Type a message...'}
           rows={1}
-          className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 resize-none placeholder:text-slate-400"
+          disabled={uploading}
+          className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 resize-none placeholder:text-slate-400 disabled:opacity-60"
           style={{ minHeight: '42px', maxHeight: '120px' }}
         />
       </div>
 
-      {/* Emoji */}
-      <button type="button" className="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-400 shrink-0 mb-0.5">
-        <Smile className="w-5 h-5" strokeWidth={2} />
-      </button>
-
       {/* Send */}
       <button
         type="submit"
-        disabled={!input.trim() || isPending}
+        disabled={!input.trim() || busy}
         className="w-10 h-10 rounded-full bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 mb-0.5"
       >
         <Send className="w-4 h-4" fill="currentColor" />
@@ -443,22 +518,55 @@ function ChatWindow({ conversation, conversationId, userId }) {
   const [typing, setTyping] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [msgSearch, setMsgSearch] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [editingId, setEditingId] = useState(null)
+  const [editValue, setEditValue] = useState('')
   const typingTimer = useRef(null)
+
+  // Debounce the search box 300ms before hitting the backend search endpoint
+  useEffect(() => {
+    const t = setTimeout(() => setSearchQuery(msgSearch.trim()), 300)
+    return () => clearTimeout(t)
+  }, [msgSearch])
 
   const { data: messages = [] } = useQuery({
     queryKey: ['chat-messages', conversationId],
     queryFn: () => chatService.messages(conversationId).then(r => r.data),
     enabled: !!conversationId,
-    refetchInterval: 10000,
+  })
+
+  const { data: searchResults = [] } = useQuery({
+    queryKey: ['chat-search', conversationId, searchQuery],
+    queryFn: () => chatService.searchMessages(conversationId, searchQuery).then(r => r.data.slice().reverse()),
+    enabled: !!conversationId && searchQuery.length > 0,
   })
 
   const { mutate: send, isPending } = useMutation({
-    mutationFn: (body) => chatService.sendMessage(conversationId, body),
+    mutationFn: ({ body, attachmentUrl }) => chatService.sendMessage(conversationId, body, attachmentUrl),
     onSuccess: (res) => {
       qc.setQueryData(['chat-messages', conversationId], (old = []) => [...old, res.data])
       qc.invalidateQueries({ queryKey: ['conversations'] })
     },
     onError: () => toast.error('Error', 'Failed to send message'),
+  })
+
+  const { mutate: editMsg } = useMutation({
+    mutationFn: ({ messageId, body }) => chatService.editMessage(conversationId, messageId, body).then(r => r.data),
+    onSuccess: (updated) => {
+      qc.setQueryData(['chat-messages', conversationId], (old = []) => old.map(m => (m.id === updated.id ? updated : m)))
+      setEditingId(null)
+      setEditValue('')
+    },
+    onError: () => toast.error('Error', 'Failed to edit message'),
+  })
+
+  const { mutate: deleteMsg } = useMutation({
+    mutationFn: (messageId) => chatService.deleteMessage(conversationId, messageId),
+    onSuccess: (_res, messageId) => {
+      qc.setQueryData(['chat-messages', conversationId], (old = []) =>
+        old.map(m => (m.id === messageId ? { ...m, deletedAt: new Date().toISOString(), body: '', attachmentUrl: null } : m)))
+    },
+    onError: () => toast.error('Error', 'Failed to delete message'),
   })
 
   useEffect(() => {
@@ -484,13 +592,44 @@ function ChatWindow({ conversation, conversationId, userId }) {
       }
     }
 
+    function onMessageRead(data) {
+      if (data.conversationId !== conversationId || data.readerId === userId) return
+      qc.setQueryData(['chat-messages', conversationId], (old = []) =>
+        old.map(m => (m.senderId === userId ? { ...m, isRead: true } : m)))
+      qc.invalidateQueries({ queryKey: ['conversations'] })
+    }
+
+    function onMessageEdited(msg) {
+      if (msg.conversationId !== conversationId) return
+      qc.setQueryData(['chat-messages', conversationId], (old = []) => old.map(m => (m.id === msg.id ? msg : m)))
+    }
+
+    function onMessageDeleted(data) {
+      if (data.conversationId !== conversationId) return
+      qc.setQueryData(['chat-messages', conversationId], (old = []) =>
+        old.map(m => (m.id === data.id ? { ...m, deletedAt: new Date().toISOString(), body: '', attachmentUrl: null } : m)))
+    }
+
+    // Reconnect safety net: catch up on anything missed while disconnected
+    function onConnect() {
+      qc.invalidateQueries({ queryKey: ['chat-messages', conversationId] })
+    }
+
     socket.on('message:new', onNewMessage)
     socket.on('typing', onTypingEvent)
+    socket.on('message:read', onMessageRead)
+    socket.on('message:edited', onMessageEdited)
+    socket.on('message:deleted', onMessageDeleted)
+    socket.on('connect', onConnect)
 
     return () => {
       socket.emit('leave:conversation', conversationId)
       socket.off('message:new', onNewMessage)
       socket.off('typing', onTypingEvent)
+      socket.off('message:read', onMessageRead)
+      socket.off('message:edited', onMessageEdited)
+      socket.off('message:deleted', onMessageDeleted)
+      socket.off('connect', onConnect)
     }
   }, [conversationId, userId, qc])
 
@@ -502,11 +641,25 @@ function ChatWindow({ conversation, conversationId, userId }) {
     typingDebounce.current = setTimeout(() => { typingDebounce.current = null }, 2000)
   }
 
+  function startEdit(msg) { setEditingId(msg.id); setEditValue(msg.body) }
+  function cancelEdit() { setEditingId(null); setEditValue('') }
+  function saveEdit() {
+    const body = editValue.trim()
+    if (!body || !editingId) return
+    editMsg({ messageId: editingId, body })
+  }
+  async function requestDelete(msg) {
+    const confirmed = await confirm({
+      title: 'Delete message?',
+      message: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+    })
+    if (confirmed) deleteMsg(msg.id)
+  }
+
   if (!conversationId) return <EmptyChat />
 
-  const visibleMessages = msgSearch.trim()
-    ? messages.filter(m => m.body.toLowerCase().includes(msgSearch.toLowerCase()))
-    : messages
+  const visibleMessages = searchQuery.length > 0 ? searchResults : messages
 
   return (
     <div className="flex-1 flex flex-col min-w-0">
@@ -537,7 +690,18 @@ function ChatWindow({ conversation, conversationId, userId }) {
           </div>
         </div>
       )}
-      <MessageArea messages={visibleMessages} userId={userId} conversation={conversation} />
+      <MessageArea
+        messages={visibleMessages}
+        userId={userId}
+        conversation={conversation}
+        editingId={editingId}
+        editValue={editValue}
+        onEditValueChange={setEditValue}
+        onStartEdit={startEdit}
+        onCancelEdit={cancelEdit}
+        onSaveEdit={saveEdit}
+        onDeleteRequest={requestDelete}
+      />
       <InputBar onSend={send} onTyping={emitTyping} isPending={isPending} />
     </div>
   )

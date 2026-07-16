@@ -21,5 +21,6 @@ const router = Router()
 
 router.post('/property-image', authMiddleware, upload.single('image'), controller.uploadPropertyImage)
 router.post('/avatar',         authMiddleware, upload.single('image'), controller.uploadAvatar)
+router.post('/chat-image',     authMiddleware, upload.single('image'), controller.uploadChatImage)
 
 export default router
