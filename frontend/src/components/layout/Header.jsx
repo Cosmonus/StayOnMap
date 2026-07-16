@@ -167,23 +167,30 @@ function GuestActions() {
 
 // ── Traveler — logged in, not hosting ───────────────────────────────────────
 function TravelerActions({ unreadMessages, onBecomeHost, profile }) {
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const { signOut } = useAuth()
   const navigate = useNavigate()
 
   const isActive = (to) => (to === '/' ? pathname === '/' : pathname.startsWith(to))
-  const tabs = NAV_TABS.map((t) => ({ ...t, active: isActive(t.to) }))
+  const currentTab = new URLSearchParams(search).get('tab')
+
+  // Messages gets equal top-level billing to host mode's "Inbox" tab —
+  // contacting a property owner is a traveler action, it shouldn't require
+  // switching to host mode just to reach a prominent chat entry point.
+  const tabs = [
+    ...NAV_TABS.map((t) => ({ ...t, active: isActive(t.to) })),
+    { key: 'messages', label: 'Messages', to: '/user?tab=messages', active: pathname === '/user' && currentTab === 'messages', badge: unreadMessages },
+  ]
 
   const menuItems = [
     // Duplicates the top NavTabs row — NavTabs is desktop-only (`hidden
     // md:flex`), so on mobile the hamburger is the ONLY way to reach these.
     // Hidden at md+ here since NavTabs already covers it there.
-    ...NAV_TABS.map((t) => ({ key: t.to, label: t.label, to: t.to, className: 'md:hidden' })),
+    ...tabs.map((t) => ({ key: t.key ?? t.to, label: t.label, to: t.to, badge: t.badge, className: 'md:hidden' })),
     { key: 'divider-tabs', divider: true, className: 'md:hidden' },
     { key: 'wishlist',      label: 'Wishlist',      to: '/user?tab=wishlist' },
     { key: 'appointments',  label: 'Appointments',  to: '/user?tab=appointments' },
     { key: 'leases',        label: 'Rented',        to: '/user?tab=leases' },
-    { key: 'messages',      label: 'Messages',      to: '/user?tab=messages', badge: unreadMessages },
     { key: 'profile',       label: 'Profile',       to: '/user?tab=settings' },
     { key: 'notifications', label: 'Notifications', to: '/user?tab=notifications' },
     { key: 'account',       label: 'Account',       to: '/user?tab=settings' },
