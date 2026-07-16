@@ -13,6 +13,7 @@ import {
   ChefHat, User, DoorOpen, PawPrint, Cigarette, Wine, Check, Star, Building2,
 } from 'lucide-react'
 import { adminService } from '@services/admin.service'
+import SEOMeta from '@components/common/SEOMeta'
 import { AmenityIcon } from '@components/common/AmenityIcon'
 import { googleMapsReady, createHtmlMarker } from '@lib/googleMaps'
 import { CITIES } from '@/config/cities'
@@ -2405,6 +2406,7 @@ export default function AdminPage() {
 
   return (
     <div className="flex h-screen bg-slate-50">
+      <SEOMeta title="Admin" noindex />
       <UnifiedSidebar active={section} onChange={setSection} isAdmin onLogout={handleLogout} userName="Admin" userEmail="Administrator" />
 
       <main className="flex-1 overflow-y-auto px-8 py-8">

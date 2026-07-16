@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { authService } from '@services/auth.service'
 import { useUiStore } from '@store/uiStore'
+import SEOMeta from '@components/common/SEOMeta'
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate()
@@ -34,6 +35,7 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <SEOMeta title="Reset Password" noindex />
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8">
         {/* Logo */}
         <Link to="/" className="no-underline flex items-center gap-2 mb-8">

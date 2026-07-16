@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { adminService } from '@services/admin.service'
+import SEOMeta from '@components/common/SEOMeta'
 
 export default function AdminLoginPage() {
   const navigate = useNavigate()
@@ -32,12 +33,13 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+      <SEOMeta title="Admin Login" noindex />
       <div className="w-full max-w-sm">
 
         <div className="text-center mb-8">
           <Link to="/" className="no-underline">
             <span className="font-display font-bold text-2xl text-slate-900 tracking-tight">
-              Stay<span className="text-brand-600">Near</span>
+              Stay<span className="text-brand-600">OnMap</span>
             </span>
           </Link>
           <p className="text-sm text-slate-500 mt-2">Admin — sign in to manage the platform</p>

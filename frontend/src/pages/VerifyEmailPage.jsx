@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { MailCheck, MailX } from 'lucide-react'
 import { authService } from '@services/auth.service'
+import SEOMeta from '@components/common/SEOMeta'
 
 // Landing page for the emailed verification link — verifies automatically on
 // load (no button to click; the click already happened in the email).
@@ -28,6 +29,7 @@ export default function VerifyEmailPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <SEOMeta title="Verify Email" noindex />
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8">
         <Link to="/" className="no-underline flex items-center gap-2 mb-8">
           <span className="font-bold text-xl tracking-tight text-slate-900">

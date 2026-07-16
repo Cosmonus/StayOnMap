@@ -3,6 +3,7 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Check, Heart, Navigation, ArrowRight, Phone, Lock, LifeBuoy } from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import SEOMeta from '@components/common/SEOMeta'
 import { propertyService } from '@services/property.service'
 import { authService } from '@services/auth.service'
 import { savedService } from '@services/saved.service'
@@ -510,6 +511,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 pt-16">
+      <SEOMeta title="Dashboard" noindex />
       <main className={`flex-1 overflow-hidden ${isFullBleed ? '' : 'px-4 md:px-8 py-4 md:py-8 overflow-y-auto'}`}>
         {renderSection()}
       </main>
