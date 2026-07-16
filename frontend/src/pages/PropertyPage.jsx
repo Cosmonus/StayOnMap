@@ -761,6 +761,7 @@ export default function PropertyPage() {
   if (error || !property) {
     return (
       <Shell>
+        <SEOMeta title="Property not found" noindex />
         <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-24">
           <SearchX className="w-16 h-16 mb-4 text-slate-200" strokeWidth={1.5} />
           <p className="text-lg font-semibold text-slate-700">Property not found</p>

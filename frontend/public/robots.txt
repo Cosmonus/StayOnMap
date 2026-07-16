@@ -3,11 +3,10 @@ Allow: /
 
 Disallow: /user
 Disallow: /user/
-Disallow: /saved
-Disallow: /appointments
+Disallow: /list
 Disallow: /reset-password
+Disallow: /verify-email
 Disallow: /admin
 Disallow: /admin/
-Disallow: /design-system
 
 Sitemap: https://www.stayonmap.com/sitemap.xml
