@@ -1,16 +1,19 @@
 import { useState } from 'react'
-import { View, Text, Pressable, ScrollView, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, Text, Pressable, ScrollView, ActivityIndicator, Modal, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
 import { leaseService } from '@services/lease.service'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
-import { spacing } from '@theme/spacing'
+import { spacing, radius } from '@theme/spacing'
+import { formatRent } from '@utils/format'
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 const DOT_COLOR = { appointment: '#FBBF24', 'lease-start': '#4ADE80', 'lease-end': colors.slate400 }
+const EVENT_TYPE_LABEL = { appointment: 'Visit request', 'lease-start': 'Lease starts', 'lease-end': 'Lease ends' }
 
 function daysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate()
@@ -26,6 +29,7 @@ export default function CalendarScreen() {
     const d = new Date()
     return { year: d.getFullYear(), month: d.getMonth() }
   })
+  const [selectedKey, setSelectedKey] = useState(null)
 
   const { data: appointments = [], isLoading: loadingAppts } = useQuery({
     queryKey: ['owner-appointments'],
@@ -45,10 +49,15 @@ export default function CalendarScreen() {
     if (!events.has(key)) events.set(key, [])
     events.get(key).push(entry)
   }
-  appointments.forEach((a) => addEvent(a.requestedDate, { type: 'appointment', label: a.property?.title ?? 'Visit' }))
+  appointments.forEach((a) => addEvent(a.requestedDate, {
+    type: 'appointment',
+    label: a.property?.title ?? 'Visit',
+    person: a.tenant?.name,
+    detail: a.requestedTime,
+  }))
   leases.forEach((l) => {
-    addEvent(l.startDate, { type: 'lease-start', label: l.property?.title ?? 'Lease starts' })
-    addEvent(l.endDate, { type: 'lease-end', label: l.property?.title ?? 'Lease ends' })
+    addEvent(l.startDate, { type: 'lease-start', label: l.property?.title ?? 'Lease starts', person: l.tenant?.name, detail: formatRent(l.rentAmount) })
+    addEvent(l.endDate, { type: 'lease-end', label: l.property?.title ?? 'Lease ends', person: l.tenant?.name, detail: formatRent(l.rentAmount) })
   })
 
   const total = daysInMonth(cursor.year, cursor.month)
@@ -58,6 +67,11 @@ export default function CalendarScreen() {
   )
   const monthLabel = new Date(cursor.year, cursor.month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   const isLoading = loadingAppts || loadingLeases
+
+  const selectedEvents = selectedKey ? (events.get(selectedKey) ?? []) : []
+  const selectedLabel = selectedKey
+    ? new Date(`${selectedKey}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    : ''
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -101,7 +115,13 @@ export default function CalendarScreen() {
                 const key = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
                 const dayEvents = events.get(key) ?? []
                 return (
-                  <View key={i} style={styles.cell}>
+                  <Pressable
+                    key={i}
+                    style={styles.cell}
+                    onPress={() => setSelectedKey(key)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${key}${dayEvents.length ? `, ${dayEvents.length} booking${dayEvents.length > 1 ? 's' : ''}` : ''}`}
+                  >
                     <Text style={styles.dayNumber}>{day}</Text>
                     {dayEvents.length > 0 && (
                       <View style={styles.dotRow}>
@@ -110,7 +130,7 @@ export default function CalendarScreen() {
                         ))}
                       </View>
                     )}
-                  </View>
+                  </Pressable>
                 )
               })}
             </View>
@@ -132,6 +152,39 @@ export default function CalendarScreen() {
           </>
         )}
       </ScrollView>
+
+      <Modal visible={!!selectedKey} animationType="slide" transparent onRequestClose={() => setSelectedKey(null)}>
+        <Pressable style={styles.backdrop} onPress={() => setSelectedKey(null)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.handle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetHeading}>{selectedLabel}</Text>
+              <Pressable onPress={() => setSelectedKey(null)} hitSlop={14} accessibilityRole="button" accessibilityLabel="Close">
+                <Icon name="close" size={20} color={colors.slate500} />
+              </Pressable>
+            </View>
+
+            {selectedEvents.length === 0 ? (
+              <Text style={styles.emptyText}>No bookings on this date.</Text>
+            ) : (
+              <ScrollView style={styles.sheetList}>
+                {selectedEvents.map((e, idx) => (
+                  <View key={idx} style={styles.bookingRow}>
+                    <View style={[styles.dot, styles.bookingDot, { backgroundColor: DOT_COLOR[e.type] }]} />
+                    <View style={styles.bookingInfo}>
+                      <Text style={styles.bookingLabel} numberOfLines={1}>{e.label}</Text>
+                      <Text style={styles.bookingDetail} numberOfLines={1}>
+                        {EVENT_TYPE_LABEL[e.type]}{e.person ? ` · ${e.person}` : ''}{e.detail ? ` · ${e.detail}` : ''}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+            <SafeAreaView edges={['bottom']} />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -155,4 +208,23 @@ const styles = StyleSheet.create({
   legend: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg, flexWrap: 'wrap' },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  sheet: {
+    backgroundColor: colors.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
+    paddingHorizontal: spacing.lg, maxHeight: '75%',
+    ...shadows.sheet,
+  },
+  handle: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: colors.slate200, marginTop: spacing.sm + 2 },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.md - 2 },
+  sheetHeading: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800, flexShrink: 1, marginRight: spacing.sm },
+  emptyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, textAlign: 'center', paddingVertical: spacing.xl },
+  sheetList: { marginBottom: spacing.sm },
+  bookingRow: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,
+    paddingVertical: spacing.sm + 2, borderBottomWidth: 1, borderBottomColor: colors.slate100,
+  },
+  bookingDot: { width: 8, height: 8, borderRadius: 4, marginTop: 5 },
+  bookingInfo: { flex: 1, minWidth: 0 },
+  bookingLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
+  bookingDetail: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
 })

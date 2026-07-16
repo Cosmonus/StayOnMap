@@ -7,7 +7,6 @@ import { formatRent, formatDate, imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
 import ContactRow, { buildContactStats } from '../components/ContactRow'
 import { colors } from '@theme/colors'
-import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -355,7 +354,7 @@ const styles = StyleSheet.create({
   tenantBannerSince: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 1 },
   sectionTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, paddingHorizontal: spacing.lg, marginTop: spacing.lg, marginBottom: spacing.sm },
   sectionHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, paddingHorizontal: spacing.lg, marginBottom: spacing.xs },
-  actionsCard: { marginHorizontal: spacing.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate100, borderRadius: radius.lg, overflow: 'hidden', ...shadows.card },
+  actionsCard: { marginHorizontal: spacing.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate100, borderRadius: radius.lg, overflow: 'hidden' },
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, minHeight: 56, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.slate100 },
   actionIcon: { width: 34, height: 34, borderRadius: radius.md, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center' },
   actionText: { flex: 1, minWidth: 0 },

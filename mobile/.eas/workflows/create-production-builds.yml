@@ -1,0 +1,16 @@
+name: Create Production Builds
+
+jobs:
+  build_android:
+    type: build # This job type creates a production build for Android
+    params:
+      platform: android
+      profile: production
+
+  submit_android:
+    type: submit # Uploads the build from build_android to Play Console's internal track
+    needs: [build_android]
+    params:
+      platform: android
+      profile: production
+      build_id: ${{ needs.build_android.outputs.build_id }}

@@ -12,6 +12,7 @@ import { appointmentService } from '@services/appointment.service'
 import { leaseService } from '@services/lease.service'
 import { AmenityIcon } from '@components/common/AmenityIcon'
 import { formatRent, formatCurrency } from '@utils/format'
+import Modal from '@components/common/Modal'
 import NotificationCenter from '@features/notifications/components/NotificationCenter'
 import ChatPanel from '@features/chat/components/ChatPanel'
 import MapView from '@features/map/components/MapView'
@@ -360,11 +361,14 @@ function dateKey(d) {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
 }
 
+const EVENT_TYPE_LABEL = { appointment: 'Visit request', 'lease-start': 'Lease starts', 'lease-end': 'Lease ends' }
+
 function CalendarSection() {
   const [cursor, setCursor] = useState(() => {
     const d = new Date()
     return { year: d.getFullYear(), month: d.getMonth() }
   })
+  const [selectedKey, setSelectedKey] = useState(null)
 
   const { data: appointments = [] } = useQuery({
     queryKey: ['owner-appointments'],
@@ -384,10 +388,15 @@ function CalendarSection() {
     if (!events.has(key)) events.set(key, [])
     events.get(key).push(entry)
   }
-  appointments.forEach(a => addEvent(a.requestedDate, { type: 'appointment', label: a.property?.title ?? 'Visit' }))
+  appointments.forEach(a => addEvent(a.requestedDate, {
+    type: 'appointment',
+    label: a.property?.title ?? 'Visit',
+    person: a.tenant?.name,
+    detail: a.requestedTime,
+  }))
   leases.forEach(l => {
-    addEvent(l.startDate, { type: 'lease-start', label: l.property?.title ?? 'Lease starts' })
-    addEvent(l.endDate, { type: 'lease-end', label: l.property?.title ?? 'Lease ends' })
+    addEvent(l.startDate, { type: 'lease-start', label: l.property?.title ?? 'Lease starts', person: l.tenant?.name, detail: formatRent(l.rentAmount) })
+    addEvent(l.endDate, { type: 'lease-end', label: l.property?.title ?? 'Lease ends', person: l.tenant?.name, detail: formatRent(l.rentAmount) })
   })
 
   const total = daysInMonth(cursor.year, cursor.month)
@@ -398,6 +407,11 @@ function CalendarSection() {
   const monthLabel = new Date(cursor.year, cursor.month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
   const DOT_COLOR = { appointment: 'bg-amber-400', 'lease-start': 'bg-green-500', 'lease-end': 'bg-slate-400' }
+
+  const selectedEvents = selectedKey ? (events.get(selectedKey) ?? []) : []
+  const selectedLabel = selectedKey
+    ? new Date(`${selectedKey}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    : ''
 
   return (
     <div className="space-y-5">
@@ -421,16 +435,22 @@ function CalendarSection() {
             const key = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
             const dayEvents = events.get(key) ?? []
             return (
-              <div key={i} className="aspect-square flex flex-col items-center justify-center gap-0.5">
+              <button
+                key={i}
+                type="button"
+                onClick={() => setSelectedKey(key)}
+                aria-label={`${key}${dayEvents.length ? `, ${dayEvents.length} booking${dayEvents.length > 1 ? 's' : ''}` : ''}`}
+                className="aspect-square flex flex-col items-center justify-center gap-0.5 rounded-lg hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
                 <span className="text-xs font-mono text-slate-700">{day}</span>
                 {dayEvents.length > 0 && (
                   <div className="flex gap-0.5">
                     {dayEvents.slice(0, 3).map((e, idx) => (
-                      <span key={idx} className={`w-1.5 h-1.5 rounded-full ${DOT_COLOR[e.type]}`} title={e.label} />
+                      <span key={idx} className={`w-1.5 h-1.5 rounded-full ${DOT_COLOR[e.type]}`} />
                     ))}
                   </div>
                 )}
-              </div>
+              </button>
             )
           })}
         </div>
@@ -441,6 +461,26 @@ function CalendarSection() {
         <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" /> Lease starts</span>
         <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-slate-400" /> Lease ends</span>
       </div>
+
+      <Modal isOpen={!!selectedKey} onClose={() => setSelectedKey(null)} title={selectedLabel} size="sm">
+        {selectedEvents.length === 0 ? (
+          <p className="text-sm text-slate-400 text-center py-6">No bookings on this date.</p>
+        ) : (
+          <div className="space-y-3">
+            {selectedEvents.map((e, idx) => (
+              <div key={idx} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100">
+                <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${DOT_COLOR[e.type]}`} />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-800 truncate">{e.label}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {EVENT_TYPE_LABEL[e.type]}{e.person ? ` · ${e.person}` : ''}{e.detail ? ` · ${e.detail}` : ''}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
