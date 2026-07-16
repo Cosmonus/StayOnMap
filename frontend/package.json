@@ -10,6 +10,7 @@
     "lint": "eslint src --ext .js,.jsx"
   },
   "dependencies": {
+    "@sentry/react": "^10.65.0",
     "@tanstack/react-query": "^5.100.10",
     "axios": "^1.7.0",
     "chart.js": "^4.5.1",

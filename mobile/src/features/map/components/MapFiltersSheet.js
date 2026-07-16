@@ -2,10 +2,11 @@
 // DRAFT (with a live viewport result count); nothing hits the store — or the
 // map — until Apply. Sections and controls are generated from
 // config/filters.js; location search lives in MapSearchBar, not here.
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { View, Text, Modal, Pressable, ScrollView, StyleSheet } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useResetOnOpen } from '@/hooks/useResetOnOpen'
 import { useFilterStore } from '@store/filterStore'
 import { DEFAULT_FILTERS, SEARCH_KEYS, countActiveFilters, staleFilterPatch } from '@config/filters'
 import Icon from '@components/common/Icon'
@@ -22,9 +23,7 @@ export default function MapFiltersSheet({ visible, onClose }) {
   const [draft, setDraft] = useState(DEFAULT_FILTERS)
 
   // Re-seed the draft from the store each time the sheet opens
-  useEffect(() => {
-    if (visible) setDraft(useFilterStore.getState().filters)
-  }, [visible])
+  useResetOnOpen(visible, () => setDraft(useFilterStore.getState().filters))
 
   const { count, isFetching } = useFilterCount(draft, visible)
   const activeCount = countActiveFilters(draft)

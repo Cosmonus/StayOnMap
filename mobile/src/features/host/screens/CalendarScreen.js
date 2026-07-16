@@ -7,7 +7,7 @@ import { leaseService } from '@services/lease.service'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
-import { spacing, radius } from '@theme/spacing'
+import { spacing } from '@theme/spacing'
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 const DOT_COLOR = { appointment: '#FBBF24', 'lease-start': '#4ADE80', 'lease-end': colors.slate400 }

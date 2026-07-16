@@ -40,4 +40,6 @@ export const env = {
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || null,
   vapidSubject:    process.env.VAPID_SUBJECT     || 'mailto:hello@stayonmap.com',
   googleMapsKey:   process.env.GOOGLE_MAPS_KEY   || null,
+  // Error monitoring — entirely optional, lib/sentry.js no-ops without it
+  sentryDsn:       process.env.SENTRY_DSN        || null,
 }

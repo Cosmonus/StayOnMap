@@ -53,8 +53,10 @@ export default function RangeSlider({ domain, unit, min, max, onChange }) {
   }, [live, lo, hi, trackWidth, dMin, dMax, loX, hiX])
 
   // Gestures are memoized (not rebuilt on every live-label re-render), so
-  // JS-side callbacks go through a stable ref to avoid stale closures.
+  // JS-side callbacks go through a stable ref to avoid stale closures — the
+  // standard react-native-gesture-handler + reanimated idiom for this case.
   const jsRef = useRef({})
+  // eslint-disable-next-line react-hooks/refs -- deliberate stable-ref pattern, see comment above
   jsRef.current = {
     begin: () => setLive({ lo, hi }),
     tick: (isLo, v) =>
@@ -77,6 +79,10 @@ export default function RangeSlider({ domain, unit, min, max, onChange }) {
   const invokeRef = useRef((name, a, b) => jsRef.current[name](a, b))
   const invoke = invokeRef.current
 
+  // The `invoke` dependency reads through invokeRef/jsRef by design (see the
+  // stable-ref comment above) so the compiler can't verify this memoization
+  // or the ref access inside `make` — both are the same intentional pattern.
+  /* eslint-disable react-hooks/refs, react-hooks/preserve-manual-memoization */
   const gestures = useMemo(() => {
     const make = (isLo) =>
       Gesture.Pan()
@@ -113,6 +119,7 @@ export default function RangeSlider({ domain, unit, min, max, onChange }) {
         })
     return { lo: make(true), hi: make(false) }
   }, [trackWidth, dMin, dMax, step, invoke, loX, hiX, grabX, lastTick])
+  /* eslint-enable react-hooks/refs, react-hooks/preserve-manual-memoization */
 
   const loStyle = useAnimatedStyle(() => ({ transform: [{ translateX: loX.value - THUMB / 2 }] }))
   const hiStyle = useAnimatedStyle(() => ({ transform: [{ translateX: hiX.value - THUMB / 2 }] }))
@@ -124,6 +131,9 @@ export default function RangeSlider({ domain, unit, min, max, onChange }) {
   const onA11yAction = (isLo) => (event) => {
     const dir = event.nativeEvent.actionName === 'increment' ? 1 : event.nativeEvent.actionName === 'decrement' ? -1 : 0
     if (!dir) return
+    // Runs only inside a TalkBack action event handler, never during render —
+    // the same stable-ref pattern as the gesture callbacks above.
+    // eslint-disable-next-line react-hooks/refs
     jsRef.current.commit(isLo, (isLo ? lo : hi) + dir * a11yStep)
   }
   const a11yActions = [{ name: 'increment' }, { name: 'decrement' }]

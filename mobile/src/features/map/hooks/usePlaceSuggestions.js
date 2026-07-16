@@ -13,9 +13,13 @@ export function usePlaceSuggestions(query, cityName) {
   const timerRef = useRef(null)
   const requestIdRef = useRef(0)
 
+  // A debounced network search — genuinely synchronizing with an external
+  // system (setTimeout + a REST call), the textbook case useEffect exists
+  // for, not the "derive state from a prop" case the lint rule targets.
   useEffect(() => {
     clearTimeout(timerRef.current)
     if (!query || query.trim().length < 2) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSuggestions([])
       setLoading(false)
       setError(null)

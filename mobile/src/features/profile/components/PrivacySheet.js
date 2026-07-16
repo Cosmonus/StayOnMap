@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { userService } from '@services/user.service'
+import { useResetOnOpen } from '@/hooks/useResetOnOpen'
 import FormSheet from './FormSheet'
 import SettingsToggle from './SettingsToggle'
 import Icon from '@components/common/Icon'
@@ -47,14 +48,12 @@ export default function PrivacySheet({ visible, onClose, settings }) {
   const [showExactLocation, setShowExactLocation] = useState(true)
   const [submitError, setSubmitError] = useState('')
 
-  useEffect(() => {
-    if (visible) {
-      setListingVisibility(settings?.listingVisibility ?? 'PUBLIC')
-      setContactVisibility(settings?.contactVisibility ?? 'LOGGED_IN')
-      setShowExactLocation(settings?.showExactLocation ?? true)
-      setSubmitError('')
-    }
-  }, [visible, settings])
+  useResetOnOpen(visible, () => {
+    setListingVisibility(settings?.listingVisibility ?? 'PUBLIC')
+    setContactVisibility(settings?.contactVisibility ?? 'LOGGED_IN')
+    setShowExactLocation(settings?.showExactLocation ?? true)
+    setSubmitError('')
+  })
 
   const { mutate: save, isPending } = useMutation({
     mutationFn: (data) => userService.updateProfile(data),
