@@ -23,7 +23,7 @@
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
+    "dotenv": "^17.4.2",
     "expo-server-sdk": "^6.1.0",
     "express": "^5.2.1",
     "express-rate-limit": "^7.3.1",
