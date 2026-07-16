@@ -1511,9 +1511,21 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
                             <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 shadow-sm ${isOwner ? 'bg-brand-600 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}>
                               <div className="flex items-center gap-2 mb-1">
                                 <span className={`text-xs font-semibold ${isOwner ? 'text-white/80' : 'text-slate-500'}`}>{senderLabel}</span>
+                                {m.editedAt && !m.deletedAt && (
+                                  <span className={`text-[10px] ${isOwner ? 'text-white/50' : 'text-slate-400'}`}>edited</span>
+                                )}
                                 <span className={`text-[10px] ${isOwner ? 'text-white/50' : 'text-slate-400'}`}>{new Date(m.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
                               </div>
-                              <p className={`text-sm leading-relaxed ${isOwner ? 'text-white' : 'text-slate-700'}`}>{m.body}</p>
+                              {m.deletedAt ? (
+                                <p className={`text-sm italic ${isOwner ? 'text-white/70' : 'text-slate-400'}`}>This message was deleted</p>
+                              ) : (
+                                <>
+                                  {m.attachmentUrl && (
+                                    <img src={m.attachmentUrl} alt="Attachment" className="max-w-[200px] max-h-[200px] rounded-lg object-cover mb-1" />
+                                  )}
+                                  {m.body && <p className={`text-sm leading-relaxed ${isOwner ? 'text-white' : 'text-slate-700'}`}>{m.body}</p>}
+                                </>
+                              )}
                             </div>
                           </div>
                         )
