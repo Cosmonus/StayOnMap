@@ -2,10 +2,12 @@
 // Run: npx prisma db seed
 
 import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
 import bcrypt from 'bcryptjs'
 import { AMENITIES } from './amenities.js'
 
-const prisma = new PrismaClient()
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+const prisma = new PrismaClient({ adapter })
 
 // ─── Sample Properties ────────────────────────────────────────────
 // 15 properties across 6 cities — all ACTIVE so they appear on the map
