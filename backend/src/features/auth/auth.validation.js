@@ -26,6 +26,17 @@ export const verifyEmailSchema = z.object({
   token: z.string().min(1),
 })
 
+export const requestOtpSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+})
+
+export const verifyOtpSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+  // Exactly 6 digits — rejects a padded/whitespaced code at the edge so the
+  // service never burns an attempt on input that could not have been issued.
+  code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code'),
+})
+
 export const updateRoleSchema = z.object({
   role: z.enum(['OWNER']),
 })

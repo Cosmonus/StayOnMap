@@ -55,8 +55,12 @@ vi.mock('../src/config/env.js', () => ({
 }))
 
 // ── Email — best-effort side effect, never awaited for correctness ─────────
+// Exception: login OTP awaits sendEmail's boolean and canSend's pre-flight,
+// so both default to "sent successfully" here; OTP tests override per-case.
 vi.mock('../src/services/email.service.js', () => ({
-  sendEmail: vi.fn().mockResolvedValue(null),
+  sendEmail: vi.fn().mockResolvedValue(true),
+  canSend: vi.fn().mockResolvedValue(true),
   passwordResetEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
   emailVerificationEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
+  loginOtpEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
 }))

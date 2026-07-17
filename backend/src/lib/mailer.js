@@ -69,6 +69,16 @@ function getTransport() {
   return transport
 }
 
+// Pre-flight: would a send of this kind go out right now? Lets a caller bail
+// BEFORE doing any account-specific work — OTP login uses this so a
+// quota-exhausted response is identical for registered and unregistered
+// emails, which would otherwise be an account-enumeration oracle (an
+// existing address 503s on a failed send while an unknown one 200s).
+export async function canSend(critical = false) {
+  if (!getTransport()) return false
+  return hasQuota(await getUsed(), env.smtpDailyCap, critical)
+}
+
 // ── Entry point — never throws; returns whether the email actually went out ─
 export async function sendMail({ to, subject, html, critical = false }) {
   const smtp = getTransport()

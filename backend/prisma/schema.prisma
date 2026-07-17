@@ -281,6 +281,7 @@ model User {
   expoPushTokens    ExpoPushToken[]
   ownerTrustScore   OwnerTrustScore?
   passwordResetTokens PasswordResetToken[]
+  emailOtps           EmailOtp[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -297,6 +298,28 @@ model PasswordResetToken {
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// Passwordless login: a 6-digit code emailed to a registered address.
+// Only ever stored hashed (sha256) — same rule as PasswordResetToken, so a
+// DB read can never yield a usable code. Not @unique like tokenHash: 6 digits
+// collide across users by design, so lookup is scoped by userId.
+//
+// `attempts` caps guessing at MAX_OTP_ATTEMPTS: 6 digits is only 1e6 combos,
+// which is brute-forceable within the TTL without a counter.
+model EmailOtp {
+  id         String    @id @default(cuid())
+  userId     String
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

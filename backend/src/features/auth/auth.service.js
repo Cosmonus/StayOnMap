@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken'
 import { prisma } from '../../lib/prisma.js'
 import { env } from '../../config/env.js'
 import { generateUserDisplayId } from '../../utils/idGenerator.js'
-import { sendEmail, passwordResetEmail, emailVerificationEmail } from '../../services/email.service.js'
+import { sendEmail, canSend, passwordResetEmail, emailVerificationEmail, loginOtpEmail } from '../../services/email.service.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
 
 function signUserToken(user) {
@@ -160,4 +160,122 @@ export async function verifyEmail(rawToken) {
 
   const { count } = await prisma.user.updateMany({ where: { id: payload.sub }, data: { isVerified: true } })
   if (count === 0) throw Object.assign(new Error('This verification link is invalid or has expired'), { statusCode: 400 })
+}
+
+// ── Passwordless login — emailed 6-digit OTP ────────────────────────────────
+// Every send costs one of the platform's ~450 daily SMTP sends (lib/mailer.js),
+// shared with every other email. Unlike notifications, an OTP that silently
+// drops is a total login failure, so sends are `critical` AND pre-flighted.
+// The per-email limits below are the real abuse defense: without them, an
+// attacker could drain the whole day's quota — including the reserve that
+// password resets depend on — by replaying this unauthenticated endpoint.
+const OTP_TTL_MS = 10 * 60 * 1000
+const OTP_TTL_MINUTES = OTP_TTL_MS / 60_000
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000
+const OTP_MAX_PER_DAY = 5
+const OTP_MAX_ATTEMPTS = 5
+
+const hashOtp = (code) => crypto.createHash('sha256').update(code).digest('hex')
+
+// crypto.randomInt, not Math.random — a predictable code is a login bypass.
+const generateOtp = () => String(crypto.randomInt(0, 1_000_000)).padStart(6, '0')
+
+export async function requestLoginOtp(email) {
+  // Quota is checked FIRST, before any account lookup, so an exhausted-quota
+  // response is byte-identical whether or not the address is registered.
+  // Checking it after the lookup would turn "503 vs 200" into an
+  // account-enumeration oracle.
+  if (!(await canSend(true))) {
+    throw Object.assign(
+      new Error('Sign-in codes are temporarily unavailable. Please sign in with your password.'),
+      { statusCode: 503 }
+    )
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, email: true, name: true, isBlocked: true },
+  })
+  // Silent no-op for unknown or blocked accounts — never leak which emails are
+  // registered. Blocked users are rejected at verify time too, so an OTP is
+  // useless to them regardless; not sending simply avoids the wasted quota.
+  if (!user || user.isBlocked) return
+
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  const [recent, todayCount] = await Promise.all([
+    prisma.emailOtp.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    }),
+    prisma.emailOtp.count({ where: { userId: user.id, createdAt: { gte: since } } }),
+  ])
+
+  if (recent && Date.now() - recent.createdAt.getTime() < OTP_RESEND_COOLDOWN_MS) {
+    const wait = Math.ceil((OTP_RESEND_COOLDOWN_MS - (Date.now() - recent.createdAt.getTime())) / 1000)
+    throw Object.assign(new Error(`Please wait ${wait}s before requesting another code`), { statusCode: 429 })
+  }
+  if (todayCount >= OTP_MAX_PER_DAY) {
+    throw Object.assign(
+      new Error('Too many sign-in codes requested today. Please sign in with your password.'),
+      { statusCode: 429 }
+    )
+  }
+
+  const code = generateOtp()
+  await prisma.emailOtp.create({
+    data: { userId: user.id, codeHash: hashOtp(code), expiresAt: new Date(Date.now() + OTP_TTL_MS) },
+  })
+
+  // Awaited, unlike every other email in this service: if the code never goes
+  // out there is nothing for the user to type, so a failed send must surface
+  // as an error rather than a code-entry screen that can never succeed.
+  const sent = await sendEmail({
+    to: user.email,
+    ...loginOtpEmail({ name: user.name, code, ttlMinutes: OTP_TTL_MINUTES }),
+    critical: true,
+  })
+  if (!sent) {
+    throw Object.assign(
+      new Error('Could not send your sign-in code. Please sign in with your password.'),
+      { statusCode: 503 }
+    )
+  }
+}
+
+export async function verifyLoginOtp(email, code) {
+  const invalid = () => Object.assign(new Error('Invalid or expired code'), { statusCode: 401 })
+
+  const user = await prisma.user.findUnique({ where: { email } })
+  if (!user) throw invalid()
+
+  const otp = await prisma.emailOtp.findFirst({
+    where: { userId: user.id, consumedAt: null, expiresAt: { gt: new Date() } },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (!otp) throw invalid()
+
+  // Attempt cap is per-code: 6 digits is 1e6 combos, trivially brute-forced
+  // inside a 10-minute window without it. A burnt code forces a fresh request,
+  // which the cooldown + daily cap then throttle.
+  if (otp.attempts >= OTP_MAX_ATTEMPTS) throw invalid()
+
+  if (otp.codeHash !== hashOtp(code)) {
+    await prisma.emailOtp.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } })
+    throw invalid()
+  }
+
+  // Checked only after the code is proven correct, so the distinct 403 can't
+  // be used to probe which emails belong to blocked accounts.
+  if (user.isBlocked) throw Object.assign(new Error('This account has been blocked'), { statusCode: 403 })
+
+  // Receiving the code proves control of the inbox — exactly what the
+  // verification link proves — so a first OTP login verifies the email for
+  // free. `isVerified` is set here rather than left to the separate link flow.
+  const [, updated] = await prisma.$transaction([
+    prisma.emailOtp.update({ where: { id: otp.id }, data: { consumedAt: new Date() } }),
+    prisma.user.update({ where: { id: user.id }, data: { isVerified: true } }),
+  ])
+
+  return { token: signUserToken(updated), user: stripPasswordHash(updated) }
 }
