@@ -78,6 +78,30 @@ export const chatLimiter = makeLimiter({
   message: { success: false, message: 'Too many messages, slow down', statusCode: 429 },
 })
 
+// /places/* proxies a *billed* Google key, so these buckets are cost control,
+// not just abuse control. Two tiers because the costs differ by an order of
+// magnitude, and strictLimiter's 20 would throttle real users mid-search.
+//
+// Cheap tier: 1 Google call per request. Autocomplete fires per debounced
+// keystroke, so this needs room for many searches per session.
+export const placesLimiter = makeLimiter({
+  prefix: 'rl:places:',
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  message: { success: false, message: 'Too many location lookups, slow down', statusCode: 429 },
+})
+
+// Expensive tier: ~11 billed Google calls per cache miss, and the cache key is
+// the caller's own coordinates — so a miss is attacker-selectable. A normal
+// session hits this once per property viewed; 30 is generous for that and caps
+// worst-case spend at ~330 Google calls per IP per window (was ~6,600).
+export const placesIntelLimiter = makeLimiter({
+  prefix: 'rl:placesintel:',
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { success: false, message: 'Too many area lookups, try again later', statusCode: 429 },
+})
+
 // Admin users are trusted operators — generous limit so moderation actions never get throttled
 export const adminLimiter = makeLimiter({
   prefix: 'rl:admin:',

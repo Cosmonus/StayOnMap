@@ -62,7 +62,20 @@ export const prismaMock = {
     upsert: vi.fn(),
   },
   propertyRiskScore: {
-    upsert: vi.fn(),
+    upsert:     vi.fn(),
+    findUnique: vi.fn(),
+  },
+  propertyReport: {
+    create:     vi.fn(),
+    findMany:   vi.fn(),
+    findUnique: vi.fn(),
+    update:     vi.fn(),
+    count:      vi.fn(),
+  },
+  conversation: {
+    findUnique: vi.fn(),
+    findMany:   vi.fn(),
+    create:     vi.fn(),
   },
   ownerTrustScore: undefined, // not yet in schema — tested services check typeof before calling
   // Supports both Prisma $transaction forms: array-of-promises (lease.service.js)

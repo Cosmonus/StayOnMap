@@ -2,16 +2,31 @@ import { prisma } from '../../lib/prisma.js'
 import { recalculateRiskScore } from '../trust/trust.service.js'
 import { notifyUser } from '../notifications/notifications.service.js'
 
+// Auto-suspend needs corroboration from this many *distinct, identified*
+// reporters. Severity alone is client-supplied on a public endpoint, so acting
+// on it directly let anyone suspend any listing by filing two CRITICAL reports.
+// Anonymous reports still raise the risk score and reach the moderation queue —
+// they just can't take a listing down on their own.
+const MIN_DISTINCT_REPORTERS_TO_SUSPEND = 2
+
 export async function submitReport(reporterId, propertyId, data) {
   const report = await prisma.propertyReport.create({ data: { ...data, reporterId: data.isAnonymous ? null : reporterId, propertyId } })
 
   await recalculateRiskScore(propertyId)
 
-  // Freeze high/critical severity properties
+  // Freeze high/critical severity properties, but only once independent
+  // reporters agree — see MIN_DISTINCT_REPORTERS_TO_SUSPEND above.
   if (data.severity === 'HIGH' || data.severity === 'CRITICAL') {
     const risk = await prisma.propertyRiskScore.findUnique({ where: { propertyId } })
     if (risk?.level === 'HIGH' || risk?.level === 'SUSPICIOUS') {
-      await prisma.property.update({ where: { id: propertyId }, data: { status: 'SUSPENDED' } })
+      const corroborating = await prisma.propertyReport.findMany({
+        where: { propertyId, severity: { in: ['HIGH', 'CRITICAL'] }, reporterId: { not: null } },
+        select: { reporterId: true },
+        distinct: ['reporterId'],
+      })
+      if (corroborating.length >= MIN_DISTINCT_REPORTERS_TO_SUSPEND) {
+        await prisma.property.update({ where: { id: propertyId }, data: { status: 'SUSPENDED' } })
+      }
     }
   }
 
@@ -86,7 +101,7 @@ export async function adminModerateReport(reportId, adminId, { action, note }) {
   if (action === 'WARN_OWNER') {
     const property = await prisma.property.findUnique({ where: { id: report.propertyId }, select: { ownerId: true } })
     if (property) {
-      await notifyUser(property.ownerId, { type: 'ADMIN_WARNING', title: 'Admin Warning', body: note || 'You have received a warning from the admin regarding your property.', referenceId: reportId, referenceType: 'PropertyReport' })
+      await notifyUser(property.ownerId, { type: 'TRUST_ALERT', title: 'Admin Warning', body: note || 'You have received a warning from the admin regarding your property.', referenceId: reportId, referenceType: 'PropertyReport' })
     }
   }
 

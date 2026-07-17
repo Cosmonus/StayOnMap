@@ -24,8 +24,9 @@ export async function saveProperty(userId, propertyId) {
   })
 }
 
+// deleteMany, not delete: unsaving something already unsaved is a no-op, not an
+// error. `delete` threw P2025 → an uncaught 500 on the second of two clicks, or
+// on a retry over a flaky connection.
 export async function unsaveProperty(userId, propertyId) {
-  return prisma.savedListing.delete({
-    where: { userId_propertyId: { userId, propertyId } },
-  })
+  await prisma.savedListing.deleteMany({ where: { userId, propertyId } })
 }
