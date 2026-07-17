@@ -28,8 +28,18 @@ export const RISK_OPTIONS = [
   { value: 'SUSPICIOUS', label: 'Suspicious' },
 ]
 
+export const PRICING_MODEL_OPTIONS = [
+  { value: 'RENT', label: 'Rent' },
+  { value: 'LEASE', label: 'Lease' },
+]
+
 export const ADMIN_PARAM_DEFS = {
   ...PARAM_DEFS,
+  // Override: the public map defaults to RENT (it shows one mode at a time via
+  // the Rent/Lease toggle), but moderation must see every listing by default —
+  // a RENT default here would silently hide lease listings from the queue, the
+  // same reason admin has no ACTIVE status default.
+  pricingModel: { kind: 'str', def: '' },
   status:    { kind: 'csv', def: [] },
   riskLevel: { kind: 'csv', def: [] },
 }
@@ -50,6 +60,11 @@ const MODERATION_SECTION = {
   rows: [
     { kind: 'chips', label: 'Listing status', id: 'status', options: STATUS_OPTIONS },
     { kind: 'chips', label: 'Risk level', id: 'riskLevel', options: RISK_OPTIONS },
+    // Admin's counterpart to the public Rent/Lease toggle. `single` with an
+    // empty default means "both", which the public map never wants but
+    // moderation always does. Picking Lease swaps the Budget section's row to
+    // the lakh-scale one, exactly as it does for users.
+    { kind: 'chips', label: 'Pricing', id: 'pricingModel', single: true, options: PRICING_MODEL_OPTIONS },
   ],
 }
 

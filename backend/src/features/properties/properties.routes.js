@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { authMiddleware, optionalAuth } from '../../middlewares/auth.middleware.js'
 import { requireOwner } from '../../middlewares/requireOwner.middleware.js'
+import { requireCompleteProfile } from '../../middlewares/requireCompleteProfile.middleware.js'
 import { requireBusinessForType } from '../../middlewares/requireBusiness.middleware.js'
 import { validate } from '../../middlewares/validate.middleware.js'
 import * as controller from './properties.controller.js'
@@ -24,7 +25,10 @@ router.get('/amenities', controller.getAmenities)
 // Owner-protected (must be before /:id to prevent 'mine' being matched as an id)
 router.get('/mine',              authMiddleware, controller.getMyProperties)
 router.get('/:id',               optionalAuth, controller.getProperty)
-router.post('/',                 authMiddleware, requireOwner, validate(createPropertySchema), requireBusinessForType, controller.createProperty)
+// requireCompleteProfile sits after requireOwner (role first, readiness second)
+// and before validate — it needs no body. Creation only: existing listings and
+// edits are untouched, so this can't strand anyone who listed before the rule.
+router.post('/',                 authMiddleware, requireOwner, requireCompleteProfile, validate(createPropertySchema), requireBusinessForType, controller.createProperty)
 router.put('/:id',               authMiddleware, validate(updatePropertySchema), controller.updateProperty)
 router.delete('/:id',            authMiddleware, controller.deleteProperty)
 router.patch('/:id/status',      authMiddleware, controller.togglePropertyStatus)

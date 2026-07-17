@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma.js'
 import { notifyUser } from '../notifications/notifications.service.js'
+import { awardPoints } from '../points/points.service.js'
 
 const LEASE_INCLUDE = {
   property: { select: { id: true, title: true, city: true, rent: true, images: { where: { isPrimary: true }, take: 1 } } },
@@ -88,6 +89,10 @@ export async function signLease(leaseId, tenantId, { tenantNote }) {
     referenceId:   lease.id,
     referenceType: 'Lease',
   })
+
+  // The tenant completed a tenancy through the platform — the moment the whole
+  // product exists for, and what unlocks their "I'm home" share card.
+  awardPoints(tenantId, 'LEASE_SIGNED', lease.id).catch(() => {})
 
   return updated
 }

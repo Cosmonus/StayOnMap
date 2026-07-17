@@ -25,6 +25,10 @@ export const adminPinsQuerySchema = z.object({
   ...filterQueryShape(ADMIN_FILTERS),
 })
 
+// Note: no pricingModel default here, unlike the public schemas — moderation
+// must see rent AND lease listings by default. filterQueryShape leaves it
+// optional, so absent = both modes. Same principle as status having no ACTIVE
+// default: admin's read path is deliberately unfiltered.
 export const adminPropertiesQuerySchema = z.object({
   page:  z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),

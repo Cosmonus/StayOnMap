@@ -22,6 +22,14 @@ export default {
     },
     android: {
       package: 'com.stayonmap.app',
+      // "Display over other apps" — a sensitive permission Play surfaces on the
+      // store listing, and one a rental app has no business requesting. It is
+      // not ours: Expo's prebuild template puts it in the MAIN manifest, so it
+      // was shipping in release builds. Dev builds are unaffected — React
+      // Native declares it in its own debug manifest
+      // (android/app/src/debug/AndroidManifest.xml) for the dev overlay, and
+      // that variant is merged only into debug.
+      blockedPermissions: ['android.permission.SYSTEM_ALERT_WINDOW'],
       adaptiveIcon: {
         backgroundColor: '#0d8a5f',
         foregroundImage: './assets/android-icon-foreground.png',
@@ -51,7 +59,14 @@ export default {
       [
         'expo-notifications',
         {
-          icon: './assets/icon.png',
+          // MUST be a white silhouette on transparency — Android masks the
+          // notification small icon by its alpha channel and paints every
+          // opaque pixel white. This pointed at ./assets/icon.png, which is
+          // 100% opaque, so every StayOnMap notification showed a solid white
+          // square in the status bar instead of the logo. The monochrome
+          // adaptive icon is already exactly the right shape (15% opaque,
+          // pure white), so it doubles as the notification icon.
+          icon: './assets/android-icon-monochrome.png',
           color: '#0d8a5f',
         },
       ],
@@ -59,6 +74,15 @@ export default {
         'expo-image-picker',
         {
           photosPermission: 'Allow StayOnMap to access your photos to upload property images.',
+          // Both `false` on purpose. The app only ever calls
+          // launchImageLibraryAsync (ImageUploader.js, ConversationScreen.js)
+          // — it never opens the camera and never records audio. Left unset,
+          // this plugin ADDS RECORD_AUDIO to the manifest and permits CAMERA
+          // (see its withAndroidImagePickerPermissions), so a rental app was
+          // asking Play reviewers and users for microphone access it never
+          // uses. `false` also blocks any other package from re-adding them.
+          cameraPermission: false,
+          microphonePermission: false,
         },
       ],
       [

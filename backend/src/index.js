@@ -38,6 +38,7 @@ import uploadRoutes      from './features/uploads/uploads.routes.js'
 import savedRoutes       from './features/saved/saved.routes.js'
 import appointmentRoutes from './features/appointments/appointments.routes.js'
 import notificationRoutes from './features/notifications/notifications.routes.js'
+import pointsRoutes       from './features/points/points.routes.js'
 import chatRoutes         from './features/chat/chat.routes.js'
 import leaseRoutes        from './features/leases/lease.routes.js'
 import pushRoutes         from './features/push/push.routes.js'
@@ -79,6 +80,7 @@ app.use('/api/v1/uploads',       uploadLimiter, uploadRoutes)
 app.use('/api/v1/saved',         savedRoutes)
 app.use('/api/v1/appointments',  appointmentRoutes)
 app.use('/api/v1/notifications', notificationRoutes)
+app.use('/api/v1/points',        pointsRoutes)
 app.use('/api/v1/chat',          chatRoutes)
 app.use('/api/v1/leases',        leaseRoutes)
 app.use('/api/v1/push',          pushRoutes)
