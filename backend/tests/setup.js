@@ -51,12 +51,26 @@ vi.mock('../src/config/env.js', () => ({
     jwtExpiresIn: '7d',
     frontendUrl: 'http://localhost:5173',
     googleMapsKey: null,
+    // Mail: mirrors an unconfigured deploy (no SMTP creds, no Brevo key) so
+    // sendMail is a no-op by default. mailer.test.js overrides per-case.
+    mailProvider: 'smtp',
+    brevoApiKey: null,
+    mailFrom: 'StayOnMap <no-reply@stayonmap.com>',
+    mailDailyCap: 450,
+    smtpHost: null,
+    smtpPort: 465,
+    smtpUser: null,
+    smtpPass: null,
   },
 }))
 
 // ── Email — best-effort side effect, never awaited for correctness ─────────
+// Exception: login OTP awaits sendEmail's boolean and canSend's pre-flight,
+// so both default to "sent successfully" here; OTP tests override per-case.
 vi.mock('../src/services/email.service.js', () => ({
-  sendEmail: vi.fn().mockResolvedValue(null),
+  sendEmail: vi.fn().mockResolvedValue(true),
+  canSend: vi.fn().mockResolvedValue(true),
   passwordResetEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
   emailVerificationEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
+  loginOtpEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
 }))

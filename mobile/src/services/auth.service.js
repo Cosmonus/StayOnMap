@@ -8,4 +8,6 @@ export const authService = {
   upgradeBusiness: () => api.patch('/auth/business'),
   requestPasswordReset: (data) => api.post('/auth/forgot-password', data),
   sendEmailVerification: () => api.post('/auth/send-verification'),
+  requestLoginOtp: (data) => api.post('/auth/otp/request', data),
+  verifyLoginOtp: (data) => api.post('/auth/otp/verify', data),
 }

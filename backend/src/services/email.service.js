@@ -1,5 +1,5 @@
 import { env } from '../config/env.js'
-import { sendMail } from '../lib/mailer.js'
+import { sendMail, canSend } from '../lib/mailer.js'
 
 // Templates below; delivery lives in lib/mailer.js (plain SMTP, quota-aware).
 // `critical: true` marks emails that must go out even near the daily cap —
@@ -7,6 +7,10 @@ import { sendMail } from '../lib/mailer.js'
 export async function sendEmail({ to, subject, html, critical = false }) {
   return sendMail({ to, subject, html, critical })
 }
+
+// Re-exported so features import delivery concerns from this service rather
+// than reaching into lib/mailer.js directly.
+export { canSend }
 
 export function appointmentAcceptedEmail({ tenantName, propertyTitle, ownerNote }) {
   return {
@@ -55,6 +59,19 @@ export function emailVerificationEmail({ name, link }) {
       <p><a href="${link}">${link}</a></p>
       <p>This link expires in 24 hours. You can keep using StayOnMap while unverified — verifying just marks your account as trusted.</p>
       <p>If you didn't create a StayOnMap account, you can safely ignore this email.</p>
+    `,
+  }
+}
+
+export function loginOtpEmail({ name, code, ttlMinutes }) {
+  return {
+    subject: `${code} is your StayOnMap sign-in code`,
+    html: `
+      <p>Hi ${name},</p>
+      <p>Use this code to sign in to StayOnMap:</p>
+      <p style="font-size:28px;font-weight:700;letter-spacing:6px;margin:20px 0;">${code}</p>
+      <p>It expires in ${ttlMinutes} minutes and can only be used once.</p>
+      <p>If you didn't try to sign in, you can safely ignore this email — nobody can access your account with this email alone, and your password is unchanged.</p>
     `,
   }
 }
