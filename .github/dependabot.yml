@@ -1,5 +1,6 @@
 version: 2
 updates:
+  # ── Backend ────────────────────────────────────────────────────────────
   - package-ecosystem: "npm"
     directory: "/backend"
     schedule:
@@ -8,7 +9,29 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    # Let new releases bake for a week before a PR is opened — day-0
+    # regressions get pulled from npm fast, and we never need same-day bumps.
+    cooldown:
+      default-days: 7
+    groups:
+      # All minor+patch bumps arrive as ONE weekly PR instead of five.
+      # Majors stay individual PRs (they need release-notes review).
+      backend-minor-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+    ignore:
+      # Majors that are deliberate migrations, never drive-by merges.
+      # Remove an entry here when you actually plan that migration.
+      - dependency-name: "express"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@prisma/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "prisma"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "zod"
+        update-types: ["version-update:semver-major"]
 
+  # ── Frontend ───────────────────────────────────────────────────────────
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
@@ -17,19 +40,71 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    cooldown:
+      default-days: 7
+    groups:
+      frontend-minor-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+    ignore:
+      # react + react-dom MUST move together as a planned React-19 migration;
+      # a solo react-dom major crashes at runtime against react 18.
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      # Tailwind 4 is a config-model rewrite (CSS-first config, new PostCSS
+      # plugin) — a dedicated migration, not a dependency bump.
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+      # Take together with the eslint 9 flat-config migration — v5+ presets
+      # assume flat config and v7's new rules need code fixes (17 errors).
+      - dependency-name: "eslint-plugin-react-hooks"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
 
+  # ── Mobile (Expo) ──────────────────────────────────────────────────────
+  # Expo SDK owns the versions of react, react-native, and every native
+  # module — they are compatibility-pinned per SDK release and any change
+  # requires a fresh EAS/dev-client build. Upgrades happen via
+  # `npx expo install --check` during an SDK bump, never via Dependabot.
   - package-ecosystem: "npm"
     directory: "/mobile"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     commit-message:
       prefix: "chore"
       include: "scope"
+    cooldown:
+      default-days: 7
+    groups:
+      mobile-minor-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "expo"
+      - dependency-name: "expo-*"
+      - dependency-name: "@expo/*"
+      - dependency-name: "@expo-google-fonts/*"
+      - dependency-name: "babel-preset-expo"
+      - dependency-name: "eslint-config-expo"
+      - dependency-name: "react"
+      - dependency-name: "react-dom"
+      - dependency-name: "react-native"
+      - dependency-name: "react-native-*"
+      - dependency-name: "@react-native-*"
+      - dependency-name: "@react-native/*"
 
+  # ── GitHub Actions ─────────────────────────────────────────────────────
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     commit-message:
       prefix: "ci"
+    groups:
+      actions:
+        applies-to: version-updates
+        update-types: ["major", "minor", "patch"]
