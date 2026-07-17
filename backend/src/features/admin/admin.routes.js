@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { adminAuthMiddleware } from '../../middlewares/adminAuth.middleware.js'
 import { validate } from '../../middlewares/validate.middleware.js'
-import { adminLoginSchema } from './admin.validation.js'
+import { adminLoginSchema, adminChangePasswordSchema } from './admin.validation.js'
 import { strictLimiter } from '../../middlewares/rateLimit.middleware.js'
 import * as ctrl from './admin.controller.js'
 
@@ -28,7 +28,7 @@ router.get('/logs', ctrl.activityLogs)
 router.get('/monitor', ctrl.getMonitorStatus)
 router.get('/profile', ctrl.getProfile)
 router.patch('/profile', ctrl.updateProfile)
-router.patch('/profile/password', ctrl.changePassword)
+router.patch('/profile/password', validate(adminChangePasswordSchema), ctrl.changePassword)
 router.get('/amenities', ctrl.getAmenities)
 router.post('/amenities', ctrl.addAmenity)
 router.delete('/amenities/:id', ctrl.removeAmenity)
