@@ -1,7 +1,34 @@
 import { z } from 'zod'
+import { filterQueryShape, ADMIN_FILTERS } from '../properties/filters.registry.js'
+
 export const adminLoginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
+})
+
+// The admin property/pins endpoints had NO query validation at all — raw
+// req.query reached Prisma, so `status` went in unchecked and a malformed
+// bbox arrived as NaN. They now share the public map's filter registry
+// (plus admin-only status/riskLevel), which brings validation with it.
+//
+// Bounds are optional here, unlike the public pinsQuerySchema: the admin map
+// fetches once before its first `idle` event, and the table has no viewport at
+// all. Same clamp as the public side — a viewport containing India is valid,
+// so corners are clamped rather than rejected.
+const clampedTo = (min, max) => z.coerce.number().transform((n) => Math.min(Math.max(n, min), max))
+
+export const adminPinsQuerySchema = z.object({
+  swLat: clampedTo(6, 38).optional(),
+  swLng: clampedTo(68, 98).optional(),
+  neLat: clampedTo(6, 38).optional(),
+  neLng: clampedTo(68, 98).optional(),
+  ...filterQueryShape(ADMIN_FILTERS),
+})
+
+export const adminPropertiesQuerySchema = z.object({
+  page:  z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  ...filterQueryShape(ADMIN_FILTERS),
 })
 
 // PATCH /admin/profile/password had NO schema — req.body.newPassword went

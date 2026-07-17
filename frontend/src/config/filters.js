@@ -73,18 +73,22 @@ export const DEFAULT_FILTERS = {
 // city/area are set by search, not the filter modal — modal Reset keeps them.
 export const SEARCH_KEYS = ['city', 'area']
 
-function isDefault(id, value) {
-  const def = PARAM_DEFS[id]?.def
+// The `defs` argument on the helpers below exists so the admin panel can reuse
+// this whole module with its own superset (config/adminFilters.js adds status +
+// riskLevel). Defaults to PARAM_DEFS, so every existing user-side caller is
+// unchanged. Mirrors the backend registry's `registry = FILTERS` argument.
+function isDefault(id, value, defs = PARAM_DEFS) {
+  const def = defs[id]?.def
   if (Array.isArray(def)) return !value || value.length === 0
   return value === def || value === null || value === undefined || value === '' || value === false
 }
 
 // filterStore state → API query params (also the URL param format)
-export function toQueryParams(filters) {
+export function toQueryParams(filters, defs = PARAM_DEFS) {
   const params = {}
-  for (const [id, def] of Object.entries(PARAM_DEFS)) {
+  for (const [id, def] of Object.entries(defs)) {
     const value = filters[id]
-    if (isDefault(id, value)) continue
+    if (isDefault(id, value, defs)) continue
     const key = def.param ?? id
     if (def.kind === 'csv' || def.kind === 'csvNum') params[key] = value.join(',')
     else if (def.kind === 'bool') params[key] = 'true'
@@ -94,9 +98,9 @@ export function toQueryParams(filters) {
 }
 
 // URLSearchParams → partial filterStore patch (inverse of toQueryParams)
-export function parseFiltersFromSearch(searchParams) {
+export function parseFiltersFromSearch(searchParams, defs = PARAM_DEFS) {
   const patch = {}
-  for (const [id, def] of Object.entries(PARAM_DEFS)) {
+  for (const [id, def] of Object.entries(defs)) {
     const raw = searchParams.get(def.param ?? id)
     if (raw === null || raw === '') continue
     if (def.kind === 'csv') patch[id] = raw.split(',').filter(Boolean)
@@ -109,11 +113,11 @@ export function parseFiltersFromSearch(searchParams) {
 }
 
 // Count of active filters (search context excluded) — powers button badges.
-export function countActiveFilters(filters) {
+export function countActiveFilters(filters, defs = PARAM_DEFS) {
   let count = 0
-  for (const id of Object.keys(PARAM_DEFS)) {
+  for (const id of Object.keys(defs)) {
     if (SEARCH_KEYS.includes(id)) continue
-    if (!isDefault(id, filters[id])) count++
+    if (!isDefault(id, filters[id], defs)) count++
   }
   return count
 }
@@ -299,8 +303,9 @@ export function visibleRows(section, selectedTypes) {
 
 // Which sections to render for the current property-type selection —
 // a section whose rows are all type-gated away is skipped entirely.
-export function visibleSections(selectedTypes) {
-  return FILTER_SECTIONS.filter((section) => {
+// `sections` is overridable so the admin panel can pass its own superset.
+export function visibleSections(selectedTypes, sections = FILTER_SECTIONS) {
+  return sections.filter((section) => {
     if (section.requiresType) {
       if (!intersects(selectedTypes, section.types)) return false
     } else if (!matchesTypes(section.types, selectedTypes)) return false
@@ -322,25 +327,25 @@ export function sectionFilterIds(section, selectedTypes = []) {
   return [...ids]
 }
 
-export function countSectionActive(section, filters) {
-  return sectionFilterIds(section, filters.types ?? []).filter((id) => !isDefault(id, filters[id])).length
+export function countSectionActive(section, filters, defs = PARAM_DEFS) {
+  return sectionFilterIds(section, filters.types ?? []).filter((id) => !isDefault(id, filters[id], defs)).length
 }
 
-export function clearSectionPatch(section, selectedTypes = []) {
-  return Object.fromEntries(sectionFilterIds(section, selectedTypes).map((id) => [id, PARAM_DEFS[id].def]))
+export function clearSectionPatch(section, selectedTypes = [], defs = PARAM_DEFS) {
+  return Object.fromEntries(sectionFilterIds(section, selectedTypes).map((id) => [id, defs[id].def]))
 }
 
 // When the property-type selection changes, filters whose rows are no longer
 // visible must be reset — otherwise an invisible PG filter (e.g. sharing)
 // would keep constraining an Apartment search to zero results. Ids still
 // reachable through any visible row (e.g. amenities) are kept.
-export function staleFilterPatch(newTypes) {
-  const visible = visibleSections(newTypes)
+export function staleFilterPatch(newTypes, sections = FILTER_SECTIONS, defs = PARAM_DEFS) {
+  const visible = visibleSections(newTypes, sections)
   const visibleIds = new Set(visible.flatMap((s) => sectionFilterIds(s, newTypes)))
   const patch = {}
-  for (const section of FILTER_SECTIONS) {
+  for (const section of sections) {
     for (const id of sectionFilterIds(section)) {
-      if (!visibleIds.has(id)) patch[id] = PARAM_DEFS[id].def
+      if (!visibleIds.has(id)) patch[id] = defs[id].def
     }
   }
   return patch

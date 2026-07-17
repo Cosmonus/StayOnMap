@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { adminAuthMiddleware } from '../../middlewares/adminAuth.middleware.js'
 import { validate } from '../../middlewares/validate.middleware.js'
-import { adminLoginSchema, adminChangePasswordSchema } from './admin.validation.js'
+import { adminLoginSchema, adminChangePasswordSchema, adminPinsQuerySchema, adminPropertiesQuerySchema } from './admin.validation.js'
 import { strictLimiter } from '../../middlewares/rateLimit.middleware.js'
 import * as ctrl from './admin.controller.js'
 
@@ -17,8 +17,8 @@ router.get('/waitlist', ctrl.waitlist)
 router.get('/users', ctrl.users)
 router.get('/users/:userId', ctrl.userDetail)
 router.patch('/users/:userId/block', ctrl.blockUser)
-router.get('/properties', ctrl.properties)
-router.get('/properties/pins', ctrl.adminPins)
+router.get('/properties', validate(adminPropertiesQuerySchema, 'query'), ctrl.properties)
+router.get('/properties/pins', validate(adminPinsQuerySchema, 'query'), ctrl.adminPins)
 router.get('/properties/:id', ctrl.propertyById)
 router.patch('/properties/:id/status', ctrl.setPropertyStatus)
 router.get('/moderation/queue', ctrl.moderationQueue)
