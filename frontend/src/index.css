@@ -181,21 +181,6 @@
 .pac-item-query { color: #0d0c0a; font-weight: 500; }
 .pac-icon { display: none; }
 
-/* ── Mapbox overrides ── */
-.mapboxgl-map {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-}
-
-.mapboxgl-popup-content {
-  padding: 0;
-  border-radius: 0.75rem;
-  box-shadow: var(--shadow-lg);
-}
-
-.mapboxgl-ctrl-attrib {
-  font-size: 10px;
-}
-
 /* ── Dual-thumb range slider (features/filters/RangeSlider) ──
    Two stacked native <input type=range>; only the thumbs take pointer
    events so both stay draggable. Thumb styling needs pseudo-elements,
