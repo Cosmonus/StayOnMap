@@ -17,13 +17,24 @@ const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'c
 
 describe('amenity consistency', () => {
   it('passes check-amenities.mjs across seed, chips, filters and icons', () => {
-    let output = ''
+    // Declared without a starting value on purpose: the only value that
+    // matters is the one assigned below, and seeding it with '' would just be
+    // a value nothing ever reads.
+    let output
     try {
       output = execFileSync('node', [SCRIPT], { encoding: 'utf8' })
     } catch (err) {
-      // Surface the checker's own report — it names each offending amenity.
-      throw new Error(`check-amenities.mjs failed:\n${err.stdout ?? ''}${err.stderr ?? ''}`)
+      // Surface the checker's own report — it names each offending amenity —
+      // while keeping the original error as `cause`, so the exit code and stack
+      // survive instead of being replaced by this message.
+      throw new Error(
+        `check-amenities.mjs failed:\n${err.stdout ?? ''}${err.stderr ?? ''}`,
+        { cause: err },
+      )
     }
+    // Deliberately outside the try: an assertion failure here must not be
+    // caught and rethrown as "the checker failed", which would report an empty
+    // stdout and hide what actually went wrong.
     expect(output).toContain('consistent')
   })
 })
