@@ -51,6 +51,16 @@ vi.mock('../src/config/env.js', () => ({
     jwtExpiresIn: '7d',
     frontendUrl: 'http://localhost:5173',
     googleMapsKey: null,
+    // Mail: mirrors an unconfigured deploy (no SMTP creds, no Brevo key) so
+    // sendMail is a no-op by default. mailer.test.js overrides per-case.
+    mailProvider: 'smtp',
+    brevoApiKey: null,
+    mailFrom: 'StayOnMap <no-reply@stayonmap.com>',
+    mailDailyCap: 450,
+    smtpHost: null,
+    smtpPort: 465,
+    smtpUser: null,
+    smtpPass: null,
   },
 }))
 
