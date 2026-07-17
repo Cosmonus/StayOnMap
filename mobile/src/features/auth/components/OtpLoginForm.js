@@ -1,0 +1,190 @@
+import { useState, useEffect } from 'react'
+import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native'
+import { authService } from '@services/auth.service'
+import { useAuth } from '@features/auth/hooks/useAuth'
+import Icon from '@components/common/Icon'
+import { colors } from '@theme/colors'
+import { fonts, fontSizes } from '@theme/typography'
+import { spacing } from '@theme/spacing'
+
+// Mirrors the backend's OTP_RESEND_COOLDOWN_MS (auth.service.js). The server
+// is the real gate — this only stops the user firing a request it will 429.
+const RESEND_COOLDOWN_MS = 60 * 1000
+
+const secondsUntil = (at) => (at ? Math.max(0, Math.ceil((at - Date.now()) / 1000)) : 0)
+
+// Derives the countdown from an absolute timestamp rather than decrementing a
+// counter: JS timers are throttled while the app is backgrounded, so a
+// decrementing timer would under-count and re-enable Resend early.
+function useCountdown(until) {
+  const [, tick] = useState(0)
+  useEffect(() => {
+    if (!until) return
+    const id = setInterval(() => {
+      tick((n) => n + 1)
+      if (Date.now() >= until) clearInterval(id)
+    }, 1000)
+    return () => clearInterval(id)
+  }, [until])
+  return secondsUntil(until)
+}
+
+export default function OtpLoginForm({ email, setEmail, onUsePassword, styles: s }) {
+  const { loginSuccess } = useAuth()
+  const [step, setStep] = useState('email')
+  const [code, setCode] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [resendAt, setResendAt] = useState(0)
+  const cooldown = useCountdown(resendAt)
+
+  async function send() {
+    setLoading(true); setError('')
+    try {
+      await authService.requestLoginOtp({ email })
+      setStep('code')
+      setResendAt(Date.now() + RESEND_COOLDOWN_MS)
+    } catch (err) {
+      setError(err?.message ?? 'Could not send a code. Try signing in with your password.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function verify() {
+    setLoading(true); setError('')
+    try {
+      const res = await authService.verifyLoginOtp({ email, code })
+      await loginSuccess(res.data)
+      // RootNavigator swaps to AppTabs via useAuth() — no manual navigation.
+    } catch (err) {
+      setError(err?.message ?? 'Invalid or expired code')
+      setLoading(false)
+    }
+  }
+
+  if (step === 'email') {
+    return (
+      <>
+        <Text style={s.label}>Email address</Text>
+        <View style={s.inputWrap}>
+          <Icon name="mail" size={16} color={colors.slate400} />
+          <TextInput
+            style={s.input}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="you@example.com"
+            placeholderTextColor={colors.slate400}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            accessibilityLabel="Email address"
+          />
+        </View>
+
+        {!!error && (
+          <View style={[s.errorBox, { marginTop: spacing.md }]}>
+            <Text style={s.errorText}>{error}</Text>
+          </View>
+        )}
+
+        <Pressable
+          style={[s.primaryButton, (loading || !email) && s.disabled, { marginTop: spacing.md }]}
+          onPress={send}
+          disabled={loading || !email}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: loading || !email, busy: loading }}
+        >
+          <Text style={s.primaryButtonText}>{loading ? 'Sending…' : 'Email me a code'}</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onUsePassword}
+          style={{ marginTop: spacing.md, alignSelf: 'center' }}
+          accessibilityRole="button"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <Text style={s.linkText}>Use my password instead</Text>
+        </Pressable>
+      </>
+    )
+  }
+
+  return (
+    <>
+      {/* Deliberately hedged: the backend no-ops silently for unregistered
+          emails so this screen can't confirm whether an account exists. */}
+      <Text style={[s.confirmBody, { marginBottom: spacing.md }]}>
+        If {email} has an account, a 6-digit code is on its way. It expires in 10 minutes.
+      </Text>
+
+      <Text style={s.label}>Sign-in code</Text>
+      <View style={s.inputWrap}>
+        <TextInput
+          style={[s.input, local.codeInput]}
+          value={code}
+          onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 6))}
+          placeholder="123456"
+          placeholderTextColor={colors.slate300}
+          keyboardType="number-pad"
+          textContentType="oneTimeCode"
+          maxLength={6}
+          autoFocus
+          accessibilityLabel="Six digit sign-in code"
+        />
+      </View>
+
+      {!!error && (
+        <View style={[s.errorBox, { marginTop: spacing.md }]}>
+          <Text style={s.errorText}>{error}</Text>
+        </View>
+      )}
+
+      <Pressable
+        style={[s.primaryButton, (loading || code.length !== 6) && s.disabled, { marginTop: spacing.md }]}
+        onPress={verify}
+        disabled={loading || code.length !== 6}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: loading || code.length !== 6, busy: loading }}
+      >
+        <Text style={s.primaryButtonText}>{loading ? 'Verifying…' : 'Sign in'}</Text>
+      </Pressable>
+
+      <View style={local.footerRow}>
+        <Pressable
+          onPress={() => { setStep('email'); setCode(''); setError('') }}
+          accessibilityRole="button"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <Text style={[s.linkText, { color: colors.slate400 }]}>← Change email</Text>
+        </Pressable>
+        <Pressable
+          onPress={send}
+          disabled={cooldown > 0 || loading}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: cooldown > 0 || loading }}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <Text style={[s.linkText, (cooldown > 0 || loading) && { color: colors.slate300 }]}>
+            {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
+          </Text>
+        </Pressable>
+      </View>
+    </>
+  )
+}
+
+const local = StyleSheet.create({
+  codeInput: {
+    textAlign: 'center',
+    fontFamily: fonts.bodySemiBold,
+    fontSize: fontSizes.lg,
+    letterSpacing: 8,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    minHeight: 44,
+  },
+})
