@@ -19,6 +19,27 @@ for (const key of required) {
   if (!process.env[key]) throw new Error(`Missing required env var: ${key}`)
 }
 
+// Presence alone isn't enough for the signing keys. A placeholder copied from
+// .env.example is a non-empty string, so it passes the check above while being
+// a publicly-known signing key — and both placeholders were once the *same*
+// string, which silently collapses the user/admin separation (a user token
+// would verify as an admin token). Fail at boot instead of in production.
+const MIN_SECRET_LENGTH = 32
+
+for (const key of ['JWT_SECRET', 'ADMIN_JWT_SECRET']) {
+  const value = process.env[key]
+  if (value.length < MIN_SECRET_LENGTH) {
+    throw new Error(`${key} must be at least ${MIN_SECRET_LENGTH} characters — generate one with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)
+  }
+  if (/CHANGE_ME|change_this_to_a_long_random_string/i.test(value)) {
+    throw new Error(`${key} is still set to the .env.example placeholder — generate a real secret`)
+  }
+}
+
+if (process.env.JWT_SECRET === process.env.ADMIN_JWT_SECRET) {
+  throw new Error('JWT_SECRET and ADMIN_JWT_SECRET must be different — a shared secret makes any user token valid as an admin token')
+}
+
 export const env = {
   port: Number(process.env.PORT) || 4000,
   nodeEnv: process.env.NODE_ENV || 'development',

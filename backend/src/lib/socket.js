@@ -1,11 +1,28 @@
 import { Server } from 'socket.io'
 import { createAdapter } from '@socket.io/redis-adapter'
 import jwt from 'jsonwebtoken'
+import { prisma } from './prisma.js'
 import { redis } from './redis.js'
 import { env } from '../config/env.js'
 import { corsOriginHandler } from './corsOrigin.js'
 
 let io = null
+
+// Returns false rather than throwing on a bad id or a DB blip — a rejection
+// inside a socket event handler has no request to fail, so it would surface as
+// an unhandled rejection instead of a denied join.
+async function isConversationMember(conversationId, userId) {
+  if (typeof conversationId !== 'string' || !conversationId) return false
+  try {
+    const convo = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: { tenantId: true, ownerId: true },
+    })
+    return !!convo && (convo.tenantId === userId || convo.ownerId === userId)
+  } catch {
+    return false
+  }
+}
 
 export function initSocket(httpServer) {
   io = new Server(httpServer, {
@@ -57,11 +74,16 @@ export function initSocket(httpServer) {
     // Broadcast online status
     io.emit('user:online', { userId })
 
-    socket.on('typing', ({ conversationId }) => {
+    socket.on('typing', async ({ conversationId }) => {
+      if (!(await isConversationMember(conversationId, userId))) return
       socket.to(`conversation:${conversationId}`).emit('typing', { userId, conversationId })
     })
 
-    socket.on('join:conversation', (conversationId) => {
+    // Membership must be checked here, not just on the REST paths: joining the
+    // room is what streams message:new/edited/deleted/read to this socket, so
+    // an unchecked join hands the full live thread to any authenticated user.
+    socket.on('join:conversation', async (conversationId) => {
+      if (!(await isConversationMember(conversationId, userId))) return
       socket.join(`conversation:${conversationId}`)
     })
 
