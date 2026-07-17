@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import bcrypt from 'bcryptjs'
 import { AMENITIES } from './amenities.js'
+import { ADMIN_MIN_PASSWORD_LENGTH } from '../src/features/admin/admin.validation.js'
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
@@ -199,6 +200,12 @@ async function main() {
   const adminPassword = process.env.ADMIN_SEED_PASSWORD
   if (!adminEmail || !adminPassword) {
     console.error('✗ ADMIN_SEED_EMAIL and ADMIN_SEED_PASSWORD must both be set in the environment — no default is provided')
+    process.exit(1)
+  }
+  // Same floor the API and update-admin.js enforce — a seeded admin is a real
+  // admin, so it must not be able to start life with a weak password.
+  if (adminPassword.length < ADMIN_MIN_PASSWORD_LENGTH) {
+    console.error(`✗ ADMIN_SEED_PASSWORD must be at least ${ADMIN_MIN_PASSWORD_LENGTH} characters`)
     process.exit(1)
   }
   const passwordHash  = await bcrypt.hash(adminPassword, 12)
