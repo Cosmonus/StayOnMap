@@ -1,8 +1,9 @@
 import { prisma } from '../../lib/prisma.js'
-import { requestPasswordReset } from '../auth/auth.service.js'
+import { requestPasswordReset, stripPasswordHash } from '../auth/auth.service.js'
 
 export async function getUserById(id) {
-  return prisma.user.findUnique({ where: { id } })
+  const user = await prisma.user.findUnique({ where: { id } })
+  return user && stripPasswordHash(user)
 }
 
 const ALLOWED_FIELDS = [
@@ -25,7 +26,8 @@ export async function updateUser(id, data) {
   if (update.contactVisibility && !VALID_CONTACT_VISIBILITY.includes(update.contactVisibility)) {
     delete update.contactVisibility
   }
-  return prisma.user.update({ where: { id }, data: update })
+  const user = await prisma.user.update({ where: { id }, data: update })
+  return stripPasswordHash(user)
 }
 
 export async function getSettings(id) {

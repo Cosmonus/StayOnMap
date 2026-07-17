@@ -2,10 +2,17 @@ import { prisma } from '../../lib/prisma.js'
 import { notifyUser } from '../notifications/notifications.service.js'
 import { emitToConversation, emitToUser } from '../../lib/socket.js'
 
-export async function getOrCreateConversation(tenantId, propertyId) {
+// `requesterId` is the authenticated caller. It differs from `tenantId` only
+// when an owner opens a thread with one of their tenants — in which case the
+// caller must actually own the property, or anyone could forge a conversation
+// between two unrelated users and read back both parties' details.
+export async function getOrCreateConversation(tenantId, propertyId, requesterId = tenantId) {
   const property = await prisma.property.findUnique({ where: { id: propertyId }, select: { id: true, ownerId: true, title: true } })
   if (!property) throw Object.assign(new Error('Property not found'), { statusCode: 404 })
   if (property.ownerId === tenantId) throw Object.assign(new Error('Cannot message your own property'), { statusCode: 400 })
+  if (requesterId !== tenantId && requesterId !== property.ownerId) {
+    throw Object.assign(new Error('Access denied'), { statusCode: 403 })
+  }
 
   const existing = await prisma.conversation.findUnique({
     where: { propertyId_tenantId: { propertyId, tenantId } },

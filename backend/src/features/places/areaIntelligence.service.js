@@ -16,6 +16,11 @@ import { cacheGet, cacheSet as redisCacheSet } from '../../lib/redis.js'
 const NEARBY_URL = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
 const DISTANCE_MATRIX_URL = 'https://maps.googleapis.com/maps/api/distancematrix/json'
 
+// Node's fetch has no default timeout. One uncached call here fans out to ~11
+// Google requests, so an upstream hang without this ties up a request handler
+// indefinitely — on a public endpoint.
+const GOOGLE_TIMEOUT_MS = 8_000
+
 // ~1km grid cell, cached for a day — this data doesn't meaningfully change
 // faster than that, and it saves real API cost on repeat map/property views.
 // Redis-backed (shared across horizontally-scaled instances) when REDIS_URL
@@ -53,7 +58,7 @@ async function nearbySearch(lat, lng, { type, keyword, radius }) {
   if (type) params.set('type', type)
   if (keyword) params.set('keyword', keyword)
   try {
-    const data = await fetch(`${NEARBY_URL}?${params.toString()}`).then((r) => r.json())
+    const data = await fetch(`${NEARBY_URL}?${params.toString()}`, { signal: AbortSignal.timeout(GOOGLE_TIMEOUT_MS) }).then((r) => r.json())
     if (data.status !== 'OK') return []
     return data.results ?? []
   } catch {
@@ -151,7 +156,7 @@ export async function computeTraffic(lat, lng) {
   })
 
   try {
-    const data = await fetch(`${DISTANCE_MATRIX_URL}?${params.toString()}`).then((r) => r.json())
+    const data = await fetch(`${DISTANCE_MATRIX_URL}?${params.toString()}`, { signal: AbortSignal.timeout(GOOGLE_TIMEOUT_MS) }).then((r) => r.json())
     const el = data.rows?.[0]?.elements?.[0]
     if (data.status !== 'OK' || el?.status !== 'OK' || !el.duration_in_traffic) {
       return cacheSet(key, null, 60 * 60) // shorter TTL — probably a config issue, worth re-checking sooner
@@ -185,7 +190,7 @@ export async function computeCommute(lat, lng, destination) {
   })
 
   try {
-    const data = await fetch(`${DISTANCE_MATRIX_URL}?${params.toString()}`).then((r) => r.json())
+    const data = await fetch(`${DISTANCE_MATRIX_URL}?${params.toString()}`, { signal: AbortSignal.timeout(GOOGLE_TIMEOUT_MS) }).then((r) => r.json())
     const el = data.rows?.[0]?.elements?.[0]
     if (data.status !== 'OK' || el?.status !== 'OK') {
       return cacheSet(key, null, 15 * 60) // short TTL — likely "couldn't find that place", worth letting the tenant retry sooner

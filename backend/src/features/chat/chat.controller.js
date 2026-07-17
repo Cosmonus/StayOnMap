@@ -10,7 +10,7 @@ export async function startConversation(req, res, next) {
 
 export async function startConversationWithTenant(req, res, next) {
   try {
-    const convo = await chatService.getOrCreateConversation(req.params.tenantId, req.params.propertyId)
+    const convo = await chatService.getOrCreateConversation(req.params.tenantId, req.params.propertyId, req.user.id)
     ok(res, convo)
   } catch (err) { next(err) }
 }

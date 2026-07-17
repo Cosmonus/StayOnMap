@@ -12,11 +12,16 @@ function geoCacheKey(lat, lng, type) {
 }
 
 // ── Google Maps API helpers ────────────────────────────────────────────────────
+// Node's fetch has no default timeout. recalculateTrustScore is awaited on the
+// public GET /properties/:id path, so without this a Google latency incident
+// parks request handlers forever instead of degrading to a default score.
+const GOOGLE_TIMEOUT_MS = 8_000
+
 async function googlePlacesCount(lat, lng, type, radius = 1500) {
   if (!env.googleMapsKey) return 0
   try {
     const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type}&key=${env.googleMapsKey}`
-    const data = await fetch(url).then(r => r.json())
+    const data = await fetch(url, { signal: AbortSignal.timeout(GOOGLE_TIMEOUT_MS) }).then(r => r.json())
     return data.results?.length ?? 0
   } catch { return 0 }
 }
@@ -25,7 +30,7 @@ async function googleElevation(lat, lng) {
   if (!env.googleMapsKey) return null
   try {
     const url = `https://maps.googleapis.com/maps/api/elevation/json?locations=${lat},${lng}&key=${env.googleMapsKey}`
-    const data = await fetch(url).then(r => r.json())
+    const data = await fetch(url, { signal: AbortSignal.timeout(GOOGLE_TIMEOUT_MS) }).then(r => r.json())
     return data.results?.[0]?.elevation ?? null
   } catch { return null }
 }
