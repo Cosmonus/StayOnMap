@@ -21,7 +21,11 @@ const ROLES = [
   ['OWNER', 'home', 'Property Owner'],
 ]
 
-function Field({ label, icon, style, ...props }) {
+// A `secureTextEntry` field gets a show/hide eye, matching web's password
+// inputs. The toggle lives here rather than at each call site so every password
+// field on this screen (login + signup) gets it from one place.
+function Field({ label, icon, style, secureTextEntry, ...props }) {
+  const [reveal, setReveal] = useState(false)
   return (
     <View style={{ marginBottom: spacing.md }}>
       <Text style={styles.label}>{label}</Text>
@@ -31,8 +35,22 @@ function Field({ label, icon, style, ...props }) {
           style={[styles.input, style]}
           placeholderTextColor={colors.slate400}
           autoCapitalize="none"
+          secureTextEntry={secureTextEntry && !reveal}
           {...props}
         />
+        {secureTextEntry && (
+          <Pressable
+            onPress={() => setReveal((v) => !v)}
+            // The icon is 18dp; hitSlop brings the touch target to ~48dp per
+            // AGENTS.md §6 without enlarging the input row.
+            hitSlop={15}
+            accessibilityRole="button"
+            accessibilityLabel={reveal ? 'Hide password' : 'Show password'}
+            accessibilityState={{ selected: reveal }}
+          >
+            <Icon name={reveal ? 'eyeOff' : 'eye'} size={18} color={colors.slate400} />
+          </Pressable>
+        )}
       </View>
     </View>
   )

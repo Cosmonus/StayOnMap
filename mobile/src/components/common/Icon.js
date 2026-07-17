@@ -2,7 +2,7 @@ import {
   Compass, Search, MessageCircle, User, Heart, Star,
   Share2, Camera, Send, Plus, Pencil, Trash2, Repeat2, LogOut, Paperclip,
   ChevronLeft, ChevronRight, ChevronDown, X, SlidersHorizontal, Layers, List, LayoutGrid, Map, LocateFixed,
-  Check, CircleCheck, TriangleAlert, Info, Bell, Shield, ShieldCheck, Clock, Calendar, Eye,
+  Check, CircleCheck, TriangleAlert, Info, Bell, Shield, ShieldCheck, Clock, Calendar, Eye, EyeOff,
   Users, Phone, Mail, Lock, Key, Settings,
   House, Building2, MapPin, BedDouble, Ruler, IndianRupee, Sofa, Package, Wifi,
   Image as ImageIcon, FileText, Link2, ArrowRight,
@@ -65,6 +65,7 @@ const ICONS = {
   clock: Clock,
   calendar: Calendar,
   eye: Eye,
+  eyeOff: EyeOff,
 
   // People / contact
   users: Users,
