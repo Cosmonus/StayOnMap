@@ -15,7 +15,7 @@ function signUserToken(user) {
   )
 }
 
-function stripPasswordHash(user) {
+export function stripPasswordHash(user) {
   const { passwordHash: _passwordHash, ...rest } = user
   return rest
 }

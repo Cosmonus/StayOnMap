@@ -9,6 +9,10 @@ import { env } from '../../config/env.js'
 const AUTOCOMPLETE_URL = 'https://maps.googleapis.com/maps/api/place/autocomplete/json'
 const GEOCODE_URL = 'https://maps.googleapis.com/maps/api/geocode/json'
 
+// Node's fetch has no default timeout — without this, a hanging Google endpoint
+// holds the request handler open indefinitely instead of failing fast.
+const GOOGLE_TIMEOUT_MS = 8_000
+
 export async function autocomplete(input, lat, lng) {
   if (!input?.trim() || !env.googleMapsKey) return []
   const params = new URLSearchParams({
@@ -21,7 +25,7 @@ export async function autocomplete(input, lat, lng) {
     params.set('location', `${lat},${lng}`)
     params.set('radius', '30000')
   }
-  const data = await fetch(`${AUTOCOMPLETE_URL}?${params.toString()}`).then((r) => r.json())
+  const data = await fetch(`${AUTOCOMPLETE_URL}?${params.toString()}`, { signal: AbortSignal.timeout(GOOGLE_TIMEOUT_MS) }).then((r) => r.json())
   if (data.status === 'ZERO_RESULTS') return []
   if (data.status !== 'OK') {
     throw Object.assign(new Error(data.error_message || data.status || 'Places Autocomplete request failed'), { statusCode: 502 })
@@ -32,7 +36,7 @@ export async function autocomplete(input, lat, lng) {
 export async function geocode(address) {
   if (!address?.trim() || !env.googleMapsKey) return null
   const params = new URLSearchParams({ address, region: 'in', key: env.googleMapsKey })
-  const data = await fetch(`${GEOCODE_URL}?${params.toString()}`).then((r) => r.json())
+  const data = await fetch(`${GEOCODE_URL}?${params.toString()}`, { signal: AbortSignal.timeout(GOOGLE_TIMEOUT_MS) }).then((r) => r.json())
   if (data.status === 'ZERO_RESULTS') return null
   if (data.status !== 'OK') {
     // Same distinction as autocomplete() — a real API failure (bad key,

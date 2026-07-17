@@ -5,7 +5,7 @@ let socket = null
 export function connectSocket() {
   if (socket?.connected) return socket
 
-  const url = import.meta.env.VITE_API_URL?.replace('/api/v1', '') ?? 'http://localhost:4000'
+  const url = import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') ?? 'http://localhost:4000'
 
   socket = io(url, {
     // Re-read the token on every (re)connect attempt so a freshly-issued
