@@ -5,6 +5,7 @@ import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import Icon from '@components/common/Icon'
 import Dropdown from '@components/common/Dropdown'
+import OtpLoginForm from '@features/auth/components/OtpLoginForm'
 import { CITY_NAMES } from '@config/cities'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -39,7 +40,7 @@ function Field({ label, icon, style, ...props }) {
 
 export default function LoginScreen() {
   const { loginSuccess } = useAuth()
-  const [tab, setTab] = useState('login') // 'login' | 'signup' | 'forgot'
+  const [tab, setTab] = useState('login') // 'login' | 'signup' | 'forgot' | 'otp'
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -110,11 +111,13 @@ export default function LoginScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <Text style={styles.heading}>
-            {tab === 'login' ? 'Welcome back' : tab === 'forgot' ? 'Reset password' : waitlisted ? 'Almost there' : 'Create account'}
+            {tab === 'login' ? 'Welcome back' : tab === 'otp' ? 'Sign in with a code' : tab === 'forgot' ? 'Reset password' : waitlisted ? 'Almost there' : 'Create account'}
           </Text>
           <Text style={styles.subheading}>
             {tab === 'login'
               ? 'Log in to access your saved homes and messages.'
+              : tab === 'otp'
+              ? "No password needed — we'll email you a 6-digit code."
               : tab === 'forgot'
               ? "We'll send a reset link to your email."
               : waitlisted
@@ -122,7 +125,7 @@ export default function LoginScreen() {
               : 'Join thousands finding homes without brokers.'}
           </Text>
 
-          {tab !== 'forgot' && !waitlisted && (
+          {tab !== 'forgot' && tab !== 'otp' && !waitlisted && (
             <View style={styles.tabSwitcher}>
               {[['login', 'Log In'], ['signup', 'Sign Up']].map(([t, label]) => (
                 <Pressable
@@ -138,13 +141,21 @@ export default function LoginScreen() {
             </View>
           )}
 
-          {!!error && (
+          {/* OtpLoginForm owns its own error rendering */}
+          {!!error && tab !== 'otp' && (
             <View style={styles.errorBox}>
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
 
-          {tab === 'forgot' ? (
+          {tab === 'otp' ? (
+            <OtpLoginForm
+              email={email}
+              setEmail={setEmail}
+              onUsePassword={() => switchTab('login')}
+              styles={styles}
+            />
+          ) : tab === 'forgot' ? (
             resetSent ? (
               <View style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
                 <Text style={styles.confirmTitle}>Check your inbox</Text>
@@ -185,6 +196,21 @@ export default function LoginScreen() {
                 accessibilityState={{ disabled: loading, busy: loading }}
               >
                 <Text style={styles.primaryButtonText}>{loading ? 'Signing in…' : 'Sign in'}</Text>
+              </Pressable>
+
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <Pressable
+                style={styles.secondaryButton}
+                onPress={() => switchTab('otp')}
+                accessibilityRole="button"
+              >
+                <Icon name="mail" size={16} color={colors.brand600} />
+                <Text style={styles.secondaryButtonText}>Email me a sign-in code</Text>
               </Pressable>
             </>
           ) : waitlisted ? (
@@ -283,9 +309,24 @@ const styles = StyleSheet.create({
   },
   errorBox: { backgroundColor: colors.danger50, borderWidth: 1, borderColor: '#FEE2E2', borderRadius: radius.md, padding: spacing.sm, marginBottom: spacing.md },
   errorText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.danger },
-  primaryButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center' },
+  primaryButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center', minHeight: 44, justifyContent: 'center' },
   disabled: { opacity: 0.5 },
   primaryButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.white },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginVertical: spacing.md },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.slate200 },
+  dividerText: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
+  secondaryButton: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  secondaryButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate700 },
   linkText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand600 },
   confirmTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.lg, color: colors.slate800 },
   confirmBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: spacing.xs, textAlign: 'center' },

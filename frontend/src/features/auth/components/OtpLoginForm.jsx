@@ -5,17 +5,24 @@ import { useAuth } from '../hooks/useAuth'
 
 // Mirrors the backend's OTP_RESEND_COOLDOWN_MS (auth.service.js). The server
 // is the real gate — this only stops the user firing a request it will 429.
-const RESEND_COOLDOWN_S = 60
+const RESEND_COOLDOWN_MS = 60 * 1000
 
-function useCountdown(startAt) {
-  const [left, setLeft] = useState(startAt)
+const secondsUntil = (at) => (at ? Math.max(0, Math.ceil((at - Date.now()) / 1000)) : 0)
+
+// Derives the countdown from an absolute timestamp rather than decrementing a
+// counter: background tabs throttle setInterval, so a decrementing timer would
+// under-count and re-enable Resend early.
+function useCountdown(until) {
+  const [, tick] = useState(0)
   useEffect(() => {
-    setLeft(startAt)
-    if (startAt <= 0) return
-    const id = setInterval(() => setLeft((s) => (s <= 1 ? 0 : s - 1)), 1000)
+    if (!until) return
+    const id = setInterval(() => {
+      tick((n) => n + 1)
+      if (Date.now() >= until) clearInterval(id)
+    }, 1000)
     return () => clearInterval(id)
-  }, [startAt])
-  return left
+  }, [until])
+  return secondsUntil(until)
 }
 
 export default function OtpLoginForm({ email, setEmail, onUsePassword, onDone }) {
@@ -24,8 +31,8 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, onDone })
   const [code, setCode]       = useState('')
   const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
-  const [sentAt, setSentAt]   = useState(0)
-  const cooldown = useCountdown(sentAt)
+  const [resendAt, setResendAt] = useState(0)
+  const cooldown = useCountdown(resendAt)
 
   async function send(e) {
     e?.preventDefault()
@@ -33,7 +40,7 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, onDone })
     try {
       await authService.requestLoginOtp({ email })
       setStep('code')
-      setSentAt(RESEND_COOLDOWN_S)
+      setResendAt(Date.now() + RESEND_COOLDOWN_MS)
     } catch (err) {
       setError(err?.message ?? 'Could not send a code. Try signing in with your password.')
     } finally {
