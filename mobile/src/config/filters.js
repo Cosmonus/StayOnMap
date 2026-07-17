@@ -115,10 +115,19 @@ const FURNISHED_OPTIONS = [
 ]
 const FACING_OPTIONS = ['EAST', 'WEST', 'NORTH', 'SOUTH'].map((v) => ({ value: v, label: v[0] + v.slice(1).toLowerCase() }))
 const CORE_AMENITIES = [
-  'WiFi', 'Parking', 'Covered Parking', 'Lift', 'AC', 'Power Backup', 'CCTV', 'Security Guard',
-  'Gated Security', 'Balcony', 'Terrace', 'Garden', 'Gym', 'Swimming Pool', 'Club House',
-  'Play Area', 'Kitchen', 'Modular Kitchen', 'Washing Machine', 'Gas Pipeline', 'Intercom',
-  'Borewell', 'Rainwater Harvesting', 'Solar Water Heater', 'Pet Friendly',
+  'WiFi', 'Parking', 'Covered Parking', 'Visitor Parking', 'Two-wheeler Parking', 'EV Charging',
+  'Lift', 'AC', 'Air Cooler', 'Power Backup', 'Solar Panel', 'CCTV', 'Security Guard',
+  'Intercom', 'Video Door Phone', 'Gated Community', 'Fire Safety',
+  'Balcony', 'Terrace', 'Garden', 'Gym', 'Swimming Pool', 'Club House',
+  'Play Area', 'Jogging Track', 'Indoor Games', 'Badminton Court', 'Party Hall', 'Creche',
+  'Kitchen', 'Modular Kitchen', 'Washing Machine', 'Gas Pipeline', 'Geyser',
+  'Water Purifier', 'Water Supply', 'Water Tank', 'Borewell', 'Rainwater Harvesting',
+  'Solar Water Heater', 'Servant Room', 'Wheelchair Accessible', 'Waste Management',
+  'Housekeeping', 'Pet Friendly',
+  // Furnishing items — this section covers HOMES + PG + SHORT_STAY, all three
+  // of which can come furnished, so they live here rather than duplicated
+  // across each type's own row.
+  'Fridge', 'Microwave', 'Sofa', 'Bed', 'Wardrobe', 'Dining Table',
 ].map((v) => ({ value: v, label: v }))
 const asOptions = (list) => list.map((v) => ({ value: v, label: v }))
 
@@ -213,7 +222,7 @@ export const FILTER_SECTIONS = [
       { kind: 'chips', label: 'Space type', id: 'commercialType', options: asOptions(['Retail shop', 'Office', 'Showroom', 'Warehouse']) },
       { kind: 'chips', label: 'Min carpet area', id: 'carpetAreaMin', single: true, options: [{ value: 250, label: '250+ sq.ft' }, { value: 500, label: '500+' }, { value: 1000, label: '1000+' }, { value: 2000, label: '2000+' }] },
       { kind: 'chips', label: 'Min frontage', id: 'frontageMin', single: true, options: [{ value: 10, label: '10+ ft' }, { value: 20, label: '20+ ft' }, { value: 40, label: '40+ ft' }] },
-      { kind: 'chips', label: 'Facilities', id: 'amenities', withIcons: true, options: asOptions(['Washroom', '3-Phase Power', 'Power Backup', 'Roll-down Shutter', 'Mezzanine', 'Signage Space', 'Near Main Road', 'Parking']) },
+      { kind: 'chips', label: 'Facilities', id: 'amenities', withIcons: true, options: asOptions(['Washroom', '3-Phase Power', 'Power Backup', 'Roll-down Shutter', 'Mezzanine', 'Signage Space', 'Near Main Road', 'Parking', 'Visitor Parking', 'Lift', 'AC', 'CCTV', 'Fire Safety', 'Water Supply', 'Corner Plot', 'Wheelchair Accessible']) },
     ],
   },
   {
@@ -232,7 +241,7 @@ export const FILTER_SECTIONS = [
       { kind: 'chips', label: 'Sale or lease', id: 'saleOrLease', single: true, options: [{ value: 'SALE', label: 'Sale' }, { value: 'LEASE', label: 'Lease' }] },
       { kind: 'chips', label: 'Plot facing', id: 'facing', options: FACING_OPTIONS },
       { kind: 'chips', label: 'Min road width', id: 'roadWidthMin', single: true, options: [{ value: 20, label: '20+ ft' }, { value: 30, label: '30+ ft' }, { value: 40, label: '40+ ft' }] },
-      { kind: 'chips', label: 'Plot features', id: 'amenities', withIcons: true, options: asOptions(['Corner Plot', 'Boundary Wall', 'Gated Community', 'Borewell', 'East Facing', 'Near Main Road', 'Ready to Build']) },
+      { kind: 'chips', label: 'Plot features', id: 'amenities', withIcons: true, options: asOptions(['Corner Plot', 'Boundary Wall', 'Gated Community', 'Borewell', 'East Facing', 'Near Main Road', 'Ready to Build', 'Water Supply']) },
     ],
   },
   {

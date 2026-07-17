@@ -5,7 +5,7 @@ import { propertyService } from '@services/property.service'
 import { appointmentService } from '@services/appointment.service'
 import { useMapStore } from '@store/mapStore'
 import { useAuth } from '@features/auth/hooks/useAuth'
-import { formatRent, formatCurrency } from '@utils/format'
+import { formatPrice, formatCurrency } from '@utils/format'
 
 function Pill({ children, color = 'slate' }) {
   const styles = {
@@ -140,8 +140,8 @@ export default function PropertyPopup() {
         {!isLoading && property && (
           <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 overflow-hidden">
             <PriceRow
-              label="Monthly rent"
-              value={formatRent(Number(property.rent))}
+              label={property.pricingModel === 'LEASE' ? 'Lease amount' : 'Monthly rent'}
+              value={formatPrice(property)}
               accent
             />
             {Number(property.deposit) > 0 && (

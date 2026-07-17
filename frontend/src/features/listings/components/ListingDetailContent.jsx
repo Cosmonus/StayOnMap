@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { appointmentService } from '@services/appointment.service'
-import { formatRent, formatCurrency } from '@utils/format'
+import { formatPrice, formatCurrency } from '@utils/format'
 import { confirm } from '@components/common/ConfirmDialog'
 import { toast } from '@components/common/Toaster'
 import Modal from '@components/common/Modal'
@@ -572,7 +572,7 @@ export default function ListingDetailContent({ propertyId, onBack }) {
                 )}
               </div>
               <div className="shrink-0 text-right">
-                <p className="text-xl font-bold text-brand-600">{formatRent(Number(property.rent))}<span className="text-xs font-medium text-slate-400">/mo</span></p>
+                <p className="text-xl font-bold text-brand-600">{formatPrice(property)}</p>
                 {property.deposit > 0 && <p className="text-xs text-slate-500 mt-0.5">Deposit: {formatCurrency(Number(property.deposit))}</p>}
               </div>
             </div>

@@ -13,14 +13,14 @@ const intersects = (a, b) => a.some((v) => b.includes(v))
 // container-based: `sm:grid-cols-6` is right for the full-width filter modal
 // but gives each card ~40px inside the admin panel's 288px sidebar, which
 // squishes labels like "Commercial" and "Short stay" into nothing.
-export default function PropertyTypeSwitcher({ selectedTypes, onChange, gridClass = 'grid-cols-3 sm:grid-cols-6' }) {
+export default function PropertyTypeSwitcher({ selectedTypes, onChange, gridClass = 'grid-cols-3 sm:grid-cols-6', categories = TYPE_CATEGORIES }) {
   function toggle(category) {
     onChange(intersects(selectedTypes, category.types) ? [] : [...category.types])
   }
 
   return (
     <div className={`grid gap-2 ${gridClass}`}>
-      {TYPE_CATEGORIES.map((category) => {
+      {categories.map((category) => {
         const Icon = category.icon
         const active = intersects(selectedTypes, category.types)
         return (

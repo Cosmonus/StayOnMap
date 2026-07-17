@@ -21,6 +21,10 @@ export const TYPE_CATEGORIES = [
 export const PARAM_DEFS = {
   types:          { param: 'type', kind: 'csv', def: [] },
   city:           { kind: 'str',    def: '' },
+  // Rent/Lease mode. Defaults to RENT — the public map only ever shows one
+  // mode at a time, and a lease sum must never surface as if it were rent.
+  // Admin overrides the default to '' (all modes) in config/adminFilters.js.
+  pricingModel:   { kind: 'str',    def: 'RENT' },
   rentMin:        { kind: 'num',    def: null },
   rentMax:        { kind: 'num',    def: null },
   depositMax:     { kind: 'num',    def: null },
@@ -132,11 +136,24 @@ const FURNISHED_OPTIONS = [
   { value: 'UNFURNISHED', label: 'Unfurnished' },
 ]
 const FACING_OPTIONS = ['EAST', 'WEST', 'NORTH', 'SOUTH'].map((v) => ({ value: v, label: v[0] + v.slice(1).toLowerCase() }))
+// Names must exist in backend/prisma/amenities.js and be offered by at least
+// one wizard chip (FEATURES in features/listings/config/onboarding.js), or the
+// filter matches nothing — 'Gated Security' sat here for months doing exactly
+// that, because no chip ever offered it. Guarded by check-amenities.mjs now.
 const CORE_AMENITIES = [
-  'WiFi', 'Parking', 'Covered Parking', 'Lift', 'AC', 'Power Backup', 'CCTV', 'Security Guard',
-  'Gated Security', 'Balcony', 'Terrace', 'Garden', 'Gym', 'Swimming Pool', 'Club House',
-  'Play Area', 'Kitchen', 'Modular Kitchen', 'Washing Machine', 'Gas Pipeline', 'Intercom',
-  'Borewell', 'Rainwater Harvesting', 'Solar Water Heater', 'Pet Friendly',
+  'WiFi', 'Parking', 'Covered Parking', 'Visitor Parking', 'Two-wheeler Parking', 'EV Charging',
+  'Lift', 'AC', 'Air Cooler', 'Power Backup', 'Solar Panel', 'CCTV', 'Security Guard',
+  'Intercom', 'Video Door Phone', 'Gated Community', 'Fire Safety',
+  'Balcony', 'Terrace', 'Garden', 'Gym', 'Swimming Pool', 'Club House',
+  'Play Area', 'Jogging Track', 'Indoor Games', 'Badminton Court', 'Party Hall', 'Creche',
+  'Kitchen', 'Modular Kitchen', 'Washing Machine', 'Gas Pipeline', 'Geyser',
+  'Water Purifier', 'Water Supply', 'Water Tank', 'Borewell', 'Rainwater Harvesting',
+  'Solar Water Heater', 'Servant Room', 'Wheelchair Accessible', 'Waste Management',
+  'Housekeeping', 'Pet Friendly',
+  // Furnishing items — this section covers HOMES + PG + SHORT_STAY, all three
+  // of which can come furnished, so they live here rather than duplicated
+  // across each type's own row.
+  'Fridge', 'Microwave', 'Sofa', 'Bed', 'Wardrobe', 'Dining Table',
 ].map((v) => ({ value: v, label: v }))
 const asOptions = (list) => list.map((v) => ({ value: v, label: v }))
 
@@ -149,6 +166,12 @@ const asOptions = (list) => list.map((v) => ({ value: v, label: v }))
 const HOMES = ['APARTMENT', 'HOUSE', 'VILLA', 'INDEPENDENT_HOUSE']
 const HOME_TYPES = [...HOMES, 'SHORT_STAY']
 
+// Mirrors the backend's LEASE_ELIGIBLE_TYPES (properties.validation.js): PG
+// prices per bed, SHORT_STAY per night, LAND carries its own saleOrLease —
+// none of them can be leased, so lease mode never offers them.
+export const LEASE_TYPES = [...HOMES, 'COMMERCIAL']
+export const LEASE_CATEGORY_IDS = ['apartment', 'house', 'shop']
+
 export const FILTER_SECTIONS = [
   {
     id: 'budget', label: 'Budget', types: null, defaultOpen: true,
@@ -158,7 +181,7 @@ export const FILTER_SECTIONS = [
         // (crore-scale prices) and SHORT_STAY (nightly) each price in their
         // own section, reusing the same rentMin/rentMax ids
         kind: 'range', label: 'Monthly rent', unit: '₹', idMin: 'rentMin', idMax: 'rentMax',
-        types: [...HOMES, 'PG'],
+        types: [...HOMES, 'PG'], modes: ['RENT'],
         slider: { min: 0, max: 500000, step: 2500 },
         chips: [
           { label: 'Under ₹10k', min: null, max: 10000 }, { label: '₹10–20k', min: 10000, max: 20000 },
@@ -166,7 +189,21 @@ export const FILTER_SECTIONS = [
           { label: '₹60k–1L', min: 60000, max: 100000 }, { label: '₹1L+', min: 100000, max: null },
         ],
       },
-      { kind: 'chips', label: 'Max deposit', id: 'depositMax', single: true, types: [...HOMES, 'PG'], options: [{ value: 25000, label: 'Up to ₹25k' }, { value: 50000, label: '₹50k' }, { value: 100000, label: '₹1L' }, { value: 200000, label: '₹2L' }] },
+      {
+        // Lease mode's budget row — same rentMin/rentMax ids, lakh scale,
+        // because on a LEASE listing `rent` holds the one-time lump sum.
+        // Only one of these two rows is ever visible (see matchesMode).
+        kind: 'range', label: 'Lease amount', unit: '₹', idMin: 'rentMin', idMax: 'rentMax',
+        types: LEASE_TYPES, modes: ['LEASE'],
+        slider: { min: 0, max: 5000000, step: 50000 },
+        chips: [
+          { label: 'Under ₹2L', min: null, max: 200000 }, { label: '₹2–5L', min: 200000, max: 500000 },
+          { label: '₹5–10L', min: 500000, max: 1000000 }, { label: '₹10–25L', min: 1000000, max: 2500000 },
+          { label: '₹25L+', min: 2500000, max: null },
+        ],
+      },
+      // Deposit is meaningless on a lease — the lump sum IS the money at stake.
+      { kind: 'chips', label: 'Max deposit', id: 'depositMax', single: true, types: [...HOMES, 'PG'], modes: ['RENT'], options: [{ value: 25000, label: 'Up to ₹25k' }, { value: 50000, label: '₹50k' }, { value: 100000, label: '₹1L' }, { value: 200000, label: '₹2L' }] },
       { kind: 'chips', label: 'Max maintenance / mo', id: 'maintenanceMax', single: true, types: HOMES, options: [{ value: 1000, label: 'Up to ₹1k' }, { value: 2000, label: '₹2k' }, { value: 5000, label: '₹5k' }] },
     ],
   },
@@ -221,7 +258,10 @@ export const FILTER_SECTIONS = [
     id: 'commercial', label: 'Commercial', types: ['COMMERCIAL'], requiresType: true, defaultOpen: true,
     rows: [
       {
+        // modes: RENT only — a leased shop prices via the Budget section's
+        // lease row, which owns the same rentMin/rentMax ids.
         kind: 'range', label: 'Monthly rent', unit: '₹', idMin: 'rentMin', idMax: 'rentMax',
+        modes: ['RENT'],
         slider: { min: 0, max: 1000000, step: 5000 },
         chips: [
           { label: 'Under ₹50k', min: null, max: 50000 }, { label: '₹50k–1L', min: 50000, max: 100000 },
@@ -234,7 +274,7 @@ export const FILTER_SECTIONS = [
       { kind: 'chips', label: 'Space type', id: 'commercialType', options: asOptions(['Retail shop', 'Office', 'Showroom', 'Warehouse']) },
       { kind: 'chips', label: 'Min carpet area', id: 'carpetAreaMin', single: true, options: [{ value: 250, label: '250+ sq.ft' }, { value: 500, label: '500+' }, { value: 1000, label: '1000+' }, { value: 2000, label: '2000+' }] },
       { kind: 'chips', label: 'Min frontage', id: 'frontageMin', single: true, options: [{ value: 10, label: '10+ ft' }, { value: 20, label: '20+ ft' }, { value: 40, label: '40+ ft' }] },
-      { kind: 'chips', label: 'Facilities', id: 'amenities', withIcons: true, options: asOptions(['Washroom', '3-Phase Power', 'Power Backup', 'Roll-down Shutter', 'Mezzanine', 'Signage Space', 'Near Main Road', 'Parking']) },
+      { kind: 'chips', label: 'Facilities', id: 'amenities', withIcons: true, options: asOptions(['Washroom', '3-Phase Power', 'Power Backup', 'Roll-down Shutter', 'Mezzanine', 'Signage Space', 'Near Main Road', 'Parking', 'Visitor Parking', 'Lift', 'AC', 'CCTV', 'Fire Safety', 'Water Supply', 'Corner Plot', 'Wheelchair Accessible']) },
     ],
   },
   {
@@ -253,7 +293,7 @@ export const FILTER_SECTIONS = [
       { kind: 'chips', label: 'Sale or lease', id: 'saleOrLease', single: true, options: [{ value: 'SALE', label: 'Sale' }, { value: 'LEASE', label: 'Lease' }] },
       { kind: 'chips', label: 'Plot facing', id: 'facing', options: FACING_OPTIONS },
       { kind: 'chips', label: 'Min road width', id: 'roadWidthMin', single: true, options: [{ value: 20, label: '20+ ft' }, { value: 30, label: '30+ ft' }, { value: 40, label: '40+ ft' }] },
-      { kind: 'chips', label: 'Plot features', id: 'amenities', withIcons: true, options: asOptions(['Corner Plot', 'Boundary Wall', 'Gated Community', 'Borewell', 'East Facing', 'Near Main Road', 'Ready to Build']) },
+      { kind: 'chips', label: 'Plot features', id: 'amenities', withIcons: true, options: asOptions(['Corner Plot', 'Boundary Wall', 'Gated Community', 'Borewell', 'East Facing', 'Near Main Road', 'Ready to Build', 'Water Supply']) },
     ],
   },
   {
@@ -297,51 +337,78 @@ function matchesTypes(types, selectedTypes) {
   return selectedTypes.length === 0 || intersects(selectedTypes, types)
 }
 
-export function visibleRows(section, selectedTypes) {
-  return section.rows.filter((row) => matchesTypes(row.types, selectedTypes))
+// Second, independent gate: a row may declare `modes: ['LEASE']` to appear
+// only in that pricing mode. Needed because Rent and Lease price on totally
+// different scales (₹28k/mo vs ₹8L once) while sharing the rentMin/rentMax
+// ids — so exactly one budget row may ever be visible at a time.
+// `mode` falls back to RENT everywhere, which keeps every pre-lease caller
+// (and admin's "all modes" default) rendering the monthly-rent row as before.
+function matchesMode(modes, mode) {
+  if (!modes) return true
+  return modes.includes(mode || 'RENT')
+}
+
+export function visibleRows(section, selectedTypes, mode = 'RENT') {
+  return section.rows.filter((row) => matchesTypes(row.types, selectedTypes) && matchesMode(row.modes, mode))
 }
 
 // Which sections to render for the current property-type selection —
 // a section whose rows are all type-gated away is skipped entirely.
 // `sections` is overridable so the admin panel can pass its own superset.
-export function visibleSections(selectedTypes, sections = FILTER_SECTIONS) {
+export function visibleSections(selectedTypes, sections = FILTER_SECTIONS, mode = 'RENT') {
   return sections.filter((section) => {
     if (section.requiresType) {
       if (!intersects(selectedTypes, section.types)) return false
     } else if (!matchesTypes(section.types, selectedTypes)) return false
-    return visibleRows(section, selectedTypes).length > 0
+    if (!matchesMode(section.modes, mode)) return false
+    return visibleRows(section, selectedTypes, mode).length > 0
   })
 }
 
 // All filter ids a section's visible rows touch — powers per-section badges
 // and clearing. Pass selectedTypes to respect row-level gating; omit for the
 // section's full id set.
-export function sectionFilterIds(section, selectedTypes = []) {
-  const rows = selectedTypes.length ? visibleRows(section, selectedTypes) : section.rows
-  const ids = new Set()
-  for (const row of rows) {
-    if (row.kind === 'range') { ids.add(row.idMin); ids.add(row.idMax) }
-    else if (row.kind === 'toggles') row.items.forEach((t) => ids.add(t.id))
-    else ids.add(row.id)
+function rowFilterIds(row) {
+  if (row.kind === 'range') return [row.idMin, row.idMax]
+  if (row.kind === 'toggles') return row.items.map((t) => t.id)
+  return [row.id]
+}
+
+export function sectionFilterIds(section, selectedTypes = [], mode = 'RENT') {
+  const rows = selectedTypes.length ? visibleRows(section, selectedTypes, mode) : section.rows
+  return [...new Set(rows.flatMap(rowFilterIds))]
+}
+
+// Switching Rent ↔ Lease must reset every mode-gated row's filters. The two
+// budget rows share rentMin/rentMax on wildly different scales, so a leftover
+// "under ₹35k" from rent mode would silently return zero lease results.
+export function modeChangePatch(sections = FILTER_SECTIONS, defs = PARAM_DEFS) {
+  const patch = {}
+  for (const section of sections) {
+    for (const row of section.rows) {
+      if (!row.modes) continue
+      for (const id of rowFilterIds(row)) patch[id] = defs[id].def
+    }
   }
-  return [...ids]
+  return patch
 }
 
 export function countSectionActive(section, filters, defs = PARAM_DEFS) {
-  return sectionFilterIds(section, filters.types ?? []).filter((id) => !isDefault(id, filters[id], defs)).length
+  return sectionFilterIds(section, filters.types ?? [], filters.pricingModel)
+    .filter((id) => !isDefault(id, filters[id], defs)).length
 }
 
-export function clearSectionPatch(section, selectedTypes = [], defs = PARAM_DEFS) {
-  return Object.fromEntries(sectionFilterIds(section, selectedTypes).map((id) => [id, defs[id].def]))
+export function clearSectionPatch(section, selectedTypes = [], defs = PARAM_DEFS, mode = 'RENT') {
+  return Object.fromEntries(sectionFilterIds(section, selectedTypes, mode).map((id) => [id, defs[id].def]))
 }
 
 // When the property-type selection changes, filters whose rows are no longer
 // visible must be reset — otherwise an invisible PG filter (e.g. sharing)
 // would keep constraining an Apartment search to zero results. Ids still
 // reachable through any visible row (e.g. amenities) are kept.
-export function staleFilterPatch(newTypes, sections = FILTER_SECTIONS, defs = PARAM_DEFS) {
-  const visible = visibleSections(newTypes, sections)
-  const visibleIds = new Set(visible.flatMap((s) => sectionFilterIds(s, newTypes)))
+export function staleFilterPatch(newTypes, sections = FILTER_SECTIONS, defs = PARAM_DEFS, mode = 'RENT') {
+  const visible = visibleSections(newTypes, sections, mode)
+  const visibleIds = new Set(visible.flatMap((s) => sectionFilterIds(s, newTypes, mode)))
   const patch = {}
   for (const section of sections) {
     for (const id of sectionFilterIds(section)) {

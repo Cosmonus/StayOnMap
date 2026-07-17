@@ -9,6 +9,7 @@ import {
   Sun, BatteryCharging, Fan, CircleQuestionMark, CarFront, ChefHat, Fence, Coffee,
   Utensils, Sparkles, LampDesk, ShowerHead, Layers, Signpost, Route, LandPlot,
   BrickWall, Sunrise, Hammer, Laptop, TreePalm, PanelBottomClose,
+  Accessibility, Video, Bike, Gamepad2, Trophy, PartyPopper, Trash2,
 } from 'lucide-react-native'
 
 const ICONS = {
@@ -25,10 +26,13 @@ const ICONS = {
   'Security Guard':       ShieldCheck,
   'Swimming Pool':        WavesLadder,
   'Gas Pipeline':         Flame,
+  'Geyser':               Droplet,
+  // Retired/alias names — NOT in prisma/amenities.js (one concept, one name).
+  // Kept so any listing created before 2026-07-17 still renders a real icon
+  // instead of the fallback until its rows are remapped.
   'Piped Gas':            Flame,
   'Gated Security':       ShieldCheck,
   'Hot Water':            Droplet,
-  'Geyser':               Droplet,
   'Balcony':              DoorOpen,
   'Terrace':              DoorOpen,
   'Garden':               Trees,
@@ -78,6 +82,15 @@ const ICONS = {
   'Workspace':            Laptop,
   'Beachfront':           TreePalm,
   'Furnished':            Sofa,
+  // Added 2026-07-17 alongside the amenity expansion.
+  'Wheelchair Accessible': Accessibility,
+  'Video Door Phone':      Video,
+  'Two-wheeler Parking':   Bike,
+  'Indoor Games':          Gamepad2,
+  'Badminton Court':       Trophy,
+  'Party Hall':            PartyPopper,
+  'Creche':                Baby,
+  'Waste Management':      Trash2,
 }
 
 const FALLBACK = CircleQuestionMark

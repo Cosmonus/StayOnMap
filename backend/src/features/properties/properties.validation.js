@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
-import { PROPERTY_TYPES, filterQueryShape } from './filters.registry.js'
+import { PROPERTY_TYPES, PRICING_MODELS, filterQueryShape } from './filters.registry.js'
 
 export { PROPERTY_TYPES }
 
@@ -19,6 +19,11 @@ const storageImageUrl = z.string().url().refine(
 // Types whose bhk represents bedrooms and is required (PG uses `sharing`
 // instead; LAND/COMMERCIAL have no bedroom concept at all).
 const BHK_REQUIRED_TYPES = ['APARTMENT', 'HOUSE', 'VILLA', 'INDEPENDENT_HOUSE', 'SHORT_STAY']
+
+// Types that can be offered on lease (lump sum, no monthly rent). PG prices
+// per bed and SHORT_STAY per night, so a lease deal is meaningless for both;
+// LAND already carries its own `saleOrLease` field and isn't rented monthly.
+export const LEASE_ELIGIBLE_TYPES = ['APARTMENT', 'HOUSE', 'VILLA', 'INDEPENDENT_HOUSE', 'COMMERCIAL']
 
 const rulesSchemaCreate = z.object({
   smokingAllowed:    z.boolean().default(false),
@@ -107,6 +112,10 @@ export const createPropertySchema = z.object({
   instantBook: z.boolean().optional(),
 
   // Pricing
+  // `rent` is the primary price in both modes — monthly rent for RENT, the
+  // refundable lump sum for LEASE (which is why the cap is 10M, wide enough
+  // for a real lease sum). See PricingModel in schema.prisma.
+  pricingModel:       z.enum(['RENT', 'LEASE']).default('RENT'),
   rent:               z.number().positive().max(10_000_000),
   deposit:            z.number().min(0).max(50_000_000),
   maintenance:        z.number().min(0).optional(),
@@ -130,6 +139,14 @@ export const createPropertySchema = z.object({
   // Rules (optional object)
   rules: rulesSchemaCreate.optional(),
 }).refine(
+  (d) => d.pricingModel !== 'LEASE' || LEASE_ELIGIBLE_TYPES.includes(d.type),
+  { message: 'Lease pricing is only available for flats, houses and commercial spaces', path: ['pricingModel'] }
+).refine(
+  // On a lease the lump sum in `rent` IS the money at stake — a second
+  // refundable deposit on top is a different (and misleading) deal.
+  (d) => d.pricingModel !== 'LEASE' || !d.deposit,
+  { message: 'A lease listing has no separate deposit — the lease amount is refunded on exit', path: ['deposit'] }
+).refine(
   (d) => d.type !== 'PG' || d.sharing !== undefined,
   { message: 'Sharing count is required for PG listings', path: ['sharing'] }
 ).refine(
@@ -195,6 +212,10 @@ export const updatePropertySchema = z.object({
   minNights:   z.number().int().min(1).max(365).optional(),
   maxNights:   z.number().int().min(1).max(365).optional(),
   instantBook: z.boolean().optional(),
+  // No `pricingModel` here on purpose — validate() strips unknown fields, so an
+  // update can never flip it. Switching modes silently re-reads `rent`: an ₹8L
+  // lease sum flipped to RENT becomes ₹8L/month. A partial payload also has no
+  // `type` to re-check LEASE_ELIGIBLE_TYPES against. Relist instead.
   rent:            z.number().positive().max(10_000_000).optional(),
   deposit:            z.number().min(0).max(50_000_000).optional(),
   maintenance:        z.number().min(0).optional(),
@@ -217,6 +238,16 @@ export const updatePropertySchema = z.object({
   { message: 'Window start must be before end', path: ['appointmentWindowStart'] }
 )
 
+// Rent is what the public read path means by default. This is a SERVER-side
+// default on purpose: filterQueryShape() makes every registry filter optional
+// (so a schema-level .default() would be swallowed), and the web client omits
+// params equal to their default — so "no pricingModel" must mean RENT here, or
+// lease listings leak into the normal rent map with their lakh-scale lump sum
+// read as a monthly rent. It also means any client that predates lease (mobile
+// today) keeps getting rent-only results without a single change.
+// Admin deliberately does NOT get this default — see admin.validation.js.
+const publicPricingModel = z.enum(PRICING_MODELS).default('RENT')
+
 // All map/list filters come from the registry — one Zod shape shared by the
 // list, pins, and count queries. bhk/furnished/city are registry entries now
 // (furnished upgraded single-value → CSV multi; a lone value still parses).
@@ -224,6 +255,7 @@ export const listQuerySchema = z.object({
   page:      z.coerce.number().int().min(1).default(1),
   limit:     z.coerce.number().int().min(1).max(50).default(20),
   ...filterQueryShape(),
+  pricingModel: publicPricingModel,
   swLat:     z.coerce.number().optional(),
   swLng:     z.coerce.number().optional(),
   neLat:     z.coerce.number().optional(),
@@ -245,6 +277,7 @@ export const pinsQuerySchema = z.object({
   neLat: clampedTo(6, 38),
   neLng: clampedTo(68, 98),
   ...filterQueryShape(),
+  pricingModel: publicPricingModel,
 })
 
 // Live result count for the filter modal — same shape as /pins (bounds

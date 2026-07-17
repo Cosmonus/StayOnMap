@@ -426,6 +426,10 @@ export async function moderateReview(reviewId, status, adminId) {
   if (status === 'APPROVED') {
     const { recalculateTrustScore } = await import('../trust/trust.service.js')
     await recalculateTrustScore(review.propertyId).catch(() => {})
+    // Points on APPROVAL, never on submit — otherwise writing junk reviews pays.
+    // Idempotent by (userId, action, reviewId), so re-approving doesn't re-pay.
+    const { awardPoints } = await import('../points/points.service.js')
+    awardPoints(review.authorId, 'REVIEW_APPROVED', reviewId).catch(() => {})
   }
   return review
 }
