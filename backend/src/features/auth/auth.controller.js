@@ -1,5 +1,6 @@
 import * as service from './auth.service.js'
 import { ok, created } from '../../utils/response.js'
+import { missingProfileFields } from '../../middlewares/requireCompleteProfile.middleware.js'
 
 export async function register(req, res, next) {
   try {
@@ -66,7 +67,12 @@ export async function getMe(req, res, next) {
   try {
     const user = await service.getUserById(req.user.id)
     if (!user) return res.status(404).json({ success: false, error: 'NOT_FOUND', message: 'User not found' })
-    ok(res, user)
+    // `profileComplete` / `missingProfileFields` mirror the requireCompleteProfile
+    // middleware that gates POST /properties, computed from the same function so
+    // the two can't disagree. The client needs this BEFORE the wizard, not as a
+    // 403 after someone has filled in an entire listing.
+    const missing = missingProfileFields(user)
+    ok(res, { ...user, profileComplete: missing.length === 0, missingProfileFields: missing })
   } catch (err) { next(err) }
 }
 

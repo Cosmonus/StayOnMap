@@ -69,7 +69,10 @@ function Row({ row, draft, patch }) {
 
 export default function DynamicFilterRenderer({ draft, patch, sectionConfig = FILTER_SECTIONS, defs = PARAM_DEFS }) {
   const selectedTypes = draft.types ?? []
-  const sections = visibleSections(selectedTypes, sectionConfig)
+  // Mode gates rows independently of type: Rent and Lease share the
+  // rentMin/rentMax ids, so exactly one budget row may render.
+  const mode = draft.pricingModel || 'RENT'
+  const sections = visibleSections(selectedTypes, sectionConfig, mode)
 
   return (
     <div className="pb-1">
@@ -79,9 +82,9 @@ export default function DynamicFilterRenderer({ draft, patch, sectionConfig = FI
           label={section.label}
           defaultOpen={section.defaultOpen || countSectionActive(section, draft, defs) > 0}
           activeCount={countSectionActive(section, draft, defs)}
-          onClear={() => patch(clearSectionPatch(section, selectedTypes, defs))}
+          onClear={() => patch(clearSectionPatch(section, selectedTypes, defs, mode))}
         >
-          {visibleRows(section, selectedTypes).map((row, i) => (
+          {visibleRows(section, selectedTypes, mode).map((row, i) => (
             <Row key={`${section.id}-${row.id ?? row.idMin ?? row.kind}-${i}`} row={row} draft={draft} patch={patch} />
           ))}
         </FilterSection>

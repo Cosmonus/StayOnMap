@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Map as MapIcon, Home, ConciergeBell, Menu, User } from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
+import { useFilterStore } from '@store/filterStore'
+import { countActiveFilters } from '@/config/filters'
 import { chatService } from '@services/chat.service'
 import { authService } from '@services/auth.service'
 import MapFilterBar from '@features/map/components/MapFilterBar'
@@ -276,6 +278,8 @@ export default function Header() {
   const { user } = useAuth()
   const hostMode = useUiStore((s) => s.hostMode)
   const setHostMode = useUiStore((s) => s.setHostMode)
+  const openFilterModal = useUiStore((s) => s.openFilterModal)
+  const mapFilterCount = useFilterStore((s) => countActiveFilters(s.filters))
   const isMapPage = pathname === '/' || pathname.startsWith('/properties')
 
   const { data: unreadMessages = 0 } = useQuery({
@@ -336,7 +340,7 @@ export default function Header() {
       {isMapPage && (
         <div className="flex items-center justify-center gap-2.5 border-t border-slate-100 px-4 py-2.5">
           <MapFilterBar />
-          <FilterButton />
+          <FilterButton activeCount={mapFilterCount} onClick={openFilterModal} />
         </div>
       )}
     </header>

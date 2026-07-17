@@ -90,12 +90,12 @@ export const FIELDS = {
 
 // Amenity names — must match backend/prisma/seed.js's AMENITIES exactly.
 export const FEATURES = {
-  apartment: { label: 'What amenities does it have?', opts: ['WiFi', 'AC', 'Lift', 'Covered Parking', 'Power Backup', 'Gym', 'Security Guard', 'Modular Kitchen', 'Balcony', 'Gas Pipeline'] },
-  house:     { label: 'What features stand out?', opts: ['Garden', 'Terrace', 'Gated Community', 'Power Backup', 'Borewell', 'Covered Parking', 'Servant Room', 'Solar Water Heater'] },
-  land:      { label: 'What makes this plot good?', opts: ['Corner Plot', 'Boundary Wall', 'Borewell', 'Gated Community', 'East Facing', 'Near Main Road', 'Ready to Build'] },
-  pg:        { label: 'Meals & amenities included', opts: ['Breakfast', 'Lunch', 'Dinner', 'WiFi', 'AC', 'Laundry', 'Housekeeping', 'Power Backup', 'Study Desk', 'Attached Bath'] },
-  shop:      { label: 'What does the space have?', opts: ['Washroom', 'Parking', 'Near Main Road', 'Corner Plot', '3-Phase Power', 'Roll-down Shutter', 'Mezzanine', 'Signage Space'] },
-  stay:      { label: 'What can guests use?', opts: ['WiFi', 'AC', 'Kitchen', 'Swimming Pool', 'Parking', 'Washing Machine', 'TV', 'Workspace', 'Beachfront', 'Pet Friendly'] },
+  apartment: { label: 'What amenities does it have?', opts: ['WiFi', 'AC', 'Air Cooler', 'Lift', 'Covered Parking', 'Visitor Parking', 'Two-wheeler Parking', 'EV Charging', 'Power Backup', 'Gym', 'Swimming Pool', 'Club House', 'Play Area', 'Jogging Track', 'Indoor Games', 'Badminton Court', 'Party Hall', 'Creche', 'Security Guard', 'CCTV', 'Intercom', 'Video Door Phone', 'Gated Community', 'Fire Safety', 'Wheelchair Accessible', 'Modular Kitchen', 'Balcony', 'Gas Pipeline', 'Geyser', 'Water Purifier', 'Water Supply', 'Rainwater Harvesting', 'Waste Management', 'Housekeeping', 'Pet Friendly'] },
+  house:     { label: 'What features stand out?', opts: ['Garden', 'Terrace', 'Gated Community', 'Power Backup', 'Solar Panel', 'Borewell', 'Water Tank', 'Water Supply', 'Water Purifier', 'Geyser', 'Solar Water Heater', 'Covered Parking', 'Two-wheeler Parking', 'EV Charging', 'Servant Room', 'Modular Kitchen', 'Balcony', 'Play Area', 'CCTV', 'Security Guard', 'Intercom', 'Video Door Phone', 'Fire Safety', 'Rainwater Harvesting', 'Wheelchair Accessible', 'AC', 'WiFi', 'Pet Friendly'] },
+  land:      { label: 'What makes this plot good?', opts: ['Corner Plot', 'Boundary Wall', 'Borewell', 'Gated Community', 'East Facing', 'Near Main Road', 'Ready to Build', 'Water Supply'] },
+  pg:        { label: 'Meals & amenities included', opts: ['Breakfast', 'Lunch', 'Dinner', 'WiFi', 'AC', 'Air Cooler', 'Laundry', 'Housekeeping', 'Power Backup', 'Study Desk', 'Attached Bath', 'Geyser', 'Water Purifier', 'Fridge', 'Bed', 'Wardrobe', 'Washing Machine', 'Lift', 'CCTV', 'Security Guard', 'Fire Safety', 'Indoor Games'] },
+  shop:      { label: 'What does the space have?', opts: ['Washroom', 'Parking', 'Visitor Parking', 'Near Main Road', 'Corner Plot', '3-Phase Power', 'Power Backup', 'Roll-down Shutter', 'Mezzanine', 'Signage Space', 'Lift', 'AC', 'CCTV', 'Fire Safety', 'Water Supply', 'Wheelchair Accessible'] },
+  stay:      { label: 'What can guests use?', opts: ['WiFi', 'AC', 'Air Cooler', 'Kitchen', 'Swimming Pool', 'Parking', 'Washing Machine', 'TV', 'Workspace', 'Beachfront', 'Pet Friendly', 'Geyser', 'Fridge', 'Microwave', 'Sofa', 'Bed', 'Wardrobe', 'Dining Table', 'Fire Safety', 'Wheelchair Accessible'] },
 }
 
 // Pricing fields — `field` is the real Property column each input writes

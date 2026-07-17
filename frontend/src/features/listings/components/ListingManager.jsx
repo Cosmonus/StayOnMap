@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { ImageOff, MapPin, ChevronRight } from 'lucide-react'
 import { propertyService } from '@services/property.service'
-import { formatRent } from '@utils/format'
+import { formatPrice } from '@utils/format'
 import PropertyStatusPill from '@components/common/PropertyStatusPill'
 
 function ListingCard({ property, onViewDetails, onOfferLease }) {
@@ -24,7 +24,7 @@ function ListingCard({ property, onViewDetails, onOfferLease }) {
 
       <div className="px-4 py-3 flex flex-col gap-1 flex-1">
         <p className="text-sm font-semibold text-slate-800 line-clamp-1">{property.title}</p>
-        <p className="text-base font-bold text-brand-600">{formatRent(Number(property.rent))}</p>
+        <p className="text-base font-bold text-brand-600">{formatPrice(property)}</p>
         {property.city && (
           <p className="text-xs text-slate-400 flex items-center gap-1">
             <MapPin className="w-3 h-3 shrink-0" strokeWidth={1.8} />

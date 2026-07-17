@@ -5,7 +5,7 @@ import ImageUploader from '../ImageUploader'
 import LocationPicker from '../LocationPicker'
 import FieldControl from './FieldControl'
 import AvailabilityCalendar from './AvailabilityCalendar'
-import { CATEGORIES, DESCRIBE, FIELDS, FEATURES, PRICING, VERIFY } from '../../config/onboarding.js'
+import { CATEGORIES, DESCRIBE, FIELDS, FEATURES, pricingRows, LEASE_CATEGORIES, VERIFY } from '../../config/onboarding.js'
 import { CITIES, CITY_NAMES, CITY_LIST_LABEL } from '@/config/cities'
 
 function Head({ kicker, title, sub }) {
@@ -169,12 +169,51 @@ export function DescriptionScreen({ draft, setDraft }) {
 }
 
 export function PricingScreen({ categoryKey, draft, setDraft }) {
-  const rows = PRICING[categoryKey]
+  const isLease = draft.pricingModel === 'LEASE'
+  const rows = pricingRows(categoryKey, draft.pricingModel)
   const isStay = categoryKey === 'stay'
+  const canLease = LEASE_CATEGORIES.includes(categoryKey)
   function set(key, value) { setDraft((d) => ({ ...d, pricing: { ...d.pricing, [key]: value } })) }
+  // Switching modes clears the money fields: the rows differ between modes and
+  // a ₹28,000 monthly rent left behind in `rent` would silently become a
+  // ₹28,000 lease amount.
+  function setMode(pricingModel) { setDraft((d) => ({ ...d, pricingModel, pricing: {} })) }
   return (
     <div>
       <Head kicker={isStay ? 'Nightly' : 'Pricing'} title="Now, set your price" sub={isStay ? 'Your nightly rate plus fees — the calendar is unique to short-stay.' : 'Category-specific — land shows a sale price, PG a per-bed rate, commercial a lock-in.'} />
+      {canLease && (
+        <div className="mb-7 max-w-lg">
+          <p className="text-xs font-semibold text-slate-700 mb-2">How are you offering it?</p>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { value: 'RENT', label: 'Monthly rent', hint: 'Tenant pays every month' },
+              { value: 'LEASE', label: 'Lease', hint: 'One lump sum, returned when they leave' },
+            ].map((m) => {
+              const active = (draft.pricingModel ?? 'RENT') === m.value
+              return (
+                <button
+                  key={m.value}
+                  type="button"
+                  onClick={() => setMode(m.value)}
+                  aria-pressed={active}
+                  className={`flex flex-col items-start gap-0.5 px-4 py-3 rounded-xl border text-left transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-brand-500 ${
+                    active ? 'border-slate-900 bg-slate-50' : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <span className={`text-sm ${active ? 'font-semibold text-slate-900' : 'font-medium text-slate-600'}`}>{m.label}</span>
+                  <span className="text-[11px] text-slate-400 leading-tight">{m.hint}</span>
+                </button>
+              )
+            })}
+          </div>
+          {isLease && (
+            <p className="text-xs text-slate-500 mt-3 leading-relaxed">
+              You&apos;ll hold the lease amount for the full term and return it when the tenant
+              leaves. No monthly rent and no separate deposit.
+            </p>
+          )}
+        </div>
+      )}
       <div className="flex flex-wrap gap-4 max-w-lg">
         {rows.map(([key, label, ph]) => (
           <div key={key} className="flex-1 min-w-[150px]">
@@ -270,7 +309,7 @@ export function VerifyScreen({ categoryKey, draft, setDraft }) {
 
 export function ReviewScreen({ categoryKey, draft }) {
   const cat = CATEGORIES[categoryKey]
-  const priceRow = PRICING[categoryKey][0]
+  const priceRow = pricingRows(categoryKey, draft.pricingModel)[0]
   const facts = [
     ['Type', cat.label],
     [DESCRIBE[categoryKey].q.replace(/\?$/, ''), draft.fields[DESCRIBE[categoryKey].k] ?? '—'],

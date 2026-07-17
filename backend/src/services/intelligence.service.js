@@ -34,11 +34,16 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 // (BHK count, or sharing for PGs) — free, uses only our own DB data. Requires
 // at least 3 comparables so a lone other listing can't masquerade as "the
 // area average".
+//
+// Scoped to the same pricingModel: `rent` holds a monthly rent on a RENT
+// listing but a lakh-scale lump sum on a LEASE one, so mixing the two averages
+// ₹28,000 with ₹8,00,000 and hands the fraud prompt a meaningless number.
 export async function getRentBenchmark(property) {
   const where = {
     status: 'ACTIVE',
     city: property.city,
     type: property.type,
+    pricingModel: property.pricingModel ?? 'RENT',
     id: { not: property.id },
     ...(property.type === 'PG' ? { sharing: property.sharing } : { bhk: property.bhk }),
   }
@@ -58,7 +63,7 @@ export async function evaluateListing(propertyId, trigger) {
   try {
     const property = await prisma.property.findUnique({
       where: { id: propertyId },
-      select: { id: true, address: true, lat: true, lng: true, city: true, type: true, bhk: true, sharing: true },
+      select: { id: true, address: true, lat: true, lng: true, city: true, type: true, bhk: true, sharing: true, pricingModel: true },
     })
     if (!property) return
 

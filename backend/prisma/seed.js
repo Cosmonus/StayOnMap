@@ -90,7 +90,7 @@ const PROPERTIES = [
     address: 'Financial District, Gachibowli', city: 'Hyderabad', state: 'Telangana', pincode: '500032',
     landmark: 'Near DLF Cyber City',
     lat: 17.4400, lng: 78.3489,
-    amenityNames: ['WiFi', 'Parking', 'Gym', 'Swimming Pool', 'AC', 'Lift', 'CCTV', 'Power Backup', 'Club House', 'Gated Security'],
+    amenityNames: ['WiFi', 'Parking', 'Gym', 'Swimming Pool', 'AC', 'Lift', 'CCTV', 'Power Backup', 'Club House', 'Gated Community'],
     images: [
       { url: 'https://placehold.co/800x600/1e1b4b/ffffff?text=Gachibowli+3BHK', isPrimary: true, order: 0 },
       { url: 'https://placehold.co/800x600/312e81/ffffff?text=City+View', isPrimary: false, order: 1 },
@@ -176,7 +176,7 @@ const PROPERTIES = [
     address: 'Sector 10, Dwarka', city: 'Delhi', state: 'Delhi', pincode: '110075',
     landmark: 'Near Dwarka Sector 10 Metro',
     lat: 28.5823, lng: 77.0500,
-    amenityNames: ['Parking', 'Lift', 'CCTV', 'Power Backup', 'Play Area', 'Security Guard', 'Gated Security'],
+    amenityNames: ['Parking', 'Lift', 'CCTV', 'Power Backup', 'Play Area', 'Security Guard', 'Gated Community'],
     images: [
       { url: 'https://placehold.co/800x600/14532d/ffffff?text=Dwarka+2BHK', isPrimary: true, order: 0 },
       { url: 'https://placehold.co/800x600/166534/ffffff?text=Bedroom', isPrimary: false, order: 1 },

@@ -95,6 +95,15 @@ export async function adminModerateReport(reportId, adminId, { action, note }) {
   if (action === 'SUSPEND') {
     await prisma.property.update({ where: { id: report.propertyId }, data: { status: 'SUSPENDED' } })
   }
+  // Points only when a moderator UPHOLDS the report (RESOLVED) — never on
+  // submit, and never on DISMISSED. Paying for filed reports would fund exactly
+  // the false-report farming the risk score is vulnerable to (severity is
+  // client-supplied). Anonymous reports have no reporterId and earn nothing;
+  // that's the honest trade for anonymity. Idempotent per (user, report).
+  if (newStatus === 'RESOLVED' && report.reporterId) {
+    const { awardPoints } = await import('../points/points.service.js')
+    awardPoints(report.reporterId, 'REPORT_UPHELD', reportId).catch(() => {})
+  }
   if (action === 'DISMISS' || action === 'REJECT') {
     await recalculateRiskScore(report.propertyId)
   }

@@ -20,9 +20,9 @@ import { googleMapsReady, createHtmlMarker } from '@lib/googleMaps'
 import { CITIES } from '@/config/cities'
 import CityDropdown from '@features/search/components/CityDropdown'
 import AreaInput from '@features/search/components/AreaInput'
-import DynamicFilterRenderer from '@features/filters/components/DynamicFilterRenderer'
-import PropertyTypeSwitcher from '@features/filters/components/PropertyTypeSwitcher'
-import { toQueryParams, countActiveFilters, staleFilterPatch } from '@/config/filters'
+import FilterButton from '@features/filters/components/FilterButton'
+import FilterSheet from '@features/filters/components/FilterSheet'
+import { toQueryParams, countActiveFilters } from '@/config/filters'
 import { ADMIN_PARAM_DEFS, ADMIN_DEFAULT_FILTERS, ADMIN_FILTER_SECTIONS, STATUS_OPTIONS } from '@/config/adminFilters'
 
 ChartJS.register(
@@ -572,6 +572,7 @@ function AdminPropertiesMap() {
   // `area` lives in here too — it's search context (geocode + fly), never sent
   // as a query param, same contract as the user side's SEARCH_KEYS.
   const [filters, setFilters]           = useState(ADMIN_DEFAULT_FILTERS)
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false)
   const [selectedId, setSelectedId]     = useState(null)
   const [popupProperty, setPopupProperty] = useState(null)
   const [loadingPopup, setLoadingPopup] = useState(false)
@@ -752,67 +753,40 @@ function AdminPropertiesMap() {
   return (
     <div className="flex h-[100vh] -mx-8 -my-8 overflow-hidden">
 
-      {/* ── Left filter panel — same filter engine as the public map ── */}
-      <div className="hidden md:flex flex-col w-72 bg-white border-r border-slate-100 shrink-0 overflow-hidden">
-        {/* Header */}
-        <div className="px-5 pt-5 pb-4 border-b border-slate-100 flex items-center justify-between shrink-0">
-          <div>
-            <p className="text-xs font-bold text-brand-600 uppercase tracking-widest mb-0.5">Admin filters</p>
-            <h2 className="text-sm font-bold text-slate-900 leading-tight">Browse all properties</h2>
-          </div>
-          {activeCount > 0 && (
-            <button
-              onClick={() => setFilters(ADMIN_DEFAULT_FILTERS)}
-              className="text-xs text-slate-400 hover:text-slate-700 transition-colors focus:ring-2 focus:ring-brand-500 rounded"
-            >
-              Reset{activeCount > 0 ? ` (${activeCount})` : ''}
-            </button>
-          )}
-        </div>
-
-        <div className="px-5 py-4 flex flex-col gap-4 overflow-y-auto thin-scrollbar flex-1">
-
-          {/* City + Area are search context, not filter-modal rows — same
-              split as the user side's SEARCH_KEYS. City still travels as a
-              query param; area only geocodes and flies the map. The public
-              search dropped its city selector (2026-07-15), but admins have
-              no other way to scope to a city, so it stays here. */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">City</label>
-            <CityDropdown value={city} onChange={(val) => patchFilters({ city: val, area: '' })} />
-          </div>
-
-          <AreaInput
-            value={area}
-            city={city}
-            onChange={setArea}
-            onPlacePicked={handlePlacePicked}
-            onClear={handleAreaClear}
-          />
-
-          {/* Property type — the same 6 category cards users get, replacing a
-              flat list of 8 raw enum chips */}
-          <PropertyTypeSwitcher
-            selectedTypes={filters.types ?? []}
-            onChange={(types) => patchFilters({ types, ...staleFilterPatch(types, ADMIN_FILTER_SECTIONS, ADMIN_PARAM_DEFS) })}
-            gridClass="grid-cols-3"
-          />
-
-          {/* Everything else is generated from config/adminFilters.js —
-              Moderation (status/risk) first, then the full user filter set */}
-          <DynamicFilterRenderer
-            draft={filters}
-            patch={patchFilters}
-            sectionConfig={ADMIN_FILTER_SECTIONS}
-            defs={ADMIN_PARAM_DEFS}
-          />
-
-        </div>
-      </div>
-
-      {/* ── Map + right popup ── */}
+      {/* ── Map + floating filter bar + right popup ── */}
       <div className="relative flex-1 overflow-hidden">
         <div ref={containerRef} className="absolute inset-0" />
+
+        {/* Floating filter bar — the same shape as the public map's Header bar
+            (search pill + Filters button opening the sheet), so admins and
+            users get one filter UI, not a sidebar fork.
+
+            City + Area are search context, not sheet rows — same split as the
+            user side's SEARCH_KEYS. City still travels as a query param; area
+            only geocodes and flies the map. The public search dropped its city
+            selector (2026-07-15), but admins have no other way to scope to a
+            city, so it stays in this bar. */}
+        <div className="absolute top-4 left-4 right-4 z-10 flex items-center gap-2.5 pointer-events-none">
+          <div className="flex items-center gap-2.5 h-12 md:h-14 pl-2 pr-1.5 md:pr-2 bg-white rounded-full border border-slate-200 shadow-md pointer-events-auto min-w-0">
+            <div className="w-40 shrink-0">
+              <CityDropdown value={city} onChange={(val) => patchFilters({ city: val, area: '' })} />
+            </div>
+            <div className="w-56 md:w-72 min-w-0">
+              <AreaInput
+                value={area}
+                city={city}
+                onChange={setArea}
+                onPlacePicked={handlePlacePicked}
+                onClear={handleAreaClear}
+                showLabel={false}
+                bare
+              />
+            </div>
+          </div>
+          <div className="pointer-events-auto">
+            <FilterButton activeCount={activeCount} onClick={() => setFilterSheetOpen(true)} />
+          </div>
+        </div>
 
         {/* Right panel popup — mirrors MapRightPanel / PropertyPopup */}
         {(selectedId || loadingPopup) && (
@@ -839,6 +813,23 @@ function AdminPropertiesMap() {
           </span>
         </div>
       </div>
+
+      {/* Same sheet the public map opens — Moderation (status/risk) first, then
+          the full user filter set, generated from config/adminFilters.js.
+          showCount={false}: GET /properties/count is the ACTIVE-only public
+          endpoint and has no status/riskLevel params, so it can't count an
+          admin draft — the button reads "Show results" instead. */}
+      <FilterSheet
+        isOpen={filterSheetOpen}
+        onClose={() => setFilterSheetOpen(false)}
+        value={filters}
+        onApply={setFilters}
+        sections={ADMIN_FILTER_SECTIONS}
+        defs={ADMIN_PARAM_DEFS}
+        defaults={ADMIN_DEFAULT_FILTERS}
+        showCount={false}
+        showModeToggle={false}
+      />
     </div>
   )
 }

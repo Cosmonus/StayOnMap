@@ -1,18 +1,13 @@
-// Opens the filter modal; badge shows how many filters are applied.
+// Opens a filter sheet; badge shows how many filters are applied. Pure — the
+// caller owns the filter state (map Header reads filterStore, admin reads its
+// local state), so both surfaces get the identical control.
 import { SlidersHorizontal } from 'lucide-react'
-import { useUiStore } from '@store/uiStore'
-import { useFilterStore } from '@store/filterStore'
-import { countActiveFilters } from '@/config/filters'
 
-export default function FilterButton() {
-  const openFilterModal = useUiStore((s) => s.openFilterModal)
-  const filters = useFilterStore((s) => s.filters)
-  const activeCount = countActiveFilters(filters)
-
+export default function FilterButton({ activeCount = 0, onClick }) {
   return (
     <button
       type="button"
-      onClick={openFilterModal}
+      onClick={onClick}
       aria-label="Open filters"
       className={`relative h-11 md:h-14 flex items-center gap-2 px-4 rounded-full border bg-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 ${
         activeCount > 0 ? 'border-[#111111] text-slate-900' : 'border-slate-200 text-slate-700 hover:border-slate-400'
