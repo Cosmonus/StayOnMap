@@ -121,18 +121,40 @@ export const FILTERS = {
   minRecommend: { schema: intIn(1, 100), where: (v) => ({ trustScore: { is: { recommendPercent: { gte: v } } } }) },
 }
 
+export const PROPERTY_STATUSES = ['DRAFT', 'ACTIVE', 'INACTIVE', 'PENDING', 'SUSPENDED', 'REJECTED']
+export const RISK_LEVELS = ['LOW', 'MEDIUM', 'HIGH', 'SUSPICIOUS']
+
+// ── Admin-only filters ────────────────────────────────────────────
+// Kept OUT of FILTERS on purpose. FILTERS is what the public list/pins/count
+// schemas are generated from, so anything added there becomes a parameter any
+// anonymous caller can send. `status` in particular must never be user-settable:
+// the public read path pins listings to ACTIVE (properties.service.js), and a
+// user-supplied status would be how a DRAFT or SUSPENDED listing leaks out.
+//
+// Note FILTERS itself has no status entry at all — the ACTIVE constraint lives
+// in the user service's callers, not here — which is why the admin side can
+// reuse this whole registry without inheriting it.
+export const ADMIN_FILTERS = {
+  ...FILTERS,
+  status: { schema: csvEnum(PROPERTY_STATUSES), where: (v) => ({ status: { in: v } }) },
+  // The admin list endpoint accepted a riskLevel param and silently discarded
+  // it (dead `_riskLevel`). Now it works. `riskScore` is a nullable 1:1, so an
+  // unscored listing simply doesn't match rather than erroring.
+  riskLevel: { schema: csvEnum(RISK_LEVELS), where: (v) => ({ riskScore: { is: { level: { in: v } } } }) },
+}
+
 // Zod shape (all optional) to spread into the list/pins/count query schemas.
-export function filterQueryShape() {
+export function filterQueryShape(registry = FILTERS) {
   return Object.fromEntries(
-    Object.entries(FILTERS).map(([id, def]) => [id, def.schema.optional()])
+    Object.entries(registry).map(([id, def]) => [id, def.schema.optional()])
   )
 }
 
 // Validated query object → array of Prisma where fragments (AND-composed by
 // the caller). Falsy booleans and empty values are no-ops.
-export function buildFilterWhere(query) {
+export function buildFilterWhere(query, registry = FILTERS) {
   const fragments = []
-  for (const [id, def] of Object.entries(FILTERS)) {
+  for (const [id, def] of Object.entries(registry)) {
     const value = query[id]
     if (value === undefined || value === null || value === false || value === '') continue
     if (Array.isArray(value) && value.length === 0) continue
@@ -142,9 +164,9 @@ export function buildFilterWhere(query) {
 }
 
 // Deterministic cache-key part for the active filters in a validated query.
-export function filterCacheKey(query) {
+export function filterCacheKey(query, registry = FILTERS) {
   const active = {}
-  for (const id of Object.keys(FILTERS).sort()) {
+  for (const id of Object.keys(registry).sort()) {
     const value = query[id]
     if (value === undefined || value === null || value === false || value === '') continue
     if (Array.isArray(value) && value.length === 0) continue

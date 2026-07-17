@@ -1,9 +1,10 @@
 import { prisma } from '../../lib/prisma.js'
-import { PropertyType } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { sendEmail, adminPasswordChangedEmail } from '../../services/email.service.js'
+import { ADMIN_FILTERS, buildFilterWhere } from '../properties/filters.registry.js'
+import { parseBounds, boundsFilter } from '../../utils/geo.js'
 
 export async function adminLogin(email, password) {
   const admin = await prisma.admin.findUnique({ where: { email } })
@@ -121,30 +122,28 @@ export async function toggleUserBlock(userId, blocked, reason, adminId) {
   return user
 }
 
-export async function getAdminPins({ south, north, west, east, status, city, bhk, type } = {}) {
-  const where = {}
-  if (south != null && north != null && west != null && east != null) {
-    where.lat = { gte: Number(south), lte: Number(north) }
-    where.lng = { gte: Number(west),  lte: Number(east) }
-  }
-  if (status) where.status = status
-  if (city) where.city = { contains: city, mode: 'insensitive' }
-  if (type) {
-    // Whitelist against the Prisma enum — an unknown value would make the query throw
-    const types = String(type).split(',').filter((t) => t in PropertyType)
-    if (types.length) where.type = { in: types }
-  }
-  if (bhk) {
-    const bhkNums = String(bhk).split(',').map(Number).filter(n => !isNaN(n))
-    if (bhkNums.length === 1 && bhkNums[0] === 4) {
-      where.bhk = { gte: 4 }
-    } else if (bhkNums.length) {
-      where.OR = bhkNums.map(n => n === 4 ? { bhk: { gte: 4 } } : { bhk: n })
-    }
-  }
+// Same filter engine as the public map (features/properties/filters.registry.js),
+// plus the admin-only status/riskLevel — so the two surfaces can't drift again.
+// This used to be a hand-written if-chain that reimplemented city/type/bhk and
+// supported nothing else; the duplicated bhk branch also assigned a top-level
+// `where.OR`, which any other top-level OR would have silently clobbered.
+//
+// Deliberately NOT shared with the user path:
+//   - no `status: 'ACTIVE'` default — seeing DRAFT/PENDING/SUSPENDED is the job
+//   - no applyVisibilityFilter — admins must see HIDDEN owners' listings
+//   - no Redis cache — moderation needs read-after-write freshness
+//   - take: 500 (vs the user map's 200)
+export async function getAdminPins(query = {}) {
+  const bounds = parseBounds(query)
+  const hasBounds = Object.values(bounds).every(Number.isFinite)
+
+  const where = { ...(hasBounds ? boundsFilter(bounds) : {}) }
+  const fragments = buildFilterWhere(query, ADMIN_FILTERS)
+  if (fragments.length) where.AND = fragments
+
   return prisma.property.findMany({
     where,
-    select: { id: true, lat: true, lng: true, rent: true, type: true, status: true, trustScore: { select: { badge: true } } },
+    select: { id: true, lat: true, lng: true, rent: true, type: true, status: true, bhk: true, trustScore: { select: { badge: true } } },
     take: 500,
   })
 }
@@ -197,12 +196,15 @@ export async function getAdminPropertyById(id) {
   return property
 }
 
-export async function listAdminProperties({ status, city, riskLevel: _riskLevel, page = 1, limit = 20 }) {
+// Same registry as getAdminPins, so the table and the map agree on what a
+// filter means. `riskLevel` was previously accepted and silently dropped
+// (a dead `_riskLevel` param) — it now actually filters.
+export async function listAdminProperties({ page = 1, limit = 20, ...query } = {}) {
   const pageNum  = Math.max(1, parseInt(page, 10)  || 1)
   const limitNum = Math.min(100, parseInt(limit, 10) || 20)
   const where = {}
-  if (status) where.status = status
-  if (city) where.city = { contains: city, mode: 'insensitive' }
+  const fragments = buildFilterWhere(query, ADMIN_FILTERS)
+  if (fragments.length) where.AND = fragments
   const skip = (pageNum - 1) * limitNum
   const [properties, total] = await Promise.all([
     prisma.property.findMany({
