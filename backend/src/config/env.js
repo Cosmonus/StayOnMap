@@ -27,15 +27,25 @@ export const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   aiProvider: process.env.AI_PROVIDER || 'stub',
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || null,
-  // Vendor-free SMTP mailer (lib/mailer.js) — any SMTP endpoint works:
-  // Gmail app password (smtp.gmail.com:465, cap ~450 under Gmail's 500/day),
-  // or a self-hosted mail server. Unset → email is a logged no-op.
+  // Mailer (lib/mailer.js) — two delivery paths, same interface.
+  //   MAIL_PROVIDER=smtp  (default) → nodemailer to any SMTP endpoint. Works
+  //     locally and on hosts that allow outbound SMTP.
+  //   MAIL_PROVIDER=brevo           → Brevo's REST API over HTTPS (plain
+  //     fetch, no SDK). Required on Railway below the Pro plan, which blocks
+  //     outbound SMTP ports (25/465/587/2525) outright — SMTP there fails no
+  //     matter how it's configured. See docs/production-readiness.md.
+  // Unset/unconfigured → email is a logged no-op (same as before).
+  mailProvider: process.env.MAIL_PROVIDER || 'smtp',
+  brevoApiKey: process.env.BREVO_API_KEY || null,
   mailFrom: process.env.MAIL_FROM || process.env.SMTP_USER || 'StayOnMap <noreply@stayonmap.com>',
   smtpHost: process.env.SMTP_HOST || null,
   smtpPort: Number(process.env.SMTP_PORT) || 465,
   smtpUser: process.env.SMTP_USER || null,
   smtpPass: process.env.SMTP_PASS || null,
-  smtpDailyCap: Number(process.env.SMTP_DAILY_CAP) || 450,
+  // Default matches Gmail's ~500/day. Brevo's free tier is 300/day — set
+  // MAIL_DAILY_CAP=300 when MAIL_PROVIDER=brevo. SMTP_DAILY_CAP is still read
+  // for backwards compatibility with existing deploys.
+  mailDailyCap: Number(process.env.MAIL_DAILY_CAP) || Number(process.env.SMTP_DAILY_CAP) || 450,
   vapidPublicKey:  process.env.VAPID_PUBLIC_KEY  || null,
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || null,
   vapidSubject:    process.env.VAPID_SUBJECT     || 'mailto:hello@stayonmap.com',
