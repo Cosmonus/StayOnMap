@@ -186,9 +186,13 @@ export async function requestLoginOtp(email) {
   // Checking it after the lookup would turn "503 vs 200" into an
   // account-enumeration oracle.
   if (!(await canSend(true))) {
+    // expose: this text is ours and leaks nothing — without it, error.middleware
+    // sanitises every 5xx in prod and the user sees "Internal server error"
+    // instead of being told the password still works. Verified against
+    // production, where exactly that happened.
     throw Object.assign(
       new Error('Sign-in codes are temporarily unavailable. Please sign in with your password.'),
-      { statusCode: 503 }
+      { statusCode: 503, expose: true }
     )
   }
 
@@ -236,9 +240,10 @@ export async function requestLoginOtp(email) {
     critical: true,
   })
   if (!sent) {
+    // expose: same reasoning as the pre-flight above — our text, no internals.
     throw Object.assign(
       new Error('Could not send your sign-in code. Please sign in with your password.'),
-      { statusCode: 503 }
+      { statusCode: 503, expose: true }
     )
   }
 }
