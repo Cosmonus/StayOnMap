@@ -46,9 +46,12 @@ export default function PrivacyPolicyPage() {
         </Section>
 
         <Section id="collect" title="2. Information we collect">
-          <p><strong>Account information.</strong> Name, email address, phone number (optional), city,
-            and a hashed password provided at registration. Owners and tenants share one account
-            system &mdash; the same person can list properties and browse as a tenant.</p>
+          <p><strong>Account information.</strong> Name, email address, city, and a hashed
+            password provided at registration. A phone number is optional for browsing and
+            booking visits, but <strong>required before you can list a property</strong> &mdash;
+            an owner has to be reachable by the people who may live there. Owners and tenants
+            share one account system &mdash; the same person can list properties and browse as
+            a tenant.</p>
           <p><strong>Owner verification documents.</strong> Listing a property may require
             government-issued identity or ownership documents to verify authorization to
             rent it out &mdash; this can include Aadhaar, PAN, a selfie, property tax receipts,
@@ -65,9 +68,16 @@ export default function PrivacyPolicyPage() {
             page).</p>
           <p><strong>Reviews &amp; reports.</strong> Content submitted when reviewing a property or
             reporting a listing &mdash; reports can optionally be submitted anonymously.</p>
-          <p><strong>Location.</strong> If permitted, an approximate browser or device
-            location, used only to center the map nearby &mdash; we do not store a history of
-            movement over time.</p>
+          <p><strong>Location.</strong> Only if you tap the locate button and grant permission.
+            The mobile app may request precise device location (and the browser its own
+            location) purely to centre the map where you are. It is used in the moment and
+            never stored &mdash; we keep no history of your movement, and the app never asks
+            for location in the background.</p>
+          <p><strong>Contribution record.</strong> If you earn points, we keep a record of the
+            actions that earned them &mdash; a review being approved, a report being upheld,
+            verifying your email or phone, signing a lease &mdash; with the date and the item it
+            relates to. It is visible only to you; there is no public leaderboard and points
+            cannot be exchanged for anything.</p>
           <p><strong>Usage &amp; device data.</strong> IP address, browser type, and basic request
             logs, collected automatically for security (rate limiting, abuse prevention) and
             debugging. We do not use third-party advertising trackers or analytics cookies.</p>
@@ -101,10 +111,17 @@ export default function PrivacyPolicyPage() {
           <ul className="list-disc pl-5 flex flex-col gap-1.5">
             <li><strong>Supabase</strong> &mdash; stores uploaded property images and verification documents</li>
             <li><strong>Railway</strong> &mdash; hosts our application servers and database</li>
-            <li><strong>Google Maps Platform</strong> &mdash; powers map display, address search, and geocoding (search queries are sent to Google to resolve locations)</li>
-            <li><strong>Resend</strong> &mdash; delivers transactional emails (appointment updates, password resets)</li>
+            <li><strong>Google Maps Platform</strong> &mdash; powers map display, address search, and geocoding (search queries and coordinates are sent to Google to resolve locations)</li>
+            <li><strong>Our email provider</strong> &mdash; delivers transactional emails (appointment updates, password resets, sign-in codes). Depending on configuration this is either an SMTP provider (currently Google, via Gmail) or <strong>Brevo</strong>&rsquo;s transactional API. Your email address and the message content pass through whichever is active.</li>
+            <li><strong>Expo</strong>, and through it <strong>Google (FCM)</strong> on Android or <strong>Apple (APNs)</strong> on iOS &mdash; deliver push notifications to your device. The notification&rsquo;s title and text pass through these services.</li>
+            <li><strong>Upstash</strong> &mdash; Redis used for caching and rate limiting; holds short-lived technical data, not profile information</li>
+            <li><strong>Sentry</strong> &mdash; error monitoring, when enabled. Receives crash and error reports, which can incidentally include the request path and account id involved.</li>
           </ul>
           <p>We do not share data with these providers for their own marketing purposes.</p>
+          <p><strong>Not currently enabled.</strong> The Platform can use an AI provider
+            (Anthropic) to help detect fraudulent listings and fake reviews. This is switched
+            off today and no listing or review content is sent to any AI provider. If we turn
+            it on, we will update this policy before doing so.</p>
           <p><strong>Legal &amp; safety.</strong> Information may be disclosed if required by law,
             to enforce our Terms of Service, or to protect the rights, safety, or property of
             StayOnMap, our users, or the public.</p>
