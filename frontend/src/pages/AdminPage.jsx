@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Doughnut, Line } from 'react-chartjs-2'
@@ -11,6 +11,7 @@ import {
 import {
   X, ChevronLeft, ChevronRight, Home, MapPin, Users, CircleCheck, ArrowLeft, Copy,
   ChefHat, User, DoorOpen, PawPrint, Cigarette, Wine, Check, Star, Building2,
+  Eye, EyeOff,
 } from 'lucide-react'
 import { adminService } from '@services/admin.service'
 import SEOMeta from '@components/common/SEOMeta'
@@ -19,6 +20,10 @@ import { googleMapsReady, createHtmlMarker } from '@lib/googleMaps'
 import { CITIES } from '@/config/cities'
 import CityDropdown from '@features/search/components/CityDropdown'
 import AreaInput from '@features/search/components/AreaInput'
+import DynamicFilterRenderer from '@features/filters/components/DynamicFilterRenderer'
+import PropertyTypeSwitcher from '@features/filters/components/PropertyTypeSwitcher'
+import { toQueryParams, countActiveFilters, staleFilterPatch } from '@/config/filters'
+import { ADMIN_PARAM_DEFS, ADMIN_DEFAULT_FILTERS, ADMIN_FILTER_SECTIONS, STATUS_OPTIONS } from '@/config/adminFilters'
 
 ChartJS.register(
   ArcElement, Tooltip, Legend,
@@ -312,25 +317,44 @@ function applyPinSelected(el, selected) {
   el.style.borderColor = selected ? '#111111'  : '#e2e8f0'
 }
 
+// Password field with a show/hide toggle — same affordance and icons as
+// AdminLoginPage/LoginModal/ResetPasswordPage. Each instance owns its own
+// visibility so revealing "current" doesn't also reveal "new". tabIndex={-1}
+// keeps the eye out of the tab order: Tab should move between the three
+// password fields, not stop on a decoration between each one.
+function AdminPasswordField({ label, value, onChange, autoComplete }) {
+  const [show, setShow] = useState(false)
+  return (
+    <div>
+      <label className="block text-xs font-medium text-slate-500 mb-1">{label}</label>
+      <div className="relative">
+        <input
+          type={show ? 'text' : 'password'}
+          value={value}
+          onChange={onChange}
+          autoComplete={autoComplete}
+          className="w-full px-3 py-2 pr-10 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+        />
+        <button
+          type="button"
+          onClick={() => setShow((v) => !v)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 rounded"
+          tabIndex={-1}
+          aria-label={show ? 'Hide password' : 'Show password'}
+        >
+          {show ? <EyeOff size={16} strokeWidth={1.8} /> : <Eye size={16} strokeWidth={1.8} />}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Admin property popup (right panel, mirrors user PropertyPopup) ──────────
-const BHK_OPTIONS_MAP = [
-  { label: '1 BHK', value: 1 }, { label: '2 BHK', value: 2 },
-  { label: '3 BHK', value: 3 }, { label: '4+ BHK', value: 4 },
-]
-
-const TYPE_FILTERS = [
-  { value: 'APARTMENT', label: 'Apartment' }, { value: 'HOUSE', label: 'House' },
-  { value: 'VILLA', label: 'Villa' },         { value: 'INDEPENDENT_HOUSE', label: 'Independent' },
-  { value: 'PG', label: 'PG' },               { value: 'COMMERCIAL', label: 'Commercial' },
-  { value: 'LAND', label: 'Land' },           { value: 'SHORT_STAY', label: 'Short stay' },
-]
-
-const STATUS_FILTERS = [
-  { value: '', label: 'All' },       { value: 'ACTIVE', label: 'Active' },
-  { value: 'PENDING', label: 'Pending' }, { value: 'DRAFT', label: 'Draft' },
-  { value: 'INACTIVE', label: 'Inactive' },
-  { value: 'SUSPENDED', label: 'Suspended' }, { value: 'REJECTED', label: 'Rejected' },
-]
+// BHK_OPTIONS_MAP / TYPE_FILTERS / STATUS_FILTERS used to live here, hand-kept
+// and drifting: the BHK list was missing Studio (so admins couldn't find studio
+// listings at all), the type list was 8 flat enum chips instead of the user's 6
+// category cards, and STATUS_FILTERS disagreed with ReviewListingsSection's own
+// inline copy. All three now come from config/adminFilters.js.
 
 // Type-appropriate headline chip — BHK only means something for residential types
 function typeHeadline(p) {
@@ -543,23 +567,25 @@ function AdminPropertiesMap() {
 
   const [mapReady, setMapReady]         = useState(false)
   const [pins, setPins]                 = useState([])
-  const [city, setCity]                 = useState('')
-  const [area, setArea]                 = useState('')
-  const [bhkFilter, setBhkFilter]       = useState([])
-  const [typeFilter, setTypeFilter]     = useState([])
-  const [statusFilter, setStatusFilter] = useState('')
+  // One filter object driven by the shared config, replacing the five
+  // hand-rolled useStates (city/area/bhk/type/status) this panel used to keep.
+  // `area` lives in here too — it's search context (geocode + fly), never sent
+  // as a query param, same contract as the user side's SEARCH_KEYS.
+  const [filters, setFilters]           = useState(ADMIN_DEFAULT_FILTERS)
   const [selectedId, setSelectedId]     = useState(null)
   const [popupProperty, setPopupProperty] = useState(null)
   const [loadingPopup, setLoadingPopup] = useState(false)
   const [fullDetail, setFullDetail]     = useState(null)
 
-  function toggleBhk(v) {
-    setBhkFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])
-  }
+  const { city, area } = filters
+  const patchFilters = useCallback((patch) => setFilters((prev) => ({ ...prev, ...patch })), [])
+  const setArea = useCallback((v) => patchFilters({ area: v }), [patchFilters])
 
-  function toggleType(v) {
-    setTypeFilter(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])
-  }
+  // Sent to the API — everything except the search context. Serialized here so
+  // the fetch effect can depend on the string rather than a new object identity
+  // every render (which would refetch on every keystroke elsewhere).
+  const queryParams = useMemo(() => toQueryParams(filters, ADMIN_PARAM_DEFS), [filters])
+  const queryKey = JSON.stringify(queryParams)
 
   // Init map once
   useEffect(() => {
@@ -638,12 +664,13 @@ function AdminPropertiesMap() {
       if (!b) return
       const sw = b.getSouthWest()
       const ne = b.getNorthEast()
-      const params = { south: sw.lat(), west: sw.lng(), north: ne.lat(), east: ne.lng() }
-      if (statusFilter) params.status = statusFilter
-      if (city.trim()) params.city = city.trim()
-      if (bhkFilter.length) params.bhk = bhkFilter.join(',')
-      if (typeFilter.length) params.type = typeFilter.join(',')
-      adminService.pins(params)
+      // swLat/swLng/neLat/neLng — the same bounds contract as the public map.
+      // This panel used to send south/west/north/east, a naming fork that was
+      // the only reason admin couldn't reuse the shared parseBounds/geo utils.
+      adminService.pins({
+        swLat: sw.lat(), swLng: sw.lng(), neLat: ne.lat(), neLng: ne.lng(),
+        ...queryParams,
+      })
         .then(r => { if (!cancelled) setPins(Array.isArray(r.data) ? r.data : []) })
         .catch(() => {})
     }
@@ -654,7 +681,9 @@ function AdminPropertiesMap() {
       debounce = setTimeout(fetchPins, 400)
     })
     return () => { cancelled = true; clearTimeout(debounce); window.google.maps.event.removeListener(idle) }
-  }, [mapReady, statusFilter, city, bhkFilter, typeFilter])
+    // queryKey, not queryParams — a fresh object each render would refetch forever.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady, queryKey])
 
   // Sync markers (diff — no full clear)
   useEffect(() => {
@@ -718,12 +747,12 @@ function AdminPropertiesMap() {
     )
   }
 
-  const hasFilters = statusFilter || city || bhkFilter.length > 0 || typeFilter.length > 0
+  const activeCount = countActiveFilters(filters, ADMIN_PARAM_DEFS)
 
   return (
     <div className="flex h-[100vh] -mx-8 -my-8 overflow-hidden">
 
-      {/* ── Left filter panel (same layout as FindRentalPanel) ── */}
+      {/* ── Left filter panel — same filter engine as the public map ── */}
       <div className="hidden md:flex flex-col w-72 bg-white border-r border-slate-100 shrink-0 overflow-hidden">
         {/* Header */}
         <div className="px-5 pt-5 pb-4 border-b border-slate-100 flex items-center justify-between shrink-0">
@@ -731,25 +760,28 @@ function AdminPropertiesMap() {
             <p className="text-xs font-bold text-brand-600 uppercase tracking-widest mb-0.5">Admin filters</p>
             <h2 className="text-sm font-bold text-slate-900 leading-tight">Browse all properties</h2>
           </div>
-          {hasFilters && (
+          {activeCount > 0 && (
             <button
-              onClick={() => { setCity(''); setArea(''); setBhkFilter([]); setTypeFilter([]); setStatusFilter('') }}
-              className="text-xs text-slate-400 hover:text-slate-700 transition-colors"
+              onClick={() => setFilters(ADMIN_DEFAULT_FILTERS)}
+              className="text-xs text-slate-400 hover:text-slate-700 transition-colors focus:ring-2 focus:ring-brand-500 rounded"
             >
-              Reset
+              Reset{activeCount > 0 ? ` (${activeCount})` : ''}
             </button>
           )}
         </div>
 
         <div className="px-5 py-4 flex flex-col gap-4 overflow-y-auto thin-scrollbar flex-1">
 
-          {/* City */}
+          {/* City + Area are search context, not filter-modal rows — same
+              split as the user side's SEARCH_KEYS. City still travels as a
+              query param; area only geocodes and flies the map. The public
+              search dropped its city selector (2026-07-15), but admins have
+              no other way to scope to a city, so it stays here. */}
           <div>
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">City</label>
-            <CityDropdown value={city} onChange={val => { setCity(val); setArea('') }} />
+            <CityDropdown value={city} onChange={(val) => patchFilters({ city: val, area: '' })} />
           </div>
 
-          {/* Area */}
           <AreaInput
             value={area}
             city={city}
@@ -758,68 +790,22 @@ function AdminPropertiesMap() {
             onClear={handleAreaClear}
           />
 
-          {/* Property type */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Property type</label>
-            <div className="flex gap-1.5 flex-wrap">
-              {TYPE_FILTERS.map(({ label, value }) => (
-                <button
-                  key={value}
-                  onClick={() => toggleType(value)}
-                  className={[
-                    'px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-150',
-                    typeFilter.includes(value)
-                      ? 'bg-[#111111] text-white border-[#111111] shadow-sm'
-                      : 'border-slate-200 text-slate-600 bg-slate-50 hover:border-slate-400',
-                  ].join(' ')}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Property type — the same 6 category cards users get, replacing a
+              flat list of 8 raw enum chips */}
+          <PropertyTypeSwitcher
+            selectedTypes={filters.types ?? []}
+            onChange={(types) => patchFilters({ types, ...staleFilterPatch(types, ADMIN_FILTER_SECTIONS, ADMIN_PARAM_DEFS) })}
+            gridClass="grid-cols-3"
+          />
 
-          {/* Bedrooms */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Bedrooms</label>
-            <div className="flex gap-1.5 flex-wrap">
-              {BHK_OPTIONS_MAP.map(({ label, value }) => (
-                <button
-                  key={value}
-                  onClick={() => toggleBhk(value)}
-                  className={[
-                    'px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-150',
-                    bhkFilter.includes(value)
-                      ? 'bg-[#111111] text-white border-[#111111] shadow-sm'
-                      : 'border-slate-200 text-slate-600 bg-slate-50 hover:border-slate-400',
-                  ].join(' ')}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Status (admin-only) */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Status</label>
-            <div className="flex gap-1.5 flex-wrap">
-              {STATUS_FILTERS.map(s => (
-                <button
-                  key={s.value}
-                  onClick={() => setStatusFilter(s.value)}
-                  className={[
-                    'px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-150',
-                    statusFilter === s.value
-                      ? 'bg-[#111111] text-white border-[#111111] shadow-sm'
-                      : 'border-slate-200 text-slate-600 bg-slate-50 hover:border-slate-400',
-                  ].join(' ')}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Everything else is generated from config/adminFilters.js —
+              Moderation (status/risk) first, then the full user filter set */}
+          <DynamicFilterRenderer
+            draft={filters}
+            patch={patchFilters}
+            sectionConfig={ADMIN_FILTER_SECTIONS}
+            defs={ADMIN_PARAM_DEFS}
+          />
 
         </div>
       </div>
@@ -1610,14 +1596,17 @@ function ReviewListingsSection() {
         <p className="text-sm text-slate-400 mt-0.5">Review and approve submitted listings. Click any card for full details.</p>
       </div>
 
+      {/* Status list comes from the shared config — this used to be an inline
+          array that had silently drifted from AdminPropertiesMap's (INACTIVE
+          was missing here, so those listings were unreachable from this tab). */}
       <div className="flex gap-2 flex-wrap">
-        {['', 'PENDING', 'ACTIVE', 'REJECTED', 'SUSPENDED', 'DRAFT'].map(s => (
+        {[{ value: '', label: 'All' }, ...STATUS_OPTIONS].map(({ value, label }) => (
           <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${statusFilter === s ? 'bg-[#111111] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            key={value}
+            onClick={() => setStatusFilter(value)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors focus:ring-2 focus:ring-brand-500 ${statusFilter === value ? 'bg-[#111111] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
           >
-            {s || 'All'}
+            {label}
           </button>
         ))}
       </div>
@@ -2244,36 +2233,24 @@ function AdminSettingsSection() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
         <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-4">Change Password</p>
         <form onSubmit={handlePasswordSave} className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Current password</label>
-            <input
-              type="password"
-              value={pwForm.currentPassword}
-              onChange={e => setPwForm(f => ({ ...f, currentPassword: e.target.value }))}
-              className={inputCls}
-              autoComplete="current-password"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">New password</label>
-            <input
-              type="password"
-              value={pwForm.newPassword}
-              onChange={e => setPwForm(f => ({ ...f, newPassword: e.target.value }))}
-              className={inputCls}
-              autoComplete="new-password"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Confirm new password</label>
-            <input
-              type="password"
-              value={pwForm.confirmPassword}
-              onChange={e => setPwForm(f => ({ ...f, confirmPassword: e.target.value }))}
-              className={inputCls}
-              autoComplete="new-password"
-            />
-          </div>
+          <AdminPasswordField
+            label="Current password"
+            value={pwForm.currentPassword}
+            onChange={e => setPwForm(f => ({ ...f, currentPassword: e.target.value }))}
+            autoComplete="current-password"
+          />
+          <AdminPasswordField
+            label="New password"
+            value={pwForm.newPassword}
+            onChange={e => setPwForm(f => ({ ...f, newPassword: e.target.value }))}
+            autoComplete="new-password"
+          />
+          <AdminPasswordField
+            label="Confirm new password"
+            value={pwForm.confirmPassword}
+            onChange={e => setPwForm(f => ({ ...f, confirmPassword: e.target.value }))}
+            autoComplete="new-password"
+          />
           {pwMsg && (
             <p className={`text-xs font-medium ${pwMsg.ok ? 'text-green-600' : 'text-red-600'}`}>{pwMsg.text}</p>
           )}
