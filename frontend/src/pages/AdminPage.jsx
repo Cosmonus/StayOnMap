@@ -11,6 +11,7 @@ import {
 import {
   X, ChevronLeft, ChevronRight, Home, MapPin, Users, CircleCheck, ArrowLeft, Copy,
   ChefHat, User, DoorOpen, PawPrint, Cigarette, Wine, Check, Star, Building2,
+  Eye, EyeOff,
 } from 'lucide-react'
 import { adminService } from '@services/admin.service'
 import SEOMeta from '@components/common/SEOMeta'
@@ -314,6 +315,38 @@ function applyPinSelected(el, selected) {
   el.style.background  = selected ? '#111111' : '#fff'
   el.style.color       = selected ? '#fff'     : '#0f172a'
   el.style.borderColor = selected ? '#111111'  : '#e2e8f0'
+}
+
+// Password field with a show/hide toggle — same affordance and icons as
+// AdminLoginPage/LoginModal/ResetPasswordPage. Each instance owns its own
+// visibility so revealing "current" doesn't also reveal "new". tabIndex={-1}
+// keeps the eye out of the tab order: Tab should move between the three
+// password fields, not stop on a decoration between each one.
+function AdminPasswordField({ label, value, onChange, autoComplete }) {
+  const [show, setShow] = useState(false)
+  return (
+    <div>
+      <label className="block text-xs font-medium text-slate-500 mb-1">{label}</label>
+      <div className="relative">
+        <input
+          type={show ? 'text' : 'password'}
+          value={value}
+          onChange={onChange}
+          autoComplete={autoComplete}
+          className="w-full px-3 py-2 pr-10 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+        />
+        <button
+          type="button"
+          onClick={() => setShow((v) => !v)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 rounded"
+          tabIndex={-1}
+          aria-label={show ? 'Hide password' : 'Show password'}
+        >
+          {show ? <EyeOff size={16} strokeWidth={1.8} /> : <Eye size={16} strokeWidth={1.8} />}
+        </button>
+      </div>
+    </div>
+  )
 }
 
 // ── Admin property popup (right panel, mirrors user PropertyPopup) ──────────
@@ -2200,36 +2233,24 @@ function AdminSettingsSection() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
         <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-4">Change Password</p>
         <form onSubmit={handlePasswordSave} className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Current password</label>
-            <input
-              type="password"
-              value={pwForm.currentPassword}
-              onChange={e => setPwForm(f => ({ ...f, currentPassword: e.target.value }))}
-              className={inputCls}
-              autoComplete="current-password"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">New password</label>
-            <input
-              type="password"
-              value={pwForm.newPassword}
-              onChange={e => setPwForm(f => ({ ...f, newPassword: e.target.value }))}
-              className={inputCls}
-              autoComplete="new-password"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Confirm new password</label>
-            <input
-              type="password"
-              value={pwForm.confirmPassword}
-              onChange={e => setPwForm(f => ({ ...f, confirmPassword: e.target.value }))}
-              className={inputCls}
-              autoComplete="new-password"
-            />
-          </div>
+          <AdminPasswordField
+            label="Current password"
+            value={pwForm.currentPassword}
+            onChange={e => setPwForm(f => ({ ...f, currentPassword: e.target.value }))}
+            autoComplete="current-password"
+          />
+          <AdminPasswordField
+            label="New password"
+            value={pwForm.newPassword}
+            onChange={e => setPwForm(f => ({ ...f, newPassword: e.target.value }))}
+            autoComplete="new-password"
+          />
+          <AdminPasswordField
+            label="Confirm new password"
+            value={pwForm.confirmPassword}
+            onChange={e => setPwForm(f => ({ ...f, confirmPassword: e.target.value }))}
+            autoComplete="new-password"
+          />
           {pwMsg && (
             <p className={`text-xs font-medium ${pwMsg.ok ? 'text-green-600' : 'text-red-600'}`}>{pwMsg.text}</p>
           )}
