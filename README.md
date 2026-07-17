@@ -8,7 +8,7 @@ A map-first rental platform for India where tenants discover homes visually and 
 
 ## Live Demo
 
-`stayonmap.com`
+`https://www.stayonmap.com`
 
 ---
 
