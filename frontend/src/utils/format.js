@@ -24,6 +24,15 @@ export const formatCurrency = (amount) =>
 export const formatRent = (amount) =>
   `${formatCurrency(amount)}/mo`
 
+// Reads a listing's primary price through its pricing model. `rent` holds the
+// MONTHLY rent on a RENT listing but the refundable lump sum on a LEASE one
+// (see PricingModel in schema.prisma) — so it must never be blindly suffixed
+// "/mo". Pass the property, not the number, and this can't go wrong.
+export const formatPrice = (property) =>
+  property?.pricingModel === 'LEASE'
+    ? `${formatCurrency(Number(property.rent))} lease`
+    : formatRent(Number(property.rent))
+
 export const formatArea = (sqft) =>
   `${Number(sqft).toLocaleString(locale)} sq.ft`
 

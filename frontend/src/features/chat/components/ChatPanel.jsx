@@ -11,7 +11,7 @@ import { uploadService } from '@services/upload.service'
 import { getSocket, connectSocket } from '@lib/socket'
 import { toast } from '@components/common/Toaster'
 import { confirm } from '@components/common/ConfirmDialog'
-import { formatRent } from '@utils/format'
+import { formatPrice } from '@utils/format'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function timeLabel(date) {
@@ -246,7 +246,7 @@ function ChatPropertyCard({ property }) {
         </div>
         <div className="flex items-center gap-2 mt-1">
           {property.rent && (
-            <span className="text-xs font-bold text-brand-600">{formatRent(Number(property.rent))}</span>
+            <span className="text-xs font-bold text-brand-600">{formatPrice(property)}</span>
           )}
           {bhkLabel && (
             <span className="text-[10px] font-semibold text-slate-500 px-1.5 py-0.5 bg-slate-100 rounded">{bhkLabel}</span>

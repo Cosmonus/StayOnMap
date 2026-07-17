@@ -89,13 +89,19 @@ export const FIELDS = {
 }
 
 // Amenity names — must match backend/prisma/seed.js's AMENITIES exactly.
+// Every name here must exist in backend/prisma/amenities.js AND be reachable
+// from a filter option in config/filters.js — a chip that isn't filterable is
+// a tag nobody can search for, and a filter option no chip offers matches
+// nothing at all. Six filters (CCTV, Play Area, Club House, Intercom,
+// Rainwater Harvesting, Gated Security) were dead exactly this way until
+// 2026-07-17. `node backend/scripts/check-amenities.mjs` guards it now.
 export const FEATURES = {
-  apartment: { label: 'What amenities does it have?', opts: ['WiFi', 'AC', 'Lift', 'Covered Parking', 'Power Backup', 'Gym', 'Security Guard', 'Modular Kitchen', 'Balcony', 'Gas Pipeline'] },
-  house:     { label: 'What features stand out?', opts: ['Garden', 'Terrace', 'Gated Community', 'Power Backup', 'Borewell', 'Covered Parking', 'Servant Room', 'Solar Water Heater'] },
-  land:      { label: 'What makes this plot good?', opts: ['Corner Plot', 'Boundary Wall', 'Borewell', 'Gated Community', 'East Facing', 'Near Main Road', 'Ready to Build'] },
-  pg:        { label: 'Meals & amenities included', opts: ['Breakfast', 'Lunch', 'Dinner', 'WiFi', 'AC', 'Laundry', 'Housekeeping', 'Power Backup', 'Study Desk', 'Attached Bath'] },
-  shop:      { label: 'What does the space have?', opts: ['Washroom', 'Parking', 'Near Main Road', 'Corner Plot', '3-Phase Power', 'Roll-down Shutter', 'Mezzanine', 'Signage Space'] },
-  stay:      { label: 'What can guests use?', opts: ['WiFi', 'AC', 'Kitchen', 'Swimming Pool', 'Parking', 'Washing Machine', 'TV', 'Workspace', 'Beachfront', 'Pet Friendly'] },
+  apartment: { label: 'What amenities does it have?', opts: ['WiFi', 'AC', 'Air Cooler', 'Lift', 'Covered Parking', 'Visitor Parking', 'Two-wheeler Parking', 'EV Charging', 'Power Backup', 'Gym', 'Swimming Pool', 'Club House', 'Play Area', 'Jogging Track', 'Indoor Games', 'Badminton Court', 'Party Hall', 'Creche', 'Security Guard', 'CCTV', 'Intercom', 'Video Door Phone', 'Gated Community', 'Fire Safety', 'Wheelchair Accessible', 'Modular Kitchen', 'Balcony', 'Gas Pipeline', 'Geyser', 'Water Purifier', 'Water Supply', 'Rainwater Harvesting', 'Waste Management', 'Housekeeping', 'Pet Friendly'] },
+  house:     { label: 'What features stand out?', opts: ['Garden', 'Terrace', 'Gated Community', 'Power Backup', 'Solar Panel', 'Borewell', 'Water Tank', 'Water Supply', 'Water Purifier', 'Geyser', 'Solar Water Heater', 'Covered Parking', 'Two-wheeler Parking', 'EV Charging', 'Servant Room', 'Modular Kitchen', 'Balcony', 'Play Area', 'CCTV', 'Security Guard', 'Intercom', 'Video Door Phone', 'Fire Safety', 'Rainwater Harvesting', 'Wheelchair Accessible', 'AC', 'WiFi', 'Pet Friendly'] },
+  land:      { label: 'What makes this plot good?', opts: ['Corner Plot', 'Boundary Wall', 'Borewell', 'Gated Community', 'East Facing', 'Near Main Road', 'Ready to Build', 'Water Supply'] },
+  pg:        { label: 'Meals & amenities included', opts: ['Breakfast', 'Lunch', 'Dinner', 'WiFi', 'AC', 'Air Cooler', 'Laundry', 'Housekeeping', 'Power Backup', 'Study Desk', 'Attached Bath', 'Geyser', 'Water Purifier', 'Fridge', 'Bed', 'Wardrobe', 'Washing Machine', 'Lift', 'CCTV', 'Security Guard', 'Fire Safety', 'Indoor Games'] },
+  shop:      { label: 'What does the space have?', opts: ['Washroom', 'Parking', 'Visitor Parking', 'Near Main Road', 'Corner Plot', '3-Phase Power', 'Power Backup', 'Roll-down Shutter', 'Mezzanine', 'Signage Space', 'Lift', 'AC', 'CCTV', 'Fire Safety', 'Water Supply', 'Wheelchair Accessible'] },
+  stay:      { label: 'What can guests use?', opts: ['WiFi', 'AC', 'Air Cooler', 'Kitchen', 'Swimming Pool', 'Parking', 'Washing Machine', 'TV', 'Workspace', 'Beachfront', 'Pet Friendly', 'Geyser', 'Fridge', 'Microwave', 'Sofa', 'Bed', 'Wardrobe', 'Dining Table', 'Fire Safety', 'Wheelchair Accessible'] },
 }
 
 // Pricing fields — `field` is the real Property column each input writes
@@ -111,6 +117,29 @@ export const PRICING = {
   pg:        [['rent', 'Rent per bed / mo', '9500'], ['deposit', 'Deposit', '19000']],
   shop:      [['rent', 'Monthly rent', '85000'], ['deposit', 'Deposit', '510000']],
   stay:      [['nightlyRate', 'Nightly rate', '5250'], ['cleaningFee', 'Cleaning fee', '800'], ['weekendRate', 'Weekend rate', '6500']],
+}
+
+// Categories that can be offered on lease — mirrors the backend's
+// LEASE_ELIGIBLE_TYPES (properties.validation.js). PG prices per bed, stay per
+// night, land carries its own saleOrLease: none can be leased.
+export const LEASE_CATEGORIES = ['apartment', 'house', 'shop']
+
+// Lease pricing writes the lump sum to the SAME `rent` column monthly rent
+// uses (see PricingModel in schema.prisma) — pricingModel is what tells them
+// apart. No deposit row: on a lease the lump sum IS the money at stake, and
+// the backend rejects a lease with a deposit. Maintenance is still monthly.
+const LEASE_PRICING = {
+  apartment: [['rent', 'Lease amount', '800000'], ['maintenance', 'Maintenance / mo', '1500']],
+  house:     [['rent', 'Lease amount', '1500000'], ['maintenance', 'Maintenance / mo', '0']],
+  shop:      [['rent', 'Lease amount', '2500000']],
+}
+
+// The one place pricing rows are resolved — screens, validation and the review
+// summary all go through this so they can't disagree about which fields exist.
+export function pricingRows(categoryKey, pricingModel = 'RENT') {
+  return pricingModel === 'LEASE' && LEASE_PRICING[categoryKey]
+    ? LEASE_PRICING[categoryKey]
+    : PRICING[categoryKey]
 }
 
 // Verification doc checklist per type — tuples of [VerificationDocType, label].

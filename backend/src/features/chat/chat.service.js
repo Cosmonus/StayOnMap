@@ -156,7 +156,7 @@ export async function getUnreadCount(userId) {
 
 function conversationInclude() {
   return {
-    property: { select: { id: true, title: true, rent: true, city: true, bhk: true, type: true, address: true, images: { where: { isPrimary: true }, take: 1 } } },
+    property: { select: { id: true, title: true, rent: true, pricingModel: true, city: true, bhk: true, type: true, address: true, images: { where: { isPrimary: true }, take: 1 } } },
     tenant:   { select: { id: true, name: true, email: true, avatarUrl: true } },
     owner:    { select: { id: true, name: true, email: true, avatarUrl: true } },
     messages: { orderBy: { createdAt: 'desc' }, take: 1 },

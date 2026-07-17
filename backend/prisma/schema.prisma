@@ -26,6 +26,18 @@ enum PropertyType {
   SHORT_STAY
 }
 
+// How a listing is priced. RENT is the normal monthly-rent deal. LEASE is the
+// Kerala/Karnataka arrangement: the tenant hands over a lump sum, pays no
+// monthly rent, and the owner returns the principal when they leave.
+//
+// `Property.rent` holds the primary price in BOTH modes — the lease sum for
+// LEASE, the monthly rent for RENT — the same way SHORT_STAY mirrors its
+// nightlyRate into `rent`. Read `rent` through pricingModel, never as "/mo".
+enum PricingModel {
+  RENT
+  LEASE
+}
+
 enum FurnishedType {
   FULLY
   SEMI
@@ -282,6 +294,7 @@ model User {
   ownerTrustScore   OwnerTrustScore?
   passwordResetTokens PasswordResetToken[]
   emailOtps           EmailOtp[]
+  pointsLedger        PointsLedger[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -312,6 +325,46 @@ model PasswordResetToken {
 //
 // `attempts` caps guessing at MAX_OTP_ATTEMPTS: 6 digits is only 1e6 combos,
 // which is brute-forceable within the TTL without a counter.
+// What a user can earn points for. Every action here is something that makes
+// the platform more useful to the NEXT renter — that is the whole design rule.
+// Nothing rewards mere activity (logging in, browsing, streaks): a person
+// hunting for a home is not a daily-habit user, and paying them to come back
+// would be a dark pattern, not help.
+enum PointsAction {
+  EMAIL_VERIFIED     // proved the inbox (registration link or OTP login)
+  PHONE_VERIFIED     // reachable owner/tenant contact
+  PROFILE_COMPLETED  // name + avatar + city + phone
+  REVIEW_APPROVED    // a review that PASSED moderation — never on submit
+  INSIGHT_ADDED      // a neighbourhood insight
+  REPORT_UPHELD      // a report a moderator RESOLVED — never on submit
+  LEASE_SIGNED       // completed a tenancy through the platform
+}
+
+// Append-only points ledger. A ledger, not a counter on User, because:
+//   1. every award is auditable — "why do I have 420 points?" is answerable
+//   2. the unique constraint below makes awarding idempotent
+//   3. a moderator reversing a decision can delete one row, not guess a delta
+//
+// The unique (userId, action, referenceId) is the anti-farming mechanism, and
+// it is load-bearing: without it, re-running any trigger (a review re-approved,
+// a report re-resolved) silently pays out again. `referenceId` is NON-NULL with
+// an '' default on purpose — Postgres treats NULLs as distinct, so a nullable
+// column would let one-time actions (EMAIL_VERIFIED) be awarded unboundedly.
+// '' means "once per user, ever".
+model PointsLedger {
+  id          String       @id @default(cuid())
+  userId      String
+  action      PointsAction
+  points      Int
+  referenceId String       @default("") // Review/Report/Lease id — '' = once per user
+  createdAt   DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, action, referenceId])
+  @@index([userId])
+}
+
 model EmailOtp {
   id         String    @id @default(cuid())
   userId     String
@@ -453,6 +506,11 @@ model Property {
   instantBook  Boolean?
 
   // Pricing
+  // pricingModel decides how `rent` reads: monthly rent (RENT) or the
+  // refundable lump sum (LEASE). LEASE is only valid for flats/houses/shops —
+  // enforced in properties.validation.js, not by the DB. On a LEASE listing
+  // `deposit` is 0: the lump sum IS the money at stake, there is no second one.
+  pricingModel       PricingModel @default(RENT)
   rent               Decimal  @db.Decimal(10, 2)
   deposit            Decimal  @db.Decimal(10, 2)
   maintenance        Decimal? @db.Decimal(10, 2)
@@ -504,6 +562,7 @@ model Property {
   @@index([lat, lng])
   @@index([ownerId])
   @@index([type])
+  @@index([pricingModel])
 }
 
 model PropertyImage {

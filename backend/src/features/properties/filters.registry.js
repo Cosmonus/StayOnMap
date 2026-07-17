@@ -9,6 +9,9 @@ import { z } from 'zod'
 
 export const PROPERTY_TYPES = ['APARTMENT', 'HOUSE', 'VILLA', 'PG', 'INDEPENDENT_HOUSE', 'COMMERCIAL', 'LAND', 'SHORT_STAY']
 
+// Mirrors the PricingModel enum (prisma/schema.prisma).
+export const PRICING_MODELS = ['RENT', 'LEASE']
+
 // ── Query-string coercion helpers ─────────────────────────────────
 // Multi-value filters travel as CSV strings ("1,2,3") — URL-friendly,
 // cache-key friendly, and matches the pre-existing `bhk` format.
@@ -43,6 +46,12 @@ const rule = (fragment) => ({ rules: { is: fragment } })
 export const FILTERS = {
   // ── Universal ────────────────────────────────────────────────────
   type:      { schema: csvEnum(PROPERTY_TYPES), where: (v) => ({ type: { in: v } }) },
+  // The Rent/Lease toggle. Deliberately NOT defaulted here: the public map
+  // sends pricingModel=RENT explicitly (config/filters.js's DEFAULT_FILTERS),
+  // while admin must see every listing regardless of mode — same reason admin
+  // has no ACTIVE default. A default here would hide lease listings from
+  // moderation. Single-value, not CSV: it's a mode, never a multi-select.
+  pricingModel: { schema: z.enum(PRICING_MODELS), where: (v) => ({ pricingModel: v }) },
   city:      { schema: z.string().max(100), where: (v) => ({ city: { contains: v, mode: 'insensitive' } }) },
   // Up to ₹10Cr — LAND sale prices and large COMMERCIAL rents live in the
   // same rent column, so the filter bound matches the column's capacity,
