@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { X, Phone, MapPin, Eye, EyeOff } from 'lucide-react'
+import { X, Phone, MapPin, Eye, EyeOff, MailCheck } from 'lucide-react'
 import { authService } from '@services/auth.service'
 import { useAuth } from '../hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
 import { CITY_LIST_LABEL, CITY_NAMES } from '@/config/cities'
 import { usePlatformStats } from '@hooks/usePlatformStats'
 import Select from '@components/common/Select'
+import OtpLoginForm from './OtpLoginForm'
 
 const QUOTES = [
   { text: 'The ache for home lives in all of us.', author: 'Maya Angelou' },
@@ -195,11 +196,13 @@ export default function LoginModal() {
 
           <div className="px-8 pb-8 pt-2 flex flex-col flex-1 justify-center">
             <h3 className="text-xl font-bold text-slate-800 mb-1">
-              {tab === 'login' ? 'Welcome back' : tab === 'forgot' ? 'Reset password' : waitlisted ? 'Almost there' : 'Create account'}
+              {tab === 'login' ? 'Welcome back' : tab === 'otp' ? 'Sign in with a code' : tab === 'forgot' ? 'Reset password' : waitlisted ? 'Almost there' : 'Create account'}
             </h3>
             <p className="text-sm text-slate-400 mb-6">
               {tab === 'login'
                 ? 'Sign in to access your saved properties.'
+                : tab === 'otp'
+                ? 'No password needed — we\'ll email you a 6-digit code.'
                 : tab === 'forgot'
                 ? 'We\'ll send a reset link to your email.'
                 : waitlisted
@@ -208,7 +211,7 @@ export default function LoginModal() {
             </p>
 
             {/* Tab switcher */}
-            {tab !== 'forgot' && !waitlisted && (
+            {tab !== 'forgot' && tab !== 'otp' && !waitlisted && (
               <div className="flex p-1 rounded-xl bg-slate-100 mb-6">
                 {[['login', 'Log in'], ['signup', 'Sign up']].map(([t, label]) => (
                   <button
@@ -226,13 +229,20 @@ export default function LoginModal() {
             )}
 
             {/* Error */}
-            {error && tab !== 'forgot' && (
+            {error && tab !== 'forgot' && tab !== 'otp' && (
               <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-100">
                 <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
 
-            {tab === 'forgot' ? (
+            {tab === 'otp' ? (
+              <OtpLoginForm
+                email={email}
+                setEmail={setEmail}
+                onUsePassword={() => switchTab('login')}
+                onDone={handleClose}
+              />
+            ) : tab === 'forgot' ? (
               resetSent ? (
                 <div className="space-y-5 text-center">
                   <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto">
@@ -303,6 +313,20 @@ export default function LoginModal() {
                   className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all bg-brand-600 hover:bg-brand-700 disabled:opacity-50"
                 >
                   {loading ? 'Signing in…' : 'Sign in'}
+                </button>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-slate-200" />
+                  <span className="text-xs text-slate-400">or</span>
+                  <div className="flex-1 h-px bg-slate-200" />
+                </div>
+
+                <button
+                  type="button" onClick={() => switchTab('otp')}
+                  className="w-full py-3 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 flex items-center justify-center gap-2"
+                >
+                  <MailCheck size={16} strokeWidth={2} className="text-brand-600" />
+                  Email me a sign-in code
                 </button>
 
                 <p className="text-sm text-center text-slate-400">

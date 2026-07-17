@@ -49,6 +49,12 @@ export const prismaMock = {
     findUnique: vi.fn(),
     update:     vi.fn(),
   },
+  emailOtp: {
+    create:    vi.fn(),
+    findFirst: vi.fn(),
+    count:     vi.fn(),
+    update:    vi.fn(),
+  },
   fraudSignal: {
     createMany: vi.fn(),
   },

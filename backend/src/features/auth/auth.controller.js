@@ -46,6 +46,22 @@ export async function sendVerification(req, res, next) {
   } catch (err) { next(err) }
 }
 
+export async function requestOtp(req, res, next) {
+  try {
+    await service.requestLoginOtp(req.body.email)
+    // Always the same shape, even when no account exists — the service no-ops
+    // silently for unknown emails so this response can't confirm registration.
+    ok(res, { sent: true })
+  } catch (err) { next(err) }
+}
+
+export async function verifyOtp(req, res, next) {
+  try {
+    const result = await service.verifyLoginOtp(req.body.email, req.body.code)
+    ok(res, result)
+  } catch (err) { next(err) }
+}
+
 export async function getMe(req, res, next) {
   try {
     const user = await service.getUserById(req.user.id)
