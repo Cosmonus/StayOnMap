@@ -107,13 +107,37 @@ async function main() {
 
   console.log('')
   let done = 0
+  // Isolate per pass. This used to let a single materialize() throw abort the
+  // whole run — the odd one out among the three seeders, both of which isolate
+  // per tile/level. One cell with bad coordinates or an upstream blip should
+  // not end a 40-minute backfill; the run is resumable either way, but a
+  // partial run that reports WHICH passes failed is worth far more than a stack
+  // trace and an unknown amount of completed work.
+  const failures = []
   for (const { geohash, type } of passes) {
-    await materialize(geohash, type)
+    try {
+      await materialize(geohash, type)
+    } catch (err) {
+      failures.push({ geohash, type, message: err.message })
+    }
     done++
     process.stdout.write(`  ${done}/${passes.length} passes\r`)
     if (done < passes.length) await sleep(DELAY_MS)
   }
-  console.log(`\nCompleted ${done} passes across ${coldCells.size} cells.`)
+
+  const ok = done - failures.length
+  console.log(`\nCompleted ${ok} of ${done} passes across ${coldCells.size} cells.`)
+
+  if (failures.length) {
+    console.log(`\n${failures.length} pass(es) failed:`)
+    for (const f of failures.slice(0, 20)) {
+      console.log(`  ${f.geohash} (${f.type ?? 'ANY'}): ${f.message}`)
+    }
+    if (failures.length > 20) console.log(`  ... and ${failures.length - 20} more`)
+    console.log('\nRe-run to retry only what is still cold. A cell that fails 5')
+    console.log('times in a row is circuit-broken and will stop being retried.')
+    process.exitCode = 1
+  }
 }
 
 main()
