@@ -23,7 +23,7 @@ import 'dotenv/config'
 // The singleton, not a fresh PrismaClient — Prisma 7 needs an explicit driver
 // adapter and lib/prisma.js is where that's configured (see .claude/database.md).
 import { prisma } from '../src/lib/prisma.js'
-import { cacheDel } from '../src/lib/redis.js'
+import { removeStalePois, invalidateCityCells } from '../src/features/spatial/seedMaintenance.js'
 import { CITY_CENTERS, resolveCity } from '../src/config/cityCenters.js'
 import { categoryFor, overpassClauses, CATEGORY_KEYS } from '../src/features/spatial/poiCategories.js'
 
@@ -235,10 +235,8 @@ async function fetchCity(city) {
     // the rows it would have refreshed are indistinguishable from ghosts, and
     // deleting real coverage is worse than keeping a stale row for a cycle.
     if (failed === 0) {
-      const stale = await prisma.poiIndex.deleteMany({
-        where: { city, fetchedAt: { lt: runStart } },
-      })
-      if (stale.count) console.log(`  removed ${stale.count} stale row(s) no longer present in OSM`)
+      const removed = await removeStalePois(city, runStart)
+      if (removed) console.log(`  removed ${removed} stale row(s) no longer present in OSM`)
     } else {
       console.log('  skipping stale-row removal — coverage incomplete, re-run to converge')
     }
@@ -246,16 +244,8 @@ async function fetchCity(city) {
     // The data under every computed cell in this city just changed. Without
     // this, cells keep serving pre-seed answers for their full module TTLs
     // (up to 60 days) — the refresher only looks at staleAfter/version.
-    await prisma.spatialContext.updateMany({
-      where: { city },
-      data: { staleAfter: runStart },
-    })
-    // Coverage/freshness caches are keyed per city and cached for an hour —
-    // bust them so a just-seeded city stops reading as "not loaded".
-    await cacheDel(`spatial:poicov:${city}`)
-    await cacheDel(`spatial:poicat:${city}`)
-    await cacheDel(`spatial:poifresh:${city}`)
-    console.log('  marked this city\'s spatial cells stale — the refresher will recompute them')
+    const invalidated = await invalidateCityCells(city, runStart)
+    console.log(`  marked ${invalidated} spatial cell(s) stale — the refresher will recompute them`)
   }
   return { city, count: rows.length, failed }
 }
