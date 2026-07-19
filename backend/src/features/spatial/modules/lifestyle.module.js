@@ -33,12 +33,17 @@ const REACHABLE = 1600
 const CATEGORIES = [
   { key: 'supermarket', label: 'Groceries',    googleType: 'supermarket', weight: 3 },
   { key: 'pharmacy',    label: 'Pharmacy',     googleType: 'pharmacy',    weight: 3 },
-  { key: 'hospital',    label: 'Healthcare',   googleType: 'hospital',    weight: 2, poiKeys: ['hospital', 'clinic'] },
+  // `prefer` breaks a near-tie toward the more substantial facility: asked for
+  // "Healthcare", a hospital 450 m away is a better answer than one doctor's
+  // room at 430 m. Only applies within pickNearest's 150 m band — a hospital
+  // 2 km off never outranks a clinic next door.
+  { key: 'hospital',    label: 'Healthcare',   googleType: 'hospital',    weight: 2, poiKeys: ['hospital', 'clinic'], prefer: ['hospital', 'clinic'] },
   { key: 'school',      label: 'Schools',      googleType: 'school',      weight: 2 },
   // fast_food lives in the `food_cheap` category (it used to collide into
   // `restaurant` and starve pgContext — see poiCategories.js); "Restaurants"
   // here means anywhere to eat, so it unions the two, like healthcare does.
   { key: 'restaurant',  label: 'Restaurants',  googleType: 'restaurant',  weight: 2, poiKeys: ['restaurant', 'food_cheap'] },
+  // Same idea: a real supermarket beats a corner shop when both are as close.
   { key: 'bank',        label: 'Banks',        googleType: 'bank',        weight: 1 },
   { key: 'park',        label: 'Parks',        googleType: 'park',        weight: 1 },
   { key: 'gym',         label: 'Gyms',         googleType: 'gym',         weight: 1 },
@@ -75,8 +80,9 @@ async function fromLocalIndex(lat, lng, city) {
         .flatMap((k) => result.byCategory[k] ?? [])
         .sort((a, b) => a.distanceM - b.distanceM)
       // Headline the nearest NAMED place when one is comparably close — a
-      // named fact is more useful and more checkable than an anonymous point.
-      const nearest = pickNearest(hits)
+      // named fact is more useful and more checkable than an anonymous point
+      // — and prefer the more substantial facility for merged categories.
+      const nearest = pickNearest(hits, { prefer: c.prefer })
       return { ...c, count: hits.length, nearestM: nearest?.distanceM ?? null, nearest }
     }),
   }

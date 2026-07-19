@@ -162,18 +162,47 @@ export function dedupeCategory(sorted) {
 }
 
 /**
- * The nearest result worth headlining. An unnamed OSM point is still real,
- * but when a named place sits almost as close, naming it is both more useful
- * and more checkable — so a named hit within 150 m of the absolute nearest
- * wins the "nearest X" slot. Never skips more than that: the raw nearest is
- * the honest answer when nothing named is comparably close.
+ * The nearest result worth headlining, from a distance-sorted list.
+ *
+ * Two preferences, both confined to a 150 m band around the absolute nearest
+ * so the answer never stops being "the nearest one" in any meaningful sense:
+ *
+ *   1. A NAMED place beats an anonymous point. "Apollo Pharmacy — 300 m" is
+ *      both more useful and more checkable than "pharmacy — 200 m".
+ *   2. A place from a preferred sub-category beats a lesser one. Modules that
+ *      merge categories ask for this: lifestyle's "Healthcare" spans hospitals
+ *      and clinics, and a hospital 450 m away is a better answer to that
+ *      question than a single doctor's office at 430 m.
+ *
+ * Outside the band the raw nearest still wins — a hospital 2 km away is not a
+ * better answer than a clinic next door, whatever it says on the building.
+ *
+ * @param {Array} hits  distance-sorted
+ * @param {{prefer?: string[]}} [opts]  category keys, best first
  */
-export function pickNearest(hits) {
+export function pickNearest(hits, { prefer } = {}) {
   if (!hits?.length) return null
   const nearest = hits[0]
-  if (nearest.name) return nearest
-  const named = hits.find((h) => h.name && h.distanceM <= nearest.distanceM + DUP_NAMED_M)
-  return named ?? nearest
+  const band = nearest.distanceM + DUP_NAMED_M
+  const inBand = hits.filter((h) => h.distanceM <= band)
+  if (inBand.length === 1) return nearest
+
+  const rank = (h) => {
+    const tier = prefer?.length ? prefer.indexOf(h.category) : -1
+    return {
+      // Unranked categories sort after ranked ones rather than before.
+      tier: tier === -1 ? Number.MAX_SAFE_INTEGER : tier,
+      named: h.name ? 0 : 1,
+    }
+  }
+
+  return inBand.reduce((best, h) => {
+    const a = rank(h)
+    const b = rank(best)
+    if (a.tier !== b.tier) return a.tier < b.tier ? h : best
+    if (a.named !== b.named) return a.named < b.named ? h : best
+    return h.distanceM < best.distanceM ? h : best
+  }, nearest)
 }
 
 /**
@@ -221,7 +250,14 @@ export async function poisNear(lat, lng, radiusM, categories, city) {
       const pLng = Number(row.lng)
       const distanceM = Math.round(haversineMeters(lat, lng, pLat, pLng))
       if (distanceM > radiusM) continue // trim the bbox corners
-      ;(byCategory[row.category] ??= []).push({ name: row.name, brand: row.brand, distanceM, lat: pLat, lng: pLng })
+      // `category` travels on the item too, not just as the map key: modules
+      // that merge categories (lifestyle's Healthcare = hospital + clinic)
+      // flatten these lists and would otherwise lose which one a hit came
+      // from — which is what pickNearest needs to prefer a hospital over a
+      // doctors' office at comparable distance.
+      ;(byCategory[row.category] ??= []).push({
+        name: row.name, brand: row.brand, category: row.category, distanceM, lat: pLat, lng: pLng,
+      })
     }
 
     let total = 0
