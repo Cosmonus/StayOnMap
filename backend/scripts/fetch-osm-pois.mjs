@@ -24,6 +24,7 @@ import 'dotenv/config'
 // adapter and lib/prisma.js is where that's configured (see .claude/database.md).
 import { prisma } from '../src/lib/prisma.js'
 import { removeStalePois, invalidateCityCells } from '../src/features/spatial/seedMaintenance.js'
+import { recordQualityReport, completeness } from '../src/features/spatial/dataQuality.js'
 import { CITY_CENTERS, resolveCity } from '../src/config/cityCenters.js'
 import { categoryFor, overpassClauses, CATEGORY_KEYS } from '../src/features/spatial/poiCategories.js'
 
@@ -45,7 +46,11 @@ const DELAY_BETWEEN_TILES_MS = 2_000
 // time out; tiling keeps every request small and makes a failure cost one tile
 // rather than a city.
 const TILE_GRID = 4
-const BATCH_SIZE = 500
+// How many upserts are in flight at once. NOT a transaction size — see
+// writeRows. Kept modest so a remote database over a TCP proxy isn't flooded
+// beyond its connection pool, while still pipelining enough to matter: one
+// round trip at a time would take hours for a city like Delhi.
+const WRITE_CONCURRENCY = 25
 
 const args = process.argv.slice(2)
 const CONFIRM = args.includes('--confirm')
@@ -146,22 +151,32 @@ function elementsToRows(elements) {
 
 async function writeRows(rows) {
   // createMany + skipDuplicates would leave stale rows behind forever, so a
-  // refetch would never correct a POI that moved or closed. Chunked upserts
-  // are slower and actually converge.
-  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-    const batch = rows.slice(i, i + BATCH_SIZE)
-    await prisma.$transaction(
-      batch.map((row) => prisma.poiIndex.upsert({
-        where: { osmId: row.osmId },
-        create: row,
-        update: {
-          category: row.category, name: row.name, brand: row.brand,
-          openingHours: row.openingHours, lat: row.lat, lng: row.lng,
-          city: row.city, fetchedAt: new Date(),
-        },
-      }))
-    )
-    process.stdout.write(`    written ${Math.min(i + BATCH_SIZE, rows.length)}/${rows.length}\r`)
+  // refetch would never correct a POI that moved or closed. Upserts converge.
+  //
+  // Deliberately NOT wrapped in prisma.$transaction. It used to be, in batches
+  // of 500, and that made the script unable to seed a REMOTE database at all:
+  // Prisma caps a transaction at 5s, and 500 upserts over the Railway TCP
+  // proxy take longer than that from a laptop (observed: 7.07s → P2028). The
+  // transaction bought nothing anyway — every upsert is independent and keyed
+  // on osmId, so a half-finished run converges on re-run, and the stale-row
+  // deletion is already gated on a fully-successful FETCH, so a partial write
+  // can never turn live rows into ghosts.
+  const fetchedAt = new Date()
+  let done = 0
+
+  for (let i = 0; i < rows.length; i += WRITE_CONCURRENCY) {
+    const batch = rows.slice(i, i + WRITE_CONCURRENCY)
+    await Promise.all(batch.map((row) => prisma.poiIndex.upsert({
+      where: { osmId: row.osmId },
+      create: { ...row, fetchedAt },
+      update: {
+        category: row.category, name: row.name, brand: row.brand,
+        openingHours: row.openingHours, lat: row.lat, lng: row.lng,
+        city: row.city, fetchedAt,
+      },
+    })))
+    done += batch.length
+    process.stdout.write(`    written ${done}/${rows.length}\r`)
   }
   process.stdout.write('\n')
 }
@@ -246,6 +261,19 @@ async function fetchCity(city) {
     // (up to 60 days) — the refresher only looks at staleAfter/version.
     const invalidated = await invalidateCityCells(city, runStart)
     console.log(`  marked ${invalidated} spatial cell(s) stale — the refresher will recompute them`)
+
+    // The receipt. `complete: false` on a failed tile is what stops a thin
+    // result being read later as "this city just doesn't have many shops".
+    const namedPct = completeness(rows, ['name'])
+    await recordQualityReport({
+      dataset: 'poi_index',
+      scope: city,
+      recordCount: rows.length,
+      completenessPct: namedPct,
+      complete: failed === 0,
+      notes: { byCategory, failedTiles: failed, tilesPlanned: grid.length, emptyCategories: empty },
+    })
+    if (namedPct != null) console.log(`  ${namedPct}% carry a name`)
   }
   return { city, count: rows.length, failed }
 }

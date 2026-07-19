@@ -31,9 +31,13 @@ const TIMEOUT_MS = 8_000
 const PROVIDER_TTL_S = 7 * 24 * 60 * 60
 
 const AIR_QUALITY_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality'
+const ELEVATION_URL = 'https://api.opentopodata.org/v1/srtm30m'
+const ARCHIVE_URL = 'https://archive-api.open-meteo.com/v1/archive'
 
 export const OSM_SOURCE = { name: 'OpenStreetMap', license: 'ODbL', fetchedAt: '2026-07-05' }
 export const OPEN_METEO_SOURCE = { name: 'Open-Meteo (CAMS model)', license: 'CC-BY-4.0', fetchedAt: null }
+export const SRTM_SOURCE = { name: 'NASA SRTM 30m via OpenTopoData', license: 'public domain', fetchedAt: null }
+export const ERA5_SOURCE = { name: 'ERA5 reanalysis via Open-Meteo', license: 'CC-BY-4.0', fetchedAt: null }
 export const GOOGLE_PLACES_SOURCE = { name: 'Google Places', license: 'commercial', fetchedAt: null }
 export const GOOGLE_DM_SOURCE = { name: 'Google Distance Matrix', license: 'commercial', fetchedAt: null }
 
@@ -248,6 +252,185 @@ export async function airQuality(lat, lng) {
     }, 6 * 60 * 60) // air quality moves hourly; 6h is a fair compromise
   } catch (err) {
     intelError('spatial.air_quality_failed', err, {})
+    return setCached(cacheId, null, 60 * 60)
+  }
+}
+
+// ── OpenTopoData elevation (NASA SRTM 30m) ──────────────────────────────────
+
+// Terrain does not move. The only reason this expires at all is so a bad
+// cached value eventually clears itself.
+const ELEVATION_TTL_S = 180 * 24 * 60 * 60
+
+// How far out the surrounding samples sit. 750m is chosen against the source's
+// own resolution: SRTM is 30m, so samples this far apart are genuinely
+// independent readings rather than the same pixel returned eight times.
+const RELIEF_SAMPLE_M = 750
+
+/** Offset a coordinate by metres. Flat-earth maths, correct well under 1km. */
+function offsetBy(lat, lng, northM, eastM) {
+  return {
+    lat: lat + northM / 111_320,
+    lng: lng + eastM / (111_320 * Math.cos((lat * Math.PI) / 180)),
+  }
+}
+
+/**
+ * Elevation at a point, plus the terrain immediately around it.
+ *
+ * One request covers nine samples — the point and a ring at 750m — because the
+ * useful facts here are comparative. A bare "14 m above sea level" tells a
+ * renter in Chennai nothing; "4 m below everything within 750m" tells them
+ * where the water goes.
+ *
+ * Free, no key, and NOT counted against the daily budget, which exists to cap
+ * metered Google spend (same reasoning as airQuality). OpenTopoData's public
+ * instance allows 1 call/second and 1000/day, so a 429 is treated as a normal
+ * outcome and retried later rather than logged as a fault.
+ *
+ * @returns {{ elevationM, minAroundM, maxAroundM, reliefM, relativeM, sampleCount }|null}
+ *          relativeM: the point's height relative to the mean of its ring —
+ *          negative means it sits lower than its surroundings.
+ */
+export async function elevation(lat, lng) {
+  const cacheId = `spatial:elev:${coordKey(lat, lng)}`
+  const cached = await getCached(cacheId)
+  if (cached !== undefined) return cached
+
+  const d = RELIEF_SAMPLE_M
+  const ring = [
+    offsetBy(lat, lng, d, 0), offsetBy(lat, lng, -d, 0),
+    offsetBy(lat, lng, 0, d), offsetBy(lat, lng, 0, -d),
+    offsetBy(lat, lng, d, d), offsetBy(lat, lng, d, -d),
+    offsetBy(lat, lng, -d, d), offsetBy(lat, lng, -d, -d),
+  ]
+  const points = [{ lat, lng }, ...ring]
+  const params = new URLSearchParams({
+    locations: points.map((p) => `${p.lat.toFixed(6)},${p.lng.toFixed(6)}`).join('|'),
+  })
+
+  try {
+    const data = await fetchJson(`${ELEVATION_URL}?${params}`, 15_000)
+    if (data?.status !== 'OK' || !Array.isArray(data.results)) {
+      // Rate-limited or over the daily cap — a normal condition on a free
+      // shared instance, not a fault. Short cache so the next cell retries.
+      intelError('spatial.elevation_failed', new Error(data?.error ?? data?.status ?? 'unknown'), {})
+      return setCached(cacheId, null, 60 * 60)
+    }
+
+    const values = data.results.map((r) => r.elevation)
+    const centre = values[0]
+    // SRTM returns null over water and in voids. A null centre means we have
+    // no reading for the actual location, which is not the same as sea level.
+    if (centre == null) return setCached(cacheId, null, ELEVATION_TTL_S)
+
+    const around = values.slice(1).filter((v) => v != null)
+    if (around.length < 4) {
+      // Too few neighbours to say anything comparative. The absolute height is
+      // still true, so return it — the module drops the relief facts.
+      return setCached(cacheId, {
+        elevationM: Math.round(centre),
+        minAroundM: null, maxAroundM: null, reliefM: null, relativeM: null,
+        sampleCount: 1,
+      }, ELEVATION_TTL_S)
+    }
+
+    const mean = around.reduce((s, v) => s + v, 0) / around.length
+    return setCached(cacheId, {
+      elevationM: Math.round(centre),
+      minAroundM: Math.round(Math.min(...around)),
+      maxAroundM: Math.round(Math.max(...around)),
+      reliefM: Math.round(Math.max(...around) - Math.min(...around)),
+      relativeM: Math.round((centre - mean) * 10) / 10,
+      sampleCount: around.length + 1,
+    }, ELEVATION_TTL_S)
+  } catch (err) {
+    intelError('spatial.elevation_failed', err, {})
+    return setCached(cacheId, null, 60 * 60)
+  }
+}
+
+// ── Open-Meteo archive (ERA5) — 30-year climate normals ─────────────────────
+
+// The WMO standard normals period. Pinned as a constant because changing it
+// silently would make old and new rows incomparable while looking identical.
+export const NORMALS_PERIOD = { start: '1991-01-01', end: '2020-12-31' }
+
+/**
+ * Monthly climate normals for a coordinate: mean temperature and total
+ * precipitation, averaged across the 1991-2020 period.
+ *
+ * Returns per-month values, not an annual figure, because the annual mean is
+ * the least useful number here. "1400 mm a year" describes Mumbai and
+ * Bengaluru alike; that 80% of Mumbai's falls in four months is the fact
+ * somebody choosing a ground-floor flat needs.
+ *
+ * Free, no key, not budget-counted. The response is 30 years of daily values
+ * for two variables — several MB — so the timeout is generous and the result
+ * is written to the WeatherNormal table by the caller rather than being
+ * re-fetched per cell.
+ *
+ * @returns {{ tempMean: number[], precipSum: number[] }|null}  12 entries each,
+ *          index 0 = January. Nulls inside the arrays where a month had no data.
+ */
+export async function climateNormals(lat, lng) {
+  const cacheId = `spatial:normals:${coordKey(lat, lng)}`
+  const cached = await getCached(cacheId)
+  if (cached !== undefined) return cached
+
+  const params = new URLSearchParams({
+    latitude: String(lat),
+    longitude: String(lng),
+    start_date: NORMALS_PERIOD.start,
+    end_date: NORMALS_PERIOD.end,
+    daily: 'temperature_2m_mean,precipitation_sum',
+    timezone: 'Asia/Kolkata',
+  })
+
+  try {
+    const data = await fetchJson(`${ARCHIVE_URL}?${params}`, 90_000)
+    const days = data?.daily?.time
+    if (!Array.isArray(days) || !days.length) {
+      intelError('spatial.normals_failed', new Error(data?.reason ?? 'no daily series'), {})
+      return setCached(cacheId, null, 60 * 60)
+    }
+
+    const temps = data.daily.temperature_2m_mean ?? []
+    const precip = data.daily.precipitation_sum ?? []
+
+    // Accumulate per calendar month. Temperature is a mean of daily means;
+    // precipitation is a total per year, then averaged across years — summing
+    // all 30 Januaries and dividing by 30 gives a typical January, whereas
+    // dividing by the number of DAYS would give a daily rate labelled monthly.
+    const tempSum = Array(12).fill(0), tempN = Array(12).fill(0)
+    const precipByMonthYear = new Map() // 'month:year' → total mm
+
+    for (let i = 0; i < days.length; i++) {
+      const month = Number(days[i].slice(5, 7)) - 1
+      const year = days[i].slice(0, 4)
+      if (temps[i] != null) { tempSum[month] += temps[i]; tempN[month]++ }
+      if (precip[i] != null) {
+        const key = `${month}:${year}`
+        precipByMonthYear.set(key, (precipByMonthYear.get(key) ?? 0) + precip[i])
+      }
+    }
+
+    const precipSum = Array(12).fill(null)
+    for (let m = 0; m < 12; m++) {
+      const totals = [...precipByMonthYear.entries()]
+        .filter(([k]) => k.startsWith(`${m}:`))
+        .map(([, v]) => v)
+      if (totals.length) {
+        precipSum[m] = Math.round((totals.reduce((s, v) => s + v, 0) / totals.length) * 10) / 10
+      }
+    }
+
+    const tempMean = tempSum.map((sum, m) =>
+      tempN[m] ? Math.round((sum / tempN[m]) * 10) / 10 : null)
+
+    return setCached(cacheId, { tempMean, precipSum }, PROVIDER_TTL_S)
+  } catch (err) {
+    intelError('spatial.normals_failed', err, {})
     return setCached(cacheId, null, 60 * 60)
   }
 }
