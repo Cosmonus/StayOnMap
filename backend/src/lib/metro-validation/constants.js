@@ -37,8 +37,10 @@ export const DUPLICATE_POINT_METERS = 5
 // not a defect. See .claude/maps.md's Neighborhood Intelligence section.
 export const CITIES_WITH_NO_METRO_YET = new Set(['Surat'])
 
-// Line names containing any of these (case-insensitive) are exempt from the
-// "self-looping path" check — a handful of real transit lines are
-// legitimately circular. Empty today; kept as an explicit extension point
-// rather than special-casing a specific line name inline in rules.js.
-export const LOOP_LINE_NAME_HINTS = []
+// Line names containing any of these (lowercase; matched case-insensitively)
+// are exempt from the "self-looping path" check — a handful of real transit
+// lines are legitimately circular. An explicit extension point rather than
+// special-casing a specific line name inline in rules.js.
+//   - Rapid MetroRail Gurgaon: Phase 1 is a genuine one-way loop around
+//     DLF Cyber City — its path really does start and end at the same point.
+export const LOOP_LINE_NAME_HINTS = ['rapid metrorail gurgaon']

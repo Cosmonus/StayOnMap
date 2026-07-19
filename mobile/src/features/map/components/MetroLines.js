@@ -6,12 +6,13 @@ import { useMarkerRedraw } from '../hooks/useMarkerRedraw'
 const STATION_SHOW_ZOOM = 13 // stations only render zoomed-in — up to ~280 of them (Delhi), too dense/expensive otherwise
 
 // A handful of lines have a genuine gap in the source OSM data (no
-// fetchable track geometry for that stretch — see .claude/roadmap.md's
-// Addendum 4/10, and backend/src/lib/metro-validation/graph.js's identical
-// splitPathIntoComponents — duplicated here since mobile can't import from
-// the backend package). Rendering the full path as one Polyline draws a
-// straight "fake bridge" across the gap, implying a direct route that
-// doesn't exist — split into one Polyline per contiguous component instead.
+// fetchable track geometry for that stretch) — rendering the full path as one
+// Polyline draws a straight "fake bridge" across the gap, implying a direct
+// route that doesn't exist. The metro data engine now precomputes the split
+// server-side as an additive per-line `segments` field (only present when a
+// line genuinely splits — see backend/src/metro-engine/export/segments.js);
+// the local splitter below is the fallback for payloads without it, kept
+// because mobile can't import backend code.
 const PATH_GAP_METERS = 2000
 const EARTH_RADIUS_M = 6371000
 
@@ -64,10 +65,10 @@ function isStationInBounds(station, bounds) {
 // city (cheap, at most ~13 for Delhi); station dots are zoom-gated.
 //
 // Each station carries a precomputed `lines` array (indices into
-// network.lines, proximity-matched — see .claude/roadmap.md Addendum 6):
-// 2+ entries means a genuine interchange (tight <400m match on both lines),
-// 1 entry colors the dot to match its line, 0 means it doesn't yet
-// reconcile with any line in this file (falls back to the default color).
+// network.lines, derived from OSM route-relation membership by the metro
+// data engine): 2+ entries means a genuine interchange, 1 entry colors the
+// dot to match its line, 0 means it doesn't reconcile with any line in this
+// file (falls back to the default color).
 // Split out so useMarkerRedraw (a hook) can be called once per station,
 // not inside the .map() loop below.
 function StationMarker({ station, dotColor, isInterchange }) {
@@ -99,7 +100,7 @@ export default function MetroLines({ network, zoom, bounds }) {
   return (
     <>
       {network.lines.map((line) =>
-        splitPathAtGaps(line.path, PATH_GAP_METERS).map((component, i) => (
+        (line.segments ?? splitPathAtGaps(line.path, PATH_GAP_METERS)).map((component, i) => (
           <Polyline
             key={`${line.name}-${i}`}
             coordinates={component.map(([lat, lng]) => ({ latitude: lat, longitude: lng }))}

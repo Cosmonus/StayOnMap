@@ -314,20 +314,15 @@ describe('real data regression', () => {
 
 // ─── structural snapshot ────────────────────────────────────────────────────
 
-const EXPECTED_CITY_COUNTS = {
-  Delhi: { lines: 13, stations: 278 },
-  Mumbai: { lines: 8, stations: 92 },
-  Bengaluru: { lines: 3, stations: 82 },
-  Pune: { lines: 2, stations: 89 },
-  Hyderabad: { lines: 3, stations: 62 },
-  Kolkata: { lines: 5, stations: 56 },
-  Chennai: { lines: 2, stations: 45 },
-  Ahmedabad: { lines: 4, stations: 24 },
-  Surat: { lines: 0, stations: 34 },
-}
+// Counts live in the committed snapshot file, written only by the metro
+// engine's promote/snapshot commands (`node scripts/metro-engine.mjs snapshot
+// --confirm`) — a data change without a deliberate snapshot update still
+// fails here, but updating no longer means editing test source.
+const SNAPSHOT_PATH = path.join(__dirname, '../data/metro-structure-snapshot.json')
+const EXPECTED_CITY_COUNTS = JSON.parse(readFileSync(SNAPSHOT_PATH, 'utf-8')).cities
 
 describe('structural snapshot', () => {
-  it('matches the expected per-city line/station counts exactly — update EXPECTED_CITY_COUNTS deliberately if this changes', () => {
+  it('matches the snapshot per-city line/station counts exactly — update via `metro-engine.mjs snapshot --confirm` deliberately if this changes', () => {
     const citiesData = loadRealCitiesData()
     for (const cityData of citiesData) {
       const expected = EXPECTED_CITY_COUNTS[cityData.city]
