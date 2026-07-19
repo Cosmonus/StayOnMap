@@ -291,6 +291,13 @@ async function main() {
   if (!CONFIRM) console.log('Nothing was written. Re-run with --confirm.')
 
   await prisma.$disconnect()
+  // Explicit exit, not a tidy-up: invalidateCityCells pulls in lib/redis.js,
+  // and with REDIS_URL set the open Redis connection keeps the event loop
+  // alive forever — the script prints Total, writes its report, and then sits
+  // as a zombie (observed: a Delhi run alive 3h after finishing, wedging the
+  // shell loop that was iterating cities). Every write above is awaited, so
+  // exiting here loses nothing.
+  process.exit(0)
 }
 
 main().catch(async (err) => {
