@@ -302,6 +302,11 @@ async function main() {
   if (!CONFIRM) console.log('Nothing was written. Re-run with --confirm.')
 
   await prisma.$disconnect()
+  // Explicit exit — same reason as fetch-osm-boundaries.mjs: seedMaintenance
+  // imports lib/redis.js, and an open Redis connection keeps the event loop
+  // alive after main() returns, leaving a done-but-zombie process. All writes
+  // above are awaited; nothing is lost by exiting here.
+  process.exit(0)
 }
 
 main().catch(async (err) => {
