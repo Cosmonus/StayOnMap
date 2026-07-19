@@ -6,6 +6,8 @@ import { buildEnvelope } from '../src/features/spatial/envelope.js'
 import * as providers from '../src/features/spatial/providers.js'
 import mobility from '../src/features/spatial/modules/mobility.module.js'
 import commerce from '../src/features/spatial/modules/commerce.module.js'
+import lifestyle from '../src/features/spatial/modules/lifestyle.module.js'
+import environment from '../src/features/spatial/modules/environment.module.js'
 import landContext from '../src/features/spatial/modules/landContext.module.js'
 import pgContext from '../src/features/spatial/modules/pgContext.module.js'
 import stayContext from '../src/features/spatial/modules/stayContext.module.js'
@@ -190,10 +192,16 @@ describe('getContext honours property type', () => {
       geohash: 'tdr1yf8', city: 'Bengaluru', computedAt: new Date(), failCount: 0,
       modules: {
         // Mobility lives in a per-type slot; the others are shared.
+        // Versions come from the modules themselves, never hardcoded: a stored
+        // envelope on an old version is STALE, so a hardcoded number silently
+        // flips this fixture's meaning from "fresh" to "stale" the next time
+        // anyone bumps a version — which then kicks off a fire-and-forget
+        // top-up whose upsert lands in a LATER test's mock calls. That is
+        // exactly what happened when environment went v2 → v3.
         'mobility@COMMERCIAL': fresh('mobility', mobility.version),
-        lifestyle: fresh('lifestyle', 3),
-        commerce: fresh('commerce', 1),
-        environment: fresh('environment', 2),
+        lifestyle: fresh('lifestyle', lifestyle.version),
+        commerce: fresh('commerce', commerce.version),
+        environment: fresh('environment', environment.version),
       },
     })
 
@@ -258,9 +266,17 @@ describe('a cell holding two property types', () => {
       },
     })
 
+    // Discard anything already recorded before acting. An earlier test in this
+    // file triggers a deliberately fire-and-forget top-up, so its upsert can
+    // land here after the global beforeEach cleared the mocks — which made
+    // calls[0] belong to that test, not this one. Reading index 0 was only ever
+    // correct by luck of timing.
+    prismaMock.spatialContext.upsert.mockClear()
+
     await service.materialize('tdr1yf8', 'COMMERCIAL')
 
-    const written = prismaMock.spatialContext.upsert.mock.calls[0][0].update.modules
+    // This call is awaited above, so it is the most recent one.
+    const written = prismaMock.spatialContext.upsert.mock.calls.at(-1)[0].update.modules
     expect(written['mobility@APARTMENT']).toBeDefined()
     expect(written['mobility@COMMERCIAL']).toBeDefined()
   })

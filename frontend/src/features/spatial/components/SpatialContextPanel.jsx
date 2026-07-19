@@ -18,16 +18,33 @@ import SummaryStrip from './SummaryStrip'
 // Only the modules relevant to this listing's property type ever arrive — the
 // backend does that filtering. This list just fixes their order.
 const ORDER = [
+  'locality',
   'mobility',
   'lifestyle', 'commerce', 'pgContext', 'stayContext', 'landContext',
-  'infrastructure', 'environment', 'costOfLiving',
+  'infrastructure', 'environment', 'terrain', 'costOfLiving',
 ]
+
+/**
+ * Order the modules the backend sent, WITHOUT dropping ones this list hasn't
+ * heard of.
+ *
+ * This used to be `ORDER.map(key => modules[key])`, which silently discarded
+ * any module missing from the list — so two backend modules shipped and
+ * rendered nowhere, while the file's own comment claimed adding a module never
+ * touches it. Appending unknown keys makes a new module degrade to "in the
+ * wrong position" instead of "invisible", which is the same choice factIcons.js
+ * makes with its neutral-dot fallback.
+ */
+function inRenderOrder(modules) {
+  const known = ORDER.filter((key) => modules[key])
+  const unknown = Object.keys(modules).filter((key) => !ORDER.includes(key))
+  return [...known, ...unknown].map((key) => modules[key])
+}
 
 export default function SpatialContextPanel({ context, coords, children }) {
   const modules = context?.modules ?? {}
 
-  const envelopes = ORDER
-    .map((key) => modules[key])
+  const envelopes = inRenderOrder(modules)
     .filter(Boolean)
     // A module with nothing to say AND nothing to explain is chrome. One that
     // knows why it's silent is kept — that's information.

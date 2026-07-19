@@ -24,6 +24,7 @@ import 'dotenv/config'
 // adapter and lib/prisma.js is where that's configured (see .claude/database.md).
 import { prisma } from '../src/lib/prisma.js'
 import { removeStalePois, invalidateCityCells } from '../src/features/spatial/seedMaintenance.js'
+import { recordQualityReport, completeness } from '../src/features/spatial/dataQuality.js'
 import { CITY_CENTERS, resolveCity } from '../src/config/cityCenters.js'
 import { categoryFor, overpassClauses, CATEGORY_KEYS } from '../src/features/spatial/poiCategories.js'
 
@@ -260,6 +261,19 @@ async function fetchCity(city) {
     // (up to 60 days) — the refresher only looks at staleAfter/version.
     const invalidated = await invalidateCityCells(city, runStart)
     console.log(`  marked ${invalidated} spatial cell(s) stale — the refresher will recompute them`)
+
+    // The receipt. `complete: false` on a failed tile is what stops a thin
+    // result being read later as "this city just doesn't have many shops".
+    const namedPct = completeness(rows, ['name'])
+    await recordQualityReport({
+      dataset: 'poi_index',
+      scope: city,
+      recordCount: rows.length,
+      completenessPct: namedPct,
+      complete: failed === 0,
+      notes: { byCategory, failedTiles: failed, tilesPlanned: grid.length, emptyCategories: empty },
+    })
+    if (namedPct != null) console.log(`  ${namedPct}% carry a name`)
   }
   return { city, count: rows.length, failed }
 }

@@ -26,6 +26,10 @@ router.get('/reviews', ctrl.getReviews)
 router.patch('/reviews/:id/status', ctrl.moderateReview)
 router.get('/logs', ctrl.activityLogs)
 router.get('/monitor', ctrl.getMonitorStatus)
+// Read-only: the latest ETL run per dataset. There is no write side by
+// design — a quality report is a record of what a seeder observed, and an
+// operator editing it would defeat the point of keeping it.
+router.get('/data-quality', ctrl.getDataQuality)
 router.get('/profile', ctrl.getProfile)
 router.patch('/profile', ctrl.updateProfile)
 router.patch('/profile/password', validate(adminChangePasswordSchema), ctrl.changePassword)

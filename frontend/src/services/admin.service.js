@@ -28,6 +28,7 @@ export const adminService = {
   reviews:       (params)       => adminApi.get('/admin/reviews', { params }),
   setReviewStatus: (id, status) => adminApi.patch(`/admin/reviews/${id}/status`, { status }),
   getMonitorStatus: ()          => adminApi.get('/admin/monitor'),
+  getDataQuality: ()            => adminApi.get('/admin/data-quality'),
   getProfile:       ()          => adminApi.get('/admin/profile'),
   updateProfile:    (data)      => adminApi.patch('/admin/profile', data),
   changePassword:   (data)      => adminApi.patch('/admin/profile/password', data),
