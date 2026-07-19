@@ -14,30 +14,40 @@ const BANDS = {
 }
 
 export default function ConfidenceMeter({ confidence }) {
-  const cfg = BANDS[confidence?.band]
-  if (!cfg) return null
+  if (!confidence) return null
+
+  // An unrecognised band used to return null, which deleted the meter AND the
+  // basis line — so a card lost its whole "how sure are we, and why" footer
+  // without saying it had. Falling back to the raw band keeps the honest part
+  // on screen; mobile already did this and web was the outlier.
+  const cfg = BANDS[confidence.band] ?? {
+    label: confidence.band ?? 'Confidence unknown',
+    bar: 'bg-slate-300',
+    text: 'text-slate-500',
+  }
+  const pct = Math.round((confidence.value ?? 0) * 100)
 
   return (
     <div className="mt-3 pt-3 border-t border-slate-100">
       <div className="flex items-center justify-between gap-2 mb-1.5">
         <span className={`text-[11px] font-semibold ${cfg.text}`}>{cfg.label}</span>
         <span className="text-[10px] text-slate-400 tabular-nums">
-          {Math.round(confidence.value * 100)}%
+          {pct}%
         </span>
       </div>
 
       <div
         className="h-1 w-full bg-slate-100 rounded-full overflow-hidden"
         role="meter"
-        aria-valuenow={Math.round(confidence.value * 100)}
+        aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label={`${cfg.label} — ${confidence.basis}`}
       >
-        <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${confidence.value * 100}%` }} />
+        <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${pct}%` }} />
       </div>
 
-      <p className="text-[10px] text-slate-400 mt-1.5">{confidence.basis}</p>
+      {confidence.basis && <p className="text-[10px] text-slate-400 mt-1.5">{confidence.basis}</p>}
     </div>
   )
 }

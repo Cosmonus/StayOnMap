@@ -10,7 +10,10 @@ import { spacing } from '@theme/spacing'
 // material — unlike MissingDataNote, which must never be collapsed.
 export default function SourcesFooter({ sources, computedAt }) {
   const [open, setOpen] = useState(false)
-  if (!sources?.length) return null
+  // Web keeps the "Computed <date>" line when there are no sources; mobile used
+  // to drop the whole footer, so the same envelope disclosed its freshness on
+  // one platform and not the other.
+  if (!sources?.length && !computedAt) return null
 
   return (
     <View style={styles.wrap}>
@@ -29,7 +32,7 @@ export default function SourcesFooter({ sources, computedAt }) {
       </Pressable>
       {open && (
         <View style={styles.body}>
-          {sources.map((s) => (
+          {(sources ?? []).map((s) => (
             <Text key={s.name} style={styles.source}>
               {s.name} ({s.license}){s.fetchedAt ? ` — fetched ${s.fetchedAt}` : ''}
             </Text>

@@ -13,8 +13,11 @@ const CONFIG = {
 }
 
 export default function ProvenanceChip({ provenance }) {
-  const cfg = CONFIG[provenance]
-  if (!cfg) return null
+  // An unknown provenance used to render nothing, leaving the number with no
+  // attribution — the one case where silence is least affordable. Flag it.
+  const cfg = CONFIG[provenance] ?? {
+    text: 'Unverified', bg: colors.slate100, fg: colors.slate500,
+  }
   return (
     <View style={[styles.chip, { backgroundColor: cfg.bg }]}>
       <Text style={[styles.text, { color: cfg.fg }]}>{cfg.text}</Text>

@@ -1021,6 +1021,14 @@ model SpatialContext {
 
   @@index([city])
   @@index([staleAfter])
+  // Prefix scans (`geohash LIKE 'tdr1%'` — every cell in a coarser area) need a
+  // text_pattern_ops operator class; the default btree on a non-C collation
+  // cannot serve them. Declared here with an explicit `type` so Prisma OWNS it:
+  // it was previously created only in raw SQL inside migration
+  // 20260719000000, invisible to the schema, and the next `migrate dev` diff or
+  // `db push` would have seen it as drift and dropped it — silently killing
+  // every coarse-area query with no error anywhere.
+  @@index([geohash(ops: raw("text_pattern_ops"))], map: "SpatialContext_geohash_prefix_idx", type: BTree)
 }
 
 // Rent/deposit over time, one row per observed change. The platform had no

@@ -280,6 +280,19 @@ describe('getContext cold start', () => {
     expect(ctx.city).toBe('Bengaluru')
   })
 
+  // A boolean can express two outcomes; there are four (ready / pending /
+  // failed / nothing-mapped). Before `status`, the panel collapsed the last
+  // three into one bare heading with no cards and no explanation — the exact
+  // "empty card" symptom seen in production. `pending` stays alongside it for
+  // released mobile builds that already read it.
+  it('carries a status the client can branch on, alongside the legacy pending flag', async () => {
+    prismaMock.spatialContext.findUnique.mockResolvedValue(null)
+
+    const cold = await service.getContext(12.9784, 77.6408, { waitMs: 0 })
+    expect(cold.status).toBe(service.STATUS_PENDING)
+    expect(cold.pending).toBe(true)
+  })
+
   it('returns stored modules for a warm cell and does not mark them pending', async () => {
     prismaMock.spatialContext.findUnique.mockResolvedValue({
       geohash: 'tdr1yf8', city: 'Bengaluru',
@@ -297,6 +310,7 @@ describe('getContext cold start', () => {
 
     const ctx = await service.getContext(12.9784, 77.6408)
     expect(ctx.pending).toBe(false)
+    expect(ctx.status).toBe(service.STATUS_READY)
     expect(ctx.modules.mobility).toBeDefined()
   })
 

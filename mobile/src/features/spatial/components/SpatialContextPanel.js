@@ -42,14 +42,26 @@ export default function SpatialContextPanel({ context, coords, children }) {
 
   const envelopes = inRenderOrder(modules)
     .filter(Boolean)
+    // Stored as raw JSON, so an older module shape can reach here without
+    // `facts`. Skipping it loses a card; indexing it throws mid-render.
+    .filter((e) => Array.isArray(e.facts))
     // A module with nothing to say AND nothing to explain is chrome. One that
     // knows why it's silent is kept — that's information.
     .filter((e) => e.facts.length > 0 || e.missing?.length > 0)
 
-  // "We haven't looked yet" is not the same as "there's nothing here".
-  const pending = context?.pending === true
+  // Four outcomes, not two — mirror of web's SpatialContextPanel, see there for
+  // the reasoning. `pending` is the older boolean, still read so payloads from
+  // before `status` shipped keep working.
+  const status = context?.status
+    ?? (context?.pending === true ? 'pending' : context ? 'ready' : null)
 
-  if (envelopes.length === 0 && !pending && !children) return null
+  const pending = status === 'pending'
+  const failed = status === 'failed'
+  const nothingMapped = status === 'ready' && envelopes.length === 0
+
+  const hasPanel = envelopes.length > 0 || pending || failed || nothingMapped
+
+  if (!hasPanel) return children ?? null
 
   return (
     <View style={styles.section}>
@@ -73,6 +85,29 @@ export default function SpatialContextPanel({ context, coords, children }) {
           <Text style={styles.pendingBody}>
             We haven&apos;t described this neighbourhood yet. It usually takes a
             few seconds — pull to refresh shortly and it&apos;ll be here.
+          </Text>
+        </View>
+      )}
+
+      {failed && (
+        <View style={styles.pendingCard}>
+          <Text style={styles.pendingTitle}>We couldn&apos;t load the area report</Text>
+          <Text style={styles.pendingBody}>
+            Something went wrong on our side — this isn&apos;t a comment on the
+            neighbourhood. Pull to refresh to try again.
+          </Text>
+        </View>
+      )}
+
+      {nothingMapped && (
+        <View style={styles.pendingCard}>
+          <Text style={styles.pendingTitle}>
+            We don&apos;t have enough mapped data around this address yet
+          </Text>
+          <Text style={styles.pendingBody}>
+            Our area reports are built from open map data, and coverage is
+            thinner in some neighbourhoods than others. That says nothing about
+            what&apos;s actually here — only about what has been mapped so far.
           </Text>
         </View>
       )}

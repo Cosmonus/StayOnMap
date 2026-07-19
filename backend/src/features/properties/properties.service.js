@@ -2,9 +2,10 @@ import { prisma } from '../../lib/prisma.js'
 import { boundsFilter } from '../../utils/geo.js'
 import { recalculateTrustScore } from '../trust/trust.service.js'
 import { evaluateListing, getRentBenchmark } from '../../services/intelligence.service.js'
-import { getContext, ensureContextForProperty } from '../spatial/spatial.service.js'
+import { getContext, ensureContextForProperty, STATUS_FAILED } from '../spatial/spatial.service.js'
 import { generatePropertyDisplayId } from '../../utils/idGenerator.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
+import { intelError } from '../../lib/intelLog.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
 import { buildFilterWhere, filterCacheKey } from './filters.registry.js'
 
@@ -103,10 +104,17 @@ export async function getPropertyById(id, userId = null) {
   // propertyType decides WHICH modules this listing sees: a shop gets commerce
   // and never "could you live here without a car?", a plot gets landContext.
   // See features/spatial/propertyTypes.js.
+  // A failure here must not read as "this neighbourhood has nothing worth
+  // reporting". `.catch(() => null)` used to collapse a DB error, a listing
+  // with null coordinates, and a genuinely undescribed cell into one indistinct
+  // null, and the panel rendered all three as a bare heading. Say which it was.
   property.spatialContext = await getContext(
     Number(property.lat), Number(property.lng),
     { waitMs: 3000, propertyType: property.type }
-  ).catch(() => null)
+  ).catch((err) => {
+    intelError('spatial.context_failed', err, { propertyId: property.id })
+    return { modules: null, pending: false, status: STATUS_FAILED }
+  })
 
   if (userId && property.ownerId === userId) return property
   if (property.status !== 'ACTIVE') return null
