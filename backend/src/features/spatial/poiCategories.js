@@ -38,8 +38,14 @@ export const POI_CATEGORIES = {
   police:       { amenity: ['police'], shop: [], leisure: [] },
   fire_station: { amenity: ['fire_station'], shop: [], leisure: [] },
 
-  // Leisure
-  restaurant:  { amenity: ['restaurant', 'fast_food'], shop: [], leisure: [] },
+  // Leisure. `fast_food` deliberately does NOT appear here: categoryFor() is
+  // first-match-wins, and listing it under restaurant (as it was until
+  // 2026-07-19) made `food_cheap` below unreachable — every fast-food place
+  // was stored as a restaurant and pgContext's cheap-eats signal saw only
+  // food courts. Same bug class as the school/college fix above. Modules that
+  // mean "anywhere to eat" union the two at query time (lifestyle's poiKeys,
+  // stayContext's dining). A re-seed reclassifies stored rows in place.
+  restaurant:  { amenity: ['restaurant'], shop: [], leisure: [] },
   cafe:        { amenity: ['cafe'], shop: [], leisure: [] },
   park:        { amenity: [], shop: [], leisure: ['park', 'garden'] },
   gym:         { amenity: ['gym'], shop: [], leisure: ['fitness_centre'] },

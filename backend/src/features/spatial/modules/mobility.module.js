@@ -125,10 +125,12 @@ function nearestStation(lat, lng, network) {
 
 export default {
   key: 'mobility',
-  // v4: distances humanised (12563 m → 12.6 km) and the bus-stop value no
-  // longer repeats its own label. Display strings live in the stored envelope,
-  // so without this bump every existing cell keeps serving the old wording.
-  version: 4, // v3: destination varies by property type
+  // v5: metro facts carry the station's coordinates (`at`) for read-time
+  // re-anchoring, distance/count provenance corrected to DERIVED, observedAt
+  // comes from the network file instead of a hardcoded date, and bus counts
+  // change under node/way dedup. Stored envelopes hold all of that, so the
+  // bump forces existing cells to recompute.
+  version: 5, // v4: humanised distances; v3: destination varies by property type
   // Everyone needs to know how to get somewhere — only the destination differs.
   appliesTo: ALL_TYPES,
   // Its DESTINATION depends on the property type, so its envelope must be
@@ -178,15 +180,26 @@ export default {
       // construction, not one you can ride.
       const operating = Boolean(network.lines?.length)
 
+      // The network file's own fetch date, never a hardcoded one — a metro
+      // engine re-promote must not leave facts claiming an older observation.
+      const metroObservedAt =
+        typeof network.meta?.fetchedAt === 'string' ? network.meta.fetchedAt.slice(0, 10) : null
+
       facts.push(fact({
         key: 'nearest_metro',
         label: operating ? 'Nearest metro station' : 'Nearest planned metro station',
         value: Math.round(metro.distanceM),
         unit: 'm',
         display: `${metro.name} — ${formatDistance(metro.distanceM)}`,
-        provenance: PROVENANCE.MEASURED,
+        // The station's position is MEASURED; the distance to it is arithmetic
+        // — DERIVED, per the contract in envelope.js. `at` lets the read path
+        // re-derive it from the property instead of the cell centre.
+        provenance: PROVENANCE.DERIVED,
         source: 'osm-metro',
-        observedAt: '2026-07-05',
+        observedAt: metroObservedAt,
+        at: { lat: metro.lat, lng: metro.lng },
+        place: metro.name,
+        displayStyle: 'distance',
       }))
 
       // Walking time to a station that isn't open is not a mobility fact.
@@ -200,6 +213,7 @@ export default {
           provenance: PROVENANCE.ESTIMATED,
           source: 'derived',
           method: WALK_METHOD,
+          at: { lat: metro.lat, lng: metro.lng },
         }))
       }
 
@@ -212,7 +226,7 @@ export default {
           display: lineNames.join(', '),
           provenance: PROVENANCE.DERIVED,
           source: 'osm-metro',
-          observedAt: '2026-07-05',
+          observedAt: metroObservedAt,
         }))
       }
 
@@ -253,7 +267,8 @@ export default {
         // The label already says "within 800 m" — repeating it in the value
         // reads as "none within 800 m within 800 m" on the card.
         display: busStops === 0 ? 'None' : `${busStops} stop${busStops > 1 ? 's' : ''}`,
-        provenance: PROVENANCE.MEASURED,
+        // A count is arithmetic over mapped points — DERIVED, per envelope.js.
+        provenance: PROVENANCE.DERIVED,
         source: localBus.available ? 'osm-poi' : 'google-places',
         count: busStops,
       }))

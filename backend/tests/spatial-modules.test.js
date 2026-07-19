@@ -100,7 +100,16 @@ describe('mobility — facts from data StayOnMap already owns', () => {
 
     const nearest = envelope.facts.find((f) => f.key === 'nearest_metro')
     expect(nearest).toBeDefined()
-    expect(nearest.provenance).toBe(PROVENANCE.MEASURED)
+    // DERIVED, not MEASURED — corrected 2026-07-19. The station's coordinates
+    // are measured (OSM); the DISTANCE to them is haversine arithmetic, which
+    // envelope.js's contract defines as DERIVED. It mattered beyond pedantry:
+    // the distance was computed from the geohash CELL centre, so a property at
+    // the cell edge inherited up to ~108 m of error under a label that claims
+    // someone observed it. The fix carries the station's coordinates on the
+    // fact (`at`) so the read path re-anchors to the real property — see
+    // reanchor.js. Don't put MEASURED back.
+    expect(nearest.provenance).toBe(PROVENANCE.DERIVED)
+    expect(nearest.at).toEqual({ lat: expect.any(Number), lng: expect.any(Number) })
     expect(nearest.value).toBeLessThan(2500)
 
     // Walk time is an estimate and must own up to it.

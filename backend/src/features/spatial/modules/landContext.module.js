@@ -13,7 +13,7 @@
 // wrong — implying a coordinate can tell you whether a title is clean — would
 // be the most damaging thing this whole layer could do.
 import { fact, PROVENANCE } from '../envelope.js'
-import { poisNear, OSM_POI_SOURCE } from '../poiProvider.js'
+import { poisNear, pickNearest, OSM_POI_SOURCE } from '../poiProvider.js'
 import { CITY_CENTERS, haversineKm } from '../../../config/cityCenters.js'
 import { walkDisplay } from '../proximity.js'
 
@@ -26,9 +26,9 @@ const DEVELOPMENT_MARKERS = ['school', 'hospital', 'supermarket', 'bank', 'fuel'
 
 export default {
   key: 'landContext',
-  // v2: walk-time phrasing on the walking-scale facts, counts as data,
-  // sparselyMapped passthrough.
-  version: 2,
+  // v3: nearest facts carry `at` + place for read-time re-anchoring, node/way
+  // dedup upstream changes counts, distance provenance corrected to DERIVED.
+  version: 3, // v2: walk-time phrasing, counts as data
   appliesTo: ['LAND'],
   ttlHours: 24 * 60, // land context changes on the timescale of construction
   // Low by construction. Everything that decides a land purchase is legal or
@@ -90,15 +90,18 @@ export default {
       for (const [key, label] of [['school', 'Nearest school'], ['hospital', 'Nearest hospital']]) {
         const hits = nearby.byCategory?.[key] ?? []
         if (!hits.length) continue
+        const nearest = pickNearest(hits)
         facts.push(fact({
           key: `nearest_${key}`,
           label,
-          value: hits[0].distanceM,
+          value: nearest.distanceM,
           unit: 'm',
-          display: walkDisplay(hits[0].distanceM),
-          provenance: PROVENANCE.MEASURED,
+          display: `${nearest.name ? `${nearest.name} — ` : ''}${walkDisplay(nearest.distanceM)}`,
+          provenance: PROVENANCE.DERIVED,
           source: 'osm-poi',
           count: hits.length,
+          at: { lat: nearest.lat, lng: nearest.lng },
+          place: nearest.name ?? undefined,
         }))
       }
     }
@@ -108,7 +111,7 @@ export default {
       assessment: assess(nearby, centre ? Math.round(haversineKm(lat, lng, centre.lat, centre.lng)) : null),
       missing: MISSING_NOTES,
       inputsPresent,
-      sources: nearby.available ? [OSM_POI_SOURCE] : [],
+      sources: nearby.available ? [{ ...OSM_POI_SOURCE, fetchedAt: nearby.fetchedAt }] : [],
       sparselyMapped: nearby.available ? nearby.sparselyMapped : null,
     }
   },

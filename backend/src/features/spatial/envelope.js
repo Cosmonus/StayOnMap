@@ -76,6 +76,22 @@ export function bandFor(value) {
  *                               data, not only inside the display string, so the
  *                               UI's summary chips read real numbers instead of
  *                               parsing prose
+ * @param {{lat: number, lng: number}} [f.at]  coordinates of the place this fact
+ *                               points to. Facts are computed from the geohash
+ *                               CELL centre (up to ~108 m from an actual
+ *                               property in the cell); carrying the target's
+ *                               coordinates lets the read path re-derive the
+ *                               distance from the property's own position —
+ *                               see reanchor.js. Only ever OSM/owned-data
+ *                               coordinates; Google-sourced facts must not
+ *                               carry `at` (their content is not persistable).
+ * @param {string} [f.place]     the place's name, when known — used by the
+ *                               re-anchored display ("Apollo Pharmacy — …")
+ * @param {number} [f.withinM]   the radius a `count` refers to, so a rebuilt
+ *                               display can restate "N within 1.6 km"
+ * @param {string} [f.displayStyle] 'walk' (default — walkDisplay phrasing) or
+ *                               'distance' (plain distance, e.g. metro facts
+ *                               that pair with a separate walk-time fact)
  */
 export function fact(f) {
   if (!f?.key) throw new Error('spatial fact: key is required')
@@ -91,6 +107,9 @@ export function fact(f) {
       'an unexplained estimate is indistinguishable from an invented number'
     )
   }
+  if (f.at != null && (typeof f.at.lat !== 'number' || typeof f.at.lng !== 'number')) {
+    throw new Error(`spatial fact ${f.key}: at must be { lat, lng } numbers when present`)
+  }
   return {
     key: f.key,
     label: f.label,
@@ -102,6 +121,10 @@ export function fact(f) {
     observedAt: f.observedAt ?? null,
     method: f.method ?? null,
     count: f.count ?? null,
+    at: f.at ?? null,
+    place: f.place ?? null,
+    withinM: f.withinM ?? null,
+    displayStyle: f.displayStyle ?? null,
   }
 }
 
