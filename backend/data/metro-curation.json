@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "note": "Declarative curation for the metro data engine (scripts/metro-engine.mjs). The ONLY place human knowledge about a city's network lives — facts the pipeline cannot derive from OSM tags. Every rule has a ruleId (stamped into shipped meta.curationApplied) and a reason. Never encode these as code.",
+  "cities": {
+    "Chennai": {
+      "excludeNamePatterns": [
+        {
+          "ruleId": "chennai-inter-corridor-not-open",
+          "pattern": "Inter-Corridor",
+          "reason": "Phase-2 service pattern, not operational. User-confirmed 2026-07-04 that Chennai runs only Blue + Green lines; OSM tags these relations as operational with no lifecycle marker, so the tag filter cannot catch them."
+        }
+      ]
+    },
+    "Delhi": {
+      "renameLines": [
+        {
+          "ruleId": "delhi-meerut-metro-line-1-name",
+          "osmRelationId": 16661918,
+          "to": "Meerut Metro Line 1",
+          "reason": "OSM names the Meerut local metro service (Modipuram ⇔ Meerut South, running on the RRTS corridor) just 'Line 1' — ambiguous inside Delhi's file, where nothing else says which system it belongs to."
+        }
+      ]
+    },
+    "Mumbai": {
+      "excludeRelations": [
+        {
+          "ruleId": "mumbai-line-11-under-construction",
+          "id": 19233909,
+          "reason": "Mumbai Metro Line 11 (Wadala–CSMT) is under construction, not operational. OSM tags the relation route=subway with no lifecycle marker; corroborating evidence: no route_master groups it and it carries zero role-tagged stop members. It shipped in the pre-engine data only because the original fetch had no lifecycle filtering."
+        }
+      ],
+      "renameStations": [
+        {
+          "ruleId": "mumbai-kharghar-village-typo",
+          "osmNodeId": 5737097412,
+          "to": "Kharghar Village",
+          "reason": "OSM node 5737097412 is named 'Khargar Village' — a spelling variant of the same station as node 5501092823 ('Kharghar Village'), 5m apart. Renaming lets the two stop nodes merge into one station instead of rendering as two."
+        }
+      ]
+    }
+  }
+}
