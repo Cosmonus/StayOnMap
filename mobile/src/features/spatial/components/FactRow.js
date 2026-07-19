@@ -1,3 +1,4 @@
+import { createElement } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { colors } from '@theme/colors'
 import { fonts } from '@theme/typography'
@@ -9,12 +10,16 @@ import ProvenanceChip from './ProvenanceChip'
 // scanning aid — these lists run to ten rows, and "nearest pharmacy" vs
 // "nearest hospital" is quicker to find by symbol than by reading labels.
 export default function FactRow({ fact, isLast }) {
-  const Glyph = factIcon(fact.key)
-
   return (
     <View style={[styles.row, isLast && styles.rowLast]}>
       <View style={styles.iconWrap}>
-        <Glyph size={14} color={colors.slate500} strokeWidth={2} />
+        {/* createElement, not `const Glyph = factIcon(...)` + <Glyph />: the
+            icon is looked up from a static map, but assigning a component to a
+            capitalised local reads to react-hooks/static-components as a
+            component DEFINED during render (which would reset its state every
+            render). Rendering the looked-up component explicitly says what
+            this actually is. */}
+        {createElement(factIcon(fact.key), { size: 14, color: colors.slate500, strokeWidth: 2 })}
       </View>
       <View style={styles.body}>
         <Text style={styles.label}>{fact.label}</Text>

@@ -10,7 +10,7 @@
 // offices) are ones where Google's Indian coverage is no better than OSM's,
 // and paying per call for a worse answer is not a trade worth making.
 import { fact, PROVENANCE } from '../envelope.js'
-import { poisNear, cityCategoryCoverage, OSM_POI_SOURCE } from '../poiProvider.js'
+import { poisNear, pickNearest, cityCategoryCoverage, OSM_POI_SOURCE } from '../poiProvider.js'
 import { RESIDENTIAL_TYPES } from '../propertyTypes.js'
 import { walkDisplay, formatDistance } from '../proximity.js'
 
@@ -45,7 +45,11 @@ export default {
   //
   // v5: walk-time phrasing, counts as data, police + fire station categories
   // (coverage-gated), civic-safety input declared.
-  version: 5,
+  //
+  // v6: nearest facts carry `at` + place name for read-time re-anchoring,
+  // node/way dedup upstream changes counts, distance provenance corrected to
+  // DERIVED, and the OSM source line carries the city's real fetch date.
+  version: 6,
   // Banking and fuel matter to a resident and to a shopkeeper. A bare plot is
   // served by landContext instead, which asks about road access rather than ATMs.
   appliesTo: [...RESIDENTIAL_TYPES, 'PG', 'COMMERCIAL', 'SHORT_STAY'],
@@ -106,7 +110,8 @@ export default {
 
     const found = live.map((c) => {
       const hits = result.byCategory[c.key] ?? []
-      return { ...c, count: hits.length, nearestM: hits[0]?.distanceM ?? null }
+      const nearest = pickNearest(hits)
+      return { ...c, count: hits.length, nearestM: nearest?.distanceM ?? null, nearest }
     })
 
     const facts = found.map((c) => fact({
@@ -116,10 +121,16 @@ export default {
       unit: 'm',
       display: c.nearestM === null
         ? `none mapped within ${formatDistance(RADIUS)}`
-        : `${walkDisplay(c.nearestM)} · ${c.count} within ${formatDistance(RADIUS)}`,
-      provenance: PROVENANCE.MEASURED,
+        : `${c.nearest?.name ? `${c.nearest.name} — ` : ''}${walkDisplay(c.nearestM)} · ${c.count} within ${formatDistance(RADIUS)}`,
+      // DERIVED: haversine between two measured coordinates — see the
+      // provenance contract in envelope.js. The `at` coordinates let the read
+      // path re-derive the distance from the property rather than the cell.
+      provenance: PROVENANCE.DERIVED,
       source: 'osm-poi',
       count: c.count,
+      at: c.nearest ? { lat: c.nearest.lat, lng: c.nearest.lng } : undefined,
+      place: c.nearest?.name ?? undefined,
+      withinM: c.nearestM === null ? undefined : RADIUS,
     }))
 
     const inputsPresent = []
@@ -158,7 +169,7 @@ export default {
       assessment: assess(found),
       missing,
       inputsPresent,
-      sources: [OSM_POI_SOURCE],
+      sources: [{ ...OSM_POI_SOURCE, fetchedAt: result.fetchedAt }],
       sparselyMapped: result.sparselyMapped,
     }
   },

@@ -148,6 +148,20 @@ export default function PoiListView({ moduleKey, lat, lng }) {
                         {p.openingHours && (
                           <p className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-400">
                             <Clock className="h-3 w-3 shrink-0" aria-hidden="true" />
+                            {/* Only shown when the backend could read the hours
+                                with confidence. Absent means "we don't know" —
+                                never render that as closed. */}
+                            {p.openState && (
+                              <span
+                                className={`shrink-0 rounded px-1 py-px font-semibold ${
+                                  p.openState === 'open'
+                                    ? 'bg-brand-50 text-brand-700'
+                                    : 'bg-slate-100 text-slate-500'
+                                }`}
+                              >
+                                {p.openState === 'open' ? 'Open now' : 'Closed now'}
+                              </span>
+                            )}
                             <span className="truncate">{p.openingHours}</span>
                           </p>
                         )}

@@ -12,7 +12,7 @@
 import { haversineMeters } from '../../../lib/geohash.js'
 import { fact, PROVENANCE } from '../envelope.js'
 import { nearbyPlaces, GOOGLE_PLACES_SOURCE } from '../providers.js'
-import { poisNear, OSM_POI_SOURCE } from '../poiProvider.js'
+import { poisNear, pickNearest, OSM_POI_SOURCE } from '../poiProvider.js'
 import { RESIDENTIAL_TYPES } from '../propertyTypes.js'
 import { walkDisplay, formatDistance } from '../proximity.js'
 
@@ -33,9 +33,17 @@ const REACHABLE = 1600
 const CATEGORIES = [
   { key: 'supermarket', label: 'Groceries',    googleType: 'supermarket', weight: 3 },
   { key: 'pharmacy',    label: 'Pharmacy',     googleType: 'pharmacy',    weight: 3 },
-  { key: 'hospital',    label: 'Healthcare',   googleType: 'hospital',    weight: 2, poiKeys: ['hospital', 'clinic'] },
+  // `prefer` breaks a near-tie toward the more substantial facility: asked for
+  // "Healthcare", a hospital 450 m away is a better answer than one doctor's
+  // room at 430 m. Only applies within pickNearest's 150 m band — a hospital
+  // 2 km off never outranks a clinic next door.
+  { key: 'hospital',    label: 'Healthcare',   googleType: 'hospital',    weight: 2, poiKeys: ['hospital', 'clinic'], prefer: ['hospital', 'clinic'] },
   { key: 'school',      label: 'Schools',      googleType: 'school',      weight: 2 },
-  { key: 'restaurant',  label: 'Restaurants',  googleType: 'restaurant',  weight: 2 },
+  // fast_food lives in the `food_cheap` category (it used to collide into
+  // `restaurant` and starve pgContext — see poiCategories.js); "Restaurants"
+  // here means anywhere to eat, so it unions the two, like healthcare does.
+  { key: 'restaurant',  label: 'Restaurants',  googleType: 'restaurant',  weight: 2, poiKeys: ['restaurant', 'food_cheap'] },
+  // Same idea: a real supermarket beats a corner shop when both are as close.
   { key: 'bank',        label: 'Banks',        googleType: 'bank',        weight: 1 },
   { key: 'park',        label: 'Parks',        googleType: 'park',        weight: 1 },
   { key: 'gym',         label: 'Gyms',         googleType: 'gym',         weight: 1 },
@@ -63,14 +71,19 @@ async function fromLocalIndex(lat, lng, city) {
 
   return {
     source: 'osm-poi',
-    sourceMeta: OSM_POI_SOURCE,
+    sourceMeta: { ...OSM_POI_SOURCE, fetchedAt: result.fetchedAt },
     sparselyMapped: result.sparselyMapped,
+    truncated: result.truncated,
     totalNearby: result.total,
     categories: CATEGORIES.map((c) => {
       const hits = (c.poiKeys ?? [c.key])
         .flatMap((k) => result.byCategory[k] ?? [])
         .sort((a, b) => a.distanceM - b.distanceM)
-      return { ...c, count: hits.length, nearestM: hits[0]?.distanceM ?? null }
+      // Headline the nearest NAMED place when one is comparably close — a
+      // named fact is more useful and more checkable than an anonymous point
+      // — and prefer the more substantial facility for merged categories.
+      const nearest = pickNearest(hits, { prefer: c.prefer })
+      return { ...c, count: hits.length, nearestM: nearest?.distanceM ?? null, nearest }
     }),
   }
 }
@@ -109,11 +122,12 @@ async function fromGoogle(lat, lng) {
 
 export default {
   key: 'lifestyle',
-  // v4: walk-time phrasing on walkable facts ("about a 6 min walk (420 m)"),
-  // counts carried as data, healthcare merges the hospital+clinic categories.
-  // Display strings live in the stored envelope, so without the bump every
-  // already-computed cell keeps the old wording for two weeks.
-  version: 4, // v3: gated to types where somebody actually lives
+  // v5: nearest facts carry the target's coordinates (`at`) + name for
+  // read-time re-anchoring, restaurants union food_cheap (the fast_food
+  // category fix), node/way dedup upstream changes counts, and distance
+  // provenance corrected to DERIVED. All of that lives in stored envelopes,
+  // so the bump forces existing cells to recompute.
+  version: 5, // v4: walk-time phrasing; v3: gated to types where somebody lives
   // Walkability to a pharmacy is a fact about LIVING somewhere. A plot or a
   // warehouse has no residents, so this card is hidden for them rather than
   // shown with a caveat.
@@ -157,15 +171,26 @@ export default {
       label: c.label,
       value: c.nearestM,
       unit: 'm',
-      // "about a 6 min walk (420 m) · 3 within 1.6 km" — time is what people
-      // weigh, distance stays alongside it. The walk conversion's assumptions
-      // are disclosed once, in the walkability method below.
+      // "Apollo Pharmacy — about a 6 min walk (420 m) · 3 within 1.6 km" —
+      // time is what people weigh, distance stays alongside it. The walk
+      // conversion's assumptions are disclosed once, in the walkability
+      // method below. Same shape reanchor.js rebuilds at read time.
       display: c.nearestM === null
         ? `none within ${formatDistance(REACHABLE)}`
-        : `${walkDisplay(c.nearestM)} · ${c.count} within ${formatDistance(REACHABLE)}`,
-      provenance: PROVENANCE.MEASURED,
+        : `${c.nearest?.name ? `${c.nearest.name} — ` : ''}${walkDisplay(c.nearestM)} · ${c.count} within ${formatDistance(REACHABLE)}`,
+      // DERIVED, not MEASURED: the place's coordinates are measured (OSM);
+      // the distance is arithmetic between them and a position — exactly the
+      // contract's definition of DERIVED. Calling cell-anchored haversine
+      // MEASURED was the one breach of the layer's own provenance rules.
+      provenance: PROVENANCE.DERIVED,
       source: data.source,
       count: c.count,
+      // Target coordinates travel with the fact so the read path can re-derive
+      // the distance from the actual property, not the cell centre. OSM path
+      // only — Google-sourced coordinates are never persisted (ToS).
+      at: c.nearest ? { lat: c.nearest.lat, lng: c.nearest.lng } : undefined,
+      place: c.nearest?.name ?? undefined,
+      withinM: c.nearestM === null ? undefined : REACHABLE,
     }))
 
     // ── Walkability index ──────────────────────────────────────────────────
@@ -207,6 +232,12 @@ function buildMissing(data) {
   const failed = data.categories.filter((c) => c.count === null)
   if (failed.length) {
     missing.push(`Couldn't look up ${failed.map((c) => c.label.toLowerCase()).join(', ')} for this location.`)
+  }
+
+  if (data.truncated) {
+    // The exhaustive scan hit its runaway ceiling — essentially never happens,
+    // but if it does the honest reading of every count here is "at least".
+    missing.push('This area is so densely mapped that counts are a floor, not a total.')
   }
 
   if (data.sparselyMapped === true) {

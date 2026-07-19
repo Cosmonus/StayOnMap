@@ -88,11 +88,15 @@ export const prismaMock = {
     // Per-category city coverage (cityCategoryCoverage). Empty = nothing
     // seeded, matching count 0 above.
     groupBy:  vi.fn().mockResolvedValue([]),
+    // poiFreshness — max(fetchedAt) per city. Null = date unknown.
+    aggregate: vi.fn().mockResolvedValue({ _max: { fetchedAt: null } }),
+    deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
   },
   spatialContext: {
     findUnique: vi.fn().mockResolvedValue(null),
     findMany:   vi.fn().mockResolvedValue([]),
     upsert:     vi.fn(),
+    updateMany: vi.fn().mockResolvedValue({ count: 0 }),
   },
   // Supports both Prisma $transaction forms: array-of-promises (lease.service.js)
   // and callback (properties.service.js) — real Prisma treats them differently,

@@ -5,7 +5,7 @@
 // holiday flat because it has a good school catchment; they book it because
 // it's 40 minutes from the airport and near things worth seeing.
 import { fact, PROVENANCE } from '../envelope.js'
-import { poisNear, OSM_POI_SOURCE } from '../poiProvider.js'
+import { poisNear, pickNearest, OSM_POI_SOURCE } from '../poiProvider.js'
 import { walkDisplay, formatDistance } from '../proximity.js'
 
 const ARRIVAL_RADIUS = 60_000 // airports serve a whole metro region
@@ -13,11 +13,10 @@ const LOCAL_RADIUS = 2_000    // what a guest will walk to
 
 export default {
   key: 'stayContext',
-  // v2: walk-time phrasing, counts as data, sparselyMapped passthrough, and
-  // the hand-rolled "5-minute walk" claim replaced — 500 m is ~8 min at the
-  // declared walking method, and the module contradicting its own arithmetic
-  // is the exact failure this layer exists to avoid.
-  version: 2,
+  // v3: arrival/attraction facts carry `at` + place for read-time
+  // re-anchoring, dining unions the food_cheap category (the fast_food fix in
+  // poiCategories.js), and distance provenance corrected to DERIVED.
+  version: 3, // v2: walk-time phrasing, counts as data
   appliesTo: ['SHORT_STAY'],
   ttlHours: 24 * 30,
   maxConfidence: 0.70,
@@ -35,7 +34,7 @@ export default {
   async compute({ lat, lng, city }) {
     const [arrival, local] = await Promise.all([
       poisNear(lat, lng, ARRIVAL_RADIUS, ['airport', 'railway_station'], city),
-      poisNear(lat, lng, LOCAL_RADIUS, ['attraction', 'restaurant', 'cafe', 'hotel'], city),
+      poisNear(lat, lng, LOCAL_RADIUS, ['attraction', 'restaurant', 'cafe', 'food_cheap', 'hotel'], city),
     ])
 
     if (!arrival.available) {
@@ -51,8 +50,8 @@ export default {
     const facts = []
     const inputsPresent = []
 
-    const airport = arrival.byCategory?.airport?.[0]
-    const station = arrival.byCategory?.railway_station?.[0]
+    const airport = pickNearest(arrival.byCategory?.airport ?? [])
+    const station = pickNearest(arrival.byCategory?.railway_station ?? [])
 
     if (airport || station) inputsPresent.push('arrival_points')
 
@@ -63,8 +62,11 @@ export default {
         value: airport.distanceM,
         unit: 'm',
         display: `${airport.name ?? 'Airport'} — ${formatDistance(airport.distanceM)}`,
-        provenance: PROVENANCE.MEASURED,
+        provenance: PROVENANCE.DERIVED,
         source: 'osm-poi',
+        at: { lat: airport.lat, lng: airport.lng },
+        place: airport.name ?? undefined,
+        displayStyle: 'distance',
       }))
     }
 
@@ -75,27 +77,35 @@ export default {
         value: station.distanceM,
         unit: 'm',
         display: `${station.name ?? 'Station'} — ${formatDistance(station.distanceM)}`,
-        provenance: PROVENANCE.MEASURED,
+        provenance: PROVENANCE.DERIVED,
         source: 'osm-poi',
+        at: { lat: station.lat, lng: station.lng },
+        place: station.name ?? undefined,
+        displayStyle: 'distance',
       }))
     }
 
     const attractions = local.byCategory?.attraction ?? []
     if (attractions.length) {
       inputsPresent.push('attractions')
+      const headline = pickNearest(attractions)
       facts.push(fact({
         key: 'attractions_nearby',
         label: 'Things to see within 2 km',
         value: attractions.length,
         unit: 'count',
-        display: `${attractions.length} — nearest ${attractions[0].name ?? 'attraction'} ${walkDisplay(attractions[0].distanceM)}`,
-        provenance: PROVENANCE.MEASURED,
+        display: `${attractions.length} — nearest ${headline.name ?? 'attraction'} ${walkDisplay(headline.distanceM)}`,
+        provenance: PROVENANCE.DERIVED,
         source: 'osm-poi',
         count: attractions.length,
       }))
     }
 
-    const dining = [...(local.byCategory?.restaurant ?? []), ...(local.byCategory?.cafe ?? [])]
+    const dining = [
+      ...(local.byCategory?.restaurant ?? []),
+      ...(local.byCategory?.cafe ?? []),
+      ...(local.byCategory?.food_cheap ?? []),
+    ]
     if (dining.length) {
       inputsPresent.push('dining')
       const walkable = dining.filter((d) => d.distanceM <= 500).length
@@ -105,7 +115,7 @@ export default {
         value: dining.length,
         unit: 'count',
         display: `${dining.length} within 2 km · ${walkable} within 500 m`,
-        provenance: PROVENANCE.MEASURED,
+        provenance: PROVENANCE.DERIVED,
         source: 'osm-poi',
         count: dining.length,
       }))
@@ -121,7 +131,7 @@ export default {
         value: hotels.length,
         unit: 'count',
         display: `${hotels.length} within 2 km`,
-        provenance: PROVENANCE.MEASURED,
+        provenance: PROVENANCE.DERIVED,
         source: 'osm-poi',
         count: hotels.length,
       }))
@@ -137,7 +147,7 @@ export default {
       assessment: assess(airport, attractions.length, dining.length),
       missing,
       inputsPresent,
-      sources: [OSM_POI_SOURCE],
+      sources: [{ ...OSM_POI_SOURCE, fetchedAt: arrival.fetchedAt }],
       // The local 2 km read, not the 60 km arrival one — a sparse count of
       // airports across a metro region says nothing about mapping quality.
       sparselyMapped: local.sparselyMapped,

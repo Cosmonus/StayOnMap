@@ -6,7 +6,7 @@
 // their questions specific: cheap food within walking distance, a college or
 // employment centre in reach, and what the walk home looks like after dark.
 import { fact, PROVENANCE } from '../envelope.js'
-import { poisNear, OSM_POI_SOURCE } from '../poiProvider.js'
+import { poisNear, pickNearest, OSM_POI_SOURCE } from '../poiProvider.js'
 import { walkDisplay, formatDistance } from '../proximity.js'
 
 const WALKABLE = 800
@@ -14,10 +14,11 @@ const REACHABLE = 3000
 
 export default {
   key: 'pgContext',
-  // v2: walk-time phrasing ("about a 3 min walk (200 m)"), counts as data,
-  // sparselyMapped passthrough. Displays live in the stored envelope, so the
-  // bump forces already-computed cells onto the new wording.
-  version: 2,
+  // v3: nearest facts carry `at` + place for read-time re-anchoring, distance
+  // provenance corrected to DERIVED, and the cheap-food signal is real again —
+  // fast_food now lands in `food_cheap` instead of colliding into `restaurant`
+  // (see poiCategories.js), so this module finally sees what it queries for.
+  version: 3, // v2: walk-time phrasing, counts as data
   appliesTo: ['PG'],
   ttlHours: 24 * 30,
   maxConfidence: 0.65,
@@ -66,7 +67,7 @@ export default {
         value: food.length,
         unit: 'count',
         display: `${food.length} within ${formatDistance(WALKABLE)} · nearest ${walkDisplay(food[0].distanceM)}`,
-        provenance: PROVENANCE.MEASURED,
+        provenance: PROVENANCE.DERIVED,
         source: 'osm-poi',
         count: food.length,
       }))
@@ -75,15 +76,18 @@ export default {
     const colleges = reach.byCategory?.college ?? []
     if (colleges.length) {
       inputsPresent.push('study_work')
+      const college = pickNearest(colleges)
       facts.push(fact({
         key: 'nearest_college',
         label: 'Nearest college or university',
-        value: colleges[0].distanceM,
+        value: college.distanceM,
         unit: 'm',
-        display: `${colleges[0].name ?? 'College'} — ${walkDisplay(colleges[0].distanceM)}`,
-        provenance: PROVENANCE.MEASURED,
+        display: `${college.name ?? 'College'} — ${walkDisplay(college.distanceM)}`,
+        provenance: PROVENANCE.DERIVED,
         source: 'osm-poi',
         count: colleges.length,
+        at: { lat: college.lat, lng: college.lng },
+        place: college.name ?? undefined,
       }))
     }
 
@@ -98,15 +102,18 @@ export default {
       ['atm', 'ATM', atm],
     ]) {
       if (!list.length) continue
+      const nearest = pickNearest(list)
       facts.push(fact({
         key: `nearest_${key}`,
         label,
-        value: list[0].distanceM,
+        value: nearest.distanceM,
         unit: 'm',
-        display: walkDisplay(list[0].distanceM),
-        provenance: PROVENANCE.MEASURED,
+        display: `${nearest.name ? `${nearest.name} — ` : ''}${walkDisplay(nearest.distanceM)}`,
+        provenance: PROVENANCE.DERIVED,
         source: 'osm-poi',
         count: list.length,
+        at: { lat: nearest.lat, lng: nearest.lng },
+        place: nearest.name ?? undefined,
       }))
     }
 
@@ -126,7 +133,7 @@ export default {
       assessment: assess(food, colleges),
       missing,
       inputsPresent,
-      sources: [OSM_POI_SOURCE],
+      sources: [{ ...OSM_POI_SOURCE, fetchedAt: walk.fetchedAt }],
       sparselyMapped: walk.sparselyMapped,
     }
   },
