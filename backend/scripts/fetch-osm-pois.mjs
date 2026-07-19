@@ -23,7 +23,8 @@ import 'dotenv/config'
 // The singleton, not a fresh PrismaClient — Prisma 7 needs an explicit driver
 // adapter and lib/prisma.js is where that's configured (see .claude/database.md).
 import { prisma } from '../src/lib/prisma.js'
-import { CITY_CENTERS } from '../src/config/cityCenters.js'
+import { removeStalePois, invalidateCityCells } from '../src/features/spatial/seedMaintenance.js'
+import { CITY_CENTERS, resolveCity } from '../src/config/cityCenters.js'
 import { categoryFor, overpassClauses, CATEGORY_KEYS } from '../src/features/spatial/poiCategories.js'
 
 // Public instances, tried in order. The main one has 406'd from some
@@ -107,7 +108,7 @@ async function overpass(query) {
   throw lastError ?? new Error('all Overpass endpoints failed')
 }
 
-function elementsToRows(elements, city) {
+function elementsToRows(elements) {
   const rows = []
   for (const el of elements) {
     const category = categoryFor(el.tags ?? {})
@@ -118,6 +119,15 @@ function elementsToRows(elements, city) {
     const lat = el.lat ?? el.center?.lat
     const lng = el.lon ?? el.center?.lon
     if (lat == null || lng == null) continue
+
+    // City from the actual coordinate, not the city being fetched: the fetch
+    // bbox is a SQUARE around the city's circular radius, so its corners hold
+    // POIs that resolveCity() — the same function the query layer uses — says
+    // are outside every supported city. Stamping those with the fetched city
+    // made seed-time and query-time disagree about coverage; dropping them
+    // keeps the two consistent.
+    const city = resolveCity(lat, lng)?.city
+    if (!city) continue
 
     rows.push({
       osmId: `${el.type}/${el.id}`,
@@ -156,29 +166,55 @@ async function writeRows(rows) {
   process.stdout.write('\n')
 }
 
+async function fetchTile(tile, seen) {
+  const query = `[out:json][timeout:170];\n(\n  ${overpassClauses(tile)}\n);\nout center tags;`
+  const data = await overpass(query)
+  const rows = elementsToRows(data.elements ?? [])
+  for (const row of rows) seen.set(row.osmId, row)
+  return rows.length
+}
+
 async function fetchCity(city) {
   const bbox = bboxFor(CITY_CENTERS[city])
   const grid = tiles(bbox, TILE_GRID)
   const seen = new Map() // osmId → row; tiles share edges, so dedupe here
-  let failed = 0
+  // Everything already in the table that this complete fetch does not return
+  // is a ghost — demolished, retagged out of the vocabulary, or re-mapped
+  // under a new osmId. Captured BEFORE the tiles run so nothing written by
+  // this run can match its own deletion cutoff.
+  const runStart = new Date()
+  const failedTiles = []
 
   console.log(`\n${city} — ${grid.length} tiles`)
 
   for (const [i, tile] of grid.entries()) {
-    const query = `[out:json][timeout:170];\n(\n  ${overpassClauses(tile)}\n);\nout center tags;`
     try {
-      const data = await overpass(query)
-      const rows = elementsToRows(data.elements ?? [], city)
-      for (const row of rows) seen.set(row.osmId, row)
-      console.log(`  tile ${i + 1}/${grid.length}: ${rows.length} matched (${seen.size} unique so far)`)
+      const matched = await fetchTile(tile, seen)
+      console.log(`  tile ${i + 1}/${grid.length}: ${matched} matched (${seen.size} unique so far)`)
     } catch (err) {
-      failed++
-      // A dead tile is a gap in coverage, not a reason to abandon the city —
-      // but it must be reported, because a silently-thin area is exactly the
-      // "is it missing or is it not mapped" ambiguity the layer warns about.
+      failedTiles.push(tile)
       console.warn(`  tile ${i + 1}/${grid.length}: FAILED — ${err.message}`)
     }
     if (i < grid.length - 1) await sleep(DELAY_BETWEEN_TILES_MS)
+  }
+
+  // One retry pass for dead tiles before declaring a coverage gap — Overpass
+  // mirrors fail transiently far more often than persistently, and a
+  // silently-thin area is exactly the "is it missing or is it not mapped"
+  // ambiguity the layer warns about.
+  let failed = 0
+  if (failedTiles.length) {
+    console.log(`  retrying ${failedTiles.length} failed tile(s)…`)
+    for (const tile of failedTiles) {
+      await sleep(DELAY_BETWEEN_TILES_MS)
+      try {
+        const matched = await fetchTile(tile, seen)
+        console.log(`  retry: ${matched} matched (${seen.size} unique so far)`)
+      } catch (err) {
+        failed++
+        console.warn(`  retry FAILED — ${err.message}`)
+      }
+    }
   }
 
   const rows = [...seen.values()]
@@ -192,7 +228,25 @@ async function fetchCity(city) {
   const empty = CATEGORY_KEYS.filter((k) => !byCategory[k])
   if (empty.length) console.log(`      (no data: ${empty.join(', ')})`)
 
-  if (CONFIRM && rows.length) await writeRows(rows)
+  if (CONFIRM && rows.length) {
+    await writeRows(rows)
+
+    // Ghost removal — ONLY after a fully-successful fetch. With a failed tile
+    // the rows it would have refreshed are indistinguishable from ghosts, and
+    // deleting real coverage is worse than keeping a stale row for a cycle.
+    if (failed === 0) {
+      const removed = await removeStalePois(city, runStart)
+      if (removed) console.log(`  removed ${removed} stale row(s) no longer present in OSM`)
+    } else {
+      console.log('  skipping stale-row removal — coverage incomplete, re-run to converge')
+    }
+
+    // The data under every computed cell in this city just changed. Without
+    // this, cells keep serving pre-seed answers for their full module TTLs
+    // (up to 60 days) — the refresher only looks at staleAfter/version.
+    const invalidated = await invalidateCityCells(city, runStart)
+    console.log(`  marked ${invalidated} spatial cell(s) stale — the refresher will recompute them`)
+  }
   return { city, count: rows.length, failed }
 }
 

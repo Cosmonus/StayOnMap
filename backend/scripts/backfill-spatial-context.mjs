@@ -9,19 +9,28 @@
 //   node scripts/backfill-spatial-context.mjs           # dry run
 //   node scripts/backfill-spatial-context.mjs --confirm
 //
+// Run AFTER scripts/fetch-osm-pois.mjs, not before: with an empty PoiIndex
+// each cell falls back to metered Google calls (or persists "not loaded"
+// envelopes), and those get stored. The guard below refuses to run against an
+// unseeded table unless you pass --allow-unseeded on purpose.
+//
 // Cheap by construction: listings cluster, so many share a geohash-7 cell and
-// each distinct cell is computed exactly once. The dry run prints how many
-// distinct cells your listings actually occupy, which is the number that
-// drives the API cost — run it first.
+// each distinct cell is computed once PER PROPERTY TYPE present in it —
+// mobility's destination differs by type and is stored in a per-type slot, so
+// a shop and the flats above it need separate passes. Type-specific modules
+// are free PoiIndex queries; the only metered thing is one Distance Matrix
+// call per pass. The dry run prints the pass count — run it first.
 import 'dotenv/config'
 // The singleton, not a fresh PrismaClient — Prisma 7 needs an explicit driver
 // adapter and lib/prisma.js is where that's configured (see .claude/database.md).
 import { prisma } from '../src/lib/prisma.js'
 import { encode } from '../src/lib/geohash.js'
-import { materialize } from '../src/features/spatial/spatial.service.js'
+import { materialize, storageKey } from '../src/features/spatial/spatial.service.js'
+import { modulesFor, isStale } from '../src/features/spatial/registry.js'
 import { resolveCity } from '../src/config/cityCenters.js'
 
 const CONFIRM = process.argv.includes('--confirm')
+const ALLOW_UNSEEDED = process.argv.includes('--allow-unseeded')
 
 // Sequential with a small pause: this is bulk background work and there is no
 // reason to fan a burst of billed calls at Google all at once.
@@ -29,12 +38,29 @@ const DELAY_MS = 500
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
+/** Every wanted module fresh in this row for this type? */
+function warmFor(row, type) {
+  if (!row?.modules) return false
+  return modulesFor(type).every((m) => !isStale(row.modules[storageKey(m, type)], m))
+}
+
 async function main() {
+  const poiRows = await prisma.poiIndex.count()
+  if (poiRows === 0 && !ALLOW_UNSEEDED) {
+    console.error(
+      'PoiIndex is empty — run scripts/fetch-osm-pois.mjs --confirm first.\n' +
+      'Backfilling now would persist Google-fallback / "not loaded" envelopes\n' +
+      'for up to their full TTLs. Pass --allow-unseeded to do it anyway.'
+    )
+    process.exitCode = 1
+    return
+  }
+
   const properties = await prisma.property.findMany({
     select: { id: true, lat: true, lng: true, city: true, type: true },
   })
 
-  const cells = new Map() // geohash → { city, listings }
+  const cells = new Map() // geohash → { city, listings, types }
   let skipped = 0
 
   for (const p of properties) {
@@ -43,11 +69,6 @@ async function main() {
     const entry = cells.get(geohash) ?? {
       city: p.city ?? resolveCity(Number(p.lat), Number(p.lng))?.city ?? null,
       listings: 0,
-      // Types present in this cell. A cell is warmed once PER TYPE, because
-      // mobility's destination differs by type and is stored in a per-type
-      // slot — a shop and the flats above it need different answers from the
-      // same coordinate. Type-specific modules are all free PoiIndex queries,
-      // so the extra passes cost nothing beyond one Distance Matrix call each.
       types: new Set(),
     }
     entry.listings++
@@ -57,31 +78,42 @@ async function main() {
 
   const existing = await prisma.spatialContext.findMany({
     where: { geohash: { in: [...cells.keys()] } },
-    select: { geohash: true },
+    select: { geohash: true, modules: true },
   })
-  const known = new Set(existing.map((r) => r.geohash))
-  const todo = [...cells.keys()].filter((g) => !known.has(g))
-  const passes = todo.reduce((n, g) => n + cells.get(g).types.size, 0)
+  const rowByGeohash = new Map(existing.map((r) => [r.geohash, r]))
 
+  // One pass per (cell, type) that is missing or stale for that type. A cell
+  // warmed by an apartment is NOT warm for the shop on its ground floor — the
+  // old version skipped any cell with a row at all, leaving per-type slots
+  // (and everything a later module version wants) permanently cold.
+  const passes = []
+  for (const [geohash, entry] of cells) {
+    const row = rowByGeohash.get(geohash) ?? null
+    for (const type of entry.types) {
+      if (!warmFor(row, type)) passes.push({ geohash, type, city: entry.city })
+    }
+  }
+
+  const coldCells = new Set(passes.map((p) => p.geohash))
   console.log(`${properties.length} listings${skipped ? ` (${skipped} without coordinates, skipped)` : ''}`)
-  console.log(`${cells.size} distinct cells — ${known.size} already warm, ${todo.length} to compute (${passes} type passes)`)
+  console.log(`${cells.size} distinct cells — ${cells.size - coldCells.size} fully warm, ${coldCells.size} need work (${passes.length} type passes)`)
 
   const byCity = {}
-  for (const [g, e] of cells) if (!known.has(g)) byCity[e.city ?? 'unknown'] = (byCity[e.city ?? 'unknown'] ?? 0) + 1
-  for (const [city, n] of Object.entries(byCity)) console.log(`    ${String(city).padEnd(12)} ${n} cell(s)`)
+  for (const p of passes) byCity[p.city ?? 'unknown'] = (byCity[p.city ?? 'unknown'] ?? 0) + 1
+  for (const [city, n] of Object.entries(byCity)) console.log(`    ${String(city).padEnd(12)} ${n} pass(es)`)
 
-  if (!todo.length) { console.log('\nNothing to do.'); return }
+  if (!passes.length) { console.log('\nNothing to do.'); return }
   if (!CONFIRM) { console.log('\nDRY RUN — nothing computed. Re-run with --confirm.'); return }
 
   console.log('')
   let done = 0
-  for (const geohash of todo) {
-    await materialize(geohash)
+  for (const { geohash, type } of passes) {
+    await materialize(geohash, type)
     done++
-    process.stdout.write(`  ${done}/${todo.length} cells\r`)
-    if (done < todo.length) await sleep(DELAY_MS)
+    process.stdout.write(`  ${done}/${passes.length} passes\r`)
+    if (done < passes.length) await sleep(DELAY_MS)
   }
-  console.log(`\nWarmed ${done} cells.`)
+  console.log(`\nCompleted ${done} passes across ${coldCells.size} cells.`)
 }
 
 main()

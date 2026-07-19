@@ -12,6 +12,8 @@
 // digitizes a real source.
 import { env } from '../../config/env.js'
 import { cacheGet, cacheSet as redisCacheSet } from '../../lib/redis.js'
+import { intelError } from '../../lib/intelLog.js'
+import { canServeLocally, computeAreaIntelligenceLocal } from './areaIntelligenceAdapter.js'
 
 const NEARBY_URL = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
 const DISTANCE_MATRIX_URL = 'https://maps.googleapis.com/maps/api/distancematrix/json'
@@ -206,7 +208,32 @@ export async function computeCommute(lat, lng, destination) {
   }
 }
 
+/**
+ * LEGACY endpoint — kept alive only for released mobile builds. No code in
+ * this repo calls it (web dropped it for the spatial layer; mobile kept only
+ * getCommute).
+ *
+ * Owned data first: when the city's PoiIndex is seeded, the adapter answers
+ * from OpenStreetMap + the metro network + it-corridors at zero cost, with
+ * exhaustive deduplicated counts. The Google path below only runs for a city
+ * that hasn't been seeded — where it remains the honest fallback rather than
+ * returning nothing to an app that can't be updated.
+ *
+ * Why bother improving an endpoint with no current caller: every miss here was
+ * ~11 billed Google requests whose counts silently saturate at 20 (the code
+ * never pages) against a ~1.1 km cache grid. Old clients were getting both the
+ * worst numbers and the whole bill.
+ */
 export async function computeAreaIntelligence(lat, lng) {
+  try {
+    if (await canServeLocally(lat, lng)) {
+      return await computeAreaIntelligenceLocal(lat, lng)
+    }
+  } catch (err) {
+    intelError('places.area_intel_local_failed', err, {})
+    // Fall through to Google rather than failing the request.
+  }
+
   const [transit, essentials, itCorridor, traffic] = await Promise.all([
     computeTransit(lat, lng),
     computeEssentials(lat, lng),

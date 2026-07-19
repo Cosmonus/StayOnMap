@@ -16,16 +16,44 @@ import { intelError } from '../../lib/intelLog.js'
 
 const DEG_LAT_M = 111_320
 
-// Below this many POIs within the search radius, in a city we know IS seeded,
-// the area is more likely under-mapped than genuinely empty. That distinction
-// is the whole reason this threshold exists: OSM coverage in India varies
-// enormously between and within cities, and "no shops" versus "nobody mapped
-// the shops" are different claims.
-const SPARSE_MAPPING_THRESHOLD = 12
+// Below this density of POIs (per km² of the searched circle), in a city we
+// know IS seeded, the area is more likely under-mapped than genuinely empty.
+// That distinction is the whole reason the threshold exists: OSM coverage in
+// India varies enormously between and within cities, and "no shops" versus
+// "nobody mapped the shops" are different claims.
+//
+// A DENSITY, not a fixed count: the old fixed 12 fired almost always at
+// commerce's 300 m radius and almost never at landContext's 5 km, because it
+// never normalised by area. 1.5/km² is the same bar the old value set at the
+// lifestyle radius (12 POIs over a 1.6 km circle ≈ 8 km²).
+const SPARSE_DENSITY_PER_KM2 = 1.5
+
+export function sparseThreshold(radiusM) {
+  const areaKm2 = Math.PI * (radiusM / 1000) ** 2
+  return Math.max(3, Math.round(SPARSE_DENSITY_PER_KM2 * areaKm2))
+}
+
+// One real-world place is often mapped twice in OSM — a node AND the building
+// way, or two nodes for the same branch. Rows are distinct osmIds, so the
+// query layer collapses them:
+//   - same category + same normalised name/brand within this range → one place
+//   - an unnamed row this close to an already-kept same-category row is
+//     almost always the node/way double of it, not a second real place
+const DUP_NAMED_M = 150
+const DUP_UNNAMED_M = 30
 
 // Whether a city has been seeded at all changes only when someone re-runs the
-// ingestion script, so this can be cached hard.
+// ingestion script (which now busts these keys on completion — see
+// scripts/fetch-osm-pois.mjs), so this can be cached hard.
 const COVERAGE_TTL_S = 60 * 60
+
+// The bbox scan pages until it has genuinely seen the whole box. This ceiling
+// is a runaway backstop, not a working limit — if it ever trips, the result
+// says so via `truncated` instead of silently undercounting. The previous
+// implementation took an UN-ordered 2000-row slice, which in a dense cell
+// could drop the true nearest POI entirely.
+const PAGE_SIZE = 2000
+const MAX_ROWS = 20_000
 
 /**
  * Has PoiIndex been seeded for this city?
@@ -48,6 +76,136 @@ export async function poiCoverage(city) {
 }
 
 /**
+ * When the city's OSM data was last fetched — the honest `fetchedAt` for the
+ * OpenStreetMap source line. Null when unknown (never fabricated).
+ */
+export async function poiFreshness(city) {
+  if (!city) return null
+  const key = `spatial:poifresh:${city}`
+  const cached = await cacheGet(key)
+  if (cached?.v !== undefined) return cached.v
+
+  try {
+    const agg = await prisma.poiIndex.aggregate({ where: { city }, _max: { fetchedAt: true } })
+    const iso = agg._max.fetchedAt ? agg._max.fetchedAt.toISOString().slice(0, 10) : null
+    // Wrapped in { v } — cacheGet collapses "miss" and "stored null" otherwise.
+    await cacheSet(key, { v: iso }, COVERAGE_TTL_S)
+    return iso
+  } catch (err) {
+    intelError('spatial.poi_freshness_failed', err, { city })
+    return null
+  }
+}
+
+/** The OSM source line for envelopes, with the city's real fetch date on it. */
+export async function osmSourceMeta(city) {
+  return { ...OSM_POI_SOURCE, fetchedAt: await poiFreshness(city) }
+}
+
+/**
+ * Fetch every row in a bbox, paging by id so the scan is exhaustive and
+ * deterministic. Returns { rows, truncated } — truncated only at MAX_ROWS.
+ */
+async function bboxScan(where, select) {
+  const rows = []
+  let cursor = null
+  for (;;) {
+    const page = await prisma.poiIndex.findMany({
+      where,
+      select: { id: true, ...select },
+      orderBy: { id: 'asc' },
+      take: PAGE_SIZE,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    })
+    rows.push(...page)
+    if (page.length < PAGE_SIZE) return { rows, truncated: false }
+    if (rows.length >= MAX_ROWS) return { rows, truncated: true }
+    cursor = page[page.length - 1].id
+  }
+}
+
+function normalizedName(poi) {
+  const raw = poi.name ?? poi.brand ?? null
+  return raw ? raw.toLowerCase().replace(/\s+/g, ' ').trim() : null
+}
+
+/**
+ * Collapse node/way doubles within one category's distance-sorted list.
+ * The list is nearest-first, so the kept copy is always the nearest one.
+ *
+ * Comparing every pair would be O(n²), and landContext scans 5 km where
+ * `retail` runs to thousands of rows. The input is sorted by distance from
+ * the origin, so the triangle inequality bounds the search: if two POIs'
+ * distances-from-origin differ by more than the duplicate radius, they are
+ * necessarily farther apart than it and cannot be duplicates. Walking `kept`
+ * backwards and breaking on that gap turns this into a narrow window scan.
+ */
+export function dedupeCategory(sorted) {
+  const kept = []
+  for (const poi of sorted) {
+    const name = normalizedName(poi)
+    let isDup = false
+
+    for (let i = kept.length - 1; i >= 0; i--) {
+      const k = kept[i]
+      if (poi.distanceM - k.distanceM > DUP_NAMED_M) break // nothing earlier can match
+      const d = haversineMeters(poi.lat, poi.lng, k.lat, k.lng)
+      if (name ? normalizedName(k) === name && d <= DUP_NAMED_M : d <= DUP_UNNAMED_M) {
+        isDup = true
+        break
+      }
+    }
+
+    if (!isDup) kept.push(poi)
+  }
+  return kept
+}
+
+/**
+ * The nearest result worth headlining, from a distance-sorted list.
+ *
+ * Two preferences, both confined to a 150 m band around the absolute nearest
+ * so the answer never stops being "the nearest one" in any meaningful sense:
+ *
+ *   1. A NAMED place beats an anonymous point. "Apollo Pharmacy — 300 m" is
+ *      both more useful and more checkable than "pharmacy — 200 m".
+ *   2. A place from a preferred sub-category beats a lesser one. Modules that
+ *      merge categories ask for this: lifestyle's "Healthcare" spans hospitals
+ *      and clinics, and a hospital 450 m away is a better answer to that
+ *      question than a single doctor's office at 430 m.
+ *
+ * Outside the band the raw nearest still wins — a hospital 2 km away is not a
+ * better answer than a clinic next door, whatever it says on the building.
+ *
+ * @param {Array} hits  distance-sorted
+ * @param {{prefer?: string[]}} [opts]  category keys, best first
+ */
+export function pickNearest(hits, { prefer } = {}) {
+  if (!hits?.length) return null
+  const nearest = hits[0]
+  const band = nearest.distanceM + DUP_NAMED_M
+  const inBand = hits.filter((h) => h.distanceM <= band)
+  if (inBand.length === 1) return nearest
+
+  const rank = (h) => {
+    const tier = prefer?.length ? prefer.indexOf(h.category) : -1
+    return {
+      // Unranked categories sort after ranked ones rather than before.
+      tier: tier === -1 ? Number.MAX_SAFE_INTEGER : tier,
+      named: h.name ? 0 : 1,
+    }
+  }
+
+  return inBand.reduce((best, h) => {
+    const a = rank(h)
+    const b = rank(best)
+    if (a.tier !== b.tier) return a.tier < b.tier ? h : best
+    if (a.named !== b.named) return a.named < b.named ? h : best
+    return h.distanceM < best.distanceM ? h : best
+  }, nearest)
+}
+
+/**
  * POIs within a radius, grouped by category.
  *
  * @param {number} lat
@@ -57,13 +215,15 @@ export async function poiCoverage(city) {
  * @param {string} city  used only to tell "not seeded" from "nothing here"
  * @returns {Promise<{
  *   available: boolean,
- *   byCategory: Record<string, Array<{name: string|null, distanceM: number}>>,
+ *   byCategory: Record<string, Array<{name, distanceM, lat, lng}>>,
  *   total: number,
+ *   truncated: boolean,
  *   sparselyMapped: boolean,
+ *   fetchedAt: string|null,
  * }>}
  */
 export async function poisNear(lat, lng, radiusM, categories, city) {
-  const empty = { available: false, byCategory: {}, total: 0, sparselyMapped: false }
+  const empty = { available: false, byCategory: {}, total: 0, truncated: false, sparselyMapped: false, fetchedAt: null }
 
   const coverage = await poiCoverage(city)
   if (coverage === 0) return empty
@@ -75,36 +235,45 @@ export async function poisNear(lat, lng, radiusM, categories, city) {
   const dLng = radiusM / (DEG_LAT_M * Math.cos((lat * Math.PI) / 180))
 
   try {
-    const rows = await prisma.poiIndex.findMany({
-      where: {
+    const { rows, truncated } = await bboxScan(
+      {
         category: { in: categories },
         lat: { gte: lat - dLat, lte: lat + dLat },
         lng: { gte: lng - dLng, lte: lng + dLng },
       },
-      select: { category: true, name: true, lat: true, lng: true },
-      // A cell with thousands of restaurants in range doesn't need all of
-      // them to answer "how far is the nearest, and how many are there" —
-      // but the cap must be high enough that the count stays honest.
-      take: 2000,
-    })
+      { category: true, name: true, brand: true, lat: true, lng: true }
+    )
 
     const byCategory = {}
-    let total = 0
-
     for (const row of rows) {
-      const distanceM = Math.round(haversineMeters(lat, lng, Number(row.lat), Number(row.lng)))
+      const pLat = Number(row.lat)
+      const pLng = Number(row.lng)
+      const distanceM = Math.round(haversineMeters(lat, lng, pLat, pLng))
       if (distanceM > radiusM) continue // trim the bbox corners
-      ;(byCategory[row.category] ??= []).push({ name: row.name, distanceM })
-      total++
+      // `category` travels on the item too, not just as the map key: modules
+      // that merge categories (lifestyle's Healthcare = hospital + clinic)
+      // flatten these lists and would otherwise lose which one a hit came
+      // from — which is what pickNearest needs to prefer a hospital over a
+      // doctors' office at comparable distance.
+      ;(byCategory[row.category] ??= []).push({
+        name: row.name, brand: row.brand, category: row.category, distanceM, lat: pLat, lng: pLng,
+      })
     }
 
-    for (const list of Object.values(byCategory)) list.sort((a, b) => a.distanceM - b.distanceM)
+    let total = 0
+    for (const [cat, list] of Object.entries(byCategory)) {
+      list.sort((a, b) => a.distanceM - b.distanceM)
+      byCategory[cat] = dedupeCategory(list)
+      total += byCategory[cat].length
+    }
 
     return {
       available: true,
       byCategory,
       total,
-      sparselyMapped: total < SPARSE_MAPPING_THRESHOLD,
+      truncated,
+      sparselyMapped: !truncated && total < sparseThreshold(radiusM),
+      fetchedAt: await poiFreshness(city),
     }
   } catch (err) {
     intelError('spatial.poi_query_failed', err, { city })
@@ -146,39 +315,46 @@ export async function listPoisNear(lat, lng, categories, radiusM, city) {
   const dLng = radiusM / (DEG_LAT_M * Math.cos((lat * Math.PI) / 180))
 
   try {
-    const rows = await prisma.poiIndex.findMany({
-      where: {
+    const { rows, truncated } = await bboxScan(
+      {
         category: { in: categories },
         lat: { gte: lat - dLat, lte: lat + dLat },
         lng: { gte: lng - dLng, lte: lng + dLng },
       },
-      select: {
+      {
         category: true, name: true, brand: true, openingHours: true,
         lat: true, lng: true,
-      },
-      take: 2000,
-    })
+      }
+    )
 
-    const pois = []
+    const byCategory = {}
     for (const row of rows) {
-      const distanceM = Math.round(haversineMeters(lat, lng, Number(row.lat), Number(row.lng)))
+      const pLat = Number(row.lat)
+      const pLng = Number(row.lng)
+      const distanceM = Math.round(haversineMeters(lat, lng, pLat, pLng))
       if (distanceM > radiusM) continue
-      pois.push({
+      ;(byCategory[row.category] ??= []).push({
         name: row.name,
         brand: row.brand,
         openingHours: row.openingHours,
         category: row.category,
-        lat: Number(row.lat),
-        lng: Number(row.lng),
+        lat: pLat,
+        lng: pLng,
         distanceM,
       })
+    }
+
+    const pois = []
+    for (const list of Object.values(byCategory)) {
+      list.sort((a, b) => a.distanceM - b.distanceM)
+      pois.push(...dedupeCategory(list))
     }
     pois.sort((a, b) => a.distanceM - b.distanceM)
 
     return {
       available: true,
       total: pois.length,
-      truncated: pois.length > LIST_LIMIT,
+      truncated: truncated || pois.length > LIST_LIMIT,
       pois: pois.slice(0, LIST_LIMIT),
     }
   } catch (err) {

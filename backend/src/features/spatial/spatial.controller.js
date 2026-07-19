@@ -4,6 +4,7 @@ import * as service from './spatial.service.js'
 import { listPoisNear } from './poiProvider.js'
 import { CATEGORY_KEYS } from './poiCategories.js'
 import { walkMinutes, WALK_METHOD, MAX_WALK_PHRASE_M } from './proximity.js'
+import { openState } from './openingHours.js'
 import { resolveCity } from '../../config/cityCenters.js'
 
 // The detail lists cover "what a person would go to from home" distances.
@@ -98,6 +99,12 @@ export async function poisNear(req, res, next) {
         ...p,
         // Estimated, and only where calling it a walk is honest.
         walkMinutes: p.distanceM <= MAX_WALK_PHRASE_M ? walkMinutes(p.distanceM) : null,
+        // 'open' | 'closed' | null. null means the hours are absent or in a
+        // form we won't guess at — the client renders that as unknown, never
+        // as closed. Deliberately NOT used to sort or filter: OSM hours
+        // coverage in India is thin, so ranking on it would bury well-mapped
+        // places beneath unmapped ones for no reason a user would accept.
+        openState: openState(p.openingHours),
       })),
     })
   } catch (err) { next(err) }

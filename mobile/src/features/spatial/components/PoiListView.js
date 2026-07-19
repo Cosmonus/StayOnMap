@@ -154,6 +154,19 @@ export default function PoiListView({ moduleKey, lat, lng }) {
                         {!!p.openingHours && (
                           <View style={styles.hoursRow}>
                             <Clock size={10} color={colors.slate400} />
+                            {/* Only when the backend read the hours with
+                                confidence. Absent means unknown — never shown
+                                as closed. */}
+                            {!!p.openState && (
+                              <Text
+                                style={[
+                                  styles.openBadge,
+                                  p.openState === 'open' ? styles.openNow : styles.closedNow,
+                                ]}
+                              >
+                                {p.openState === 'open' ? 'Open now' : 'Closed now'}
+                              </Text>
+                            )}
                             <Text style={styles.hours} numberOfLines={1}>{p.openingHours}</Text>
                           </View>
                         )}
@@ -223,6 +236,12 @@ const styles = StyleSheet.create({
   poiMeta: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 2 },
   hoursRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   hours: { flex: 1, fontFamily: fonts.body, fontSize: 10, color: colors.slate400 },
+  openBadge: {
+    fontFamily: fonts.bodySemiBold, fontSize: 9, paddingHorizontal: 4,
+    paddingVertical: 1, borderRadius: radius.sm, overflow: 'hidden',
+  },
+  openNow: { backgroundColor: colors.brand50, color: colors.brand700 },
+  closedNow: { backgroundColor: colors.slate100, color: colors.slate500 },
   directions: {
     width: 34, height: 34, borderRadius: radius.md, backgroundColor: colors.slate50,
     alignItems: 'center', justifyContent: 'center',
