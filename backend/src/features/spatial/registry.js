@@ -11,6 +11,8 @@ import mobility from './modules/mobility.module.js'
 import lifestyle from './modules/lifestyle.module.js'
 import infrastructure from './modules/infrastructure.module.js'
 import environment from './modules/environment.module.js'
+import terrain from './modules/terrain.module.js'
+import locality from './modules/locality.module.js'
 import commerce from './modules/commerce.module.js'
 import stayContext from './modules/stayContext.module.js'
 import pgContext from './modules/pgContext.module.js'
@@ -18,6 +20,8 @@ import landContext from './modules/landContext.module.js'
 import { appliesToType } from './propertyTypes.js'
 
 export const MODULES = [
+  // First: what this place IS, before anything about what is near it.
+  locality,
   // Universal — every type needs to get somewhere and breathe something.
   mobility,
   // Type-specific. Each declares `appliesTo`; a listing only ever sees the
@@ -30,6 +34,9 @@ export const MODULES = [
   landContext,
   infrastructure,
   environment,
+  // Terrain last: it is the module most likely to be misread as a risk score,
+  // so it sits after the things a renter came for rather than above them.
+  terrain,
   // Phase 3: costOfLiving, propertyIntelligence.
   // See docs/spatial-intelligence.md §8.
 ]

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { RefreshCw } from 'lucide-react'
 import { adminService } from '@services/admin.service'
+import DataQualityPanel from './DataQualityPanel'
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -466,6 +467,7 @@ export default function AdminMonitorSection() {
             <UsersCard userByRole={data.userByRole} blockedUsers={data.blockedUsers} />
             <AppointmentsCard appointmentByStatus={data.appointmentByStatus} />
           </div>
+          <DataQualityPanel />
           <RecentActivitySection activity={data.recentActivity} />
         </>
       )}

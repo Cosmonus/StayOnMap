@@ -18,17 +18,29 @@ import SummaryStrip from './SummaryStrip'
 // HERE, not per-card, so the summary-strip chips and the cards share one
 // sheet. Cards stack in a single column — this is a phone.
 const ORDER = [
+  'locality',
   'mobility',
   'lifestyle', 'commerce', 'pgContext', 'stayContext', 'landContext',
-  'infrastructure', 'environment', 'costOfLiving',
+  'infrastructure', 'environment', 'terrain', 'costOfLiving',
 ]
+
+/**
+ * Order the modules the backend sent, WITHOUT dropping unknown keys.
+ * Mirror of web's inRenderOrder — see that file for why: the previous
+ * `ORDER.map(...)` silently discarded any module not in the list, so a new
+ * backend module rendered nowhere at all.
+ */
+function inRenderOrder(modules) {
+  const known = ORDER.filter((key) => modules[key])
+  const unknown = Object.keys(modules).filter((key) => !ORDER.includes(key))
+  return [...known, ...unknown].map((key) => modules[key])
+}
 
 export default function SpatialContextPanel({ context, coords, children }) {
   const [openEnvelope, setOpenEnvelope] = useState(null)
   const modules = context?.modules ?? {}
 
-  const envelopes = ORDER
-    .map((key) => modules[key])
+  const envelopes = inRenderOrder(modules)
     .filter(Boolean)
     // A module with nothing to say AND nothing to explain is chrome. One that
     // knows why it's silent is kept — that's information.

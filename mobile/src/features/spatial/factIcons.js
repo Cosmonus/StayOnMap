@@ -8,6 +8,8 @@ import {
   MapPin, Construction,
   Plane, Camera, Hotel,
   Shield, Siren, Shirt,
+  Thermometer, CloudRain, Umbrella,
+  Mountain, MoveVertical, Waves, Map,
   CircleDot,
 } from 'lucide-react-native'
 
@@ -52,6 +54,21 @@ const FACT_ICONS = {
   pm25_typical:        CalendarRange,
   pm25_bad_days:       CloudFog,
   pm10_now:            Wind,
+  annual_temp:         Thermometer,
+  annual_rainfall:     CloudRain,
+  rain_concentration:  Umbrella,
+
+  // ── terrain ───────────────────────────────────────────────────────────────
+  elevation:           Mountain,
+  relative_height:     MoveVertical,
+  local_relief:        Waves,
+
+  // ── locality ──────────────────────────────────────────────────────────────
+  // Keyed by OSM admin level, so the shape is admin_<n> rather than a name.
+  admin_6:             Map,
+  admin_8:             Building2,
+  admin_9:             MapPin,
+  admin_10:            MapPin,
 
   // ── commerce ──────────────────────────────────────────────────────────────
   trade_density:       Store,

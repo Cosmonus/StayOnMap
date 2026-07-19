@@ -1,5 +1,6 @@
 import {
   BusFront, Footprints, Landmark, Wind, Wallet, Store, BedDouble, Hotel, Trees,
+  MapPin, Mountain,
 } from 'lucide-react'
 
 // Presentation metadata for each spatial module: a title, an icon, and the
@@ -14,10 +15,15 @@ import {
 // contents rather than teasing them. The assessment shown underneath is the
 // real answer, so the hook and the payoff are the same thing.
 export const MODULE_META = {
+  locality:       { title: 'Where this is',    prompt: 'Which ward and zone does this address fall in?',   Icon: MapPin },
   mobility:       { title: 'Getting around',   prompt: 'Transit, walking distance and rush-hour traffic',  Icon: BusFront },
   lifestyle:      { title: 'Daily life',       prompt: 'Could you live here without a car?',               Icon: Footprints },
   infrastructure: { title: 'Infrastructure',   prompt: 'Banks, fuel and charging — what’s actually nearby?', Icon: Landmark },
   environment:    { title: 'Environment',      prompt: 'What are you breathing here?',                     Icon: Wind },
+  // Phrased as drainage, not flood risk — the module deliberately does not
+  // claim the latter, and a prompt promising it would write a cheque the card
+  // cannot cash. See backend terrain.module.js.
+  terrain:        { title: 'Lie of the land',  prompt: 'Where does the water go when it rains?',           Icon: Mountain },
   costOfLiving:   { title: 'Cost of living',   prompt: 'What does this address cost beyond rent?',         Icon: Wallet },
 
   // Type-specific. A listing only ever receives the modules relevant to it —
