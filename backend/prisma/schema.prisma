@@ -1075,3 +1075,113 @@ model PoiIndex {
   @@index([category, lat, lng])
   @@index([city])
 }
+
+// Administrative boundaries from OpenStreetMap — wards, zones, districts.
+//
+// Two jobs. First, a cell can say where it actually IS ("Ward 173, Adyar
+// Zone") instead of only what is near it. Second, and the reason the geometry
+// is stored rather than just a name: an Indian ward is the unit civic data is
+// published against, so this is the join key demographics will need. Storing
+// only the resolved name would make that join impossible later.
+//
+// Still no PostGIS. The bbox columns below are a btree prefilter — typically
+// a handful of candidate polygons — and ray-casting point-in-polygon runs in
+// JS on those few. Same shape as PoiIndex's bbox-then-haversine, and the same
+// tipping points apply (docs/spatial-intelligence.md §3).
+//
+// Seeded by scripts/fetch-osm-boundaries.mjs. Empty in a fresh checkout: the
+// locality module then reports UNAVAILABLE, which reads as "we don't know
+// which ward this is", never as "this place has no ward".
+model Boundary {
+  id         String @id @default(cuid())
+  // OSM relation identity, e.g. "relation/1234567" — unique so a re-run
+  // updates in place instead of duplicating the dataset.
+  osmId      String @unique
+  name       String
+  // name:en where a mapper recorded one. Indian boundaries are frequently
+  // tagged only in the state language; carrying both lets the UI show a
+  // readable name without discarding the official one.
+  nameLocal  String?
+  // OSM's scale: 4=state, 5/6=district, 8=municipality, 9/10=ward/zone.
+  // Kept as OSM's own numbering rather than remapped to our own vocabulary —
+  // the numbers are the thing every other OSM consumer and the source data
+  // itself speak, and a private renumbering would need translating back on
+  // every refetch.
+  adminLevel Int
+  city       String?
+  source     String @default("openstreetmap")
+
+  // GeoJSON coordinate rings (Polygon or MultiPolygon). Json for the same
+  // reason SpatialContext.modules is: read whole, never filtered on.
+  geometry   Json
+
+  // The prefilter. Real indexed columns precisely because this IS the filter —
+  // the rule PoiIndex's comment states, applied.
+  minLat Decimal @db.Decimal(10, 7)
+  maxLat Decimal @db.Decimal(10, 7)
+  minLng Decimal @db.Decimal(10, 7)
+  maxLng Decimal @db.Decimal(10, 7)
+
+  ingestedAt DateTime @default(now())
+
+  @@index([adminLevel, minLat, maxLat])
+  @@index([city])
+}
+
+// 30-year monthly climate normals (WMO 1991-2020) from ERA5 reanalysis.
+//
+// Keyed at geohash precision 5 (~4.9 km), NOT the layer's usual precision 7
+// (~153 m), and that is a deliberate honesty decision rather than an
+// optimisation. ERA5's native grid is ~28 km; resolving normals to 153 m would
+// manufacture ~180 distinct-looking values out of one real number and make a
+// city-wide figure look like a street-level one — the exact failure the urban
+// heat note in environment.module.js refuses to ship. Precision 5 is still
+// finer than the source, but close enough that the shape of the claim matches
+// the shape of the data.
+//
+// A real table rather than a field on SpatialContext because these rows are
+// shared by thousands of cells and refresh on a decade scale, not a daily one.
+model WeatherNormal {
+  id       String @id @default(cuid())
+  geohash  String // precision 5, ~4.9km
+  lat      Decimal @db.Decimal(10, 7)
+  lng      Decimal @db.Decimal(10, 7)
+  variable String // 'temp_mean' | 'precip_sum'
+  month    Int    // 1-12
+  value    Float
+  source   String @default("open-meteo-era5")
+
+  ingestedAt DateTime @default(now())
+
+  @@unique([geohash, variable, month])
+  @@index([geohash])
+}
+
+// One row per ETL run, per dataset.
+//
+// The gap this closes: a partially-failed OSM fetch is currently invisible.
+// The seeder prints a warning to a terminal nobody kept, the table ends up
+// thinner than it should be, and the only symptom is a POI list that looks a
+// bit sparse — indistinguishable from an area that genuinely is sparse, which
+// is the one ambiguity this whole layer exists to avoid.
+model DataQualityReport {
+  id      String @id @default(cuid())
+  dataset String // 'poi_index' | 'boundaries' | 'weather_normals'
+  // City, or null for a run that isn't city-scoped.
+  scope   String?
+  runAt   DateTime @default(now())
+
+  recordCount Int
+  // % of rows carrying the fields that make a row useful — for POIs, a name.
+  // Null when the dataset has no meaningful notion of partial completeness.
+  completenessPct Float?
+  // False when the run knew it was incomplete (a failed tile, a dead
+  // endpoint). The single most important column here: it separates "this area
+  // is sparse" from "we failed to fetch it".
+  complete Boolean @default(true)
+
+  // Per-dataset detail — category counts, failed tiles, endpoints tried.
+  notes Json?
+
+  @@index([dataset, runAt])
+}

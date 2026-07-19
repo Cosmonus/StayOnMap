@@ -1,4 +1,5 @@
 import * as service from './admin.service.js'
+import { latestReports } from '../spatial/dataQuality.js'
 import { ok, created } from '../../utils/response.js'
 
 export async function login(req, res, next) {
@@ -54,6 +55,9 @@ export async function removeAmenity(req, res, next) {
 }
 export async function getMonitorStatus(req, res, next) {
   try { ok(res, await service.getMonitorStatus()) } catch (err) { next(err) }
+}
+export async function getDataQuality(req, res, next) {
+  try { ok(res, await latestReports()) } catch (err) { next(err) }
 }
 export async function getProfile(req, res, next) {
   try { ok(res, await service.getAdminProfile(req.admin.sub)) } catch (err) { next(err) }

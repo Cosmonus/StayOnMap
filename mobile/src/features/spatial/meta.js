@@ -1,4 +1,4 @@
-import { BusFront, Footprints, Landmark, Wind, Wallet, Store, BedDouble, Hotel, Trees } from 'lucide-react-native'
+import { BusFront, Footprints, Landmark, Wind, Wallet, Store, BedDouble, Hotel, Trees, MapPin, Mountain } from 'lucide-react-native'
 import { colors } from '@theme/colors'
 
 // Presentation metadata for each spatial module — the RN mirror of
@@ -11,10 +11,14 @@ import { colors } from '@theme/colors'
 // backend module/fact keys, and pushing ~40 of them into the app-wide semantic
 // registry would pollute it for every other caller. Same choice as factIcons.js.
 export const MODULE_META = {
+  locality:       { title: 'Where this is',    prompt: 'Which ward and zone does this address fall in?',   Icon: MapPin },
   mobility:       { title: 'Getting around',   prompt: 'Transit, walking distance and rush-hour traffic',  Icon: BusFront },
   lifestyle:      { title: 'Daily life',       prompt: 'Could you live here without a car?',               Icon: Footprints },
   infrastructure: { title: 'Infrastructure',   prompt: 'Banks, fuel and charging — what’s actually nearby?', Icon: Landmark },
   environment:    { title: 'Environment',      prompt: 'What are you breathing here?',                     Icon: Wind },
+  // Drainage, not flood risk — the module deliberately does not claim the
+  // latter. See backend terrain.module.js.
+  terrain:        { title: 'Lie of the land',  prompt: 'Where does the water go when it rains?',           Icon: Mountain },
   costOfLiving:   { title: 'Cost of living',   prompt: 'What does this address cost beyond rent?',         Icon: Wallet },
 
   // Type-specific — the backend filters by property type, so a shop never
