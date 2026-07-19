@@ -90,3 +90,13 @@ coverage/
 *.tsbuildinfo
 
 graphify-out/
+
+# ─────────────────────────────────────────────
+# Metro data engine workspace — raw Overpass caches and intermediate
+# candidates are re-derivable scratch (MBs per city); the committed engine
+# state is metro-curation.json, metro-structure-snapshot.json,
+# metro-qa-report.json and the shipped src/data/metro-lines/ files.
+# ─────────────────────────────────────────────
+backend/data/metro-raw/
+backend/data/metro-candidates/
+backend/data/metro-compare/

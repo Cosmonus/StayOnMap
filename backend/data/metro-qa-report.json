@@ -1,0 +1,295 @@
+{
+  "generatedAt": "2026-07-19T06:57:56.527Z",
+  "healthScore": 100,
+  "citiesChecked": 9,
+  "linesChecked": 42,
+  "stationsChecked": 741,
+  "newWarningCount": 0,
+  "knownWarningCount": 25,
+  "resolvedBaselineCount": 0,
+  "cities": [
+    {
+      "city": "Ahmedabad",
+      "verdict": "valid",
+      "lines": 4,
+      "stations": 53,
+      "errors": 0,
+      "newWarnings": 0,
+      "knownWarnings": 0,
+      "meta": {
+        "source": "overpass",
+        "fetchedAt": "2026-07-19T06:22:12.746Z",
+        "overpassEndpoint": "https://overpass-api.de/api/interpreter",
+        "osmDataTimestamp": "2026-07-19T06:20:34Z",
+        "parsedAt": "2026-07-19T06:55:46.544Z",
+        "engineVersion": 1,
+        "curationApplied": [],
+        "excludedRelations": []
+      },
+      "gate": {
+        "pass": true,
+        "reasons": []
+      },
+      "summary": "Ahmedabad ✅ Valid, 4 routes, 53 stations, 0 errors"
+    },
+    {
+      "city": "Bengaluru",
+      "verdict": "valid",
+      "lines": 3,
+      "stations": 84,
+      "errors": 0,
+      "newWarnings": 0,
+      "knownWarnings": 0,
+      "meta": {
+        "source": "overpass",
+        "fetchedAt": "2026-07-19T06:25:22.417Z",
+        "overpassEndpoint": "https://overpass.kumi.systems/api/interpreter",
+        "osmDataTimestamp": "2026-07-02T16:51:45Z",
+        "parsedAt": "2026-07-19T06:55:49.397Z",
+        "engineVersion": 1,
+        "curationApplied": [],
+        "excludedRelations": []
+      },
+      "gate": {
+        "pass": true,
+        "reasons": []
+      },
+      "summary": "Bengaluru ✅ Valid, 3 routes, 84 stations, 0 errors"
+    },
+    {
+      "city": "Chennai",
+      "verdict": "valid",
+      "lines": 2,
+      "stations": 41,
+      "errors": 0,
+      "newWarnings": 0,
+      "knownWarnings": 0,
+      "meta": {
+        "source": "overpass",
+        "fetchedAt": "2026-07-19T06:24:03.776Z",
+        "overpassEndpoint": "https://overpass-api.de/api/interpreter",
+        "osmDataTimestamp": "2026-07-19T06:22:37Z",
+        "parsedAt": "2026-07-19T06:55:47.143Z",
+        "engineVersion": 1,
+        "curationApplied": [
+          "chennai-inter-corridor-not-open"
+        ],
+        "excludedRelations": [
+          {
+            "id": 12824257,
+            "name": "Line 3: Madhavaram → SIPCOT (u/c)",
+            "reason": "construction=route"
+          },
+          {
+            "id": 12824987,
+            "name": "Yellow Line: Light House → Poonamallee Bypass",
+            "reason": "construction=route"
+          },
+          {
+            "id": 12828618,
+            "name": "Line 5: Madhavaram → Shozhinganallur (u/c)",
+            "reason": "construction=route"
+          },
+          {
+            "id": 12940680,
+            "name": "Yellow Line: Poonamallee Bypass → Light House",
+            "reason": "construction=route"
+          },
+          {
+            "id": 12940681,
+            "name": "Line 5: Shozhinganallur → Madhavaram (u/c)",
+            "reason": "construction=route"
+          },
+          {
+            "id": 12940682,
+            "name": "Line 3: SIPCOT → Madhavaram (u/c)",
+            "reason": "construction=route"
+          },
+          {
+            "id": 18214852,
+            "name": "Inter-Corridor Line (Chennai International Airport → Chennai Central)",
+            "reason": "curation chennai-inter-corridor-not-open (pattern Inter-Corridor): Phase-2 service pattern, not operational. User-confirmed 2026-07-04 that Chennai runs only Blue + Green lines; OSM tags these relations as operational with no lifecycle marker, so the tag filter cannot catch them."
+          },
+          {
+            "id": 18214853,
+            "name": "Inter-Corridor Line: Chennai Central → Chennai International Aiirport",
+            "reason": "curation chennai-inter-corridor-not-open (pattern Inter-Corridor): Phase-2 service pattern, not operational. User-confirmed 2026-07-04 that Chennai runs only Blue + Green lines; OSM tags these relations as operational with no lifecycle marker, so the tag filter cannot catch them."
+          }
+        ]
+      },
+      "gate": {
+        "pass": true,
+        "reasons": []
+      },
+      "summary": "Chennai ✅ Valid, 2 routes, 41 stations, 0 errors"
+    },
+    {
+      "city": "Delhi",
+      "verdict": "valid",
+      "lines": 16,
+      "stations": 297,
+      "errors": 0,
+      "newWarnings": 0,
+      "knownWarnings": 12,
+      "meta": {
+        "source": "overpass",
+        "fetchedAt": "2026-07-19T06:22:36.605Z",
+        "overpassEndpoint": "https://overpass-api.de/api/interpreter",
+        "osmDataTimestamp": "2026-07-19T06:20:34Z",
+        "parsedAt": "2026-07-19T06:55:51.424Z",
+        "engineVersion": 1,
+        "curationApplied": [
+          "delhi-meerut-metro-line-1-name"
+        ],
+        "excludedRelations": []
+      },
+      "gate": {
+        "pass": true,
+        "reasons": []
+      },
+      "summary": "Delhi ✅ Valid, 16 routes, 297 stations, 0 errors, 12 known warnings"
+    },
+    {
+      "city": "Hyderabad",
+      "verdict": "valid",
+      "lines": 3,
+      "stations": 58,
+      "errors": 0,
+      "newWarnings": 0,
+      "knownWarnings": 1,
+      "meta": {
+        "source": "overpass",
+        "fetchedAt": "2026-07-19T06:25:39.421Z",
+        "overpassEndpoint": "https://overpass-api.de/api/interpreter",
+        "osmDataTimestamp": "2026-07-19T06:23:40Z",
+        "parsedAt": "2026-07-19T06:55:48.472Z",
+        "engineVersion": 1,
+        "curationApplied": [],
+        "excludedRelations": []
+      },
+      "gate": {
+        "pass": true,
+        "reasons": []
+      },
+      "summary": "Hyderabad ✅ Valid, 3 routes, 58 stations, 0 errors, 1 known warning"
+    },
+    {
+      "city": "Kolkata",
+      "verdict": "valid",
+      "lines": 5,
+      "stations": 56,
+      "errors": 0,
+      "newWarnings": 0,
+      "knownWarnings": 6,
+      "meta": {
+        "source": "overpass",
+        "fetchedAt": "2026-07-19T06:23:54.347Z",
+        "overpassEndpoint": "https://overpass-api.de/api/interpreter",
+        "osmDataTimestamp": "2026-07-19T06:22:37Z",
+        "parsedAt": "2026-07-19T06:55:47.810Z",
+        "engineVersion": 1,
+        "curationApplied": [],
+        "excludedRelations": []
+      },
+      "gate": {
+        "pass": true,
+        "reasons": []
+      },
+      "summary": "Kolkata ✅ Valid, 5 routes, 56 stations, 0 errors, 6 known warnings"
+    },
+    {
+      "city": "Mumbai",
+      "verdict": "valid",
+      "lines": 7,
+      "stations": 90,
+      "errors": 0,
+      "newWarnings": 0,
+      "knownWarnings": 0,
+      "meta": {
+        "source": "overpass",
+        "fetchedAt": "2026-07-19T06:23:46.163Z",
+        "overpassEndpoint": "https://overpass.kumi.systems/api/interpreter",
+        "osmDataTimestamp": "2026-06-12T12:14:17Z",
+        "parsedAt": "2026-07-19T06:55:50.616Z",
+        "engineVersion": 1,
+        "curationApplied": [
+          "mumbai-kharghar-village-typo",
+          "mumbai-line-11-under-construction:"
+        ],
+        "excludedRelations": [
+          {
+            "id": 7898711,
+            "name": "Pink Line",
+            "reason": "route=construction"
+          },
+          {
+            "id": 7898712,
+            "name": "Dahisar to Mandale Metro Line 2",
+            "reason": "route=construction"
+          },
+          {
+            "id": 7898732,
+            "name": "Green Line (u/c)",
+            "reason": "construction=subway"
+          },
+          {
+            "id": 7898769,
+            "name": "Red Line",
+            "reason": "route=construction"
+          },
+          {
+            "id": 19233909,
+            "name": "Mumbai Metro Line 11",
+            "reason": "curation mumbai-line-11-under-construction: Mumbai Metro Line 11 (Wadala–CSMT) is under construction, not operational. OSM tags the relation route=subway with no lifecycle marker; corroborating evidence: no route_master groups it and it carries zero role-tagged stop members. It shipped in the pre-engine data only because the original fetch had no lifecycle filtering."
+          }
+        ]
+      },
+      "gate": {
+        "pass": true,
+        "reasons": []
+      },
+      "summary": "Mumbai ✅ Valid, 7 routes, 90 stations, 0 errors"
+    },
+    {
+      "city": "Pune",
+      "verdict": "valid",
+      "lines": 2,
+      "stations": 28,
+      "errors": 0,
+      "newWarnings": 0,
+      "knownWarnings": 6,
+      "meta": {
+        "source": "overpass",
+        "fetchedAt": "2026-07-19T06:25:48.585Z",
+        "overpassEndpoint": "https://overpass-api.de/api/interpreter",
+        "osmDataTimestamp": "2026-07-19T06:23:40Z",
+        "parsedAt": "2026-07-19T06:55:49.979Z",
+        "engineVersion": 1,
+        "curationApplied": [],
+        "excludedRelations": []
+      },
+      "gate": {
+        "pass": true,
+        "reasons": []
+      },
+      "summary": "Pune ✅ Valid, 2 routes, 28 stations, 0 errors, 6 known warnings"
+    },
+    {
+      "city": "Surat",
+      "verdict": "valid",
+      "lines": 0,
+      "stations": 34,
+      "errors": 0,
+      "newWarnings": 0,
+      "knownWarnings": 0,
+      "meta": null,
+      "gate": {
+        "pass": false,
+        "reasons": [
+          "candidate is empty while shipped data has content (e.g. a failed/empty fetch) — nothing to promote"
+        ]
+      },
+      "summary": "Surat ✅ Valid, 0 routes, 34 stations, 0 errors"
+    }
+  ]
+}

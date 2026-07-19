@@ -1,0 +1,41 @@
+{
+  "generatedAt": "2026-07-19T06:55:51.682Z",
+  "cities": {
+    "Ahmedabad": {
+      "lines": 4,
+      "stations": 53
+    },
+    "Bengaluru": {
+      "lines": 3,
+      "stations": 84
+    },
+    "Chennai": {
+      "lines": 2,
+      "stations": 41
+    },
+    "Delhi": {
+      "lines": 16,
+      "stations": 297
+    },
+    "Hyderabad": {
+      "lines": 3,
+      "stations": 58
+    },
+    "Kolkata": {
+      "lines": 5,
+      "stations": 56
+    },
+    "Mumbai": {
+      "lines": 7,
+      "stations": 90
+    },
+    "Pune": {
+      "lines": 2,
+      "stations": 28
+    },
+    "Surat": {
+      "lines": 0,
+      "stations": 34
+    }
+  }
+}
