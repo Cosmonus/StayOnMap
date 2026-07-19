@@ -9,7 +9,7 @@
 // CANNOT do is measure footfall — nobody sells per-street pedestrian counts for
 // India — so it reports retail density as a stated proxy and says so.
 import { fact, PROVENANCE } from '../envelope.js'
-import { poisNear, OSM_POI_SOURCE } from '../poiProvider.js'
+import { poisNear, pickNearest, OSM_POI_SOURCE } from '../poiProvider.js'
 import { formatDistance } from '../proximity.js'
 
 const IMMEDIATE = 300   // the same parade of shops
@@ -28,10 +28,12 @@ const DENSITY_METHOD =
 
 export default {
   key: 'commerce',
-  // v2: counts carried as data, sparselyMapped passthrough. The 300 m facts
-  // deliberately keep plain distances — a shop on the same parade is not a
-  // "walk", it's the same stretch of street.
-  version: 2,
+  // v3: anchor/fuel facts carry `at` + place for read-time re-anchoring,
+  // node/way dedup upstream changes counts, count provenance corrected to
+  // DERIVED, and food_cheap actually matches fast food again (poiCategories.js).
+  version: 3, // v2: counts as data. The 300 m facts deliberately keep plain
+  // distances — a shop on the same parade is not a "walk", it's the same
+  // stretch of street.
   appliesTo: ['COMMERCIAL'],
   ttlHours: 24 * 30,
   // Capped: the central claim (trade activity) is a density proxy, and no
@@ -96,7 +98,7 @@ export default {
         value: competing,
         unit: 'count',
         display: `${competing} shop${competing === 1 ? '' : 's'} within ${formatDistance(IMMEDIATE)}`,
-        provenance: PROVENANCE.MEASURED,
+        provenance: PROVENANCE.DERIVED,
         source: 'osm-poi',
         count: competing,
       }))
@@ -109,7 +111,8 @@ export default {
     if (anchorHits.length) {
       inputsPresent.push('anchors')
       const nearest = anchorHits
-        .map((a) => ({ key: a.key, distanceM: a.list[0].distanceM, name: a.list[0].name }))
+        .map((a) => ({ key: a.key, hit: pickNearest(a.list) }))
+        .map((a) => ({ key: a.key, distanceM: a.hit.distanceM, name: a.hit.name, lat: a.hit.lat, lng: a.hit.lng }))
         .sort((a, b) => a.distanceM - b.distanceM)[0]
 
       facts.push(fact({
@@ -118,22 +121,29 @@ export default {
         value: nearest.distanceM,
         unit: 'm',
         display: `${ANCHOR_LABEL[nearest.key] ?? nearest.key}${nearest.name ? ` (${nearest.name})` : ''} — ${formatDistance(nearest.distanceM)}`,
-        provenance: PROVENANCE.MEASURED,
+        provenance: PROVENANCE.DERIVED,
         source: 'osm-poi',
+        at: { lat: nearest.lat, lng: nearest.lng },
+        place: nearest.name ? `${ANCHOR_LABEL[nearest.key] ?? nearest.key} (${nearest.name})` : (ANCHOR_LABEL[nearest.key] ?? nearest.key),
+        displayStyle: 'distance',
       }))
     }
 
     const fuel = catchment.byCategory?.fuel ?? []
     if (fuel.length) {
       inputsPresent.push('parking')
+      const nearestFuel = pickNearest(fuel)
       facts.push(fact({
         key: 'fuel_nearby',
         label: 'Fuel station nearby',
-        value: fuel[0].distanceM,
+        value: nearestFuel.distanceM,
         unit: 'm',
-        display: `${formatDistance(fuel[0].distanceM)} away`,
-        provenance: PROVENANCE.MEASURED,
+        display: `${formatDistance(nearestFuel.distanceM)} away`,
+        provenance: PROVENANCE.DERIVED,
         source: 'osm-poi',
+        at: { lat: nearestFuel.lat, lng: nearestFuel.lng },
+        place: nearestFuel.name ?? undefined,
+        displayStyle: 'distance',
       }))
     }
 
@@ -156,7 +166,7 @@ export default {
       assessment: assess(immediate.total, anchorHits.length),
       missing,
       inputsPresent,
-      sources: [OSM_POI_SOURCE],
+      sources: [{ ...OSM_POI_SOURCE, fetchedAt: immediate.fetchedAt }],
       sparselyMapped: immediate.sparselyMapped,
     }
   },

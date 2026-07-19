@@ -14,6 +14,7 @@ import { intelLog, intelError } from '../../lib/intelLog.js'
 import { resolveCity } from '../../config/cityCenters.js'
 import { modulesFor, isStale, MODULES_BY_KEY } from './registry.js'
 import { buildEnvelope, unavailableEnvelope } from './envelope.js'
+import { reanchorModules } from './reanchor.js'
 
 // Redis sits in front of Postgres purely to absorb read bursts (a popular
 // listing, a map pan). Short TTL — the durable copy is the table, and a stale
@@ -215,10 +216,18 @@ export async function getContext(lat, lng, { materializeIfMissing = true, waitMs
     Boolean(modules) && wanted.every((m) => !isStale(modules[storageKey(m, propertyType)], m))
 
   // Read from the per-type slot, return under the plain key — the frontend
-  // never needs to know a module was stored per type.
+  // never needs to know a module was stored per type. Then re-anchor: stored
+  // facts are computed from the CELL centre (shared by every listing in it);
+  // distances are re-derived from the requested coordinate so a property at a
+  // cell edge doesn't inherit up-to-108 m of someone else's geometry. See
+  // reanchor.js. The cell-anchored copy is what's cached — re-anchoring is
+  // per-request arithmetic on top, never written back.
   const forType = (modules) =>
-    Object.fromEntries(
-      wanted.map((m) => [m.key, modules[storageKey(m, propertyType)]]).filter(([, v]) => v)
+    reanchorModules(
+      Object.fromEntries(
+        wanted.map((m) => [m.key, modules[storageKey(m, propertyType)]]).filter(([, v]) => v)
+      ),
+      lat, lng
     )
 
   const cached = await cacheGet(readCacheKey(geohash))
@@ -258,7 +267,9 @@ export async function getContext(lat, lng, { materializeIfMissing = true, waitMs
   // refresh runs behind it. Showing week-old transit data is better than
   // showing a spinner, and the envelope carries the date so nobody is misled.
   if (row.staleAfter <= new Date() && row.failCount < MAX_FAILURES) {
-    materialize(geohash).catch(() => {})
+    // Pass the type through — refreshing without it would recompute only the
+    // default module set and leave this type's per-type slots stale.
+    materialize(geohash, propertyType).catch(() => {})
   }
 
   await cacheSet(readCacheKey(geohash), { v: row.modules }, READ_CACHE_TTL_S)
