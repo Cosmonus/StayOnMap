@@ -29,6 +29,30 @@ vi.mock('../src/services/intelligence.service.js', () => ({
   getRentBenchmark: vi.fn().mockResolvedValue(null),
 }))
 
+// ── Spatial external providers — no network in tests ───────────────────────
+// Every provider returns null, which is exactly the degraded path a fresh
+// checkout (no GOOGLE_MAPS_KEY) and a spent API budget both hit — so the
+// default suite proves the modules stay honest with no external data at all.
+// Tests that need real values (spatial-environment.test.js) re-mock per file.
+vi.mock('../src/features/spatial/providers.js', async (importOriginal) => ({
+  // Keep the real source constants — they're plain data, and mocking them
+  // would make the sources[] assertions test the mock instead of the module.
+  ...(await importOriginal()),
+  nearbyPlaces:   vi.fn().mockResolvedValue(null),
+  nearbyCount:    vi.fn().mockResolvedValue(null),
+  distanceMatrix: vi.fn().mockResolvedValue(null),
+  airQuality:     vi.fn().mockResolvedValue(null),
+}))
+
+// ── Spatial context — fire-and-forget materialisation + read-path join ─────
+// getContext returns null (cell not described yet), which is the normal
+// cold-start path and must not break a property fetch.
+vi.mock('../src/features/spatial/spatial.service.js', () => ({
+  getContext: vi.fn().mockResolvedValue(null),
+  materialize: vi.fn().mockResolvedValue(null),
+  ensureContextForProperty: vi.fn().mockResolvedValue(undefined),
+}))
+
 // ── Notifications / chat — fire-and-forget side effects across services ────
 vi.mock('../src/features/notifications/notifications.service.js', () => ({
   notifyUser: vi.fn().mockResolvedValue(null),
@@ -61,6 +85,7 @@ vi.mock('../src/config/env.js', () => ({
     smtpPort: 465,
     smtpUser: null,
     smtpPass: null,
+    spatialDailyApiBudget: 2000,
   },
 }))
 

@@ -78,6 +78,22 @@ export const prismaMock = {
     create:     vi.fn(),
   },
   ownerTrustScore: undefined, // not yet in schema — tested services check typeof before calling
+  // Spatial intelligence. Defaults leave PoiIndex unseeded (count 0), which is
+  // a fresh checkout's real state and the path that must degrade gracefully —
+  // individual tests override to exercise the seeded path.
+  poiIndex: {
+    count:    vi.fn().mockResolvedValue(0),
+    findMany: vi.fn().mockResolvedValue([]),
+    upsert:   vi.fn(),
+    // Per-category city coverage (cityCategoryCoverage). Empty = nothing
+    // seeded, matching count 0 above.
+    groupBy:  vi.fn().mockResolvedValue([]),
+  },
+  spatialContext: {
+    findUnique: vi.fn().mockResolvedValue(null),
+    findMany:   vi.fn().mockResolvedValue([]),
+    upsert:     vi.fn(),
+  },
   // Supports both Prisma $transaction forms: array-of-promises (lease.service.js)
   // and callback (properties.service.js) — real Prisma treats them differently,
   // but for mocking purposes both just need to resolve in order.
