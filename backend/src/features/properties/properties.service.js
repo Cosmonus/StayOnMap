@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma.js'
 import { boundsFilter } from '../../utils/geo.js'
 import { recalculateTrustScore } from '../trust/trust.service.js'
 import { evaluateListing, getRentBenchmark } from '../../services/intelligence.service.js'
+import { getContext, ensureContextForProperty } from '../spatial/spatial.service.js'
 import { generatePropertyDisplayId } from '../../utils/idGenerator.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
@@ -93,6 +94,20 @@ export async function getPropertyById(id, userId = null) {
 
   property.rentBenchmark = await getRentBenchmark(property).catch(() => null)
 
+  // Spatial intelligence for this listing's ~153m cell. A warm cell is one
+  // indexed lookup with no external calls. A cold one waits up to 3s for the
+  // computation it just started — long enough that most first views get real
+  // data, short enough not to hold the page hostage. Past that it returns
+  // `pending` and finishes in the background. Cells are warmed at
+  // create/publish, so this rarely fires.
+  // propertyType decides WHICH modules this listing sees: a shop gets commerce
+  // and never "could you live here without a car?", a plot gets landContext.
+  // See features/spatial/propertyTypes.js.
+  property.spatialContext = await getContext(
+    Number(property.lat), Number(property.lng),
+    { waitMs: 3000, propertyType: property.type }
+  ).catch(() => null)
+
   if (userId && property.ownerId === userId) return property
   if (property.status !== 'ACTIVE') return null
   return property
@@ -144,6 +159,10 @@ export async function createProperty(ownerId, data) {
   // Fire-and-forget: seed trust score record + run the intelligence checks
   recalculateTrustScore(property.id).catch(() => {})
   evaluateListing(property.id, 'create')
+  // Warm this listing's spatial cell now, so the neighbourhood is already
+  // described by the time anyone opens the page. Free when a neighbouring
+  // listing already warmed the same cell.
+  ensureContextForProperty(property.lat, property.lng, property.type).catch(() => {})
 
   return property
 }
@@ -203,6 +222,7 @@ export async function publishProperty(id, ownerId) {
   // Fire-and-forget: re-evaluate at submission so the admin moderation queue
   // sees a current risk score, not the one from draft creation time
   evaluateListing(id, 'publish')
+  ensureContextForProperty(property.lat, property.lng, property.type).catch(() => {})
 
   return updated
 }

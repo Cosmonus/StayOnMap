@@ -193,15 +193,15 @@ enum ModerationActionType {
 }
 
 enum ListingVisibility {
-  PUBLIC       // visible to everyone including non-logged-in visitors
-  LOGGED_IN    // pins show but details require login
-  HIDDEN       // not shown on map at all
+  PUBLIC // visible to everyone including non-logged-in visitors
+  LOGGED_IN // pins show but details require login
+  HIDDEN // not shown on map at all
 }
 
 enum ContactVisibility {
-  EVERYONE   // any logged-in user can see contact details
-  LOGGED_IN  // same as EVERYONE (alias kept for future distinction)
-  NOBODY     // contact info hidden from all users
+  EVERYONE // any logged-in user can see contact details
+  LOGGED_IN // same as EVERYONE (alias kept for future distinction)
+  NOBODY // contact info hidden from all users
 }
 
 enum NotificationType {
@@ -233,8 +233,8 @@ enum LeaseStatus {
 // ─────────────────────────────────────────────────────────────────
 
 model Admin {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String @id @default(cuid())
+  email        String @unique
   passwordHash String
   name         String
 
@@ -249,49 +249,49 @@ model Admin {
 // ─────────────────────────────────────────────────────────────────
 
 model User {
-  id           String   @id @default(cuid())
-  passwordHash String
-  displayId  String?  @unique                 // Human-readable ID: SRI-1234567890123456
-  email      String   @unique
-  name       String
-  phone      String?
-  city       String?                          // self-reported at signup — one of config/cities.js's SUPPORTED_CITIES (users outside these go to WaitlistEntry instead of getting an account)
-  avatarUrl  String?
-  bio        String?
-  socialLinks Json?                            // { website, linkedin, instagram, twitter }
-  role       UserRole @default(TENANT)
-  isVerified Boolean  @default(false)
-  isBlocked  Boolean  @default(false)
+  id            String    @id @default(cuid())
+  passwordHash  String
+  displayId     String?   @unique // Human-readable ID: SRI-1234567890123456
+  email         String    @unique
+  name          String
+  phone         String?
+  city          String? // self-reported at signup — one of config/cities.js's SUPPORTED_CITIES (users outside these go to WaitlistEntry instead of getting an account)
+  avatarUrl     String?
+  bio           String?
+  socialLinks   Json? // { website, linkedin, instagram, twitter }
+  role          UserRole  @default(TENANT)
+  isVerified    Boolean   @default(false)
+  isBlocked     Boolean   @default(false)
   isBusiness    Boolean   @default(false) // gates creating PG / COMMERCIAL / SHORT_STAY listings
   businessSince DateTime?
 
   // Settings
-  listingVisibility   ListingVisibility   @default(PUBLIC)
-  contactVisibility   ContactVisibility   @default(LOGGED_IN)
-  showExactLocation   Boolean             @default(true)
-  emailNotifs         Boolean             @default(true)
-  pushNotifs          Boolean             @default(true)
+  listingVisibility ListingVisibility @default(PUBLIC)
+  contactVisibility ContactVisibility @default(LOGGED_IN)
+  showExactLocation Boolean           @default(true)
+  emailNotifs       Boolean           @default(true)
+  pushNotifs        Boolean           @default(true)
 
-  properties        Property[]
-  occupiedProperties Property[] @relation("CurrentTenant")
-  savedListings  SavedListing[]
-  appointments   Appointment[]   @relation("TenantAppointments")
-  reviews        CommunityReview[]
-  votes          RecommendationVote[]
-  insights       NeighborhoodInsight[]
-  reports        PropertyReport[]
-  notifications  Notification[]
-  activityLogs   ActivityLog[]
+  properties         Property[]
+  occupiedProperties Property[]            @relation("CurrentTenant")
+  savedListings      SavedListing[]
+  appointments       Appointment[]         @relation("TenantAppointments")
+  reviews            CommunityReview[]
+  votes              RecommendationVote[]
+  insights           NeighborhoodInsight[]
+  reports            PropertyReport[]
+  notifications      Notification[]
+  activityLogs       ActivityLog[]
 
   tenantConversations Conversation[] @relation("TenantConversations")
   ownerConversations  Conversation[] @relation("OwnerConversations")
   sentMessages        Message[]      @relation("SentMessages")
 
-  tenantLeases      Lease[] @relation("TenantLeases")
-  ownerLeases       Lease[] @relation("OwnerLeases")
-  pushSubscriptions PushSubscription[]
-  expoPushTokens    ExpoPushToken[]
-  ownerTrustScore   OwnerTrustScore?
+  tenantLeases        Lease[]              @relation("TenantLeases")
+  ownerLeases         Lease[]              @relation("OwnerLeases")
+  pushSubscriptions   PushSubscription[]
+  expoPushTokens      ExpoPushToken[]
+  ownerTrustScore     OwnerTrustScore?
   passwordResetTokens PasswordResetToken[]
   emailOtps           EmailOtp[]
   pointsLedger        PointsLedger[]
@@ -331,13 +331,13 @@ model PasswordResetToken {
 // hunting for a home is not a daily-habit user, and paying them to come back
 // would be a dark pattern, not help.
 enum PointsAction {
-  EMAIL_VERIFIED     // proved the inbox (registration link or OTP login)
-  PHONE_VERIFIED     // reachable owner/tenant contact
-  PROFILE_COMPLETED  // name + avatar + city + phone
-  REVIEW_APPROVED    // a review that PASSED moderation — never on submit
-  INSIGHT_ADDED      // a neighbourhood insight
-  REPORT_UPHELD      // a report a moderator RESOLVED — never on submit
-  LEASE_SIGNED       // completed a tenancy through the platform
+  EMAIL_VERIFIED // proved the inbox (registration link or OTP login)
+  PHONE_VERIFIED // reachable owner/tenant contact
+  PROFILE_COMPLETED // name + avatar + city + phone
+  REVIEW_APPROVED // a review that PASSED moderation — never on submit
+  INSIGHT_ADDED // a neighbourhood insight
+  REPORT_UPHELD // a report a moderator RESOLVED — never on submit
+  LEASE_SIGNED // completed a tenancy through the platform
 }
 
 // Append-only points ledger. A ledger, not a counter on User, because:
@@ -444,7 +444,7 @@ model Amenity {
 
 model Property {
   id          String         @id @default(cuid())
-  displayId   String?        @unique          // Human-readable ID: APT-1234567890123456
+  displayId   String?        @unique // Human-readable ID: APT-1234567890123456
   title       String
   description String
   type        PropertyType
@@ -452,22 +452,22 @@ model Property {
   status      PropertyStatus @default(DRAFT)
 
   // Location
-  address   String
-  city      String
-  state     String
-  pincode   String
-  landmark  String?
-  lat       Decimal  @db.Decimal(10, 7)
-  lng       Decimal  @db.Decimal(10, 7)
+  address  String
+  city     String
+  state    String
+  pincode  String
+  landmark String?
+  lat      Decimal @db.Decimal(10, 7)
+  lng      Decimal @db.Decimal(10, 7)
 
   // Specifics
   bhk             Int?
-  sharing         Int?             // for PG type: 1–6
+  sharing         Int? // for PG type: 1–6
   area            Decimal?         @db.Decimal(10, 2) // sq.ft
   totalFloors     Int?
-  floor           Int?             // which floor the unit is on
+  floor           Int? // which floor the unit is on
   facingDirection FacingDirection?
-  bathrooms       Int?             // apartment / house / short_stay
+  bathrooms       Int? // apartment / house / short_stay
 
   // HOUSE — which of the 4 describe-step choices (Independent house/Villa/Duplex/Row
   // house); `type` is derived from this (VILLA/INDEPENDENT_HOUSE get their own enum
@@ -475,19 +475,19 @@ model Property {
   houseStyle String?
 
   // LAND
-  landType       String?  // Residential | Agricultural | Commercial | Industrial
+  landType       String? // Residential | Agricultural | Commercial | Industrial
   extent         Decimal? @db.Decimal(10, 2)
-  extentUnit     String?  // sq.ft | acres | cents etc.
-  dimensions     String?  // free text, e.g. "40 x 60 ft"
+  extentUnit     String? // sq.ft | acres | cents etc.
+  dimensions     String? // free text, e.g. "40 x 60 ft"
   roadWidth      Decimal? @db.Decimal(10, 2) // ft
-  approvalStatus String?  // DTCP | RERA | Panchayat | Unapproved
-  saleOrLease    String?  // SALE | LEASE — land can be either
+  approvalStatus String? // DTCP | RERA | Panchayat | Unapproved
+  saleOrLease    String? // SALE | LEASE — land can be either
 
   // COMMERCIAL (shop/office/showroom/warehouse)
-  commercialType String?  // Retail shop | Office | Showroom | Warehouse
+  commercialType String? // Retail shop | Office | Showroom | Warehouse
   carpetArea     Decimal? @db.Decimal(10, 2)
   frontage       Decimal? @db.Decimal(10, 2) // ft
-  powerLoad      String?  // sanctioned power load, e.g. "15 kW"
+  powerLoad      String? // sanctioned power load, e.g. "15 kW"
 
   // PG
   totalBeds        Int?
@@ -495,15 +495,15 @@ model Property {
   noticePeriodDays Int?
 
   // SHORT_STAY
-  placeType    String?  // Entire place | Private room | Shared room
-  maxGuests    Int?
-  beds         Int?     // distinct from bhk/bedrooms — total sleeping beds
-  nightlyRate  Decimal? @db.Decimal(10, 2)
-  cleaningFee  Decimal? @db.Decimal(10, 2)
-  weekendRate  Decimal? @db.Decimal(10, 2)
-  minNights    Int?
-  maxNights    Int?
-  instantBook  Boolean?
+  placeType   String? // Entire place | Private room | Shared room
+  maxGuests   Int?
+  beds        Int? // distinct from bhk/bedrooms — total sleeping beds
+  nightlyRate Decimal? @db.Decimal(10, 2)
+  cleaningFee Decimal? @db.Decimal(10, 2)
+  weekendRate Decimal? @db.Decimal(10, 2)
+  minNights   Int?
+  maxNights   Int?
+  instantBook Boolean?
 
   // Pricing
   // pricingModel decides how `rent` reads: monthly rent (RENT) or the
@@ -511,17 +511,17 @@ model Property {
   // enforced in properties.validation.js, not by the DB. On a LEASE listing
   // `deposit` is 0: the lump sum IS the money at stake, there is no second one.
   pricingModel       PricingModel @default(RENT)
-  rent               Decimal  @db.Decimal(10, 2)
-  deposit            Decimal  @db.Decimal(10, 2)
-  maintenance        Decimal? @db.Decimal(10, 2)
-  brokerage          Decimal? @db.Decimal(10, 2)
-  electricityCharges Decimal? @db.Decimal(10, 2)
-  waterCharges       Decimal? @db.Decimal(10, 2)
+  rent               Decimal      @db.Decimal(10, 2)
+  deposit            Decimal      @db.Decimal(10, 2)
+  maintenance        Decimal?     @db.Decimal(10, 2)
+  brokerage          Decimal?     @db.Decimal(10, 2)
+  electricityCharges Decimal?     @db.Decimal(10, 2)
+  waterCharges       Decimal?     @db.Decimal(10, 2)
 
   // Availability
   availableFrom  DateTime?
   occupancyLimit Int?
-  leaseDuration  Int?       // months
+  leaseDuration  Int? // months
 
   // Appointment window set by owner (e.g. "09:00" / "18:00")
   appointmentWindowStart String?
@@ -537,22 +537,23 @@ model Property {
   occupiedSince   DateTime?
 
   // Relations
-  images        PropertyImage[]
-  amenities     PropertyAmenity[]
-  rules         PropertyRule?
-  appointments  Appointment[]
-  savedBy       SavedListing[]
-  reviews       CommunityReview[]
-  votes         RecommendationVote[]
-  insights      NeighborhoodInsight[]
-  reports       PropertyReport[]
-  verification  OwnershipVerification?
-  trustScore    TrustScore?
-  riskScore     PropertyRiskScore?
-  fraudSignals  FraudSignal[]
-  conversations Conversation[]
-  leases        Lease[]
+  images             PropertyImage[]
+  amenities          PropertyAmenity[]
+  rules              PropertyRule?
+  appointments       Appointment[]
+  savedBy            SavedListing[]
+  reviews            CommunityReview[]
+  votes              RecommendationVote[]
+  insights           NeighborhoodInsight[]
+  reports            PropertyReport[]
+  verification       OwnershipVerification?
+  trustScore         TrustScore?
+  riskScore          PropertyRiskScore?
+  fraudSignals       FraudSignal[]
+  conversations      Conversation[]
+  leases             Lease[]
   availabilityBlocks AvailabilityBlock[]
+  priceHistory       PropertyPriceHistory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -586,19 +587,19 @@ model PropertyAmenity {
 }
 
 model PropertyRule {
-  id            String          @id @default(cuid())
-  property      Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  propertyId    String          @unique
-  smokingAllowed    Boolean @default(false)
-  petsAllowed       Boolean @default(false)
-  bachelorAllowed   Boolean @default(true)
-  familyPreferred   Boolean @default(false)
-  visitorsAllowed   Boolean @default(true)
-  nonVegAllowed     Boolean @default(false)
+  id                String           @id @default(cuid())
+  property          Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId        String           @unique
+  smokingAllowed    Boolean          @default(false)
+  petsAllowed       Boolean          @default(false)
+  bachelorAllowed   Boolean          @default(true)
+  familyPreferred   Boolean          @default(false)
+  visitorsAllowed   Boolean          @default(true)
+  nonVegAllowed     Boolean          @default(false)
   curfewTime        String?
   genderPreference  GenderPreference @default(ANY)
   foodPreference    String?
-  alcoholAllowed    Boolean @default(false)
+  alcoholAllowed    Boolean          @default(false)
   noiseRestrictions String?
 }
 
@@ -717,15 +718,15 @@ model NeighborhoodInsight {
 // ─────────────────────────────────────────────────────────────────
 
 model PropertyReport {
-  id          String         @id @default(cuid())
-  property    Property       @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  propertyId  String
-  reporter    User?          @relation(fields: [reporterId], references: [id], onDelete: SetNull)
-  reporterId  String?
-  isAnonymous Boolean        @default(false)
-  category    ReportCategory
-  description String
-  severity    ReportSeverity
+  id            String         @id @default(cuid())
+  property      Property       @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId    String
+  reporter      User?          @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+  reporterId    String?
+  isAnonymous   Boolean        @default(false)
+  category      ReportCategory
+  description   String
+  severity      ReportSeverity
   evidenceUrls  String[]
   status        ReportStatus   @default(PENDING)
   ownerResponse String?
@@ -751,7 +752,7 @@ model OwnershipVerification {
   status     VerificationStatus @default(PENDING)
   adminNote  String?
   reviewedAt DateTime?
-  reviewedBy String?            // Admin.id
+  reviewedBy String? // Admin.id
 
   documents VerificationDocument[]
 
@@ -763,12 +764,12 @@ model OwnershipVerification {
 }
 
 model VerificationDocument {
-  id             String              @id @default(cuid())
+  id             String                @id @default(cuid())
   verification   OwnershipVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
   verificationId String
   type           VerificationDocType
   url            String
-  uploadedAt     DateTime            @default(now())
+  uploadedAt     DateTime              @default(now())
 
   @@index([verificationId])
 }
@@ -778,58 +779,58 @@ model VerificationDocument {
 // ─────────────────────────────────────────────────────────────────
 
 model TrustScore {
-  id                String     @id @default(cuid())
-  property          Property   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  propertyId        String     @unique
-  overallScore      Float      @default(0)
-  safetyScore       Float      @default(0)
-  cleanlinessScore  Float      @default(0)
-  neighborhoodScore Float      @default(0)
-  totalReviews      Int        @default(0)
-  recommendCount    Int        @default(0)
-  notRecommendCount Int        @default(0)
-  recommendPercent  Float      @default(0)
+  id                String      @id @default(cuid())
+  property          Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId        String      @unique
+  overallScore      Float       @default(0)
+  safetyScore       Float       @default(0)
+  cleanlinessScore  Float       @default(0)
+  neighborhoodScore Float       @default(0)
+  totalReviews      Int         @default(0)
+  recommendCount    Int         @default(0)
+  notRecommendCount Int         @default(0)
+  recommendPercent  Float       @default(0)
   badge             TrustBadge?
   // Named scores
-  areaScore         Float      @default(0)   // AreaScore  0–10
-  waterScore        Float      @default(0)   // WaterScore 0–10
-  floodSafeRating   Float      @default(0)   // FloodSafe  0–10
-  updatedAt         DateTime   @updatedAt
+  areaScore         Float       @default(0) // AreaScore  0–10
+  waterScore        Float       @default(0) // WaterScore 0–10
+  floodSafeRating   Float       @default(0) // FloodSafe  0–10
+  updatedAt         DateTime    @updatedAt
 }
 
 model OwnerTrustScore {
   id                String   @id @default(cuid())
   owner             User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId           String   @unique
-  score             Float    @default(0)    // 0–100
+  score             Float    @default(0) // 0–100
   level             String   @default("UNRATED") // UNRATED | LOW | MEDIUM | HIGH | EXCELLENT
-  responseRate      Float    @default(0)   // % appointments accepted
-  reviewAvg         Float    @default(0)   // avg StayScore across listings
+  responseRate      Float    @default(0) // % appointments accepted
+  reviewAvg         Float    @default(0) // avg StayScore across listings
   verificationLevel Int      @default(0)
   updatedAt         DateTime @updatedAt
 }
 
 model PropertyRiskScore {
-  id                String    @id @default(cuid())
-  property          Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  propertyId        String    @unique
-  score             Float     @default(0)
-  level             RiskLevel @default(LOW)
-  complaintCount    Int       @default(0)
-  unauthorizedReports Int     @default(0)
-  duplicateSignals  Int       @default(0)
-  verificationLevel Int       @default(0)   // 0=none, 1=docs uploaded, 2=under review, 4=verified
-  updatedAt         DateTime  @updatedAt
+  id                  String    @id @default(cuid())
+  property            Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId          String    @unique
+  score               Float     @default(0)
+  level               RiskLevel @default(LOW)
+  complaintCount      Int       @default(0)
+  unauthorizedReports Int       @default(0)
+  duplicateSignals    Int       @default(0)
+  verificationLevel   Int       @default(0) // 0=none, 1=docs uploaded, 2=under review, 4=verified
+  updatedAt           DateTime  @updatedAt
 }
 
 model FraudSignal {
-  id          String          @id @default(cuid())
-  property    Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  propertyId  String
-  type        FraudSignalType
-  detail      String?
-  detectedAt  DateTime        @default(now())
-  resolved    Boolean         @default(false)
+  id         String          @id @default(cuid())
+  property   Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  type       FraudSignalType
+  detail     String?
+  detectedAt DateTime        @default(now())
+  resolved   Boolean         @default(false)
 
   @@index([propertyId])
 }
@@ -839,14 +840,14 @@ model FraudSignal {
 // ─────────────────────────────────────────────────────────────────
 
 model ModerationAction {
-  id       String               @id @default(cuid())
-  report   PropertyReport       @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  reportId String               @unique
-  admin    Admin                @relation(fields: [adminId], references: [id], onDelete: Cascade)
-  adminId  String
-  action   ModerationActionType
-  note     String?
-  createdAt DateTime            @default(now())
+  id        String               @id @default(cuid())
+  report    PropertyReport       @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportId  String               @unique
+  admin     Admin                @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  adminId   String
+  action    ModerationActionType
+  note      String?
+  createdAt DateTime             @default(now())
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -875,16 +876,16 @@ model Notification {
 // ─────────────────────────────────────────────────────────────────
 
 model Conversation {
-  id          String   @id @default(cuid())
-  propertyId  String
-  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  tenantId    String
-  tenant      User     @relation("TenantConversations", fields: [tenantId], references: [id], onDelete: Cascade)
-  ownerId     String
-  owner       User     @relation("OwnerConversations", fields: [ownerId], references: [id], onDelete: Cascade)
-  messages    Message[]
-  lastMessageAt DateTime @default(now())
-  createdAt   DateTime @default(now())
+  id            String    @id @default(cuid())
+  propertyId    String
+  property      Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenantId      String
+  tenant        User      @relation("TenantConversations", fields: [tenantId], references: [id], onDelete: Cascade)
+  ownerId       String
+  owner         User      @relation("OwnerConversations", fields: [ownerId], references: [id], onDelete: Cascade)
+  messages      Message[]
+  lastMessageAt DateTime  @default(now())
+  createdAt     DateTime  @default(now())
 
   @@unique([propertyId, tenantId])
   @@index([tenantId])
@@ -936,7 +937,7 @@ model ActivityLog {
 // ─────────────────────────────────────────────────────────────────
 
 model Lease {
-  id            String      @id @default(cuid())
+  id            String  @id @default(cuid())
   propertyId    String
   tenantId      String
   ownerId       String
@@ -981,4 +982,96 @@ model AvailabilityBlock {
 
   @@unique([propertyId, date])
   @@index([propertyId])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Spatial Intelligence (docs/spatial-intelligence.md)
+// ─────────────────────────────────────────────────────────────────
+
+// Neighbourhood facts belong to a place, not a listing — 400 flats in
+// Koramangala share one set of metro stations. Keying by geohash-7 cell
+// (~153m) means the second listing in a cell costs nothing to describe.
+//
+// Persisted in Postgres rather than only Redis for three reasons: Railway's
+// Redis is evictable (losing it means re-billing Google for everything), a
+// materialised table is a compounding asset that outlives any vendor, and the
+// moment a filter needs "good walkability" the data has to be queryable.
+// Redis stays in front as a short-TTL hot read cache.
+model SpatialContext {
+  id      String  @id @default(cuid())
+  geohash String  @unique // precision 7, ~153m x 153m
+  lat     Decimal @db.Decimal(10, 7) // cell centroid — facts are computed from here
+  lng     Decimal @db.Decimal(10, 7)
+  city    String?
+
+  // { mobility: <envelope>, lifestyle: <envelope>, ... } — see
+  // features/spatial/envelope.js for the shape. Json rather than columns
+  // because envelopes evolve fast and are read whole; promote a value to a
+  // real column the moment a filter needs it, and not before.
+  modules Json
+
+  computedAt DateTime @default(now())
+  staleAfter DateTime
+  // Consecutive materialisation failures. Circuit-breaks a cell that keeps
+  // failing (bad coordinates, upstream outage) instead of retrying it forever
+  // on a metered API.
+  failCount  Int      @default(0)
+
+  updatedAt DateTime @updatedAt
+
+  @@index([city])
+  @@index([staleAfter])
+}
+
+// Rent/deposit over time, one row per observed change. The platform had no
+// listing history at all — "has this price moved?" was unanswerable, which is
+// both a fraud signal and something a renter legitimately wants to know.
+model PropertyPriceHistory {
+  id         String   @id @default(cuid())
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  rent       Decimal  @db.Decimal(10, 2)
+  deposit    Decimal  @db.Decimal(10, 2)
+  recordedAt DateTime @default(now())
+
+  @@index([propertyId, recordedAt])
+}
+
+// Self-hosted OpenStreetMap points of interest.
+//
+// This table exists to stop renting facts from Google. A Places Nearby call is
+// metered per request, and the spatial layer needs ~9 of them per cell — with
+// cell count driven by where owners list, not by us. The same question asked
+// of a local table is a single indexed bbox scan.
+//
+// Seeded by scripts/fetch-osm-pois.mjs (a developer-machine operation, like
+// scripts/seed-amenities.mjs — see docs/operator-actions.md). Empty in a fresh
+// checkout, which is fine: the lifestyle module falls back to Google and says
+// so in its confidence basis.
+//
+// No PostGIS: the composite (category, lat, lng) index turns a radius search
+// into a bounding-box scan plus a haversine filter in JS, which is
+// comfortably fast at a few hundred thousand rows. See
+// docs/spatial-intelligence.md §3 for when that stops being true.
+model PoiIndex {
+  id       String  @id @default(cuid())
+  // OSM element identity, e.g. "node/1234567". Unique so a re-run updates in
+  // place instead of duplicating the whole dataset.
+  osmId    String  @unique
+  category String // normalised to the spatial layer's own vocabulary, not raw OSM tags
+  name     String?
+  // Straight from OSM tags where a mapper recorded them — sparse in India and
+  // shown only when present, never inferred. brand falls back to operator
+  // (helps search: "ICICI" matches a branch whose name is just "ICICI Bank
+  // ATM" or whose brand tag carries the chain).
+  brand        String?
+  openingHours String?
+  lat      Decimal @db.Decimal(10, 7)
+  lng      Decimal @db.Decimal(10, 7)
+  city     String
+
+  fetchedAt DateTime @default(now())
+
+  @@index([category, lat, lng])
+  @@index([city])
 }
