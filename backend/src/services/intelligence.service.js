@@ -6,29 +6,9 @@ import { prisma } from '../lib/prisma.js'
 import { recalculateRiskScore } from '../features/trust/trust.service.js'
 import { runFraudScan } from '../features/ai/ai.service.js'
 import { intelLog, intelError } from '../lib/intelLog.js'
-
-// Approximate city centres + generous metro-area radii for coordinate-vs-city
-// sanity checks. Covers SUPPORTED_CITIES (config/cities.js); a city missing
-// here simply skips the check.
-const CITY_CENTERS = {
-  Delhi:     { lat: 28.6139, lng: 77.2090, radiusKm: 60 },
-  Mumbai:    { lat: 19.0760, lng: 72.8777, radiusKm: 55 },
-  Kolkata:   { lat: 22.5726, lng: 88.3639, radiusKm: 45 },
-  Chennai:   { lat: 13.0827, lng: 80.2707, radiusKm: 45 },
-  Bengaluru: { lat: 12.9716, lng: 77.5946, radiusKm: 45 },
-  Hyderabad: { lat: 17.3850, lng: 78.4867, radiusKm: 45 },
-  Ahmedabad: { lat: 23.0225, lng: 72.5714, radiusKm: 40 },
-  Pune:      { lat: 18.5204, lng: 73.8567, radiusKm: 45 },
-  Surat:     { lat: 21.1702, lng: 72.8311, radiusKm: 35 },
-}
-
-function haversineKm(lat1, lng1, lat2, lng2) {
-  const toRad = (d) => (d * Math.PI) / 180
-  const dLat = toRad(lat2 - lat1)
-  const dLng = toRad(lng2 - lng1)
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
-  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
+// Shared with the spatial intelligence layer, which resolves a bare lat/lng to
+// a city the same way. Was duplicated here before features/spatial/ needed it.
+import { CITY_CENTERS, haversineKm } from '../config/cityCenters.js'
 
 // Average rent across other ACTIVE listings of the same city + type + size
 // (BHK count, or sharing for PGs) — free, uses only our own DB data. Requires
@@ -95,10 +75,12 @@ export async function evaluateListing(propertyId, trigger) {
     }
 
     let distanceFromCityKm = null
+    let outsideCity = false
     const center = CITY_CENTERS[property.city]
     if (center && property.lat != null && property.lng != null) {
       distanceFromCityKm = Math.round(haversineKm(Number(property.lat), Number(property.lng), center.lat, center.lng))
-      if (distanceFromCityKm > center.radiusKm) {
+      outsideCity = distanceFromCityKm > center.radiusKm
+      if (outsideCity) {
         intelLog('listing.location_mismatch', { propertyId, city: property.city, distanceFromCityKm })
       }
     }
@@ -107,7 +89,12 @@ export async function evaluateListing(propertyId, trigger) {
     const ai = await runFraudScan(propertyId, {
       marketAvgRent:   benchmark?.avgRent,
       comparableCount: benchmark?.sampleSize,
-      distanceFromCityKm: distanceFromCityKm != null && distanceFromCityKm > center.radiusKm ? distanceFromCityKm : undefined,
+      // `outsideCity` rather than re-reading center.radiusKm here: a listing in
+      // a city absent from CITY_CENTERS left `center` undefined, so this line
+      // threw, the catch below swallowed it, and the AI scan silently never ran
+      // for that listing. The location check is meant to be skippable; it was
+      // taking the whole evaluation down with it.
+      distanceFromCityKm: outsideCity ? distanceFromCityKm : undefined,
     })
 
     intelLog('listing.evaluated', {

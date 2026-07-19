@@ -12,7 +12,7 @@ import TrustBadge from '@components/common/TrustBadge'
 import RiskAlert from '@components/common/RiskAlert'
 import TrustScoreWidget from '@features/trust/components/TrustScoreWidget'
 import LocationMapCard from '../components/LocationMapCard'
-import AreaIntelligenceSection from '../components/AreaIntelligenceSection'
+import SpatialContextPanel from '@features/spatial/components/SpatialContextPanel'
 import CommuteCalculator from '../components/CommuteCalculator'
 import AvailabilityBadge from '../components/AvailabilityBadge'
 import PropertyDetailsSection from '../components/PropertyDetailsSection'
@@ -20,7 +20,6 @@ import PricingBreakdownSection from '../components/PricingBreakdownSection'
 import ZeroBrokerageBanner from '../components/ZeroBrokerageBanner'
 import HouseRulesSection from '../components/HouseRulesSection'
 import OwnerCard from '../components/OwnerCard'
-import PropertyAreaInsightCard from '../components/PropertyAreaInsightCard'
 import ReviewsSection from '@features/reviews/components/ReviewsSection'
 import ReportButton from '@features/reports/components/ReportButton'
 import Icon from '@components/common/Icon'
@@ -268,9 +267,14 @@ export default function PropertyDetailScreen({ route, navigation }) {
           <HouseRulesSection rules={property.rules} />
 
           <LocationMapCard lat={lat} lng={lng} />
-          <AreaIntelligenceSection lat={lat} lng={lng} />
-          <PropertyAreaInsightCard city={property.city} landmark={property.landmark} />
-          <CommuteCalculator lat={lat} lng={lng} />
+          {/* The spatial layer supersedes AreaIntelligenceSection and
+              PropertyAreaInsightCard (2026-07-19, matching web) — context
+              arrives joined on the property payload, already filtered to this
+              listing's property type. CommuteCalculator survives inside the
+              same titled group. */}
+          <SpatialContextPanel context={property.spatialContext} coords={{ lat, lng }}>
+            <CommuteCalculator lat={lat} lng={lng} />
+          </SpatialContextPanel>
 
           {!!amenities.length && (
             <View style={styles.section}>

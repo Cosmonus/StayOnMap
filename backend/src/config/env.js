@@ -71,6 +71,14 @@ export const env = {
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || null,
   vapidSubject:    process.env.VAPID_SUBJECT     || 'mailto:hello@stayonmap.com',
   googleMapsKey:   process.env.GOOGLE_MAPS_KEY   || null,
+  // Hard daily ceiling on billed Google calls made by the spatial
+  // intelligence layer (features/spatial/providers.js). Materialising one
+  // ~153m cell costs a handful of requests, and the number of cells is driven
+  // by where owners list — i.e. not by us. When the ceiling trips the layer
+  // serves whatever it already has and reports the rest as missing; it never
+  // blanks a page and never runs up a surprise bill.
+  // Enforced only when REDIS_URL is set (the counter is shared state).
+  spatialDailyApiBudget: Number(process.env.SPATIAL_DAILY_API_BUDGET) || 2000,
   // Error monitoring — entirely optional, lib/sentry.js no-ops without it
   sentryDsn:       process.env.SENTRY_DSN        || null,
 }

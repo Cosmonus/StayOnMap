@@ -3,9 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, Share2, Heart, MapPin, ChevronLeft, ChevronRight, X, LayoutGrid,
-  Building2, Compass, Calendar, Users, Check, ImageOff, SearchX, Loader2,
-  MessageSquare, Phone, Mail, Lock, Map as MapIcon, Copy, CircleCheckBig,
-  ChefHat, User, UserPlus, PawPrint, Cigarette, Wine, Clock, MessageCircleMore,
+  Calendar, Users, Check, ImageOff, SearchX, Loader2, MessageSquare, Phone,
+  Mail, Lock, Navigation, Copy, CircleCheckBig, Clock, MessageCircleMore,
+  Plus, Minus, LocateFixed,
 } from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { propertyService } from '@services/property.service'
@@ -28,9 +28,8 @@ import { AmenityIcon }   from '@components/common/AmenityIcon'
 import { savedService }  from '@services/saved.service'
 import SEOMeta             from '@components/common/SEOMeta'
 import { BRAND, canonical } from '@lib/seo'
-import PropertyAreaInsight from '@features/areas/components/PropertyAreaInsight'
-import AreaIntelligenceCard from '@features/areas/components/AreaIntelligenceCard'
 import CommuteCalculator from '@features/areas/components/CommuteCalculator'
+import SpatialContextPanel from '@features/spatial/components/SpatialContextPanel'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function ordinal(n) {
@@ -55,12 +54,15 @@ function availabilityTag(property) {
         dot: 'bg-blue-500', text: 'text-blue-600', bg: 'bg-blue-50',
       }
   }
-  return { label: 'Available Now', dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50' }
+  return { label: 'Available now', dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50' }
 }
 
+// The enum arrives SCREAMING_CASE. Lowercasing first matters — without it
+// 'HOUSE' survives untouched (its first letter is already capital) and the page
+// shouts "HOUSE" at the reader.
 function formatType(type) {
   if (!type) return ''
-  return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
 }
 
 function formatFurnished(f) {
@@ -81,6 +83,11 @@ function rentBenchmarkLabel(rent, benchmark) {
     text: `${Math.abs(diff)}% ${below ? 'below' : 'above'} the average for similar homes nearby`,
     className: below ? 'text-emerald-600' : 'text-amber-600',
   }
+}
+
+function directionsUrlFor(lat, lng) {
+  if (!lat || !lng) return null
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
 }
 
 // ── Image Lightbox ──────────────────────────────────────────────────────────
@@ -160,7 +167,10 @@ function Lightbox({ images, startIndex, onClose }) {
 }
 
 // ── Image Gallery (Grid + Carousel) ─────────────────────────────────────────
-function ImageGallery({ images, onOpenLightbox }) {
+// The availability pill and the photo count sit on the gallery itself rather
+// than in the title block: they're the two things a renter checks before
+// deciding whether to keep reading, and the image is where the eye already is.
+function ImageGallery({ images, avail, onOpenLightbox }) {
   const [mobileIdx, setMobileIdx] = useState(0)
   const list = images ?? []
 
@@ -175,41 +185,62 @@ function ImageGallery({ images, onOpenLightbox }) {
     )
   }
 
+  // Each entry tiles its photo count exactly, leaving no blank cells. Anything
+  // from 5 up uses the 5-slot hero layout and hides the rest behind "+N more".
+  const GALLERY_LAYOUTS = {
+    1: { grid: 'grid-cols-1 grid-rows-1', hero: '' },
+    2: { grid: 'grid-cols-2 grid-rows-1', hero: '' },
+    3: { grid: 'grid-cols-3 grid-rows-2', hero: 'col-span-2 row-span-2' },
+    4: { grid: 'grid-cols-2 grid-rows-2', hero: '' },
+  }
+  const layout = GALLERY_LAYOUTS[list.length] ?? { grid: 'grid-cols-4 grid-rows-2', hero: 'col-span-2 row-span-2' }
+  const visible = list.length >= 5 ? list.slice(0, 5) : list
+
+  const availPill = (
+    <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 shadow-sm ${avail.bg}`}>
+      <span className={`w-2 h-2 rounded-full shrink-0 ${avail.dot}`} />
+      <span className={`text-xs font-semibold ${avail.text}`}>{avail.label}</span>
+    </div>
+  )
+
   return (
     <>
-      {/* Desktop: Grid layout */}
-      <div className="hidden md:grid grid-cols-4 grid-rows-2 gap-2 rounded-2xl overflow-hidden h-[420px]">
-        {/* Main large image */}
+      {/* Desktop: a grid sized to the photos that exist. The previous version
+          always drew the 5-slot layout and padded the gap with blank grey
+          cells, so a listing with one photo — which is most of them — rendered
+          as one image beside four empty boxes and read as a failed load. */}
+      <div className="hidden md:block relative">
+        <div className={`grid gap-2 rounded-2xl overflow-hidden h-[420px] ${layout.grid}`}>
+          {visible.map((img, i) => (
+            <button
+              key={img.id ?? i}
+              onClick={() => onOpenLightbox(i)}
+              className={`relative group overflow-hidden ${i === 0 ? layout.hero : ''}`}
+            >
+              <img
+                src={img.url}
+                alt={i === 0 ? 'Property' : ''}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+              {i === visible.length - 1 && list.length > visible.length && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <span className="text-white font-semibold text-sm">+{list.length - visible.length} more</span>
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="absolute top-4 left-4">{availPill}</div>
+
         <button
           onClick={() => onOpenLightbox(0)}
-          className="col-span-2 row-span-2 relative group overflow-hidden"
+          className="absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-slate-800 shadow-float transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
         >
-          <img src={list[0]?.url} alt="Property" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          <LayoutGrid className="w-3.5 h-3.5" strokeWidth={2.5} />
+          {list.length === 1 ? 'View photo' : `View all ${list.length} photos`}
         </button>
-
-        {/* Secondary images */}
-        {list.slice(1, 5).map((img, i) => (
-          <button
-            key={img.id ?? i}
-            onClick={() => onOpenLightbox(i + 1)}
-            className="relative group overflow-hidden"
-          >
-            <img src={img.url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-            {/* "View all" overlay on last visible image */}
-            {i === 3 && list.length > 5 && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <span className="text-white font-semibold text-sm">+{list.length - 5} photos</span>
-              </div>
-            )}
-          </button>
-        ))}
-
-        {/* Fill empty slots if < 5 images */}
-        {list.length < 5 && Array.from({ length: Math.min(4, 5 - list.length) }).map((_, i) => (
-          <div key={`empty-${i}`} className="bg-slate-100" />
-        ))}
       </div>
 
       {/* Mobile: Carousel */}
@@ -219,6 +250,7 @@ function ImageGallery({ images, onOpenLightbox }) {
             <img src={list[mobileIdx]?.url} alt="Property" className="w-full h-full object-cover" />
           </div>
         </button>
+        <div className="absolute top-3 left-3">{availPill}</div>
         {list.length > 1 && (
           <>
             <button
@@ -243,27 +275,44 @@ function ImageGallery({ images, onOpenLightbox }) {
   )
 }
 
-// ── Section components ───────────────────────────────────────────────────────
-function SectionCard({ id, title, children, className = '' }) {
+// ── The listing sheet ────────────────────────────────────────────────────────
+// One card, hairline-divided, instead of a stack of separate cards. The old
+// layout gave every section its own border and shadow, so nine equally-loud
+// panels competed for attention and the page read as longer than it was.
+function Sheet({ children }) {
+  return <div className="rounded-2xl border border-slate-100 bg-white px-5 sm:px-7">{children}</div>
+}
+
+// `first:border-t-0` keys off the rendered DOM, so a section that conditions
+// itself away never leaves a stray rule at the top of the sheet.
+function SheetSection({ id, title, badge, subtitle, action, children }) {
   return (
-    <section id={id} className={`bg-white rounded-2xl border border-slate-100 p-6 ${className}`}>
-      {title && <h2 className="text-lg font-bold text-slate-900 mb-4">{title}</h2>}
+    <section id={id} className="border-t border-slate-100 py-6 first:border-t-0">
+      {(title || action) && (
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              {title && <h2 className="text-base font-bold text-slate-900">{title}</h2>}
+              {badge != null && (
+                <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-bold text-brand-700">{badge}</span>
+              )}
+            </div>
+            {subtitle && <p className="mt-0.5 text-xs text-slate-400">{subtitle}</p>}
+          </div>
+          {action && <div className="shrink-0">{action}</div>}
+        </div>
+      )}
       {children}
     </section>
   )
 }
 
-function DetailRow({ icon: IconComp, label, value }) {
+function FactCell({ label, value }) {
   if (!value) return null
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-slate-50 last:border-0">
-      <div className="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
-        <IconComp className="w-4 h-4 text-slate-500" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-slate-400 leading-none mb-0.5">{label}</p>
-        <p className="text-sm font-medium text-slate-800">{value}</p>
-      </div>
+    <div>
+      <p className="text-[11px] font-medium text-slate-400">{label}</p>
+      <p className="mt-0.5 text-sm font-bold text-slate-900">{value}</p>
     </div>
   )
 }
@@ -271,9 +320,9 @@ function DetailRow({ icon: IconComp, label, value }) {
 function PriceRow({ label, value, accent }) {
   if (!value) return null
   return (
-    <div className="flex justify-between items-center py-3 border-b border-slate-50 last:border-0">
-      <span className="text-sm text-slate-500">{label}</span>
-      <span className={`text-sm font-semibold ${accent ? 'text-brand-600' : 'text-slate-800'}`}>{value}</span>
+    <div className="flex justify-between items-center py-2.5 border-b border-slate-100 last:border-0">
+      <span className="text-xs text-slate-500">{label}</span>
+      <span className={`text-xs font-bold ${accent ? 'text-brand-700' : 'text-slate-800'}`}>{value}</span>
     </div>
   )
 }
@@ -569,54 +618,63 @@ function OwnerTrustBar({ ownerTrust }) {
 // ── Action card — owner: interested people / tenant: price + appointment ────
 // Rendered twice (sticky aside ≥lg, in-flow <lg), so the appointment anchor
 // id must differ per instance — the mobile bottom bar scrolls to the <lg one.
-function ActionCard({ formId, isOwner, property, avail, propertyId, user, onStartChat, onOpenLogin }) {
-  if (isOwner) {
-    return (
-      <div className="bg-white rounded-2xl border border-slate-100 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-slate-800">Interested people</h3>
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${avail.bg}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${avail.dot}`} />
-            <span className={`text-xs font-semibold ${avail.text}`}>{avail.label}</span>
-          </div>
-        </div>
-        <InterestedPeoplePanel propertyId={propertyId} />
-      </div>
-    )
-  }
+function ActionCard({ formId, isOwner, property, avail, propertyId, user, onStartChat, onOpenLogin, directionsUrl }) {
+  const bench = rentBenchmarkLabel(Number(property.rent), property.rentBenchmark)
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <p className="text-2xl font-bold text-brand-600">{formatRent(Number(property.rent))}</p>
+    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-card">
+      {/* Price leads the card in every state — an owner looking at their own
+          listing needs to see what it's advertised at just as much as a renter
+          does, so this sits above the owner/tenant split rather than inside it. */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-2xl font-bold text-slate-900">{formatRent(Number(property.rent))}</p>
           {property.deposit > 0 && (
-            <p className="text-xs text-slate-400 mt-0.5">Deposit: {formatCurrency(Number(property.deposit))}</p>
+            <p className="mt-1 text-xs text-slate-500">Deposit {formatCurrency(Number(property.deposit))}</p>
           )}
+          {bench && <p className={`mt-1 text-[11px] font-medium ${bench.className}`}>{bench.text}</p>}
         </div>
-        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${avail.bg}`}>
+        <div className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 ${avail.bg}`}>
           <span className={`w-1.5 h-1.5 rounded-full ${avail.dot}`} />
           <span className={`text-xs font-semibold ${avail.text}`}>{avail.label}</span>
         </div>
       </div>
 
-      {user ? (
+      {isOwner ? (
+        <div className="mt-4 border-t border-slate-100 pt-4">
+          <h3 className="mb-3 text-sm font-bold text-slate-800">Interested people</h3>
+          <InterestedPeoplePanel propertyId={propertyId} />
+        </div>
+      ) : user ? (
         <>
-          <div id={formId} className="border-t border-slate-100 pt-4">
+          <div id={formId} className="mt-4 border-t border-slate-100 pt-4">
             <AppointmentSection propertyId={propertyId} windowStart={property.appointmentWindowStart} windowEnd={property.appointmentWindowEnd} />
           </div>
-          <div className="border-t border-slate-100 pt-4">
+          {/* A listing with no coordinates gets a full-width Chat button rather
+              than a half-width one beside an empty cell. */}
+          <div className={`mt-4 grid gap-2 border-t border-slate-100 pt-4 ${directionsUrl ? 'grid-cols-2' : 'grid-cols-1'}`}>
             <button
               onClick={onStartChat}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-100 text-slate-700 font-semibold text-sm hover:bg-slate-200 transition-colors"
+              className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-800 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <MessageCircleMore className="w-4 h-4" strokeWidth={2} />
-              Chat with owner
+              Chat
             </button>
+            {directionsUrl && (
+              <a
+                href={directionsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-800 no-underline transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
+                <Navigation className="w-4 h-4 text-brand-600" strokeWidth={2} />
+                Directions
+              </a>
+            )}
           </div>
         </>
       ) : (
-        <div className="border-t border-slate-100 pt-4">
+        <div className="mt-4 border-t border-slate-100 pt-4">
           <LoginGate onLogin={onOpenLogin} />
         </div>
       )}
@@ -624,9 +682,71 @@ function ActionCard({ formId, isOwner, property, avail, propertyId, user, onStar
   )
 }
 
+// ── Pricing breakdown ────────────────────────────────────────────────────────
+// Its own card rather than folded into ActionCard, which the design shows as
+// one panel: ActionCard already carries the inline appointment form, and
+// stacking ~six more rows on top of that reliably pushes a sticky card past the
+// viewport, which is the exact failure the sidebar rules exist to avoid.
+function PricingCard({ property }) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white p-5">
+      <h3 className="mb-3 text-sm font-bold text-slate-800">Pricing breakdown</h3>
+      <div className="rounded-xl border border-slate-100 px-3.5">
+        <PriceRow label="Monthly rent"       value={formatCurrency(Number(property.rent))} accent />
+        <PriceRow label="Security deposit"   value={property.deposit ? formatCurrency(Number(property.deposit)) : null} />
+        <PriceRow label="Maintenance"        value={property.maintenance ? `${formatCurrency(Number(property.maintenance))}/mo` : 'Not included'} />
+        <PriceRow label="Brokerage"          value={property.brokerage ? formatCurrency(Number(property.brokerage)) : 'None'} />
+        <PriceRow label="Electricity (est.)" value={property.electricityCharges ? `${formatCurrency(Number(property.electricityCharges))}/mo` : null} />
+        <PriceRow label="Water (est.)"       value={property.waterCharges ? `${formatCurrency(Number(property.waterCharges))}/mo` : null} />
+      </div>
+    </div>
+  )
+}
+
 // ── Location map card ────────────────────────────────────────────────────────
+// Interactive, property-page only: drag to pan, custom zoom buttons, and a
+// locate button that snaps back to the house. `cooperative` rather than
+// `greedy` because this map sits in the middle of a scrollable page — greedy
+// would hijack the page scroll the moment the cursor crosses it (the fullscreen
+// explore map wants greedy; an embedded card does not).
+const LOCATION_MAP_ZOOM = 15
+
+// House pin: teardrop in brand-600 with the lucide "house" line icon knocked
+// out in white. Same construction as the searched-place pin in .claude/maps.md
+// (inline SVG + drop-shadow, hex allowed by the map-overlay exception —
+// #0d8a5f IS brand-600). createHtmlMarker translates (-50%,-100%), so the
+// teardrop's tip sits exactly on the coordinate.
+function housePinElement() {
+  const el = document.createElement('div')
+  el.style.filter = 'drop-shadow(0 3px 6px rgba(13,138,95,0.45))'
+  el.innerHTML = `
+    <svg width="40" height="52" viewBox="0 0 32 42" fill="none" aria-hidden="true">
+      <path d="M16 0C7.163 0 0 7.163 0 16c0 10.5 16 26 16 26S32 26.5 32 16C32 7.163 24.837 0 16 0z" fill="#0d8a5f"/>
+      <g transform="translate(9.5 9.5) scale(0.542)" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/>
+        <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+      </g>
+    </svg>`
+  return el
+}
+
+function MapControlButton({ label, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-slate-600 shadow-md ring-1 ring-slate-200 transition-colors hover:bg-slate-50 hover:text-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
+    >
+      {children}
+    </button>
+  )
+}
+
 function PropertyLocationMap({ lat, lng }) {
   const containerRef = useRef(null)
+  const mapRef = useRef(null)
 
   useEffect(() => {
     if (!lat || !lng || !containerRef.current) return
@@ -638,42 +758,49 @@ function PropertyLocationMap({ lat, lng }) {
       const center = { lat: Number(lat), lng: Number(lng) }
       const map = new window.google.maps.Map(containerRef.current, {
         center,
-        zoom: 15,
+        zoom: LOCATION_MAP_ZOOM,
         mapTypeId: 'roadmap',
-        disableDefaultUI: true,
-        gestureHandling: 'none',
+        disableDefaultUI: true, // our own controls below — Google's don't match the theme
+        gestureHandling: 'cooperative',
         clickableIcons: false,
       })
-      const el = document.createElement('div')
-      el.style.cssText = [
-        'width:14px', 'height:14px', 'border-radius:50%',
-        'background:#0284c7', 'border:3px solid white',
-        'box-shadow:0 2px 8px rgba(2,132,199,0.55)',
-      ].join(';')
-      marker = createHtmlMarker({ element: el, lat: center.lat, lng: center.lng, map })
+      mapRef.current = map
+      marker = createHtmlMarker({ element: housePinElement(), lat: center.lat, lng: center.lng, map })
     })
 
-    return () => { cancelled = true; marker?.remove() }
+    return () => { cancelled = true; marker?.remove(); mapRef.current = null }
   }, [lat, lng])
 
-  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+  // Guarded, not disabled-looking: before init these are no-ops for the
+  // fraction of a second the maps script takes to arrive.
+  const zoomBy = (delta) => {
+    const map = mapRef.current
+    if (map) map.setZoom(map.getZoom() + delta)
+  }
+  const recenter = () => {
+    const map = mapRef.current
+    if (!map) return
+    map.panTo({ lat: Number(lat), lng: Number(lng) })
+    map.setZoom(LOCATION_MAP_ZOOM)
+  }
 
   return (
-    <section className="relative bg-white rounded-2xl border border-slate-100 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-slate-900">Map</h2>
-        <a
-          href={directionsUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="relative z-10 flex items-center gap-1.5 px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-xl transition-colors"
-        >
-          <MapIcon className="w-3.5 h-3.5" strokeWidth={2.5} />
-          Directions
-        </a>
+    <div className="relative">
+      {/* Taller now that the map is interactive — 240px was fine for a static
+          thumbnail, but panning and zooming need room to be worth doing. */}
+      <div ref={containerRef} className="h-72 w-full overflow-hidden rounded-xl bg-slate-100 md:h-96" />
+      <div className="absolute bottom-3 right-3 flex flex-col gap-1.5">
+        <MapControlButton label="Zoom in" onClick={() => zoomBy(1)}>
+          <Plus className="h-4 w-4" strokeWidth={2.5} />
+        </MapControlButton>
+        <MapControlButton label="Zoom out" onClick={() => zoomBy(-1)}>
+          <Minus className="h-4 w-4" strokeWidth={2.5} />
+        </MapControlButton>
+        <MapControlButton label="Back to the property" onClick={recenter}>
+          <LocateFixed className="h-4 w-4" strokeWidth={2.5} />
+        </MapControlButton>
       </div>
-      <div ref={containerRef} className="w-full h-64 rounded-xl overflow-hidden bg-slate-100" />
-    </section>
+    </div>
   )
 }
 
@@ -681,7 +808,9 @@ function PropertyLocationMap({ lat, lng }) {
 function PageSkeleton() {
   return (
     <div className="flex-1 overflow-y-auto bg-slate-50 animate-pulse">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Must track the real container above, or the page jumps sideways the
+          moment the skeleton is replaced. */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         <div className="h-5 w-32 bg-slate-200 rounded" />
         <div className="hidden md:grid grid-cols-4 grid-rows-2 gap-2 rounded-2xl overflow-hidden h-[420px]">
           <div className="col-span-2 row-span-2 bg-slate-200" />
@@ -780,7 +909,7 @@ export default function PropertyPage() {
     : property.bhk ? `${property.bhk} BHK` : null
 
   const floorLabel = (() => {
-    if (property.floor && property.totalFloors) return `${ordinal(property.floor)} floor of ${property.totalFloors}`
+    if (property.floor && property.totalFloors) return `${ordinal(property.floor)} of ${property.totalFloors}`
     if (property.floor)       return `${ordinal(property.floor)} floor`
     if (property.totalFloors) return `${property.totalFloors}-floor building`
     return null
@@ -788,6 +917,32 @@ export default function PropertyPage() {
 
   const images = property.images ?? []
   const isOwner = user?.id === property.ownerId
+  const directionsUrl = directionsUrlFor(property.lat, property.lng)
+
+  // The at-a-glance grid. Built as a list so a listing type that has no floor
+  // or no facing direction simply gets a shorter grid instead of empty cells —
+  // all six property types share this one section.
+  const quickFacts = [
+    { label: 'Configuration',  value: bhkLabel },
+    { label: 'Built-up area',  value: property.area ? `${Number(property.area).toLocaleString('en-IN')} sq.ft` : null },
+    { label: 'Floor',          value: floorLabel },
+    { label: 'Facing',         value: property.facingDirection ? property.facingDirection.charAt(0) + property.facingDirection.slice(1).toLowerCase() : null },
+    { label: 'Furnishing',     value: property.furnished ? formatFurnished(property.furnished) : null },
+    { label: 'Available from', value: property.availableFrom ? new Date(property.availableFrom).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null },
+    { label: 'Minimum lease',  value: property.leaseDuration ? `${property.leaseDuration} months` : null },
+    { label: 'Max occupancy',  value: property.occupancyLimit ? `${property.occupancyLimit} people` : null },
+  ].filter(f => f.value)
+
+  const rules = property.rules ? [
+    { label: 'Non-veg cooking', allowed: property.rules.nonVegAllowed   },
+    { label: 'Bachelors',       allowed: property.rules.bachelorAllowed },
+    { label: 'Visitors',        allowed: property.rules.visitorsAllowed },
+    { label: 'Pets',            allowed: property.rules.petsAllowed     },
+    { label: 'Smoking',         allowed: property.rules.smokingAllowed  },
+    { label: 'Alcohol',         allowed: property.rules.alcoholAllowed  },
+  ] : []
+  const rulesAllowed = rules.filter(r => r.allowed)
+  const rulesDenied  = rules.filter(r => !r.allowed)
 
   async function startChat() {
     try {
@@ -849,7 +1004,11 @@ export default function PropertyPage() {
         <Lightbox images={images} startIndex={lightboxIdx} onClose={() => setLightboxIdx(null)} />
       )}
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 lg:pb-10">
+      {/* max-w-7xl + px-4/sm:px-6 is the container 13 other pages already use.
+          This page was the outlier at max-w-6xl with lg:px-8, which made it the
+          narrowest content column in the app — ~1088px of usable width against
+          everyone else's ~1232px. */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-24 lg:pb-10">
 
         {/* ── Top bar: Back + Actions ─────────────────────────────── */}
         <div className="flex items-center justify-between py-4">
@@ -883,236 +1042,212 @@ export default function PropertyPage() {
         <RiskAlert riskScore={property.riskScore} />
 
         {/* ── Image Gallery ───────────────────────────────────────── */}
-        <ImageGallery images={images} onOpenLightbox={setLightboxIdx} />
+        <ImageGallery images={images} avail={avail} onOpenLightbox={setLightboxIdx} />
 
-        {/* ── Title + Price Header ─────────────────────────────────── */}
-        <div className="mt-6 mb-6">
-          {/* Availability badge */}
-          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 ${avail.bg}`}>
-            <span className={`w-2 h-2 rounded-full shrink-0 ${avail.dot}`} />
-            <span className={`text-xs font-semibold ${avail.text}`}>{avail.label}</span>
-          </div>
+        {/* ── Two-column layout ────────────────────────────────────── */}
+        <div className="mt-6 flex flex-col gap-6 lg:flex-row">
 
-          {/* Title + Price */}
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-            <div className="min-w-0 space-y-2">
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight">{property.title}</h1>
+          {/* ── Main content column ─────────────────────────────────── */}
+          <div className="min-w-0 flex-1 space-y-5">
+
+            {/* Title block — sits above the sheet, not inside it, so the page's
+                one h1 isn't visually boxed in with the detail sections. */}
+            <div>
+              <div className="mb-2.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs font-bold">
+                {bhkLabel && <span className="text-brand-600">{bhkLabel}</span>}
+                {property.furnished && (
+                  <span className="font-semibold text-slate-400">· {formatFurnished(property.furnished)}</span>
+                )}
+                {property.type && (
+                  <span className="font-semibold text-slate-400">· {formatType(property.type)}</span>
+                )}
+                {property.trustScore?.badge && (
+                  <span className="ml-1"><TrustBadge badge={property.trustScore.badge} size="sm" /></span>
+                )}
+              </div>
+
+              <h1 className="text-2xl font-bold leading-tight text-slate-900 sm:text-3xl">{property.title}</h1>
+
+              <div className="mt-2.5 flex items-start gap-1.5 text-slate-500">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" strokeWidth={2} />
+                <p className="text-sm leading-snug">
+                  {property.address}, {property.city}, {property.state}
+                  {property.pincode ? ` — ${property.pincode}` : ''}
+                  {property.landmark ? <span className="text-slate-400"> · near {property.landmark}</span> : ''}
+                </p>
+              </div>
+
               {property.displayId && (
                 <button
-                  onClick={() => { navigator.clipboard.writeText(property.displayId); }}
+                  onClick={() => { navigator.clipboard.writeText(property.displayId) }}
                   title="Click to copy ID"
-                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 text-[11px] font-mono font-semibold text-slate-500 hover:bg-slate-200 transition-colors cursor-pointer"
+                  className="mt-2.5 inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-500 transition-colors hover:bg-slate-200"
                 >
                   {property.displayId}
                   <Copy size={10} strokeWidth={2.5} />
                 </button>
               )}
-
-              {/* Location */}
-              <div className="flex items-start gap-1.5 text-slate-500">
-                <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-brand-500" strokeWidth={2} />
-                <p className="text-sm leading-snug">
-                  {property.address}, {property.city}, {property.state}
-                  {property.pincode ? ` — ${property.pincode}` : ''}
-                  {property.landmark ? <span className="text-slate-400"> (Near {property.landmark})</span> : ''}
-                </p>
-              </div>
-
-              {/* Tags */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                {bhkLabel && (
-                  <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-full">🛏️ {bhkLabel}</span>
-                )}
-                {property.furnished && (() => {
-                  const FEMO = { FULLY: '🛋️', SEMI: '🪑', UNFURNISHED: '📦' }
-                  return <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">{FEMO[property.furnished]} {formatFurnished(property.furnished)}</span>
-                })()}
-                {property.type && (() => {
-                  const TEMO = { APARTMENT: '🏢', HOUSE: '🏠', VILLA: '🏡', PG: '🏘️', INDEPENDENT_HOUSE: '🏠', COMMERCIAL: '🏪' }
-                  return <span className="px-2.5 py-1 bg-violet-50 text-violet-700 text-xs font-medium rounded-full">{TEMO[property.type] ?? '🏠'} {formatType(property.type)}</span>
-                })()}
-                {property.trustScore?.badge && <TrustBadge badge={property.trustScore.badge} size="sm" />}
-              </div>
             </div>
 
-            {/* Price block */}
-            <div className="shrink-0 sm:text-right sm:pl-6">
-              <p className="text-3xl font-bold text-brand-600">{formatRent(Number(property.rent))}</p>
-              {property.deposit > 0 && (
-                <p className="text-sm text-slate-400 mt-0.5">Deposit: {formatCurrency(Number(property.deposit))}</p>
+            <Sheet>
+              {/* At a glance */}
+              {quickFacts.length > 0 && (
+                <SheetSection>
+                  <div className="grid grid-cols-2 gap-x-5 gap-y-5 sm:grid-cols-3 lg:grid-cols-4">
+                    {quickFacts.map(f => <FactCell key={f.label} label={f.label} value={f.value} />)}
+                  </div>
+                </SheetSection>
               )}
-              {(() => {
-                const bench = rentBenchmarkLabel(Number(property.rent), property.rentBenchmark)
-                return bench && <p className={`text-xs font-medium mt-1 ${bench.className}`}>{bench.text}</p>
-              })()}
-            </div>
-          </div>
-        </div>
 
-        {/* ── Two-column layout ────────────────────────────────────── */}
-        <div className="flex flex-col lg:flex-row gap-6">
-
-          {/* ── Main content column ─────────────────────────────────── */}
-          <div className="flex-1 min-w-0 space-y-5">
-
-            {/* About */}
-            {property.description && (
-              <SectionCard id="overview" title="About this property">
-                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">{property.description}</p>
-              </SectionCard>
-            )}
-
-            {/* Property Details */}
-            {(property.area || floorLabel || property.facingDirection || property.availableFrom || property.leaseDuration || property.occupancyLimit) && (
-              <SectionCard title="Property details">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-                  <DetailRow icon={LayoutGrid} label="Built-up Area"     value={property.area ? `${Number(property.area).toLocaleString('en-IN')} sq.ft` : null} />
-                  <DetailRow icon={Building2}  label="Floor"             value={floorLabel} />
-                  <DetailRow icon={Compass}    label="Facing Direction"  value={property.facingDirection ? property.facingDirection.charAt(0) + property.facingDirection.slice(1).toLowerCase() : null} />
-                  <DetailRow icon={Calendar}   label="Available From"    value={property.availableFrom ? new Date(property.availableFrom).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null} />
-                  <DetailRow icon={Calendar}   label="Minimum Lease"     value={property.leaseDuration ? `${property.leaseDuration} months` : null} />
-                  <DetailRow icon={Users}      label="Max Occupancy"     value={property.occupancyLimit ? `${property.occupancyLimit} persons` : null} />
-                </div>
-              </SectionCard>
-            )}
-
-            {/* Pricing + Amenities side by side */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {/* Pricing */}
-              <SectionCard id="pricing" title="Pricing breakdown">
-                <PriceRow label="Monthly Rent"       value={formatCurrency(Number(property.rent))}     accent />
-                <PriceRow label="Security Deposit"   value={formatCurrency(Number(property.deposit))} />
-                <PriceRow label="Brokerage"          value={property.brokerage ? formatCurrency(Number(property.brokerage)) : 'None'} />
-                <PriceRow label="Maintenance"        value={property.maintenance ? formatCurrency(Number(property.maintenance)) + '/mo' : 'Not included'} />
-                <PriceRow label="Electricity (est.)" value={property.electricityCharges ? formatCurrency(Number(property.electricityCharges)) + '/mo' : null} />
-                <PriceRow label="Water (est.)"       value={property.waterCharges ? formatCurrency(Number(property.waterCharges)) + '/mo' : null} />
-              </SectionCard>
+              {/* About */}
+              {property.description && (
+                <SheetSection id="overview" title="About this home">
+                  {/* The only long-form prose on the page. Grids and cards want
+                      the full column; a paragraph running the whole width is
+                      just hard to read, so this one caps its measure. */}
+                  <p className="max-w-[70ch] whitespace-pre-line text-sm leading-relaxed text-slate-600">
+                    {property.description}
+                  </p>
+                </SheetSection>
+              )}
 
               {/* Amenities */}
               {property.amenities?.length > 0 && (
-                <SectionCard id="amenities" title="Amenities">
-                  <div className="grid grid-cols-2 gap-2.5">
+                <SheetSection id="amenities" title="What this place offers" badge={property.amenities.length}>
+                  <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
                     {property.amenities.map(a => {
                       const name = a.amenity?.name ?? a.amenityId
                       return (
-                        <div
-                          key={a.amenityId ?? name}
-                          className="flex items-center gap-2.5 px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-100"
-                        >
-                          <span className="text-slate-400 shrink-0"><AmenityIcon name={name} size={16} /></span>
-                          <span className="text-sm font-medium text-slate-700 truncate min-w-0">{name}</span>
+                        <div key={a.amenityId ?? name} className="flex items-center gap-3">
+                          <span className="shrink-0 text-brand-600"><AmenityIcon name={name} size={19} /></span>
+                          <span className="min-w-0 truncate text-sm font-semibold text-slate-700">{name}</span>
                         </div>
                       )
                     })}
                   </div>
-                </SectionCard>
+                </SheetSection>
               )}
-            </div>
 
-            {/* Zero Brokerage banner */}
-            {!property.brokerage && (
-              <div className="px-4 py-3 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-2.5">
-                <CircleCheckBig width={18} height={18} color="#059669" strokeWidth={1.9} className="shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold text-emerald-700">Zero Brokerage</p>
-                  <p className="text-xs text-emerald-600/70">Connect directly with the owner — no middlemen fees</p>
-                </div>
-              </div>
-            )}
-
-            {/* House Rules */}
-            {property.rules && (
-              <SectionCard id="rules" title="House rules">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {[
-                    { icon: ChefHat,   label: 'Non-veg Cooking', allowed: property.rules.nonVegAllowed   },
-                    { icon: User,      label: 'Bachelors',       allowed: property.rules.bachelorAllowed },
-                    { icon: UserPlus,  label: 'Visitors',        allowed: property.rules.visitorsAllowed },
-                    { icon: PawPrint,  label: 'Pets',            allowed: property.rules.petsAllowed     },
-                    { icon: Cigarette, label: 'Smoking',         allowed: property.rules.smokingAllowed  },
-                    { icon: Wine,      label: 'Alcohol',         allowed: property.rules.alcoholAllowed  },
-                  ].map(r => (
-                    <div
-                      key={r.label}
-                      className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border ${r.allowed ? 'bg-emerald-50 border-emerald-100' : 'bg-slate-50 border-slate-100'}`}
-                    >
-                      <r.icon width={15} height={15} color={r.allowed ? '#059669' : '#94a3b8'} strokeWidth={1.9} className="shrink-0" />
-                      <span className={`text-sm font-medium flex-1 ${r.allowed ? 'text-slate-800' : 'text-slate-400'}`}>{r.label}</span>
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${r.allowed ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                        {r.allowed ? <Check width={10} height={10} color="white" strokeWidth={3} /> : <X width={10} height={10} color="white" strokeWidth={3} />}
+              {/* House rules */}
+              {rules.length > 0 && (
+                <SheetSection
+                  id="rules"
+                  title="House rules"
+                  subtitle="Set by the owner — confirm anything important before you visit."
+                >
+                  <div className="grid grid-cols-1 gap-x-5 gap-y-3.5 sm:grid-cols-2 lg:grid-cols-3">
+                    {rulesAllowed.map(r => (
+                      <div key={r.label} className="flex items-center gap-2.5">
+                        <Check className="h-[18px] w-[18px] shrink-0 text-brand-600" strokeWidth={2.5} />
+                        <span className="text-sm font-semibold text-slate-700">{r.label}</span>
                       </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Gender preference + Curfew */}
-                {(property.rules.genderPreference !== 'ANY' || property.rules.curfewTime) && (
-                  <div className="mt-3 space-y-2">
-                    {property.rules.genderPreference && property.rules.genderPreference !== 'ANY' && (
-                      <div className="flex items-center gap-2.5 px-4 py-3 bg-brand-50 rounded-xl border border-brand-100">
-                        <span className="w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold shrink-0">!</span>
-                        <span className="text-sm font-medium text-brand-700">
-                          {property.rules.genderPreference === 'MALE' ? 'Male tenants only' : 'Female tenants only'}
-                        </span>
+                    ))}
+                    {rulesDenied.map(r => (
+                      <div key={r.label} className="flex items-center gap-2.5">
+                        <X className="h-[18px] w-[18px] shrink-0 text-error-500" strokeWidth={2.5} />
+                        <span className="text-sm font-semibold text-slate-400">No {r.label.toLowerCase()}</span>
                       </div>
-                    )}
-                    {property.rules.curfewTime && (
-                      <div className="flex items-center gap-2.5 px-4 py-3 bg-amber-50 rounded-xl border border-amber-100">
-                        <Clock width={15} height={15} color="#d97706" strokeWidth={1.9} className="shrink-0" />
-                        <span className="text-sm font-medium text-amber-800">Curfew at {property.rules.curfewTime}</span>
-                      </div>
-                    )}
+                    ))}
                   </div>
-                )}
-              </SectionCard>
-            )}
 
-            {/* Trust Score — mobile only; desktop shows it in sidebar */}
-            <div className="lg:hidden">
-              <SectionCard title="Trust &amp; safety">
-                <TrustScoreWidget trustScore={property.trustScore} riskScore={property.riskScore} />
-              </SectionCard>
-            </div>
-
-            {/* Posted by */}
-            {property.owner && (
-              <SectionCard title="Posted by">
-                <div className="flex items-start gap-4">
-                  <Avatar src={property.owner.avatarUrl} name={property.owner.name || 'Owner'} size="lg" className="shrink-0 border border-slate-100" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-base font-bold text-slate-900 truncate">
-                      {property.owner.name ?? 'Owner'}
-                    </p>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Member since {new Date(property.owner.createdAt).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[11px] font-semibold rounded-full border border-emerald-100">
-                        <Check className="w-3 h-3" strokeWidth={2.5} />
-                        Direct owner — no brokerage
-                      </span>
-                      {property.owner.ownerTrustScore && property.owner.ownerTrustScore.level !== 'UNRATED' && (
-                        <OwnerTrustPill ownerTrust={property.owner.ownerTrustScore} />
+                  {/* Gender preference + Curfew */}
+                  {(property.rules.genderPreference !== 'ANY' || property.rules.curfewTime) && (
+                    <div className="mt-4 space-y-2">
+                      {property.rules.genderPreference && property.rules.genderPreference !== 'ANY' && (
+                        <div className="flex items-center gap-2.5 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">!</span>
+                          <span className="text-sm font-medium text-brand-700">
+                            {property.rules.genderPreference === 'MALE' ? 'Male tenants only' : 'Female tenants only'}
+                          </span>
+                        </div>
+                      )}
+                      {property.rules.curfewTime && (
+                        <div className="flex items-center gap-2.5 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
+                          <Clock width={15} height={15} color="#d97706" strokeWidth={1.9} className="shrink-0" />
+                          <span className="text-sm font-medium text-amber-800">Curfew at {property.rules.curfewTime}</span>
+                        </div>
                       )}
                     </div>
-                    {property.owner.ownerTrustScore && property.owner.ownerTrustScore.level !== 'UNRATED' && (
-                      <OwnerTrustBar ownerTrust={property.owner.ownerTrustScore} />
-                    )}
+                  )}
+                </SheetSection>
+              )}
+
+              {/* Spatial intelligence — one mount, always here. The panel owns
+                  its own heading, so this section deliberately has none.
+                  The hand-authored "Neighbourhood intelligence" card that used
+                  to sit alongside the commute calculator is gone: computed
+                  cells and a human's estimate of an area are two different
+                  claims, and showing them as sibling cards made the weaker one
+                  look like the stronger one. The spatial modules are the single
+                  source for area facts now. */}
+              <SheetSection>
+                <SpatialContextPanel
+                  context={property.spatialContext}
+                  coords={{ lat: property.lat, lng: property.lng }}
+                >
+                  <CommuteCalculator lat={property.lat} lng={property.lng} />
+                </SpatialContextPanel>
+              </SheetSection>
+
+              {/* Location */}
+              {property.lat && property.lng && (
+                <SheetSection
+                  title="Location"
+                  action={
+                    <a
+                      href={directionsUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-xs font-bold text-white no-underline transition-colors hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1"
+                    >
+                      <Navigation className="h-3.5 w-3.5" strokeWidth={2.5} />
+                      Directions
+                    </a>
+                  }
+                >
+                  <PropertyLocationMap lat={property.lat} lng={property.lng} />
+                </SheetSection>
+              )}
+
+              {/* Owner */}
+              {property.owner && (
+                <SheetSection title="Listed by the owner">
+                  <div className="flex items-start gap-4">
+                    <Avatar src={property.owner.avatarUrl} name={property.owner.name || 'Owner'} size="lg" className="shrink-0 border border-slate-100" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-base font-bold text-slate-900">
+                        {property.owner.name ?? 'Owner'}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-400">
+                        Member since {new Date(property.owner.createdAt).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                          <Check className="h-3 w-3" strokeWidth={2.5} />
+                          Direct owner — no brokerage
+                        </span>
+                        {property.owner.ownerTrustScore && property.owner.ownerTrustScore.level !== 'UNRATED' && (
+                          <OwnerTrustPill ownerTrust={property.owner.ownerTrustScore} />
+                        )}
+                      </div>
+                      {property.owner.ownerTrustScore && property.owner.ownerTrustScore.level !== 'UNRATED' && (
+                        <OwnerTrustBar ownerTrust={property.owner.ownerTrustScore} />
+                      )}
+                    </div>
                   </div>
-                </div>
-              </SectionCard>
-            )}
+                </SheetSection>
+              )}
 
-            {/* Location map */}
-            {property.lat && property.lng && (
-              <PropertyLocationMap lat={property.lat} lng={property.lng} />
-            )}
+              {/* Reviews */}
+              <SheetSection id="reviews" title="Community reviews">
+                <ReviewsSection propertyId={id} isOwner={isOwner} ownerInfo={property?.owner} />
+              </SheetSection>
+            </Sheet>
 
-            {/* <lg: the sticky aside is hidden — its content renders in-flow here */}
-            <div className="lg:hidden space-y-4">
-              <AreaIntelligenceCard lat={property.lat} lng={property.lng} />
-              <PropertyAreaInsight city={property.city} landmark={property.landmark} />
-              <CommuteCalculator lat={property.lat} lng={property.lng} />
+            {/* <lg: the sidebar is hidden — its cards render here instead.
+                ActionCard takes a distinct formId because the fixed mobile
+                bottom bar scrolls to this anchor. */}
+            <div className="space-y-4 lg:hidden">
               <ActionCard
                 formId="appointment-form-mobile"
                 isOwner={isOwner}
@@ -1122,13 +1257,14 @@ export default function PropertyPage() {
                 user={user}
                 onStartChat={startChat}
                 onOpenLogin={openLoginModal}
+                directionsUrl={directionsUrl}
               />
+              <PricingCard property={property} />
+              <div className="rounded-2xl border border-slate-100 bg-white p-5">
+                <h3 className="mb-4 text-sm font-bold text-slate-800">Trust &amp; safety</h3>
+                <TrustScoreWidget trustScore={property.trustScore} riskScore={property.riskScore} />
+              </div>
             </div>
-
-            {/* Reviews */}
-            <SectionCard id="reviews" title="Community reviews">
-              <ReviewsSection propertyId={id} isOwner={isOwner} ownerInfo={property?.owner} />
-            </SectionCard>
 
             {/* Report */}
             <div className="flex items-center justify-between py-3">
@@ -1137,54 +1273,52 @@ export default function PropertyPage() {
             </div>
           </div>
 
-          {/* ── Right sidebar (sticky) ──────────────────────────────── */}
-          <aside className="hidden lg:block w-[340px] shrink-0">
-            <div className="sticky top-4 space-y-4">
+          {/* ── Right sidebar ───────────────────────────────────────────
+              The column itself scrolls with the page — no nested scrollbar, no
+              height cap. Two earlier attempts were both worse: making the whole
+              column `sticky` pins it the moment its top hits the offset, so
+              everything past the fold is unreachable; capping its height and
+              scrolling it internally fixed that but put a scrollbar inside a
+              scrollbar. Only the booking card sticks now, which is the one
+              thing that actually benefits from following the reader. */}
+          <aside className="hidden w-[340px] shrink-0 lg:block">
+            <div className="space-y-4">
 
-              {/* 1 — Trust & safety */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-5">
-                <h3 className="text-sm font-bold text-slate-800 mb-4">Trust &amp; safety</h3>
+              {/* 1 — Owner: interested people / tenant: price + appointment.
+                  First so the primary action is visible without scrolling. */}
+              <div className="sticky top-4 z-10">
+                <ActionCard
+                  formId="appointment-form"
+                  isOwner={isOwner}
+                  property={property}
+                  avail={avail}
+                  propertyId={id}
+                  user={user}
+                  onStartChat={startChat}
+                  onOpenLogin={openLoginModal}
+                  directionsUrl={directionsUrl}
+                />
+              </div>
+
+              {/* 2 — Pricing breakdown */}
+              <PricingCard property={property} />
+
+              {/* 3 — Trust & safety */}
+              <div className="rounded-2xl border border-slate-100 bg-white p-5">
+                <h3 className="mb-4 text-sm font-bold text-slate-800">Trust &amp; safety</h3>
                 <TrustScoreWidget trustScore={property.trustScore} riskScore={property.riskScore} />
               </div>
 
-              {/* 2 — Location */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-5">
-                <h3 className="text-sm font-bold text-slate-800 mb-3">Location</h3>
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-brand-500" strokeWidth={2} />
+              {/* 4 — Zero brokerage */}
+              {!property.brokerage && (
+                <div className="flex items-center gap-2.5 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3.5">
+                  <CircleCheckBig width={18} height={18} color="#059669" strokeWidth={1.9} className="shrink-0" />
                   <div>
-                    <p className="text-sm text-slate-700 leading-snug">{property.address}</p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      {property.city}, {property.state}
-                      {property.pincode ? ` — ${property.pincode}` : ''}
-                    </p>
-                    {property.landmark && (
-                      <p className="text-xs text-slate-400 mt-0.5 italic">Near {property.landmark}</p>
-                    )}
+                    <p className="text-sm font-semibold text-emerald-700">Zero brokerage</p>
+                    <p className="text-xs text-emerald-600/70">Pay the owner directly — no middlemen fees.</p>
                   </div>
                 </div>
-              </div>
-
-              {/* 3 — Live neighborhood intelligence (any coordinate) */}
-              <AreaIntelligenceCard lat={property.lat} lng={property.lng} />
-
-              {/* 4 — Hand-authored area insight (named neighborhoods only) */}
-              <PropertyAreaInsight city={property.city} landmark={property.landmark} />
-
-              {/* 5 — Commute calculator (tenant-supplied destination) */}
-              <CommuteCalculator lat={property.lat} lng={property.lng} />
-
-              {/* 6 — Owner: Interested people / Tenant: price + appointment form */}
-              <ActionCard
-                formId="appointment-form"
-                isOwner={isOwner}
-                property={property}
-                avail={avail}
-                propertyId={id}
-                user={user}
-                onStartChat={startChat}
-                onOpenLogin={openLoginModal}
-              />
+              )}
 
             </div>
           </aside>
@@ -1193,24 +1327,33 @@ export default function PropertyPage() {
 
       {/* ── Mobile fixed bottom bar ─────────────────────────────── */}
       {!isOwner && (
-        <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-white border-t border-slate-200 px-4 py-3 flex items-center justify-between gap-3 z-40 shadow-lg">
-          <div>
-            <p className="text-lg font-bold text-brand-600">{formatRent(Number(property.rent))}</p>
-            {property.deposit > 0 && (
-              <p className="text-xs text-slate-400">Deposit: {formatCurrency(Number(property.deposit))}</p>
-            )}
+        <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center gap-3 border-t border-slate-200 bg-white px-4 py-3 shadow-lg lg:hidden">
+          <div className="min-w-0 flex-none">
+            <p className="text-lg font-bold text-slate-900">{formatRent(Number(property.rent))}</p>
+            {!property.brokerage && <p className="text-[11px] font-semibold text-brand-700">Zero brokerage</p>}
           </div>
+          {directionsUrl && (
+            <a
+              href={directionsUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Directions to this property"
+              className="flex h-11 w-11 flex-none items-center justify-center rounded-xl border border-slate-200 bg-white transition-colors hover:bg-slate-50"
+            >
+              <Navigation className="h-4 w-4 text-brand-600" strokeWidth={2} />
+            </a>
+          )}
           {user ? (
             <button
               onClick={() => document.getElementById('appointment-form-mobile')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-              className="px-6 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors"
+              className="flex-1 rounded-xl bg-brand-600 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-brand-700"
             >
-              Request Visit
+              Request a visit
             </button>
           ) : (
             <button
               onClick={openLoginModal}
-              className="px-6 py-2.5 rounded-xl bg-[#111111] text-white text-sm font-semibold hover:bg-[#2a2a2a] transition-colors"
+              className="flex-1 rounded-xl bg-[#111111] px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-[#2a2a2a]"
             >
               Sign in to contact
             </button>

@@ -44,6 +44,8 @@ import leaseRoutes        from './features/leases/lease.routes.js'
 import pushRoutes         from './features/push/push.routes.js'
 import trustRoutes        from './features/trust/trust.routes.js'
 import placeRoutes        from './features/places/places.routes.js'
+import spatialRoutes      from './features/spatial/spatial.routes.js'
+import { startRefresher } from './features/spatial/refresher.js'
 import aiRoutes          from './features/ai/ai.routes.js'
 import areaRoutes        from './features/areas/areas.routes.js'
 import metroRoutes       from './features/metro/metro.routes.js'
@@ -86,6 +88,7 @@ app.use('/api/v1/leases',        leaseRoutes)
 app.use('/api/v1/push',          pushRoutes)
 app.use('/api/v1/areas',         areaRoutes)
 app.use('/api/v1/places',        placeRoutes)
+app.use('/api/v1/spatial',       spatialRoutes)
 app.use('/api/v1/metro',         metroRoutes)
 app.use('/api/v1/it-corridors',  itCorridorRoutes)
 
@@ -123,4 +126,8 @@ httpServer.listen(PORT, () => {
       fetch(`${process.env.SELF_URL}/health`).catch(() => {})
     }, 14 * 60 * 1000)
   }
+
+  // Refresh stale spatial intelligence cells in the background. Redis-locked,
+  // so multiple instances don't each pay to recompute the same cell.
+  startRefresher()
 })
