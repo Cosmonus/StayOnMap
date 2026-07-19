@@ -1,10 +1,9 @@
 import { api } from '@lib/api'
 
-// Live, per-coordinate neighborhood intelligence (transit/essentials/IT/
-// traffic) — see backend/src/features/places/areaIntelligence.service.js.
-// Distinct from areas.service.js, which serves the hand-authored, named-
-// neighborhood profiles (avg rent, flood risk, summary, "best for" tags).
+// Commute lookup via the Google Distance Matrix proxy. The old `get` method
+// (/places/area-intelligence) was removed 2026-07-19 when the spatial layer
+// (services/spatial.service.js + property.spatialContext) superseded it —
+// the backend endpoint itself stays live for app versions already released.
 export const placeIntelligenceService = {
-  get: (lat, lng) => api.get('/places/area-intelligence', { params: { lat, lng } }),
   getCommute: (lat, lng, destination) => api.get('/places/commute', { params: { lat, lng, destination } }),
 }
