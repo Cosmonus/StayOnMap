@@ -132,17 +132,30 @@ function normalizedName(poi) {
 /**
  * Collapse node/way doubles within one category's distance-sorted list.
  * The list is nearest-first, so the kept copy is always the nearest one.
+ *
+ * Comparing every pair would be O(n²), and landContext scans 5 km where
+ * `retail` runs to thousands of rows. The input is sorted by distance from
+ * the origin, so the triangle inequality bounds the search: if two POIs'
+ * distances-from-origin differ by more than the duplicate radius, they are
+ * necessarily farther apart than it and cannot be duplicates. Walking `kept`
+ * backwards and breaking on that gap turns this into a narrow window scan.
  */
 export function dedupeCategory(sorted) {
   const kept = []
   for (const poi of sorted) {
     const name = normalizedName(poi)
-    const isDup = kept.some((k) => {
+    let isDup = false
+
+    for (let i = kept.length - 1; i >= 0; i--) {
+      const k = kept[i]
+      if (poi.distanceM - k.distanceM > DUP_NAMED_M) break // nothing earlier can match
       const d = haversineMeters(poi.lat, poi.lng, k.lat, k.lng)
-      if (name && normalizedName(k) === name) return d <= DUP_NAMED_M
-      if (!name) return d <= DUP_UNNAMED_M
-      return false
-    })
+      if (name ? normalizedName(k) === name && d <= DUP_NAMED_M : d <= DUP_UNNAMED_M) {
+        isDup = true
+        break
+      }
+    }
+
     if (!isDup) kept.push(poi)
   }
   return kept
