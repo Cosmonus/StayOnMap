@@ -29,16 +29,11 @@ import { CITY_CENTERS, resolveCity } from '../src/config/cityCenters.js'
 import { categoryFor, overpassClauses, CATEGORY_KEYS } from '../src/features/spatial/poiCategories.js'
 import { parseSeedArgs } from '../src/features/spatial/seedArgs.js'
 import { bboxFor, tiles } from '../src/features/spatial/tiling.js'
+import { overpassQuery } from '../src/features/spatial/overpassClient.js'
 
 // Public instances, tried in order. The main one has 406'd from some
 // environments before (see .claude/roadmap.md Addenda 10-11), so the mirrors
 // are a real fallback path rather than defensive padding.
-const ENDPOINTS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-]
-
 const REQUEST_TIMEOUT_MS = 180_000
 // Overpass is a free service run on donated hardware. A pause between tiles is
 // the cost of being allowed to keep using it.
@@ -58,29 +53,10 @@ const { confirm: CONFIRM, city: ONLY_CITY } = parseSeedArgs(process.argv.slice(2
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-async function overpass(query) {
-  let lastError = null
-  for (const endpoint of ENDPOINTS) {
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          // Overpass asks for an identifiable agent so it can contact abusers
-          // rather than silently blocking them.
-          'User-Agent': 'StayOnMap/1.0 (spatial intelligence POI seed; https://www.stayonmap.com)',
-        },
-        body: new URLSearchParams({ data: query }),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      })
-      if (!res.ok) { lastError = new Error(`${endpoint} → HTTP ${res.status}`); continue }
-      return await res.json()
-    } catch (err) {
-      lastError = err
-    }
-  }
-  throw lastError ?? new Error('all Overpass endpoints failed')
-}
+const overpass = (query) => overpassQuery(query, {
+  userAgent: 'StayOnMap/1.0 (spatial intelligence POI seed; https://www.stayonmap.com)',
+  timeoutMs: REQUEST_TIMEOUT_MS,
+})
 
 function elementsToRows(elements) {
   const rows = []
