@@ -16,6 +16,7 @@ import PrivacySheet from '@features/profile/components/PrivacySheet'
 import DeleteAccountSheet from '@features/profile/components/DeleteAccountSheet'
 import LinkedAccountsSheet from '@features/profile/components/LinkedAccountsSheet'
 import DevicesSheet from '@features/profile/components/DevicesSheet'
+import PointsCard from '@features/points/components/PointsCard'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -168,6 +169,8 @@ export default function SettingsScreen({ navigation }) {
             </View>
           </View>
         </View>
+
+        <PointsCard />
 
         <Text style={styles.sectionLabel}>Profile</Text>
         <MenuItem icon="edit" label="Edit profile" hint="Name, phone, and bio" onPress={() => setActiveSheet('profile')} />
