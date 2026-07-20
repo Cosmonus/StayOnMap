@@ -16,7 +16,7 @@ import { spacing, radius } from '@theme/spacing'
  * open /auth/oauth/<provider>?platform=mobile → provider → backend callback →
  * stayonmap://oauth-complete#… deep link → OAuthRedirectHandler finishes up.
  */
-export default function SocialLoginButtons() {
+export default function SocialLoginButtons({ mode = 'login' }) {
   const { data: providers } = useQuery({
     queryKey: ['oauth-providers'],
     queryFn: () => authService.getOAuthProviders().then((r) => r.data),
@@ -25,9 +25,16 @@ export default function SocialLoginButtons() {
 
   if (!providers?.length) return null
 
+  // Wording only — the OAuth flow behind the button is identical either way.
+  const verb = mode === 'signup' ? 'Sign up' : 'Sign in'
+  // A provider that can't create accounts (X shares no email) stays off the
+  // signup tab — a button that always errors is worse than no button.
+  const usable = mode === 'signup' ? providers.filter((p) => p.canSignup !== false) : providers
+  if (!usable.length) return null
+
   return (
     <View style={styles.wrap}>
-      {providers.map((p) => (
+      {usable.map((p) => (
         <Pressable
           key={p.key}
           style={styles.button}
@@ -35,10 +42,10 @@ export default function SocialLoginButtons() {
             Linking.openURL(`${process.env.EXPO_PUBLIC_API_BASE_URL}/auth/oauth/${p.key}?platform=mobile`).catch(() => {})
           }
           accessibilityRole="button"
-          accessibilityLabel={`Continue with ${p.label}`}
+          accessibilityLabel={`${verb} with ${p.label}`}
         >
           <Icon name="link" size={15} color={colors.slate500} />
-          <Text style={styles.label}>Continue with {p.label}</Text>
+          <Text style={styles.label}>{verb} with {p.label}</Text>
         </Pressable>
       ))}
     </View>
