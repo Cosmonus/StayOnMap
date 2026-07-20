@@ -9,6 +9,7 @@
 // Dry run by default — prints what it WOULD do. --confirm writes.
 //   node scripts/backfill-places.mjs [--city Bengaluru] [--confirm]
 import 'dotenv/config'
+import { randomUUID } from 'crypto'
 import { prisma } from '../src/lib/prisma.js'
 import { parseSeedArgs } from '../src/features/spatial/seedArgs.js'
 import { matchPlace } from '../src/features/spatial/places.js'
@@ -80,7 +81,9 @@ async function backfillCity(city) {
       continue
     }
 
-    const entry = { ...record, category: poi.category, city, _sources: [poi] }
+    // Id generated HERE so the sources batch below can reference its place
+    // without a returning-insert round trip — what makes createMany possible.
+    const entry = { ...record, category: poi.category, city, _id: randomUUID(), _sources: [poi] }
     newPlaces.push(entry)
     const k = gridKey(record.lat, record.lng)
     if (!grid.has(k)) grid.set(k, [])
@@ -94,37 +97,34 @@ async function backfillCity(city) {
   )
   if (!confirm) return
 
-  // Chunked create: one Place per entry, its sources nested (each create is
-  // atomic on its own). NO wrapper transaction — 500 creates in one
-  // transaction exceeds the 5s interactive timeout over a WAN link to prod,
-  // and idempotency on (source, sourceKey) makes partial progress safe: a
-  // rerun skips whatever landed.
-  const CHUNK = 100
+  // Batched writes: places first, then their sources referencing the
+  // pre-generated ids — two createMany calls per chunk instead of a round
+  // trip per row, which is what makes a WAN run to production take minutes
+  // rather than hours. Order matters (FK); a kill between the two batches
+  // leaves source-less places, which the resume pass conflates against
+  // harmlessly and the sources arrive on the rerun via skipDuplicates.
+  const CHUNK = 1000
   for (let i = 0; i < newPlaces.length; i += CHUNK) {
     const chunk = newPlaces.slice(i, i + CHUNK)
-    await Promise.all(
-      chunk.map((p) =>
-        prisma.place.create({
-          data: {
-            name: p.name,
-            category: p.category,
-            lat: p.lat,
-            lng: p.lng,
-            city: p.city,
-            sources: {
-              create: p._sources.map((s) => ({
-                source: 'osm',
-                sourceKey: s.osmId,
-                name: s.name,
-                lat: s.lat,
-                lng: s.lng,
-                category: s.category,
-              })),
-            },
-          },
-        })
-      )
-    )
+    await prisma.place.createMany({
+      data: chunk.map((p) => ({
+        id: p._id, name: p.name, category: p.category, lat: p.lat, lng: p.lng, city: p.city,
+      })),
+    })
+    await prisma.placeSource.createMany({
+      data: chunk.flatMap((p) =>
+        p._sources.map((s) => ({
+          placeId: p._id,
+          source: 'osm',
+          sourceKey: s.osmId,
+          name: s.name,
+          lat: s.lat,
+          lng: s.lng,
+          category: s.category,
+        }))
+      ),
+      skipDuplicates: true,
+    })
     process.stdout.write(`  wrote ${Math.min(i + CHUNK, newPlaces.length)}/${newPlaces.length}\r`)
   }
   if (newPlaces.length) process.stdout.write('\n')
