@@ -763,6 +763,16 @@ model OwnershipVerification {
   reviewedAt DateTime?
   reviewedBy String? // Admin.id
 
+  // The property address AS PRINTED on the ownership document, declared by the
+  // owner at submission. This is what lets the listing address be checked
+  // against the document without any machine ever reading the document itself
+  // — OCR on Aadhaar/PAN-bearing images via an external API is a privacy
+  // decision the ops docs reserve for a lawyer, and AI is stubbed in prod
+  // anyway. A declaration is still a claim, but it is a claim made in writing
+  // against a document the admin will open: an honest owner catches their own
+  // typo at submit time, and a false declaration becomes a documented lie.
+  documentAddress String?
+
   documents VerificationDocument[]
 
   createdAt DateTime @default(now())

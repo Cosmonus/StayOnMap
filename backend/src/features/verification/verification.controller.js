@@ -2,7 +2,7 @@ import * as service from './verification.service.js'
 import { ok, created } from '../../utils/response.js'
 
 export async function submit(req, res, next) {
-  try { created(res, await service.submitVerification(req.user.id, req.params.propertyId)) } catch (err) { next(err) }
+  try { created(res, await service.submitVerification(req.user.id, req.params.propertyId, req.body)) } catch (err) { next(err) }
 }
 export async function addDoc(req, res, next) {
   try { created(res, await service.addDocument(req.user.id, req.params.propertyId, req.body)) } catch (err) { next(err) }
