@@ -175,14 +175,9 @@ async function poiHealth() {
 /** The other datasets the newer modules depend on. */
 async function auxDatasets() {
   head('4. SUPPORTING DATASETS')
-  const [boundaries, weather] = await Promise.all([
-    prisma.boundary.count().catch(() => null),
-    prisma.weatherNormal.count().catch(() => null),
-  ])
+  const boundaries = await prisma.boundary.count().catch(() => null)
   console.log(`Boundary rows      : ${boundaries ?? 'TABLE MISSING (migration not applied)'}`)
-  console.log(`WeatherNormal rows : ${weather ?? 'TABLE MISSING (migration not applied)'}`)
   if (boundaries === 0) console.log('  -> locality module has nothing to resolve against.')
-  if (weather === 0) console.log('  -> climate facts unavailable (read-through, fills on first use).')
 }
 
 /** The ETL's own self-report — distinguishes "sparse area" from "failed fetch". */

@@ -8,6 +8,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prismaMock } from './mocks/prisma.js'
 import { POI_CATEGORIES, CATEGORY_KEYS, categoryFor } from '../src/features/spatial/poiCategories.js'
+import { FILTERABLE_POI_CATEGORIES } from '../src/features/spatial/proximityIndex.js'
 import {
   poisNear, dedupeCategory, pickNearest, sparseThreshold,
 } from '../src/features/spatial/poiProvider.js'
@@ -35,13 +36,92 @@ describe('poiCategories reachability', () => {
     // declares it — any future collision fails here by construction.
     for (const [category, rules] of Object.entries(POI_CATEGORIES)) {
       for (const [tagKey, values] of Object.entries(rules)) {
+        // `requires` / `requiresSample` are gates, not tag lists.
+        if (!Array.isArray(values)) continue
+
         for (const value of values) {
+          // A gated category needs its extra tags supplied, or the probe tests
+          // the gate rather than reachability — and "gated" would then be
+          // indistinguishable from "shadowed by an earlier rule", which is the
+          // failure this test exists to catch.
+          const probe = { [tagKey]: value, ...(rules.requiresSample ?? {}) }
           expect(
-            { pair: `${tagKey}=${value}`, resolvesTo: categoryFor({ [tagKey]: value }) }
+            { pair: `${tagKey}=${value}`, resolvesTo: categoryFor(probe) }
           ).toEqual({ pair: `${tagKey}=${value}`, resolvesTo: category })
         }
       }
     }
+  })
+
+  it('only counts an aerodrome an airline actually flies to', () => {
+    // aeroway=aerodrome covers all 414 Indian aerodromes — flying clubs and
+    // air-force strips included, and among the 16 carrying `aerodrome=*`,
+    // private outnumbers international. "Airport 4 km away" pointing at a
+    // military airfield is a trust-destroying fact a guest catches instantly.
+    // An IATA code is a tag, not a heuristic: an airline schedules flights there.
+    expect(categoryFor({ aeroway: 'aerodrome' })).toBeNull()
+    expect(categoryFor({ aeroway: 'aerodrome', iata: 'BLR' })).toBe('airport')
+    expect(categoryFor({ aeroway: 'aerodrome', iata: 'X', military: 'airfield' })).toBeNull()
+  })
+
+  it('does not count a residential garden as a park', () => {
+    // The wiki: leisure=garden's most common form "is known as a residential
+    // garden". Filtering was rejected — only 12.8% of Indian gardens carry
+    // garden:type at all, and private slightly outnumbers public among those.
+    expect(categoryFor({ leisure: 'garden' })).toBeNull()
+    expect(categoryFor({ leisure: 'park' })).toBe('park')
+  })
+
+  it('keeps a kirana findable — the Indian daily-needs primitive', () => {
+    // shop=general is the village/neighbourhood general store. In India that,
+    // not the supermarket, decides whether you can buy milk without a vehicle.
+    expect(categoryFor({ shop: 'general' })).toBe('supermarket')
+    expect(categoryFor({ shop: 'grocery' })).toBe('supermarket')
+    // A weekly mandi answers a different question from a shop open at 9pm, so
+    // it stays its own category rather than being folded in.
+    expect(categoryFor({ amenity: 'marketplace' })).toBe('marketplace')
+  })
+
+  it('counts a mall as a mall, not as one shop', () => {
+    // Inside `retail` a mall of 120 shops contributed one row, exactly like a
+    // single florist — under-weighting the highest-footfall locations in a
+    // basket whose whole purpose is a footfall proxy.
+    expect(categoryFor({ shop: 'mall' })).toBe('mall')
+    expect(categoryFor({ shop: 'department_store' })).toBe('retail')
+  })
+
+  it('tells a metro station apart from a mainline one', () => {
+    // Indian metro is `railway=station` + `station=subway`. The subtag was
+    // always in what we fetch and was being discarded, so Mumbai suburban,
+    // long-distance IR and metro collapsed into one fact — and "nearest station
+    // 600 m" means a daily commute or a twice-a-year trip depending which.
+    expect(categoryFor({ railway: 'station', station: 'subway' })).toBe('metro_station')
+    expect(categoryFor({ railway: 'station', station: 'light_rail' })).toBe('metro_station')
+    expect(categoryFor({ railway: 'station' })).toBe('railway_station')
+    expect(categoryFor({ railway: 'halt' })).toBe('railway_station')
+  })
+
+  it('reads the healthcare scheme India actually recommends', () => {
+    // India/Tags/healthcare recommends healthcare=* over amenity=*, and a large
+    // facility import used it — so reading amenity alone missed anything tagged
+    // the recommended way. Probed first: only ~26 objects in a 6km central
+    // Bengaluru box carry healthcare WITHOUT amenity, so the gap is real but
+    // modest, and most facilities are dual-tagged and were already found.
+    expect(categoryFor({ healthcare: 'hospital' })).toBe('hospital')
+    expect(categoryFor({ healthcare: 'centre' })).toBe('clinic')
+    // A lab cannot treat you, and nobody picks a flat by proximity to one.
+    // Unmapped rather than a category, and rather than inflating 'clinic'.
+    expect(categoryFor({ healthcare: 'laboratory' })).toBeNull()
+    // Specialists stay unmapped rather than becoming "the nearest clinic".
+    expect(categoryFor({ healthcare: 'physiotherapist' })).toBeNull()
+    expect(categoryFor({ healthcare: 'optometrist' })).toBeNull()
+  })
+
+  it('keeps the metro split visible to everything that consumed rail', () => {
+    // A split nothing consumes silently REMOVES metro from counts it used to be
+    // in — the fix would have been a regression.
+    expect(FILTERABLE_POI_CATEGORIES).toContain('metro_station')
+    expect(FILTERABLE_POI_CATEGORIES).toContain('railway_station')
   })
 
   it('fast_food is cheap food, not a restaurant', () => {

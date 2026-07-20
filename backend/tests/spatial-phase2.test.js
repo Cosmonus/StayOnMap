@@ -316,6 +316,21 @@ describe('getContext cold start', () => {
 
   it('does not schedule work when the caller opts out', async () => {
     prismaMock.spatialContext.findUnique.mockResolvedValue(null)
+
+    // Drain first, then clear.
+    //
+    // getContext schedules materialisation FIRE-AND-FORGET, so an earlier test
+    // in this file returns before its background write lands. That write then
+    // resolves against the shared prismaMock partway through this test and
+    // trips the assertion below — a ~1-in-3 failure that passes in isolation
+    // and looks like a bug in the code under test rather than in the harness.
+    //
+    // The alternative fixes are worse: awaiting the background work would test
+    // something other than what those tests are about, and asserting a delta
+    // still races. This is the honest shape of the constraint.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    prismaMock.spatialContext.upsert.mockClear()
+
     const ctx = await service.getContext(12.9784, 77.6408, { materializeIfMissing: false })
     expect(ctx).toBeNull()
     expect(prismaMock.spatialContext.upsert).not.toHaveBeenCalled()

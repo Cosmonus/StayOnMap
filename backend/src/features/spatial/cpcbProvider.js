@@ -99,12 +99,48 @@ export function stationConfidenceFactor(station) {
 // Readings update hourly, so anything shorter re-fetches the same numbers.
 const CACHE_TTL_S = 60 * 60
 
+// Long enough to stop a per-cell loop hammering a struggling service, short
+// enough that a transient blip does not cost the next hour of readings.
+const FAILURE_BACKOFF_S = 5 * 60
+
 // The national feed is a few thousand rows. Fetching it whole once an hour and
 // picking the nearest beats a per-city filter whose column values we cannot
 // verify without a key.
 const ROW_LIMIT = 5000
 
 const NATIONAL_CACHE_KEY = 'spatial:cpcb:national'
+
+// In-process fallback for when Redis is absent.
+//
+// cacheGet/cacheSet are no-ops without REDIS_URL (lib/redis.js), and this is
+// the one caller where that is not merely "slower". The feed is the WHOLE
+// COUNTRY — ~3,400 rows, several MB — fetched once per cell materialisation.
+// Backfilling a thousand cells on a box with no Redis would mean a thousand
+// full downloads of a free government service, which is the behaviour that gets
+// an API key blocked rather than rate-limited.
+//
+// Deliberately a plain module-level value, not an LRU: there is exactly one
+// key. It dies with the process, which is correct — this is a courtesy cache,
+// not state anything depends on.
+// A consequence worth naming rather than discovering: once populated, the memo
+// keeps answering for its hour EVEN IF the upstream then fails. That is the
+// behaviour we want — an hour-old station reading beats going dark during a
+// data.gov.in outage, and the fact carries its own observedAt so the staleness
+// is visible rather than hidden.
+let memoStations = null
+let memoExpiresAt = 0
+
+/**
+ * Drop the in-process cache.
+ *
+ * Exists for tests: the memo is module state, so one test's successful fetch
+ * would otherwise answer the next test's simulated outage. Not called in
+ * production — there is nothing there that wants a cold read.
+ */
+export function resetStationCache() {
+  memoStations = null
+  memoExpiresAt = 0
+}
 
 /** Numbers arrive as strings, and 'NA' is used for a missing reading. */
 function num(v) {
@@ -126,7 +162,13 @@ export function parseLastUpdate(s) {
   if (!m) return null
   const [, dd, mm, yyyy, hh, mi, ss] = m
   if (Number(mm) < 1 || Number(mm) > 12 || Number(dd) < 1 || Number(dd) > 31) return null
-  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`
+  // +05:30 is not decoration. CPCB publishes in IST, and a date-TIME string
+  // with no offset is parsed as LOCAL time per the ES spec — so on a UTC host
+  // (Railway) a 05:00 IST reading would be read as 05:00 UTC, i.e. 10:30 IST,
+  // five and a half hours in the future. A staleness check would then see a
+  // fresh reading as having a negative age. Half-fixing the day-first bug and
+  // leaving the zone off would have been the same class of error again.
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}+05:30`
 }
 
 /**
@@ -183,6 +225,9 @@ async function nationalFeed(fetchImpl = fetch) {
 
   const cached = await cacheGet(NATIONAL_CACHE_KEY)
   if (cached?.v !== undefined) return cached.v
+  // Redis missed or is absent. Without this second check, a Redis-less box
+  // re-downloads the national feed for every single cell.
+  if (memoStations && Date.now() < memoExpiresAt) return memoStations
 
   try {
     const url = `${BASE}/${RESOURCE_ID}?api-key=${encodeURIComponent(env.dataGovApiKey)}` +
@@ -199,16 +244,35 @@ async function nationalFeed(fetchImpl = fetch) {
       intelError('spatial.cpcb_empty', new Error('no stations parsed from a 200 response'), {
         recordCount: Array.isArray(body?.records) ? body.records.length : null,
       })
-      return null
+      return rememberFailure()
     }
 
     await cacheSet(NATIONAL_CACHE_KEY, { v: stations }, CACHE_TTL_S)
+    memoStations = stations
+    memoExpiresAt = Date.now() + CACHE_TTL_S * 1000
     intelLog('spatial.cpcb_fetched', { stations: stations.length })
     return stations
   } catch (err) {
     intelError('spatial.cpcb_fetch_failed', err)
-    return null
+    return rememberFailure()
   }
+}
+
+/**
+ * Back off after a failed fetch.
+ *
+ * Without this, only SUCCESS was cached — so a cold process during an outage
+ * had no backstop at all, and the refresher's per-cell loop issued one
+ * full-country request per cell, each with a 20s timeout. A 500-cell backfill
+ * became 500 requests and hours of wall clock, with the retry rate rising
+ * exactly when the service was rate-limiting us.
+ *
+ * Short TTL, because this is "don't hammer them", not "give up for an hour".
+ */
+function rememberFailure() {
+  memoStations = []
+  memoExpiresAt = Date.now() + FAILURE_BACKOFF_S * 1000
+  return null
 }
 
 /**
@@ -224,18 +288,40 @@ async function nationalFeed(fetchImpl = fetch) {
  *          all of which mean the same thing to a caller: leave `cpcb_station`
  *          absent and let confidence reflect that.
  */
-export async function nearestStation(lat, lng, { fetchImpl } = {}) {
-  if (typeof lat !== 'number' || typeof lng !== 'number') return null
+export async function nearestStations(lat, lng, { fetchImpl } = {}) {
+  const none = { pm25: null, pm10: null }
+  if (typeof lat !== 'number' || typeof lng !== 'number') return none
 
   const stations = await nationalFeed(fetchImpl)
-  if (!stations?.length) return null
+  if (!stations?.length) return none
 
+  // Resolved INDEPENDENTLY per pollutant, not once per property.
+  //
+  // A station is kept in the feed if it has EITHER particulate, and 271 of 3416
+  // live rows read 'NA' — so a dead sensor at an otherwise healthy site is
+  // routine, not an edge case. Two earlier versions of this both lost real
+  // data: picking on distance alone let one dead PM2.5 sensor 3 km away
+  // discard a real reading 4 km away, and then picking a single
+  // PM2.5-preferred station meant a PM10 monitor 600 m from the door was
+  // thrown away in favour of a PM2.5 reading 45 km off.
+  //
+  // Each fact should come from the closest instrument that actually measured
+  // the thing the fact is about. They are separate measurements; there is no
+  // reason they must share a site.
+  return {
+    pm25: pickNearestWith(stations, lat, lng, 'pm25'),
+    pm10: pickNearestWith(stations, lat, lng, 'pm10'),
+  }
+}
+
+/** Nearest station carrying a non-null `field`, within the airshed bound. */
+function pickNearestWith(stations, lat, lng, field) {
   let best = null
   for (const s of stations) {
-    const distanceM = haversineMeters(lat, lng, s.lat, s.lng)
-    if (best === null || distanceM < best.distanceM) best = { ...s, distanceM: Math.round(distanceM) }
+    if (s[field] == null) continue
+    const distanceM = Math.round(haversineMeters(lat, lng, s.lat, s.lng))
+    if (best === null || distanceM < best.distanceM) best = { ...s, distanceM }
   }
-
   if (!best || best.distanceM > MAX_STATION_DISTANCE_M) return null
   return best
 }

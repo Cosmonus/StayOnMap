@@ -1,0 +1,12 @@
+-- Remove the 30-year climate normals.
+--
+-- They were true, well-sourced, correctly labelled, and useless on a property
+-- page: ERA5's grid is ~28km, so every listing in a city showed the SAME
+-- temperature and rainfall. A fact identical across every option in the choice
+-- set cannot help anyone choose between them, and the renter picked the city
+-- before they opened the page.
+--
+-- Reversible at no cost if that judgement is wrong: the table held nothing a
+-- user wrote. It was a read-through cache of a free public API, so re-adding
+-- the model and refetching restores it exactly.
+DROP TABLE IF EXISTS "WeatherNormal";

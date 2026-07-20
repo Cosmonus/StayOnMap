@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Home } from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { useFilterStore } from '@store/filterStore'
+import { useFilterUrlSync } from '@features/filters/hooks/useFilterUrlSync'
 import { toQueryParams } from '@/config/filters'
 import PropertyCard from '@features/properties/components/PropertyCard'
 import SEOMeta from '@components/common/SEOMeta'
@@ -31,6 +32,14 @@ function EmptySlotCard() {
 }
 
 export default function PropertiesPage() {
+  // Two-way URL sync. The hook's own comment says "mount once on map pages" and
+  // this page is a grid, so it was never wired up — meaning NO filter here
+  // survived a reload or could be shared as a link. Verified in a browser:
+  // /properties?bhk=2 returned all 22 listings, and bhk long predates today.
+  //
+  // A filtered grid is exactly the thing people paste into a WhatsApp message.
+  useFilterUrlSync()
+
   const filters = useFilterStore((s) => s.filters)
 
   // Every active filter (modal included) shapes the grid — same schema-driven
@@ -39,10 +48,17 @@ export default function PropertiesPage() {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['properties', params],
-    queryFn: () => propertyService.getList(params).then((r) => r.data),
+    // The whole envelope, not just `.data` — `meta.proximity` says how many
+    // listings a distance filter had to set aside for lack of map data, and
+    // dropping it here would silently hide them.
+    queryFn: () => propertyService.getList(params),
   })
 
-  const properties = data ?? []
+  const properties = data?.data ?? []
+  // Present only when a proximity filter is active AND some listings could not
+  // be judged either way.
+  const unjudged = data?.meta?.proximity?.unknown ?? 0
+  const proximityLabel = data?.meta?.proximity?.label
   const locationLabel = filters.city || null
 
   // Pad the grid so the last row is never left lopsided — targets the widest
@@ -74,6 +90,23 @@ export default function PropertiesPage() {
                 ? 'No properties match your filters — try clearing the city or furnishing filter.'
                 : `${properties.length} home${properties.length !== 1 ? 's' : ''} available`}
             </p>
+
+            {/*
+              The listings this filter could not judge either way.
+
+              Without this line, a home excluded because we have no map data for
+              its area looks identical to one we measured and rejected — and the
+              owner whose listing vanished is never told why. A filtered list is
+              the one surface with nowhere to put a provenance chip, so the count
+              has to be said out loud.
+            */}
+            {unjudged > 0 && (
+              <p className="text-sm text-amber-700 mt-2">
+                {unjudged} home{unjudged !== 1 ? 's are' : ' is'} not shown — we don’t have
+                map data for {unjudged !== 1 ? 'their areas' : 'its area'} yet, so we can’t tell
+                whether {unjudged !== 1 ? 'they’re' : 'it’s'} within {proximityLabel}.
+              </p>
+            )}
           </div>
 
           {isError ? (

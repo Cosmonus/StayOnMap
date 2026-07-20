@@ -23,7 +23,7 @@ const { bossMock, PgBossMock } = vi.hoisted(() => {
   return { bossMock, PgBossMock: vi.fn(function () { return bossMock }) }
 })
 
-vi.mock('pg-boss', () => ({ default: PgBossMock }))
+vi.mock('pg-boss', () => ({ PgBoss: PgBossMock }))
 
 const { startRefreshQueue, stopRefreshQueue, isQueueRunning } =
   await import('../src/features/spatial/refreshQueue.js')
@@ -40,6 +40,29 @@ beforeEach(() => {
 
 afterEach(async () => { await stopRefreshQueue() })
 
+describe('the real pg-boss package', () => {
+  it('exports PgBoss as a NAMED export, which is what refreshQueue imports', async () => {
+    // This test exists because its absence let a total outage ship.
+    //
+    // refreshQueue.js used `import PgBoss from 'pg-boss'`. pg-boss 12 is an ES
+    // module with no default export, so that line threw at load — and because
+    // src/index.js reaches this file through startRefresher(), THE ENTIRE API
+    // COULD NOT BOOT. Not a degraded refresher: no server at all.
+    //
+    // Every test in this file passed throughout, because the mock below
+    // declared `{ default: PgBossMock }` — an export shape the real package
+    // does not have. A mock that describes a module incorrectly does not test
+    // the integration; it asserts the fiction back to you, in green.
+    //
+    // So this one deliberately bypasses the mock and asks the installed
+    // package what it actually exports.
+    const actual = await vi.importActual('pg-boss')
+
+    expect(typeof actual.PgBoss).toBe('function')
+    expect(actual.default).toBeUndefined()
+  })
+})
+
 describe('startRefreshQueue', () => {
   it('registers a recurring job and reports running', async () => {
     const handler = vi.fn().mockResolvedValue({ refreshed: 3 })
@@ -49,11 +72,11 @@ describe('startRefreshQueue', () => {
     expect(bossMock.schedule.mock.calls[0][1]).toBe('*/5 * * * *')
   })
 
-  it('runs exactly one tick at a time', async () => {
+  it('runs exactly one tick at a time, in options pg-boss 12 actually reads', async () => {
     // Concurrent ticks would race on the same "stalest cells" query and pay
     // twice for the same cell — what the Redis lock existed to prevent.
     await startRefreshQueue(CONN, vi.fn())
-    expect(bossMock.work.mock.calls[0][1]).toMatchObject({ teamSize: 1, teamConcurrency: 1 })
+    expect(bossMock.work.mock.calls[0][1]).toMatchObject({ batchSize: 1, localConcurrency: 1 })
   })
 
   it('calls the injected handler, not something of its own', async () => {

@@ -92,6 +92,11 @@ export const prismaMock = {
     aggregate: vi.fn().mockResolvedValue({ _max: { fetchedAt: null } }),
     deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
   },
+  // Per-cell proximity summary — derived data the filters join on.
+  cellPoiSummary: {
+    upsert:   vi.fn().mockResolvedValue({}),
+    findMany: vi.fn().mockResolvedValue([]),
+  },
   // ETL run receipts. Default is "no report on file", which is both a fresh
   // checkout's real state and the case that must NOT be read as bad coverage —
   // see dataQuality.js's coverageFactor.
