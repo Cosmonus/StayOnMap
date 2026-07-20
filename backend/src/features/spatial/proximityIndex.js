@@ -38,7 +38,10 @@ const REACH_M = 1600
  * larger for it.
  */
 export const FILTERABLE_POI_CATEGORIES = [
-  'railway_station', // metro and rail — the one people actually plan around
+  // Split 2026-07-20. Metro is the one people actually plan a home around;
+  // suburban and long-distance rail is a different, rarer trip.
+  'metro_station',
+  'railway_station',
   'bus_stop',
   'school',
   'hospital',

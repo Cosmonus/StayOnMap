@@ -8,6 +8,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prismaMock } from './mocks/prisma.js'
 import { POI_CATEGORIES, CATEGORY_KEYS, categoryFor } from '../src/features/spatial/poiCategories.js'
+import { FILTERABLE_POI_CATEGORIES } from '../src/features/spatial/proximityIndex.js'
 import {
   poisNear, dedupeCategory, pickNearest, sparseThreshold,
 } from '../src/features/spatial/poiProvider.js'
@@ -87,6 +88,41 @@ describe('poiCategories reachability', () => {
     // basket whose whole purpose is a footfall proxy.
     expect(categoryFor({ shop: 'mall' })).toBe('mall')
     expect(categoryFor({ shop: 'department_store' })).toBe('retail')
+  })
+
+  it('tells a metro station apart from a mainline one', () => {
+    // Indian metro is `railway=station` + `station=subway`. The subtag was
+    // always in what we fetch and was being discarded, so Mumbai suburban,
+    // long-distance IR and metro collapsed into one fact — and "nearest station
+    // 600 m" means a daily commute or a twice-a-year trip depending which.
+    expect(categoryFor({ railway: 'station', station: 'subway' })).toBe('metro_station')
+    expect(categoryFor({ railway: 'station', station: 'light_rail' })).toBe('metro_station')
+    expect(categoryFor({ railway: 'station' })).toBe('railway_station')
+    expect(categoryFor({ railway: 'halt' })).toBe('railway_station')
+  })
+
+  it('reads the healthcare scheme India actually recommends', () => {
+    // India/Tags/healthcare recommends healthcare=* over amenity=*, and a large
+    // facility import used it — so reading amenity alone missed anything tagged
+    // the recommended way. Probed first: only ~26 objects in a 6km central
+    // Bengaluru box carry healthcare WITHOUT amenity, so the gap is real but
+    // modest, and most facilities are dual-tagged and were already found.
+    expect(categoryFor({ healthcare: 'hospital' })).toBe('hospital')
+    expect(categoryFor({ healthcare: 'centre' })).toBe('clinic')
+    // A lab cannot treat you. Folding diagnostics into "nearest care" would
+    // inflate it with places that answer a different question — and labs were
+    // the largest healthcare group in the probe.
+    expect(categoryFor({ healthcare: 'laboratory' })).toBe('diagnostics')
+    // Specialists stay unmapped rather than becoming "the nearest clinic".
+    expect(categoryFor({ healthcare: 'physiotherapist' })).toBeNull()
+    expect(categoryFor({ healthcare: 'optometrist' })).toBeNull()
+  })
+
+  it('keeps the metro split visible to everything that consumed rail', () => {
+    // A split nothing consumes silently REMOVES metro from counts it used to be
+    // in — the fix would have been a regression.
+    expect(FILTERABLE_POI_CATEGORIES).toContain('metro_station')
+    expect(FILTERABLE_POI_CATEGORIES).toContain('railway_station')
   })
 
   it('fast_food is cheap food, not a restaurant', () => {

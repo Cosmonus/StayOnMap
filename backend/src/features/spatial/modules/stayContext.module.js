@@ -33,7 +33,7 @@ export default {
 
   async compute({ lat, lng, city }) {
     const [arrival, local] = await Promise.all([
-      poisNear(lat, lng, ARRIVAL_RADIUS, ['airport', 'railway_station'], city),
+      poisNear(lat, lng, ARRIVAL_RADIUS, ['airport', 'railway_station', 'metro_station'], city),
       poisNear(lat, lng, LOCAL_RADIUS, ['attraction', 'restaurant', 'cafe', 'food_cheap', 'hotel'], city),
     ])
 
