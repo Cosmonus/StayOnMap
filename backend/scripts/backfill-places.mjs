@@ -76,12 +76,15 @@ async function backfillCity(city) {
   )
   if (!confirm) return
 
-  // Chunked create: one Place per entry, its sources nested. createMany can't
-  // do nested writes, so chunk plain creates inside transactions.
-  const CHUNK = 500
+  // Chunked create: one Place per entry, its sources nested (each create is
+  // atomic on its own). NO wrapper transaction — 500 creates in one
+  // transaction exceeds the 5s interactive timeout over a WAN link to prod,
+  // and idempotency on (source, sourceKey) makes partial progress safe: a
+  // rerun skips whatever landed.
+  const CHUNK = 100
   for (let i = 0; i < newPlaces.length; i += CHUNK) {
     const chunk = newPlaces.slice(i, i + CHUNK)
-    await prisma.$transaction(
+    await Promise.all(
       chunk.map((p) =>
         prisma.place.create({
           data: {
