@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Home } from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { useFilterStore } from '@store/filterStore'
+import { useFilterUrlSync } from '@features/filters/hooks/useFilterUrlSync'
 import { toQueryParams } from '@/config/filters'
 import PropertyCard from '@features/properties/components/PropertyCard'
 import SEOMeta from '@components/common/SEOMeta'
@@ -31,6 +32,14 @@ function EmptySlotCard() {
 }
 
 export default function PropertiesPage() {
+  // Two-way URL sync. The hook's own comment says "mount once on map pages" and
+  // this page is a grid, so it was never wired up — meaning NO filter here
+  // survived a reload or could be shared as a link. Verified in a browser:
+  // /properties?bhk=2 returned all 22 listings, and bhk long predates today.
+  //
+  // A filtered grid is exactly the thing people paste into a WhatsApp message.
+  useFilterUrlSync()
+
   const filters = useFilterStore((s) => s.filters)
 
   // Every active filter (modal included) shapes the grid — same schema-driven

@@ -29,7 +29,16 @@
 // ⚠ pg-boss creates and migrates its own `pgboss` schema on start(). That is a
 // production DB change NOT managed by Prisma migrations. It is idempotent and
 // self-applying, but it means the DB user needs CREATE SCHEMA rights.
-import PgBoss from 'pg-boss'
+// NAMED import. pg-boss 12 is an ES module with no default export — a default
+// import throws at load time and takes the entire API process with it, because
+// this file is reachable from src/index.js's startRefresher().
+//
+// This shipped broken and the test suite stayed green, because the test mocked
+// `{ default: PgBossMock }` — inventing an export shape the real module does not
+// have. A mock that describes a module incorrectly does not test integration; it
+// asserts the fiction back to you. The test now imports the real package to
+// check its shape (see spatial-refresh-queue.test.js).
+import { PgBoss } from 'pg-boss'
 import { intelLog, intelError } from '../../lib/intelLog.js'
 
 const QUEUE = 'spatial-refresh'
