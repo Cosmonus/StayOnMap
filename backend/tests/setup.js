@@ -51,6 +51,14 @@ vi.mock('../src/features/spatial/spatial.service.js', () => ({
   getContext: vi.fn().mockResolvedValue(null),
   materialize: vi.fn().mockResolvedValue(null),
   ensureContextForProperty: vi.fn().mockResolvedValue(undefined),
+  // Real values, not stubs: refresher.js imports these and builds its due
+  // query out of them. A mocked `undefined` here silently produces
+  // `failCount: { lt: undefined }` rather than an error, which is how a
+  // circuit breaker stops breaking without anything failing loudly.
+  MAX_FAILURES: 5,
+  STATUS_READY: 'ready',
+  STATUS_PENDING: 'pending',
+  STATUS_FAILED: 'failed',
 }))
 
 // ── Notifications / chat — fire-and-forget side effects across services ────

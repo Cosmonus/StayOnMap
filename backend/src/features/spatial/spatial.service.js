@@ -23,7 +23,12 @@ const READ_CACHE_TTL_S = 10 * 60
 
 // A cell that keeps failing is usually bad coordinates or a dead upstream.
 // Stop paying to rediscover that.
-const MAX_FAILURES = 5
+//
+// Exported because refresher.js needs the same number to exclude circuit-broken
+// cells from its due query. It kept a private copy commented "mirrors
+// spatial.service.js's breaker" — two constants that must agree, with nothing
+// making them agree.
+export const MAX_FAILURES = 5
 
 // What the caller is actually holding. `pending` (boolean) predates this and is
 // still emitted for released mobile builds that read it; `status` is the field

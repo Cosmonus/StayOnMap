@@ -20,7 +20,7 @@
 import { prisma } from '../../lib/prisma.js'
 import { redis } from '../../lib/redis.js'
 import { intelLog, intelError } from '../../lib/intelLog.js'
-import { materialize } from './spatial.service.js'
+import { materialize, MAX_FAILURES } from './spatial.service.js'
 
 const TICK_MS = 5 * 60 * 1000
 
@@ -34,8 +34,6 @@ const CELLS_PER_TICK = 10
 const LOCK_TTL_S = 4 * 60
 const LOCK_KEY = 'spatial:refresh:lock'
 
-// Mirrors spatial.service.js's breaker.
-const MAX_FAILURES = 5
 
 let timer = null
 
