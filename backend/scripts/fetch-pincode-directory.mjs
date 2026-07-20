@@ -33,9 +33,20 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 async function fetchPage(offset) {
   const url = `https://api.data.gov.in/resource/${RESOURCE}` +
     `?api-key=${encodeURIComponent(env.dataGovApiKey)}&format=json&limit=${PAGE}&offset=${offset}`
-  const res = await fetch(url, { signal: AbortSignal.timeout(60_000) })
-  if (!res.ok) throw new Error(`data.gov.in → HTTP ${res.status} at offset ${offset}`)
-  return res.json()
+  // The free key rate-limits (429 observed on the first full run). Backing off
+  // and retrying is the difference between a 10-minute seed and a failed one —
+  // and a government API telling us to slow down is an instruction, not an error.
+  const waits = [5_000, 15_000, 30_000, 60_000, 120_000]
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, { signal: AbortSignal.timeout(60_000) })
+    if (res.ok) return res.json()
+    if (res.status !== 429 || attempt >= waits.length) {
+      throw new Error(`data.gov.in → HTTP ${res.status} at offset ${offset}`)
+    }
+    process.stdout.write(`  429 at ${offset} — waiting ${waits[attempt] / 1000}s
+`)
+    await sleep(waits[attempt])
+  }
 }
 
 /** One API record → one row, or null when it lacks what a lookup needs. */
@@ -81,7 +92,11 @@ async function main() {
   let skipped = 0
   let failedPages = 0
 
-  for (let offset = 0; offset < total; offset += PAGE) {
+  // A dry run proves connectivity and row mapping; paging all 156 pages
+  // without writing spends the day's rate limit on nothing — which is exactly
+  // how the first confirmed run met a 429 at offset 0.
+  const pageLimit = CONFIRM ? total : PAGE * 3
+  for (let offset = 0; offset < pageLimit; offset += PAGE) {
     let body
     try {
       body = offset === 0 ? first : await fetchPage(offset)
@@ -111,7 +126,7 @@ async function main() {
     }
     written += rows.length
     process.stdout.write(`  ${Math.min(offset + PAGE, total)}/${total} (${written} usable)\n`)
-    await sleep(300) // free service; don't hammer
+    await sleep(1000) // free service with a per-minute cap; stay under it
   }
 
   console.log(`\n${CONFIRM ? 'written' : 'would write'}: ${written}  skipped (unusable): ${skipped}  failed pages: ${failedPages}`)
