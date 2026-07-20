@@ -23,6 +23,7 @@ beforeEach(() => {
   prismaMock.cellPoiSummary = {
     upsert: vi.fn().mockResolvedValue({}),
     findMany: vi.fn().mockResolvedValue([]),
+    deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
   }
   // City-wide per-category counts. Non-zero means the category was actually
   // fetched for this city — see the "never seeded" test below for why writing a
@@ -80,6 +81,26 @@ describe('refreshCellProximity', () => {
     const written = prismaMock.cellPoiSummary.upsert.mock.calls.map((c) => c[0].create.category)
     expect(written).toContain('railway_station')
     expect(written).not.toContain('park')
+  })
+
+  it('DELETES a category that has lost coverage, rather than leaving it frozen', async () => {
+    // Skipping alone was only half the fix. `upsert` never deletes, so a
+    // category that had rows and later drops to zero coverage — a reclassify
+    // like fast_food→food_cheap, or removeStalePois clearing a city — would
+    // keep its old distances forever and go on matching the filter. Before the
+    // coverage check the row would at least have been rewritten to null and
+    // excluded; skipping made it immortal.
+    vi.spyOn(poiProvider, 'poisNear').mockResolvedValue(seeded({}))
+    prismaMock.cellPoiSummary.deleteMany = vi.fn().mockResolvedValue({ count: 1 })
+    prismaMock.poiIndex.groupBy.mockResolvedValue([
+      { category: 'railway_station', _count: { _all: 500 } },
+    ])
+
+    await refreshCellProximity(GEOHASH, CELL, ['railway_station', 'park'])
+
+    expect(prismaMock.cellPoiSummary.deleteMany).toHaveBeenCalledWith({
+      where: { geohash: GEOHASH, category: { in: ['park'] } },
+    })
   })
 
   it('writes NOTHING when the city was never seeded', async () => {
