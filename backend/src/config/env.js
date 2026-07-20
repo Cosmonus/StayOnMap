@@ -86,4 +86,18 @@ export const env = {
   dataGovApiKey: process.env.DATA_GOV_API_KEY || null,
   // Error monitoring — entirely optional, lib/sentry.js no-ops without it
   sentryDsn:       process.env.SENTRY_DSN        || null,
+  // The backend's own public origin — OAuth providers redirect back to
+  // `${apiPublicUrl}/api/v1/auth/oauth/<provider>/callback`, so it must be the
+  // address a browser can reach, not an internal hostname.
+  apiPublicUrl: process.env.API_PUBLIC_URL || `http://localhost:${Number(process.env.PORT) || 4000}`,
+  // Social login — each provider activates only when BOTH its vars are set;
+  // unset providers simply don't appear in GET /auth/oauth/providers, so the
+  // UI never shows a dead button. Creating these apps is operator work:
+  // docs/auth-providers-setup.md.
+  oauth: {
+    google:   { clientId: process.env.GOOGLE_OAUTH_CLIENT_ID   || null, clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET   || null },
+    facebook: { clientId: process.env.FACEBOOK_OAUTH_CLIENT_ID || null, clientSecret: process.env.FACEBOOK_OAUTH_CLIENT_SECRET || null },
+    linkedin: { clientId: process.env.LINKEDIN_OAUTH_CLIENT_ID || null, clientSecret: process.env.LINKEDIN_OAUTH_CLIENT_SECRET || null },
+    twitter:  { clientId: process.env.TWITTER_OAUTH_CLIENT_ID  || null, clientSecret: process.env.TWITTER_OAUTH_CLIENT_SECRET  || null },
+  },
 }

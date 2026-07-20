@@ -1,9 +1,19 @@
 import { z } from 'zod'
 
+// Applied to NEW passwords only (signup + reset) — existing passwords keep
+// working, so tightening this never locks anyone out.
+export const strongPassword = z.string()
+  .min(8, 'Password must be at least 8 characters')
+  .max(200)
+  .regex(/[a-z]/, 'Password must contain a lowercase letter')
+  .regex(/[A-Z]/, 'Password must contain an uppercase letter')
+  .regex(/\d/, 'Password must contain a number')
+  .regex(/[^a-zA-Z0-9]/, 'Password must contain a special character')
+
 export const registerSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(100),
   email: z.string().trim().toLowerCase().email(),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: strongPassword,
   city: z.string().trim().min(1, 'City is required').max(100),
   role: z.enum(['TENANT', 'OWNER']).optional(),
 })
@@ -19,7 +29,22 @@ export const forgotPasswordSchema = z.object({
 
 export const resetPasswordSchema = z.object({
   token: z.string().min(1),
-  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+  newPassword: strongPassword,
+})
+
+export const refreshSchema = z.object({
+  refreshToken: z.string().min(20).max(200),
+})
+
+// Logout is best-effort — a missing/garbage token still returns 200, because
+// the client is throwing its copy away regardless.
+export const logoutSchema = z.object({
+  refreshToken: z.string().max(200).optional(),
+})
+
+export const oauthCompleteSchema = z.object({
+  token: z.string().min(20), // the pending-signup JWT from the callback
+  city: z.string().trim().min(1, 'City is required').max(100),
 })
 
 export const verifyEmailSchema = z.object({

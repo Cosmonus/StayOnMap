@@ -10,4 +10,5 @@ export const authService = {
   sendEmailVerification: () => api.post('/auth/send-verification'),
   requestLoginOtp: (data) => api.post('/auth/otp/request', data),
   verifyLoginOtp: (data) => api.post('/auth/otp/verify', data),
+  logout: (data) => api.post('/auth/logout', data),
 }

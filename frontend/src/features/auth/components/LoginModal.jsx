@@ -7,6 +7,7 @@ import { CITY_LIST_LABEL, CITY_NAMES } from '@/config/cities'
 import { usePlatformStats } from '@hooks/usePlatformStats'
 import Select from '@components/common/Select'
 import OtpLoginForm from './OtpLoginForm'
+import SocialLoginButtons from './SocialLoginButtons'
 
 const QUOTES = [
   { text: 'The ache for home lives in all of us.', author: 'Maya Angelou' },
@@ -328,6 +329,8 @@ export default function LoginModal() {
                   <MailCheck size={16} strokeWidth={2} className="text-brand-600" />
                   Email me a sign-in code
                 </button>
+
+                <SocialLoginButtons />
 
                 <p className="text-sm text-center text-slate-400">
                   Don&apos;t have an account?{' '}

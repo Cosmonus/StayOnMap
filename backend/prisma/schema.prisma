@@ -250,7 +250,7 @@ model Admin {
 
 model User {
   id            String    @id @default(cuid())
-  passwordHash  String
+  passwordHash  String? // null = social-login-only account (no password set yet)
   displayId     String?   @unique // Human-readable ID: SRI-1234567890123456
   email         String    @unique
   name          String
@@ -295,9 +295,66 @@ model User {
   passwordResetTokens PasswordResetToken[]
   emailOtps           EmailOtp[]
   pointsLedger        PointsLedger[]
+  socialAccounts      SocialAccount[]
+  authSessions        AuthSession[]
+
+  lastLoginAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Social login (OAuth) + refresh-token sessions
+// ─────────────────────────────────────────────────────────────────
+
+enum AuthProvider {
+  GOOGLE
+  FACEBOOK
+  LINKEDIN
+  TWITTER
+}
+
+// One row per linked provider identity. Several providers can point at ONE
+// User — that is the whole point (no duplicate accounts). Provider access/
+// refresh tokens are deliberately NOT stored: we never call a provider's API
+// after login, so keeping their credentials would be pure liability.
+model SocialAccount {
+  id             String       @id @default(cuid())
+  userId         String
+  provider       AuthProvider
+  providerUserId String // the provider's stable subject id, never the email
+  providerEmail  String?
+  avatarUrl      String?
+  linkedAt       DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@unique([userId, provider]) // one Google per account, not several
+}
+
+// One row per logged-in device. Holds the CURRENT refresh token (sha256 only —
+// the raw token exists only on the client) plus the immediately-previous one:
+// presenting a rotated-out token is how a stolen-then-replayed refresh token
+// reveals itself, and the response is to revoke the whole session.
+model AuthSession {
+  id            String    @id @default(cuid())
+  userId        String
+  tokenHash     String    @unique
+  prevTokenHash String?   @unique
+  userAgent     String?
+  deviceLabel   String? // "Chrome on Windows" — parsed once at login, not per read
+  ip            String?
+  createdAt     DateTime  @default(now())
+  lastUsedAt    DateTime  @default(now())
+  expiresAt     DateTime
+  revokedAt     DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 // ─────────────────────────────────────────────────────────────────

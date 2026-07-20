@@ -22,14 +22,20 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false))
   }, [])
 
-  function loginSuccess({ token, user: loggedInUser }) {
+  function loginSuccess({ token, refreshToken, user: loggedInUser }) {
     localStorage.setItem('user_token', token)
+    if (refreshToken) localStorage.setItem('user_refresh_token', refreshToken)
     setUser(loggedInUser)
     toast.success('Welcome', `Signed in as ${loggedInUser.name || loggedInUser.email}`)
   }
 
   function signOut() {
+    // Revoke this device's session server-side — best-effort, the tokens are
+    // being dropped locally either way.
+    const refreshToken = localStorage.getItem('user_refresh_token')
+    if (refreshToken) authService.logout({ refreshToken }).catch(() => {})
     localStorage.removeItem('user_token')
+    localStorage.removeItem('user_refresh_token')
     setUser(null)
     useUiStore.getState().setHostMode(false)
     toast.info('Signed out', 'You have been logged out')
