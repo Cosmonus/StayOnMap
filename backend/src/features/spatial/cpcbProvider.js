@@ -106,6 +106,38 @@ const ROW_LIMIT = 5000
 
 const NATIONAL_CACHE_KEY = 'spatial:cpcb:national'
 
+// In-process fallback for when Redis is absent.
+//
+// cacheGet/cacheSet are no-ops without REDIS_URL (lib/redis.js), and this is
+// the one caller where that is not merely "slower". The feed is the WHOLE
+// COUNTRY — ~3,400 rows, several MB — fetched once per cell materialisation.
+// Backfilling a thousand cells on a box with no Redis would mean a thousand
+// full downloads of a free government service, which is the behaviour that gets
+// an API key blocked rather than rate-limited.
+//
+// Deliberately a plain module-level value, not an LRU: there is exactly one
+// key. It dies with the process, which is correct — this is a courtesy cache,
+// not state anything depends on.
+// A consequence worth naming rather than discovering: once populated, the memo
+// keeps answering for its hour EVEN IF the upstream then fails. That is the
+// behaviour we want — an hour-old station reading beats going dark during a
+// data.gov.in outage, and the fact carries its own observedAt so the staleness
+// is visible rather than hidden.
+let memoStations = null
+let memoExpiresAt = 0
+
+/**
+ * Drop the in-process cache.
+ *
+ * Exists for tests: the memo is module state, so one test's successful fetch
+ * would otherwise answer the next test's simulated outage. Not called in
+ * production — there is nothing there that wants a cold read.
+ */
+export function resetStationCache() {
+  memoStations = null
+  memoExpiresAt = 0
+}
+
 /** Numbers arrive as strings, and 'NA' is used for a missing reading. */
 function num(v) {
   if (v == null || v === '' || v === 'NA') return null
@@ -183,6 +215,9 @@ async function nationalFeed(fetchImpl = fetch) {
 
   const cached = await cacheGet(NATIONAL_CACHE_KEY)
   if (cached?.v !== undefined) return cached.v
+  // Redis missed or is absent. Without this second check, a Redis-less box
+  // re-downloads the national feed for every single cell.
+  if (memoStations && Date.now() < memoExpiresAt) return memoStations
 
   try {
     const url = `${BASE}/${RESOURCE_ID}?api-key=${encodeURIComponent(env.dataGovApiKey)}` +
@@ -203,6 +238,8 @@ async function nationalFeed(fetchImpl = fetch) {
     }
 
     await cacheSet(NATIONAL_CACHE_KEY, { v: stations }, CACHE_TTL_S)
+    memoStations = stations
+    memoExpiresAt = Date.now() + CACHE_TTL_S * 1000
     intelLog('spatial.cpcb_fetched', { stations: stations.length })
     return stations
   } catch (err) {
