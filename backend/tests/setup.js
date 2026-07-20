@@ -94,6 +94,15 @@ vi.mock('../src/config/env.js', () => ({
     smtpUser: null,
     smtpPass: null,
     spatialDailyApiBudget: 2000,
+    apiPublicUrl: 'http://localhost:4000',
+    // Google + X configured, Facebook + LinkedIn not — so tests cover both an
+    // enabled provider and the "not available" rejection path.
+    oauth: {
+      google:   { clientId: 'test-google-id', clientSecret: 'test-google-secret' },
+      facebook: { clientId: null, clientSecret: null },
+      linkedin: { clientId: null, clientSecret: null },
+      twitter:  { clientId: 'test-x-id', clientSecret: 'test-x-secret' },
+    },
   },
 }))
 
@@ -106,4 +115,6 @@ vi.mock('../src/services/email.service.js', () => ({
   passwordResetEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
   emailVerificationEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
   loginOtpEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
+  passwordChangedEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
+  accountLinkedEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
 }))

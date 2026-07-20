@@ -23,6 +23,7 @@ const AdminLoginPage    = lazy(() => import('@pages/AdminLoginPage'))
 const AdminPage         = lazy(() => import('@pages/AdminPage'))
 const ResetPasswordPage = lazy(() => import('@pages/ResetPasswordPage'))
 const VerifyEmailPage   = lazy(() => import('@pages/VerifyEmailPage'))
+const OAuthCompletePage = lazy(() => import('@pages/OAuthCompletePage'))
 
 function PageFallback() {
   return (
@@ -59,6 +60,8 @@ export default function AppRoutes() {
           {/* Password reset + email verification — public, token in URL query param */}
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email"   element={<VerifyEmailPage />} />
+          {/* Social-login landing — public, result arrives in the URL fragment */}
+          <Route path="/oauth-complete" element={<OAuthCompletePage />} />
 
           {/* Admin — login is public, everything else guarded */}
           <Route path="/admin/login"  element={<AdminLoginPage />} />

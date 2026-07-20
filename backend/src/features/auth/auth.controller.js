@@ -1,10 +1,17 @@
 import * as service from './auth.service.js'
+import * as sessions from './session.service.js'
+import * as oauth from './oauth.service.js'
+import { enabledProviders } from './oauth.providers.js'
+import { env } from '../../config/env.js'
 import { ok, created } from '../../utils/response.js'
 import { missingProfileFields } from '../../middlewares/requireCompleteProfile.middleware.js'
 
+// Where sessions are born, the request's device fingerprint comes along.
+const loginCtx = (req) => ({ userAgent: req.headers['user-agent'], ip: req.ip })
+
 export async function register(req, res, next) {
   try {
-    const result = await service.registerUser(req.body)
+    const result = await service.registerUser(req.body, loginCtx(req))
     if (result.waitlisted) {
       return ok(res, result, "You're on the waitlist — we'll email you when StayOnMap launches in your city.")
     }
@@ -14,7 +21,7 @@ export async function register(req, res, next) {
 
 export async function login(req, res, next) {
   try {
-    const result = await service.loginUser(req.body.email, req.body.password)
+    const result = await service.loginUser(req.body.email, req.body.password, loginCtx(req))
     ok(res, result)
   } catch (err) { next(err) }
 }
@@ -58,8 +65,108 @@ export async function requestOtp(req, res, next) {
 
 export async function verifyOtp(req, res, next) {
   try {
-    const result = await service.verifyLoginOtp(req.body.email, req.body.code)
+    const result = await service.verifyLoginOtp(req.body.email, req.body.code, loginCtx(req))
     ok(res, result)
+  } catch (err) { next(err) }
+}
+
+// ── Sessions / refresh ──────────────────────────────────────────────────────
+
+export async function refresh(req, res, next) {
+  try {
+    ok(res, await sessions.refreshSession(req.body.refreshToken))
+  } catch (err) { next(err) }
+}
+
+export async function logout(req, res, next) {
+  try {
+    if (req.body.refreshToken) await sessions.revokeSessionByToken(req.body.refreshToken)
+    ok(res, { loggedOut: true }) // best-effort — the client drops its copy regardless
+  } catch (err) { next(err) }
+}
+
+export async function logoutAll(req, res, next) {
+  try {
+    await sessions.revokeAllSessions(req.user.id)
+    ok(res, { loggedOut: true })
+  } catch (err) { next(err) }
+}
+
+export async function listSessions(req, res, next) {
+  try {
+    ok(res, await sessions.listSessions(req.user.id))
+  } catch (err) { next(err) }
+}
+
+export async function revokeSession(req, res, next) {
+  try {
+    await sessions.revokeSessionById(req.user.id, req.params.id)
+    ok(res, { revoked: true })
+  } catch (err) { next(err) }
+}
+
+// ── Social login ────────────────────────────────────────────────────────────
+
+export function oauthProviders(req, res) {
+  ok(res, enabledProviders())
+}
+
+export async function oauthStart(req, res, next) {
+  try {
+    const { redirectUrl } = await oauth.beginOAuth(req.params.provider, { purpose: 'login' })
+    res.redirect(redirectUrl)
+  } catch (err) { next(err) }
+}
+
+// Link begins as a POST (it needs the Authorization header, which a browser
+// navigation can't carry) and returns the provider URL for the client to visit.
+export async function oauthLinkStart(req, res, next) {
+  try {
+    const { redirectUrl } = await oauth.beginOAuth(req.params.provider, { purpose: 'link', userId: req.user.id })
+    ok(res, { redirectUrl })
+  } catch (err) { next(err) }
+}
+
+// The provider lands the browser here. Results travel to the frontend in the
+// URL FRAGMENT — fragments never reach server logs or Referer headers.
+export async function oauthCallback(req, res) {
+  const target = `${env.frontendUrl}/oauth-complete`
+  try {
+    const result = await oauth.handleCallback(req.params.provider, req.query, loginCtx(req))
+    if (result.login) {
+      const { token, refreshToken } = result.login
+      return res.redirect(`${target}#token=${encodeURIComponent(token)}&refresh=${encodeURIComponent(refreshToken)}`)
+    }
+    if (result.linked) {
+      return res.redirect(`${target}#linked=${encodeURIComponent(result.linked)}`)
+    }
+    return res.redirect(`${target}#pending=${encodeURIComponent(result.pending)}&name=${encodeURIComponent(result.name ?? '')}`)
+  } catch (err) {
+    const message = err.statusCode && err.statusCode < 500 ? err.message : 'Sign-in was not completed. Please try again.'
+    return res.redirect(`${target}#error=${encodeURIComponent(message)}`)
+  }
+}
+
+export async function oauthComplete(req, res, next) {
+  try {
+    const result = await oauth.completeOAuthSignup(req.body.token, req.body.city, loginCtx(req))
+    if (result.waitlisted) {
+      return ok(res, result, "You're on the waitlist — we'll email you when StayOnMap launches in your city.")
+    }
+    ok(res, result.login)
+  } catch (err) { next(err) }
+}
+
+export async function linkedAccounts(req, res, next) {
+  try {
+    ok(res, await oauth.listLinkedAccounts(req.user.id))
+  } catch (err) { next(err) }
+}
+
+export async function unlinkProvider(req, res, next) {
+  try {
+    await oauth.unlinkProvider(req.user.id, req.params.provider)
+    ok(res, { unlinked: true })
   } catch (err) { next(err) }
 }
 

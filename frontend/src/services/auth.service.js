@@ -15,4 +15,18 @@ export const authService = {
   confirmEmailVerification: (data) => api.post('/auth/verify-email', data),
   requestLoginOtp: (data) => api.post('/auth/otp/request', data),
   verifyLoginOtp: (data) => api.post('/auth/otp/verify', data),
+
+  // Sessions / devices
+  logout: (data) => api.post('/auth/logout', data),
+  logoutAll: () => api.post('/auth/logout-all'),
+  getSessions: () => api.get('/auth/sessions'),
+  revokeSession: (id) => api.delete(`/auth/sessions/${id}`),
+
+  // Social login — GET /auth/oauth/:provider is a plain browser navigation,
+  // not an XHR (the provider redirect chain can't run through axios).
+  getOAuthProviders: () => api.get('/auth/oauth/providers'),
+  completeOAuthSignup: (data) => api.post('/auth/oauth/complete', data),
+  getLinkedAccounts: () => api.get('/auth/linked-accounts'),
+  startLinkProvider: (provider) => api.post(`/auth/oauth/${provider}/link`),
+  unlinkProvider: (provider) => api.delete(`/auth/oauth/${provider}`),
 }

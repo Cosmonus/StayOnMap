@@ -55,6 +55,24 @@ export const prismaMock = {
     count:     vi.fn(),
     update:    vi.fn(),
   },
+  // Defaults, not bare vi.fn(): every login path now issues a session as a
+  // side effect, and a mock returning undefined where an array is expected
+  // would fail tests that aren't about sessions at all.
+  authSession: {
+    findUnique: vi.fn().mockResolvedValue(null),
+    findMany:   vi.fn().mockResolvedValue([]),
+    create:     vi.fn().mockResolvedValue({}),
+    update:     vi.fn().mockResolvedValue({}),
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+  },
+  socialAccount: {
+    findUnique: vi.fn().mockResolvedValue(null),
+    findMany:   vi.fn().mockResolvedValue([]),
+    count:      vi.fn().mockResolvedValue(0),
+    create:     vi.fn().mockResolvedValue({}),
+    deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+  },
   fraudSignal: {
     createMany: vi.fn(),
   },
