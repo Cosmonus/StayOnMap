@@ -34,8 +34,12 @@ const ICONS = {
  * provider without credentials configured simply doesn't exist here. With no
  * providers configured this renders nothing and the modal looks exactly as it
  * did before social login shipped.
+ *
+ * `mode` only changes the wording ("Sign in with" vs "Sign up with") — the
+ * OAuth flow behind the button is identical either way: existing identity
+ * logs in, new identity goes through the city step.
  */
-export default function SocialLoginButtons() {
+export default function SocialLoginButtons({ mode = 'login' }) {
   const { data: providers } = useQuery({
     queryKey: ['oauth-providers'],
     queryFn: () => authService.getOAuthProviders().then((r) => r.data),
@@ -44,16 +48,22 @@ export default function SocialLoginButtons() {
 
   if (!providers?.length) return null
 
+  const verb = mode === 'signup' ? 'Sign up' : 'Sign in'
+  // A provider that can't create accounts (X shares no email) stays off the
+  // signup tab — a button that always errors is worse than no button.
+  const usable = mode === 'signup' ? providers.filter((p) => p.canSignup !== false) : providers
+  if (!usable.length) return null
+
   return (
     <div className="space-y-2">
-      {providers.map((p) => (
+      {usable.map((p) => (
         <a
           key={p.key}
           href={`${import.meta.env.VITE_API_BASE_URL}/auth/oauth/${p.key}`}
           className="w-full py-2.5 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 flex items-center justify-center gap-2.5 no-underline"
         >
           {ICONS[p.key]}
-          Continue with {p.label}
+          {verb} with {p.label}
         </a>
       ))}
     </div>

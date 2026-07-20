@@ -291,6 +291,14 @@ export default function LoginScreen() {
               >
                 <Text style={styles.primaryButtonText}>{loading ? 'Creating account…' : 'Create account'}</Text>
               </Pressable>
+
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <SocialLoginButtons mode="signup" />
             </>
           )}
         </ScrollView>

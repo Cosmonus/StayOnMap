@@ -83,6 +83,9 @@ export const PROVIDERS = {
     // X does not share email addresses on the standard tier. That makes X
     // link-only: it can sign you IN to an account it's already linked to, but
     // can never START one (no email → no dedupe key → guaranteed duplicates).
+    // `signup: false` tells the UI not to offer it on the signup tab — a
+    // button that always errors is worse than no button.
+    signup: false,
     profile: (d) => ({
       id: d.data?.id,
       email: null,
@@ -105,5 +108,5 @@ export function enabledProviders() {
   return Object.keys(PROVIDERS)
     .map((key) => getProvider(key))
     .filter(Boolean)
-    .map((p) => ({ key: p.key, label: p.label }))
+    .map((p) => ({ key: p.key, label: p.label, canSignup: p.signup !== false }))
 }

@@ -430,6 +430,14 @@ export default function LoginModal() {
                   {loading ? 'Creating account…' : 'Create account'}
                 </button>
 
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-slate-200" />
+                  <span className="text-xs text-slate-400">or</span>
+                  <div className="flex-1 h-px bg-slate-200" />
+                </div>
+
+                <SocialLoginButtons mode="signup" />
+
                 <p className="text-xs text-center text-slate-400">
                   By signing up you agree to our{' '}
                   <span className="underline cursor-default">Terms of Service</span>.
