@@ -103,17 +103,33 @@ export const CATEGORY_KEYS = Object.keys(POI_CATEGORIES)
  * force-fitted into the nearest category.
  */
 export function categoryFor(tags = {}) {
+  return classify(tags)?.category ?? null
+}
+
+/**
+ * As `categoryFor`, but also returns WHICH tag matched.
+ *
+ * The tag is persisted on the row (`PoiIndex.sourceTag`) so the mapping stops
+ * being a one-way door: "how many park rows actually came from leisure=garden"
+ * is a question you can only ask if the answer was written down. Both
+ * mis-groupings this vocabulary has already shipped — school swallowing
+ * college, restaurant swallowing fast_food — were invisible in the stored data
+ * and cost a full re-seed to correct.
+ *
+ * @returns {{category: string, sourceTag: string}|null}
+ */
+export function classify(tags = {}) {
   for (const [category, rules] of Object.entries(POI_CATEGORIES)) {
-    if (tags.amenity && rules.amenity.includes(tags.amenity)) return category
-    if (tags.shop && rules.shop.includes(tags.shop)) return category
-    if (tags.leisure && rules.leisure.includes(tags.leisure)) return category
-    for (const key of EXTRA_KEYS) {
-      if (tags[key] && rules[key]?.includes(tags[key])) return category
+    for (const key of ['amenity', 'shop', 'leisure', ...EXTRA_KEYS]) {
+      const value = tags[key]
+      if (value && rules[key]?.includes(value)) {
+        return { category, sourceTag: `${key}=${value}` }
+      }
     }
   }
   // Bus stops are tagged on the highway key, not amenity.
-  if (tags.highway === 'bus_stop') return 'bus_stop'
-  if (tags.office === 'government') return 'government'
+  if (tags.highway === 'bus_stop') return { category: 'bus_stop', sourceTag: 'highway=bus_stop' }
+  if (tags.office === 'government') return { category: 'government', sourceTag: 'office=government' }
   return null
 }
 
