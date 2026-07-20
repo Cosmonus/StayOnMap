@@ -37,15 +37,20 @@ describe('proximity helpers', () => {
     expect(walkMinutes(800)).toBe(14)
   })
 
-  it('phrases a walk only while calling it a walk is honest', () => {
-    expect(walkDisplay(MAX_WALK_PHRASE_M)).toMatch(/min walk/)
-    expect(walkDisplay(MAX_WALK_PHRASE_M + 1)).not.toMatch(/walk/)
+  it('shows the measured distance and never an assumed walk time', () => {
+    // The display used to lead with "about a 7 min walk". The distance is real;
+    // the minutes were a 1.35x detour factor and a 4.8 km/h pace applied to a
+    // STRAIGHT LINE that may not be walkable at all. Across a rail line or a
+    // nullah, a 420 m straight line is a 1.5 km walk — six minutes claimed,
+    // twenty in reality.
+    //
+    // A DERIVED fact must not smuggle an estimate into its display. Walk time
+    // returns when a routing engine can MEASURE it.
+    expect(walkDisplay(420)).toBe('420 m away')
+    expect(walkDisplay(90)).toBe('90 m away')
     expect(walkDisplay(2300)).toBe('2.3 km away')
-  })
-
-  it('keeps the measured distance visible alongside the time', () => {
-    // 420 × 1.35 / 4800 × 60 = 7.09 → 7
-    expect(walkDisplay(420)).toBe('about a 7 min walk (420 m)')
+    expect(walkDisplay(420)).not.toMatch(/walk|min/)
+    expect(walkDisplay(MAX_WALK_PHRASE_M)).not.toMatch(/walk|min/)
   })
 
   it('grades proximity into bands rather than fake precision', () => {
@@ -153,7 +158,7 @@ describe('cityCategoryCoverage gating', () => {
 // ── Walk phrasing + counts flow through to the envelope ──────────────────────
 
 describe('human-readable facts', () => {
-  it('lifestyle facts carry a walk time, the measured distance, and a machine-readable count', async () => {
+  it('lifestyle facts carry the measured distance and a machine-readable count', async () => {
     prismaMock.poiIndex.count.mockResolvedValue(500)
     prismaMock.poiIndex.findMany.mockResolvedValue([
       poiRow('supermarket', 'More Megastore', 0.002),      // ~222 m
@@ -163,7 +168,9 @@ describe('human-readable facts', () => {
     const e = buildEnvelope(lifestyle, await lifestyle.compute(CELL))
     const groceries = e.facts.find((f) => f.key === 'nearest_supermarket')
 
-    expect(groceries.display).toMatch(/about a \d+ min walk \(\d+ m\)/)
+    // A measured distance, not an assumed duration.
+    expect(groceries.display).toMatch(/\d+ m away/)
+    expect(groceries.display).not.toMatch(/min walk/)
     expect(groceries.display).toMatch(/2 within 1\.6 km/)
     expect(groceries.count).toBe(2)
     expect(groceries.value).toBe(222) // the VALUE stays the measured metres

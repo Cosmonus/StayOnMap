@@ -213,10 +213,17 @@ export default {
       value: walkability,
       unit: 'index',
       display: `${walkability} / 100`,
-      provenance: PROVENANCE.DERIVED,
+      // ESTIMATED, not DERIVED. envelope.js defines DERIVED as "arithmetic over
+      // MEASURED inputs, ADDING NO ASSUMPTION" — and this index is nothing but
+      // assumptions: that groceries matter three times as much as a gym, that
+      // 400 m scores 1.0 and 800 m scores 0.6. Those are defensible opinions,
+      // and they are still opinions. A heuristic standing between the data and
+      // the claim is exactly what ESTIMATED means.
+      //
+      // The tell was already here: it carried a `method`, which DERIVED does not
+      // require and ESTIMATED does. Someone half-knew.
+      provenance: PROVENANCE.ESTIMATED,
       source: 'derived',
-      // Carried even though it's DERIVED: a composite index that doesn't show
-      // its working is indistinguishable from an arbitrary score.
       method: WALKABILITY_METHOD,
     }))
 
