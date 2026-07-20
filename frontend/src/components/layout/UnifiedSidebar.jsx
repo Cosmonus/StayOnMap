@@ -48,6 +48,7 @@ const ADMIN_NAV = [
   { id: 'waitlist',        label: 'Waitlist',         icon: 'users' },
   { id: 'reports',         label: 'Reports',          icon: 'reports' },
   { id: 'reviews',         label: 'Reviews',          icon: 'reviews' },
+  { id: 'verifications',   label: 'Verifications',    icon: 'queue' },
   { id: 'monitor',         label: 'System Monitor',   icon: 'monitor' },
 ]
 

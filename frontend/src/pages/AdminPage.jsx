@@ -37,6 +37,7 @@ import ReviewsSection   from '@features/reviews/components/ReviewsSection'
 import PropertyStatusPill from '@components/common/PropertyStatusPill'
 import UnifiedSidebar from '@components/layout/UnifiedSidebar'
 import AdminMonitorSection from '@features/admin/components/AdminMonitorSection'
+import VerificationsSection from '@features/admin/components/VerificationsSection'
 
 // ── Shared chart card shell ────────────────────────────────────────────────
 function ChartCard({ title, value, footer, children }) {
@@ -2366,6 +2367,7 @@ export default function AdminPage() {
       case 'waitlist':        return <WaitlistSection />
       case 'reports':         return <ReportsSection />
       case 'reviews':         return <AdminReviewsSection />
+      case 'verifications':   return <VerificationsSection />
       case 'monitor':         return <AdminMonitorSection />
       case 'settings':        return <AdminSettingsSection />
       default:                return <OverviewSection />
