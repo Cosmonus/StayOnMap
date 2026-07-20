@@ -27,16 +27,13 @@ import { removeStalePois, invalidateCityCells } from '../src/features/spatial/se
 import { recordQualityReport, completeness } from '../src/features/spatial/dataQuality.js'
 import { CITY_CENTERS, resolveCity } from '../src/config/cityCenters.js'
 import { categoryFor, overpassClauses, CATEGORY_KEYS } from '../src/features/spatial/poiCategories.js'
+import { parseSeedArgs } from '../src/features/spatial/seedArgs.js'
+import { bboxFor, tiles } from '../src/features/spatial/tiling.js'
+import { overpassQuery } from '../src/features/spatial/overpassClient.js'
 
 // Public instances, tried in order. The main one has 406'd from some
 // environments before (see .claude/roadmap.md Addenda 10-11), so the mirrors
 // are a real fallback path rather than defensive padding.
-const ENDPOINTS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-]
-
 const REQUEST_TIMEOUT_MS = 180_000
 // Overpass is a free service run on donated hardware. A pause between tiles is
 // the cost of being allowed to keep using it.
@@ -52,66 +49,14 @@ const TILE_GRID = 4
 // round trip at a time would take hours for a city like Delhi.
 const WRITE_CONCURRENCY = 25
 
-const args = process.argv.slice(2)
-const CONFIRM = args.includes('--confirm')
-
-// Read the value only when the flag is actually present. `indexOf` returns -1
-// when it isn't, and `args[-1 + 1]` is `args[0]` — so a bare `--confirm` was
-// being read as a city named "confirm".
-const cityFlag = args.indexOf('--city')
-const ONLY_CITY = cityFlag !== -1 && args[cityFlag + 1] && !args[cityFlag + 1].startsWith('--')
-  ? args[cityFlag + 1]
-  : null
-
-
-function bboxFor({ lat, lng, radiusKm }) {
-  const dLat = radiusKm / 111.32
-  const dLng = radiusKm / (111.32 * Math.cos((lat * Math.PI) / 180))
-  return { south: lat - dLat, west: lng - dLng, north: lat + dLat, east: lng + dLng }
-}
-
-function tiles(bbox, n) {
-  const out = []
-  const latStep = (bbox.north - bbox.south) / n
-  const lngStep = (bbox.east - bbox.west) / n
-  for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) {
-      out.push({
-        south: bbox.south + i * latStep,
-        north: bbox.south + (i + 1) * latStep,
-        west: bbox.west + j * lngStep,
-        east: bbox.west + (j + 1) * lngStep,
-      })
-    }
-  }
-  return out
-}
+const { confirm: CONFIRM, city: ONLY_CITY } = parseSeedArgs(process.argv.slice(2))
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-async function overpass(query) {
-  let lastError = null
-  for (const endpoint of ENDPOINTS) {
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          // Overpass asks for an identifiable agent so it can contact abusers
-          // rather than silently blocking them.
-          'User-Agent': 'StayOnMap/1.0 (spatial intelligence POI seed; https://www.stayonmap.com)',
-        },
-        body: new URLSearchParams({ data: query }),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      })
-      if (!res.ok) { lastError = new Error(`${endpoint} → HTTP ${res.status}`); continue }
-      return await res.json()
-    } catch (err) {
-      lastError = err
-    }
-  }
-  throw lastError ?? new Error('all Overpass endpoints failed')
-}
+const overpass = (query) => overpassQuery(query, {
+  userAgent: 'StayOnMap/1.0 (spatial intelligence POI seed; https://www.stayonmap.com)',
+  timeoutMs: REQUEST_TIMEOUT_MS,
+})
 
 function elementsToRows(elements) {
   const rows = []

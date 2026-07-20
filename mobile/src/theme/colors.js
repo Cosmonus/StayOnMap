@@ -38,6 +38,10 @@ export const colors = {
   danger50: '#fef2f2',
   warning: '#F59E0B',
   warning50: '#fffbeb',
+  // Tailwind amber-700, the same value web uses. `warning` above is tuned to
+  // sit on `warning50` inside a chip; at ~2.1:1 on white it is too light for
+  // body text, and the caveat lines under a confidence meter are body text.
+  warning700: '#b45309',
   success: '#22C55E',
   success50: '#f0fdf4',
 }

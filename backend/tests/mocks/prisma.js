@@ -92,10 +92,19 @@ export const prismaMock = {
     aggregate: vi.fn().mockResolvedValue({ _max: { fetchedAt: null } }),
     deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
   },
+  // ETL run receipts. Default is "no report on file", which is both a fresh
+  // checkout's real state and the case that must NOT be read as bad coverage —
+  // see dataQuality.js's coverageFactor.
+  dataQualityReport: {
+    create:    vi.fn().mockResolvedValue({}),
+    findFirst: vi.fn().mockResolvedValue(null),
+    findMany:  vi.fn().mockResolvedValue([]),
+  },
   spatialContext: {
     findUnique: vi.fn().mockResolvedValue(null),
     findMany:   vi.fn().mockResolvedValue([]),
     upsert:     vi.fn(),
+    update:     vi.fn().mockResolvedValue({}),
     updateMany: vi.fn().mockResolvedValue({ count: 0 }),
   },
   // Supports both Prisma $transaction forms: array-of-promises (lease.service.js)

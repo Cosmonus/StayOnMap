@@ -8,10 +8,10 @@ import SummaryStrip from './SummaryStrip'
 // order, and what each has to say. Adding a module never touches this file.
 //
 // `context` comes joined onto the property payload (properties.service.js's
-// getPropertyById), so this costs no extra request. A location we haven't
-// described yet arrives as null: the module cards vanish but `children` (the
-// hand-authored neighbourhood insight, the commute calculator) still render,
-// because those don't depend on a materialised cell.
+// getPropertyById), so this costs no extra request. `children` (the
+// hand-authored neighbourhood insight, the commute calculator) render in every
+// state, including the failure ones, because they don't depend on a
+// materialised cell.
 
 // Render order. Not alphabetical, not backend order — this is what a person
 // deciding where to live tends to ask first.
@@ -46,15 +46,36 @@ export default function SpatialContextPanel({ context, coords, children }) {
 
   const envelopes = inRenderOrder(modules)
     .filter(Boolean)
+    // Envelopes are stored as raw JSON, so a row written by an older module
+    // shape can reach here without `facts`. Skipping it degrades to a missing
+    // card; indexing it throws mid-render and blanks the whole section.
+    .filter((e) => Array.isArray(e.facts))
     // A module with nothing to say AND nothing to explain is chrome. One that
     // knows why it's silent is kept — that's information.
     .filter((e) => e.facts.length > 0 || e.missing?.length > 0)
 
-  // "We haven't looked yet" is not the same as "there's nothing here", and an
-  // empty section under a confident heading says the second one.
-  const pending = context?.pending === true
+  // Four outcomes, not two. `status` is the backend's word for which one this
+  // is (spatial.service.js); `pending` is the older boolean, still read here so
+  // a cached payload from before `status` shipped keeps working.
+  //
+  // The reason this matters: every branch below used to fall through to the
+  // same bare heading — a title, a Beta pill, and "tap any card for the full
+  // report" above nothing at all. A layer whose whole argument is "never show
+  // an unexplained number" should not show an unexplained absence either.
+  const status = context?.status
+    ?? (context?.pending === true ? 'pending' : context ? 'ready' : null)
 
-  if (envelopes.length === 0 && !pending && !children) return null
+  const pending = status === 'pending'
+  const failed = status === 'failed'
+  // Computed successfully and genuinely had nothing to report. Real, and common
+  // in thinly-mapped cities — it is an answer, so it gets said out loud.
+  const nothingMapped = status === 'ready' && envelopes.length === 0
+
+  const hasPanel = envelopes.length > 0 || pending || failed || nothingMapped
+
+  // No context at all (an older payload that predates this field): render the
+  // children on their own rather than heading a section with no content.
+  if (!hasPanel) return children ?? null
 
   return (
     <section className="space-y-4" aria-labelledby="spatial-intelligence-heading">
@@ -82,6 +103,31 @@ export default function SpatialContextPanel({ context, coords, children }) {
           <p className="mt-1.5 text-[11px] leading-snug text-slate-400">
             We haven&apos;t described this neighbourhood yet. It usually takes a
             few seconds — reload the page shortly and it&apos;ll be here.
+          </p>
+        </div>
+      )}
+
+      {failed && (
+        <div className="rounded-2xl border border-slate-100 bg-white p-5">
+          <p className="text-xs font-semibold text-slate-700">
+            We couldn&apos;t load the area report
+          </p>
+          <p className="mt-1.5 text-[11px] leading-snug text-slate-400">
+            Something went wrong on our side — this isn&apos;t a comment on the
+            neighbourhood. Reloading usually fixes it.
+          </p>
+        </div>
+      )}
+
+      {nothingMapped && (
+        <div className="rounded-2xl border border-slate-100 bg-white p-5">
+          <p className="text-xs font-semibold text-slate-700">
+            We don&apos;t have enough mapped data around this address yet
+          </p>
+          <p className="mt-1.5 text-[11px] leading-snug text-slate-400">
+            Our area reports are built from open map data, and coverage is
+            thinner in some neighbourhoods than others. That says nothing about
+            what&apos;s actually here — only about what has been mapped so far.
           </p>
         </div>
       )}

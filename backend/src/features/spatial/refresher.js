@@ -20,7 +20,8 @@
 import { prisma } from '../../lib/prisma.js'
 import { redis } from '../../lib/redis.js'
 import { intelLog, intelError } from '../../lib/intelLog.js'
-import { materialize } from './spatial.service.js'
+import { materialize, MAX_FAILURES } from './spatial.service.js'
+import { startRefreshQueue, stopRefreshQueue, isQueueRunning } from './refreshQueue.js'
 
 const TICK_MS = 5 * 60 * 1000
 
@@ -34,8 +35,6 @@ const CELLS_PER_TICK = 10
 const LOCK_TTL_S = 4 * 60
 const LOCK_KEY = 'spatial:refresh:lock'
 
-// Mirrors spatial.service.js's breaker.
-const MAX_FAILURES = 5
 
 let timer = null
 
@@ -105,17 +104,42 @@ export async function runRefreshTick() {
   }
 }
 
-/** Start the background refresher. Idempotent. */
-export function startRefresher() {
-  if (timer) return
+/**
+ * Start the background refresher. Idempotent.
+ *
+ * Prefers the durable pg-boss schedule (refreshQueue.js) and falls back to a
+ * plain interval when it can't start — no DATABASE_URL, no CREATE SCHEMA
+ * rights, an older DB. The fallback is exactly the behaviour that shipped
+ * before the queue existed, so the worst case is "no worse than before"
+ * rather than "no refresher".
+ *
+ * Async now, because bringing up the queue is. Callers that don't await it
+ * still get a working refresher; they just don't learn which path won.
+ *
+ * @returns {Promise<'queue'|'interval'>} which path is running
+ */
+export async function startRefresher() {
+  if (timer || isQueueRunning()) return isQueueRunning() ? 'queue' : 'interval'
+
+  if (await startRefreshQueue(process.env.DATABASE_URL, runRefreshTick)) return 'queue'
+
   // unref() so the interval never holds the process open — a graceful shutdown
   // shouldn't wait up to five minutes for a timer that does background work.
   timer = setInterval(() => { runRefreshTick().catch(() => {}) }, TICK_MS)
   timer.unref?.()
-  intelLog('spatial.refresher_started', { tickMs: TICK_MS, cellsPerTick: CELLS_PER_TICK })
+  intelLog('spatial.refresher_started', {
+    tickMs: TICK_MS,
+    cellsPerTick: CELLS_PER_TICK,
+    // Named so a production log says WHICH scheduler is live. Diagnosing "the
+    // refresher isn't running" is materially harder when both paths log the
+    // same line.
+    path: 'interval',
+  })
+  return 'interval'
 }
 
-export function stopRefresher() {
+export async function stopRefresher() {
+  await stopRefreshQueue()
   if (!timer) return
   clearInterval(timer)
   timer = null

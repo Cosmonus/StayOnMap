@@ -16,6 +16,17 @@ import { fact, PROVENANCE } from '../envelope.js'
 import { airQuality, OPEN_METEO_SOURCE, ERA5_SOURCE } from '../providers.js'
 import { getNormals, summarise } from '../climate.js'
 import { ALL_TYPES } from '../propertyTypes.js'
+import { nearestStation, stationConfidenceFactor } from '../cpcbProvider.js'
+import { formatDistance } from '../proximity.js'
+
+// CPCB data is Government of India open data under the National Data Sharing
+// and Accessibility Policy — a different licence from OSM's ODbL, so it gets
+// its own source line rather than being folded into an existing one.
+const CPCB_SOURCE = {
+  name: 'CPCB (via data.gov.in)',
+  license: 'Government Open Data Licence — India',
+  fetchedAt: null,
+}
 
 // CPCB's National Air Quality Index PM2.5 breakpoints (24h, µg/m³). India's
 // own scale, not the US EPA one — this is an India product and a renter in
@@ -62,9 +73,12 @@ export default {
   async compute({ lat, lng }) {
     // Independent upstreams, so one being slow or down must not serialise or
     // sink the other. Either can be null; each missing one lowers confidence.
-    const [aq, normals] = await Promise.all([
+    const [aq, normals, station] = await Promise.all([
       airQuality(lat, lng),
       getNormals(lat, lng),
+      // Null whenever there is no data.gov.in key, no feed, or no station
+      // within 10 km — which to this module all mean the same thing.
+      nearestStation(lat, lng),
     ])
 
     if (!aq && !normals) {
@@ -184,13 +198,57 @@ export default {
       }
     }
 
+    // A real instrument reading real air — the only MEASURED fact this module
+    // can emit. Everything else here is model output.
+    //
+    // The distance is always stated, and it is doing real work: CPCB has 488
+    // stations nationally, so for most listings the nearest one is kilometres
+    // away. Naming that is what keeps MEASURED from overclaiming, and
+    // `stationConfidenceFactor` grades the score by the same number rather than
+    // the module pretending a 25 km reading is a 2 km one.
+    if (station && station.pm25 != null) {
+      facts.push(fact({
+        key: 'pm25_station',
+        label: 'PM2.5 at the nearest monitor',
+        value: station.pm25,
+        unit: 'µg/m³',
+        display: `${station.pm25} µg/m³ at ${station.name ?? 'the nearest CPCB station'}` +
+          ` — ${formatDistance(station.distanceM)} away`,
+        provenance: PROVENANCE.MEASURED,
+        source: 'cpcb',
+        observedAt: station.observedAt ?? null,
+        at: { lat: station.lat, lng: station.lng },
+        place: station.name ?? undefined,
+      }))
+
+      if (station.pm10 != null) {
+        facts.push(fact({
+          key: 'pm10_station',
+          label: 'PM10 at the nearest monitor',
+          value: station.pm10,
+          unit: 'µg/m³',
+          display: `${station.pm10} µg/m³ at ${station.name ?? 'the nearest CPCB station'}`,
+          provenance: PROVENANCE.MEASURED,
+          source: 'cpcb',
+          observedAt: station.observedAt ?? null,
+        }))
+      }
+    }
+
     const inputsPresent = []
     if (aq) inputsPresent.push('air_quality_model')
     if (normals) inputsPresent.push('climate_normals')
+    if (station) inputsPresent.push('cpcb_station')
+
+    // Having a station present raises confidence (a declared input arrived);
+    // its distance then reduces it. Both are true at once, and reporting them
+    // separately is what stops a 40 km reading scoring like a 2 km one.
+    const confidenceFactors = [stationConfidenceFactor(station)].filter(Boolean)
 
     const sources = []
     if (aq) sources.push(OPEN_METEO_SOURCE)
     if (normals) sources.push(ERA5_SOURCE)
+    if (station) sources.push(CPCB_SOURCE)
 
     return {
       facts,
@@ -214,6 +272,7 @@ export default {
       ],
       inputsPresent,
       sources,
+      confidenceFactors,
     }
   },
 }

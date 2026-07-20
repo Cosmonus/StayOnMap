@@ -12,7 +12,7 @@
 import { haversineMeters } from '../../../lib/geohash.js'
 import { fact, PROVENANCE } from '../envelope.js'
 import { nearbyPlaces, GOOGLE_PLACES_SOURCE } from '../providers.js'
-import { poisNear, pickNearest, OSM_POI_SOURCE } from '../poiProvider.js'
+import { poisNear, pickNearest, OSM_POI_SOURCE, poiConfidenceFactors } from '../poiProvider.js'
 import { RESIDENTIAL_TYPES } from '../propertyTypes.js'
 import { walkDisplay, formatDistance } from '../proximity.js'
 
@@ -222,6 +222,10 @@ export default {
       inputsPresent,
       sources: [data.sourceMeta],
       sparselyMapped: data.sparselyMapped,
+      // `sparselyMapped` says the area looks thin; this says our own fetch of
+      // it fell short. A reader cannot tell those apart from the counts alone,
+      // and only the second is our fault.
+      confidenceFactors: await poiConfidenceFactors(data.source, city),
     }
   },
 }

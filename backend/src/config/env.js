@@ -79,6 +79,11 @@ export const env = {
   // blanks a page and never runs up a surprise bill.
   // Enforced only when REDIS_URL is set (the counter is shared state).
   spatialDailyApiBudget: Number(process.env.SPATIAL_DAILY_API_BUDGET) || 2000,
+  // data.gov.in — CPCB ground-station air quality. Free, registration only.
+  // Absent is a supported state, not a misconfiguration: the environment module
+  // declares `cpcb_station` as an input and leaves it absent, which holds its
+  // confidence down honestly rather than passing model output off as measured.
+  dataGovApiKey: process.env.DATA_GOV_API_KEY || null,
   // Error monitoring — entirely optional, lib/sentry.js no-ops without it
   sentryDsn:       process.env.SENTRY_DSN        || null,
 }

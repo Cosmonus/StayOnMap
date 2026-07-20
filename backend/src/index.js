@@ -127,7 +127,11 @@ httpServer.listen(PORT, () => {
     }, 14 * 60 * 1000)
   }
 
-  // Refresh stale spatial intelligence cells in the background. Redis-locked,
-  // so multiple instances don't each pay to recompute the same cell.
+  // Refresh stale spatial intelligence cells in the background. Prefers a
+  // durable pg-boss schedule so a deploy mid-tick doesn't silently drop the
+  // work; falls back to an in-memory interval when the queue can't start.
+  // Either way only one instance runs a given tick.
   startRefresher()
+    .then((path) => console.log(`Spatial refresher started (${path})`))
+    .catch(() => {})
 })

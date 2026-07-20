@@ -8,6 +8,9 @@ import { prisma } from '../../lib/prisma.js'
 import { cacheDel } from '../../lib/redis.js'
 import { intelLog, intelError } from '../../lib/intelLog.js'
 
+// Cells rewritten per round of invalidation. Bengaluru alone can hold thousands.
+const INVALIDATE_BATCH = 50
+
 /**
  * Delete this city's POIs that the current fetch did not return.
  *
@@ -39,6 +42,15 @@ export async function removeStalePois(city, before) {
   }
 }
 
+/** Expire every envelope in a cell's `modules` JSON, keeping the facts intact. */
+function expireEnvelopes(modules, iso) {
+  if (!modules || typeof modules !== 'object') return modules
+  return Object.fromEntries(Object.entries(modules).map(([slot, envelope]) => [
+    slot,
+    envelope && typeof envelope === 'object' ? { ...envelope, staleAfter: iso } : envelope,
+  ]))
+}
+
 /**
  * Mark every computed cell in a city stale and drop its coverage caches.
  *
@@ -48,16 +60,43 @@ export async function removeStalePois(city, before) {
  * next ticks (stalest first), so this spreads the recompute out rather than
  * doing it here.
  *
+ * Staleness lives at TWO levels and both must be cleared. Setting only the
+ * ROW's `staleAfter` — which is all this did until 2026-07-20 — schedules a
+ * recompute that then reuses every envelope, because computeModules() tests
+ * each module against ITS OWN `staleAfter` (spatial.service.js's isStale).
+ * The net effect was that re-seeding a city changed nothing for up to 90 days
+ * — precisely the outcome the paragraph above says this function exists to
+ * prevent. Found by diagnose-spatial.mjs: locality had facts for 4 of 13 cells
+ * hours after a full boundary seed, because the other 9 were reusing envelopes
+ * computed while the Boundary table was still empty.
+ *
+ * Envelopes are expired, not deleted: a stale cell still renders (with its own
+ * computedAt on show) while the refresher catches up, which is the behaviour
+ * everywhere else in this layer.
+ *
  * @returns {Promise<number>} cells marked stale
  */
 export async function invalidateCityCells(city, when = new Date()) {
   let count = 0
   try {
-    const res = await prisma.spatialContext.updateMany({
+    // Read-modify-write per row rather than one updateMany, because expiring
+    // the envelopes means rewriting a JSON column per cell. Batched so a large
+    // city doesn't open thousands of concurrent statements.
+    const cells = await prisma.spatialContext.findMany({
       where: { city },
-      data: { staleAfter: when },
+      select: { id: true, modules: true },
     })
-    count = res.count
+    const iso = when.toISOString()
+
+    for (let i = 0; i < cells.length; i += INVALIDATE_BATCH) {
+      const batch = cells.slice(i, i + INVALIDATE_BATCH)
+      await Promise.all(batch.map((cell) => prisma.spatialContext.update({
+        where: { id: cell.id },
+        data: { staleAfter: when, modules: expireEnvelopes(cell.modules, iso) },
+      })))
+      count += batch.length
+    }
+
     if (count) intelLog('spatial.cells_invalidated', { city, count })
   } catch (err) {
     intelError('spatial.cell_invalidation_failed', err, { city })
