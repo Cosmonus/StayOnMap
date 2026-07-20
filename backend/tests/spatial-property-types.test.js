@@ -290,9 +290,19 @@ describe('a cell holding two property types', () => {
       modules: { mobility: { key: 'mobility', version: 1, facts: [], confidence: {}, missing: [] } },
     })
 
+    // Drain, then clear. materialize() is scheduled fire-and-forget elsewhere in
+    // the suite, so an earlier test's write can land here and become `calls[0]`
+    // — the assertion then inspects a different cell entirely. Passes in
+    // isolation, fails about one run in three, and looks like a bug in the code
+    // rather than in the harness. The sibling test above uses `.at(-1)` for the
+    // same reason; this one asked for the first call and got someone else's.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    prismaMock.spatialContext.upsert.mockClear()
+
     await service.materialize('tdr1yf8', 'APARTMENT')
 
-    const written = prismaMock.spatialContext.upsert.mock.calls[0][0].update.modules
+    // `.at(-1)`: the call above is awaited, so it is the most recent.
+    const written = prismaMock.spatialContext.upsert.mock.calls.at(-1)[0].update.modules
     expect(written.mobility).toBeUndefined()
     expect(written['mobility@APARTMENT']).toBeDefined()
   })

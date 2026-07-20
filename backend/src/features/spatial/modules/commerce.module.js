@@ -36,7 +36,7 @@ export default {
   // v3: anchor/fuel facts carry `at` + place for read-time re-anchoring,
   // node/way dedup upstream changes counts, count provenance corrected to
   // DERIVED, and food_cheap actually matches fast food again (poiCategories.js).
-  version: 3, // v2: counts as data. The 300 m facts deliberately keep plain
+  version: 4, // v4 (2026-07-20): mall + marketplace split into their own footfall drivers, metro_station added to anchors // v2: counts as data. The 300 m facts deliberately keep plain
   // distances — a shop on the same parade is not a "walk", it's the same
   // stretch of street.
   appliesTo: ['COMMERCIAL'],

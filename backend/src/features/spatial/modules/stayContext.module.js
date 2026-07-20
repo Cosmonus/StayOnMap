@@ -16,7 +16,7 @@ export default {
   // v3: arrival/attraction facts carry `at` + place for read-time
   // re-anchoring, dining unions the food_cheap category (the fast_food fix in
   // poiCategories.js), and distance provenance corrected to DERIVED.
-  version: 3, // v2: walk-time phrasing, counts as data
+  version: 4, // v4 (2026-07-20): metro_station added to arrival points // v2: walk-time phrasing, counts as data
   appliesTo: ['SHORT_STAY'],
   ttlHours: 24 * 30,
   maxConfidence: 0.70,
