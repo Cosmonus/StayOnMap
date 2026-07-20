@@ -83,8 +83,24 @@ export async function refreshCellProximity(geohash, cell, categories) {
     // had no caller.
     const coverage = await cityCategoryCoverage(cell.city)
 
-    const rows = categories
-      .filter((category) => (coverage?.[category] ?? 0) > 0)
+    const covered = categories.filter((category) => (coverage?.[category] ?? 0) > 0)
+
+    // Skipping a category is only half the job: `upsert` never deletes, so a
+    // category that HAD rows and later drops to zero coverage would keep its
+    // old distances forever and go on matching the filter.
+    //
+    // Not hypothetical — this branch already reclassified `fast_food` into
+    // `food_cheap`, and removeStalePois deletes a city's rows wholesale on a
+    // clean re-seed. Before the coverage filter the row would at least have been
+    // rewritten to `nearestM: null` and excluded; skipping alone made it
+    // immortal. Deleting is what makes "we no longer have this data" and "there
+    // is none here" reachable states rather than one frozen answer.
+    const dropped = categories.filter((c) => !covered.includes(c))
+    if (dropped.length) {
+      await prisma.cellPoiSummary.deleteMany({ where: { geohash, category: { in: dropped } } })
+    }
+
+    const rows = covered
       .map((category) => {
         const hits = result.byCategory[category] ?? []
         return {
@@ -138,7 +154,11 @@ export async function cellsNear(category, metres, cap = 20_000) {
     // whatever Postgres happened to return, so two identical requests could
     // drop different listings — a filter that is not merely incomplete but
     // inconsistent with itself.
-    orderBy: { nearestM: 'asc' },
+    // `geohash` is the tiebreaker, and it is what makes the cap deterministic.
+    // nearestM is a rounded integer metre value, so ties are routine, and
+    // Postgres sorts are not stable — ordering on distance alone still let two
+    // identical requests drop different listings.
+    orderBy: [{ nearestM: 'asc' }, { geohash: 'asc' }],
     take: cap + 1,
   })
 

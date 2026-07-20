@@ -214,14 +214,20 @@ export function computeConfidence(declared, presentKeys, maxConfidence = 1, fact
   let value = base
   for (const f of factors ?? []) {
     const before = value
-    // Rounded at every step, not only at the end. Carrying an unrounded running
-    // value made factor N's reported `to` differ from factor N+1's `from` (the
-    // UI walking the chain would show 0.5 becoming 0.495), and let a no-op
-    // factor be reported as `applied` purely because rounding moved the number.
-    // Neither fires today — every module passes zero or one factor, or a
-    // cap-then-multiplier pair that happens to stay clean at 2dp — which is
-    // exactly what makes it the kind of trap that goes off later.
-    value = round(applyFactor(value, f))
+    // The arithmetic stays UNROUNDED; only the report is rounded.
+    //
+    // Rounding the running value at each step looks tidier and is wrong in the
+    // most dangerous direction: Math.round is half-up, so `round(0.495) = 0.50`
+    // RAISES the value. With base 0.50 and two ×0.99 factors, every step
+    // rounds back to 0.50 — both reductions report `applied: false`, the basis
+    // line stops mentioning them, and confidence ends higher than the factors
+    // said it should. A rule enforced by a throw elsewhere in this file would
+    // have been quietly undone by a rounding mode.
+    //
+    // Rounding both ends of the report instead keeps the displayed chain
+    // continuous (factor N's `to` is exactly factor N+1's `from`) while
+    // `applied` is decided on the real numbers.
+    value = applyFactor(value, f)
     // Report every declared factor, including the ones that changed nothing —
     // "coverage was complete, so this did not reduce anything" is information.
     applied.push({
@@ -229,11 +235,14 @@ export function computeConfidence(declared, presentKeys, maxConfidence = 1, fact
       reason: f.reason,
       multiplier: f.multiplier ?? null,
       cap: f.cap ?? null,
-      from: before,
-      to: value,
+      from: round(before),
+      to: round(value),
+      // Decided on the unrounded values: a factor that genuinely reduced by
+      // 0.004 did reduce, whatever the 2dp display shows.
       applied: value < before,
     })
   }
+  value = round(value)
 
   const reduced = applied.filter((f) => f.applied)
   const basis = reduced.length

@@ -6,6 +6,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import bcrypt from 'bcryptjs'
 import { AMENITIES } from './amenities.js'
 import { ADMIN_MIN_PASSWORD_LENGTH } from '../src/features/admin/admin.validation.js'
+import { encode } from '../src/lib/geohash.js'
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
@@ -351,7 +352,10 @@ const PROPERTIES = [
     description: 'Third-floor office in a Vesu commercial building, currently fitted with cabins and a small pantry. Lift, covered parking and generator backup for the whole floor.',
     type: 'COMMERCIAL', furnished: 'SEMI',
     rent: 55000, deposit: 330000, maintenance: 4500, area: 1200,
-    commercialType: 'Office', carpetArea: 980, frontage: 0, powerLoad: '10 kW',
+    // No `frontage`: createPropertySchema requires it positive, and the wizard
+    // omits a blank field entirely rather than sending 0. A fixture carrying a
+    // value production cannot produce tests a state that does not exist.
+    commercialType: 'Office', carpetArea: 980, powerLoad: '10 kW',
     totalFloors: 7, floor: 3,
     address: 'VIP Road, Vesu', city: 'Surat', state: 'Gujarat', pincode: '395007',
     landmark: 'Near Vesu Cross Road',
@@ -458,6 +462,13 @@ async function main() {
         ...rest,
         status:  'ACTIVE',
         ownerId: owner.id,
+        // The seed writes through Prisma, so it bypasses createProperty() and
+        // the geohash it derives there. Without this every fixture lands with
+        // geohash NULL — and a NULL geohash is "unknown cell", which proximity
+        // filters EXCLUDE. The rows added specifically to exercise the spatial
+        // layer would have been the exact rows it could not see, fixable only
+        // by remembering to run a separate backfill script after every seed.
+        geohash: encode(Number(prop.lat), Number(prop.lng)),
         availableFrom: new Date(),
         images: {
           create: images,
