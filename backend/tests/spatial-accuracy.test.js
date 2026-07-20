@@ -35,13 +35,58 @@ describe('poiCategories reachability', () => {
     // declares it — any future collision fails here by construction.
     for (const [category, rules] of Object.entries(POI_CATEGORIES)) {
       for (const [tagKey, values] of Object.entries(rules)) {
+        // `requires` / `requiresSample` are gates, not tag lists.
+        if (!Array.isArray(values)) continue
+
         for (const value of values) {
+          // A gated category needs its extra tags supplied, or the probe tests
+          // the gate rather than reachability — and "gated" would then be
+          // indistinguishable from "shadowed by an earlier rule", which is the
+          // failure this test exists to catch.
+          const probe = { [tagKey]: value, ...(rules.requiresSample ?? {}) }
           expect(
-            { pair: `${tagKey}=${value}`, resolvesTo: categoryFor({ [tagKey]: value }) }
+            { pair: `${tagKey}=${value}`, resolvesTo: categoryFor(probe) }
           ).toEqual({ pair: `${tagKey}=${value}`, resolvesTo: category })
         }
       }
     }
+  })
+
+  it('only counts an aerodrome an airline actually flies to', () => {
+    // aeroway=aerodrome covers all 414 Indian aerodromes — flying clubs and
+    // air-force strips included, and among the 16 carrying `aerodrome=*`,
+    // private outnumbers international. "Airport 4 km away" pointing at a
+    // military airfield is a trust-destroying fact a guest catches instantly.
+    // An IATA code is a tag, not a heuristic: an airline schedules flights there.
+    expect(categoryFor({ aeroway: 'aerodrome' })).toBeNull()
+    expect(categoryFor({ aeroway: 'aerodrome', iata: 'BLR' })).toBe('airport')
+    expect(categoryFor({ aeroway: 'aerodrome', iata: 'X', military: 'airfield' })).toBeNull()
+  })
+
+  it('does not count a residential garden as a park', () => {
+    // The wiki: leisure=garden's most common form "is known as a residential
+    // garden". Filtering was rejected — only 12.8% of Indian gardens carry
+    // garden:type at all, and private slightly outnumbers public among those.
+    expect(categoryFor({ leisure: 'garden' })).toBeNull()
+    expect(categoryFor({ leisure: 'park' })).toBe('park')
+  })
+
+  it('keeps a kirana findable — the Indian daily-needs primitive', () => {
+    // shop=general is the village/neighbourhood general store. In India that,
+    // not the supermarket, decides whether you can buy milk without a vehicle.
+    expect(categoryFor({ shop: 'general' })).toBe('supermarket')
+    expect(categoryFor({ shop: 'grocery' })).toBe('supermarket')
+    // A weekly mandi answers a different question from a shop open at 9pm, so
+    // it stays its own category rather than being folded in.
+    expect(categoryFor({ amenity: 'marketplace' })).toBe('marketplace')
+  })
+
+  it('counts a mall as a mall, not as one shop', () => {
+    // Inside `retail` a mall of 120 shops contributed one row, exactly like a
+    // single florist — under-weighting the highest-footfall locations in a
+    // basket whose whole purpose is a footfall proxy.
+    expect(categoryFor({ shop: 'mall' })).toBe('mall')
+    expect(categoryFor({ shop: 'department_store' })).toBe('retail')
   })
 
   it('fast_food is cheap food, not a restaurant', () => {

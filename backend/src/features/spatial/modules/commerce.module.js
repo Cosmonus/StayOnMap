@@ -18,7 +18,10 @@ const CATCHMENT = 1500  // the area a small business draws from
 // Businesses that bring people to a street for their own reasons. A shop next
 // to a busy restaurant strip inherits its traffic; one next to a warehouse
 // does not.
-const FOOTFALL_DRIVERS = ['retail', 'restaurant', 'cafe', 'food_cheap', 'supermarket', 'bank', 'atm']
+// `mall` and `marketplace` split out of retail/supermarket 2026-07-20 and added
+// here explicitly — otherwise the audit's fix would have QUIETLY REMOVED them
+// from the footfall count, which is the opposite of what it was for.
+const FOOTFALL_DRIVERS = ['retail', 'mall', 'marketplace', 'restaurant', 'cafe', 'food_cheap', 'supermarket', 'bank', 'atm']
 // Things that put people on the street at a predictable hour.
 const ANCHORS = ['college', 'school', 'hospital', 'railway_station', 'bus_stop']
 
