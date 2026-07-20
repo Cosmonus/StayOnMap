@@ -132,7 +132,7 @@ export default {
   // category fix), node/way dedup upstream changes counts, and distance
   // provenance corrected to DERIVED. All of that lives in stored envelopes,
   // so the bump forces existing cells to recompute.
-  version: 5, // v4: walk-time phrasing; v3: gated to types where somebody lives
+  version: 6, // v6 (2026-07-20): corrected vocabulary — marketplace unioned into groceries, fast_food unshadowed, gardens no longer parks; distances drop the assumed walk time // v4: walk-time phrasing; v3: gated to types where somebody lives
   // Walkability to a pharmacy is a fact about LIVING somewhere. A plot or a
   // warehouse has no residents, so this card is hidden for them rather than
   // shown with a caveat.

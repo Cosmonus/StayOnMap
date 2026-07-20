@@ -28,7 +28,7 @@ export default {
   key: 'landContext',
   // v3: nearest facts carry `at` + place for read-time re-anchoring, node/way
   // dedup upstream changes counts, distance provenance corrected to DERIVED.
-  version: 3, // v2: walk-time phrasing, counts as data
+  version: 4, // v4 (2026-07-20): corrected retail basket incl. department_store // v2: walk-time phrasing, counts as data
   appliesTo: ['LAND'],
   ttlHours: 24 * 60, // land context changes on the timescale of construction
   // Low by construction. Everything that decides a land purchase is legal or

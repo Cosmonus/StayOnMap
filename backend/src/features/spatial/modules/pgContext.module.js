@@ -18,7 +18,7 @@ export default {
   // provenance corrected to DERIVED, and the cheap-food signal is real again —
   // fast_food now lands in `food_cheap` instead of colliding into `restaurant`
   // (see poiCategories.js), so this module finally sees what it queries for.
-  version: 3, // v2: walk-time phrasing, counts as data
+  version: 4, // v4 (2026-07-20): food_cheap actually populated now fast_food is unshadowed (334 to 5744 nationally) // v2: walk-time phrasing, counts as data
   appliesTo: ['PG'],
   ttlHours: 24 * 30,
   maxConfidence: 0.65,
