@@ -41,7 +41,7 @@ export function completeness(rows, criticalFields) {
  * point, the report is the receipt.
  *
  * @param {object} report
- * @param {string} report.dataset          'poi_index' | 'boundaries' | 'weather_normals'
+ * @param {string} report.dataset          'poi_index' | 'boundaries'
  * @param {string} [report.scope]          city, or omitted for a global run
  * @param {number} report.recordCount
  * @param {number} [report.completenessPct]
@@ -84,7 +84,6 @@ const INCOMPLETE_COVERAGE_CAP = 0.74
 const DATASET_LABEL = {
   poi_index: 'places',
   boundaries: 'neighbourhood boundaries',
-  weather_normals: 'climate records',
 }
 
 /**
@@ -109,7 +108,7 @@ const DATASET_LABEL = {
  * of bad data would degrade every card until the next re-seed. Absence of a
  * receipt is not evidence of a bad delivery.
  *
- * @param {string} dataset  'poi_index' | 'boundaries' | 'weather_normals'
+ * @param {string} dataset  'poi_index' | 'boundaries'
  * @param {string|null} [scope]  city, or null for a global run
  * @returns {Promise<{key, reason, cap}|null>} null when there is nothing to say
  */

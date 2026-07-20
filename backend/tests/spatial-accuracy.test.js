@@ -109,10 +109,9 @@ describe('poiCategories reachability', () => {
     // modest, and most facilities are dual-tagged and were already found.
     expect(categoryFor({ healthcare: 'hospital' })).toBe('hospital')
     expect(categoryFor({ healthcare: 'centre' })).toBe('clinic')
-    // A lab cannot treat you. Folding diagnostics into "nearest care" would
-    // inflate it with places that answer a different question — and labs were
-    // the largest healthcare group in the probe.
-    expect(categoryFor({ healthcare: 'laboratory' })).toBe('diagnostics')
+    // A lab cannot treat you, and nobody picks a flat by proximity to one.
+    // Unmapped rather than a category, and rather than inflating 'clinic'.
+    expect(categoryFor({ healthcare: 'laboratory' })).toBeNull()
     // Specialists stay unmapped rather than becoming "the nearest clinic".
     expect(categoryFor({ healthcare: 'physiotherapist' })).toBeNull()
     expect(categoryFor({ healthcare: 'optometrist' })).toBeNull()

@@ -52,11 +52,11 @@ export const POI_CATEGORIES = {
   // calling any of those "the nearest clinic" would overstate what is there.
   hospital:    { amenity: ['hospital'], shop: [], leisure: [], healthcare: ['hospital'] },
   clinic:      { amenity: ['clinic', 'doctors'], shop: [], leisure: [], healthcare: ['clinic', 'centre', 'doctor'] },
-  // Diagnostic labs are their own answer to their own question — you need a
-  // blood test, not a doctor — and they were the single largest healthcare
-  // group in the probe (10 of 26). Folding them into `clinic` would have
-  // inflated "nearest care" with places that cannot treat you.
-  diagnostics: { amenity: [], shop: [], leisure: [], healthcare: ['laboratory'] },
+  // NOT a `diagnostics` category. One was added earlier today on the strength
+  // of ten lab rows in a single probe, and it failed the test that matters:
+  // nobody chooses a flat by proximity to a blood-test lab. Labs stay unmapped
+  // rather than becoming a category, and rather than being folded into `clinic`
+  // — which would inflate "nearest care" with places that cannot treat you.
   // 'college' removed from school's list (2026-07-19): categoryFor() is
   // first-match-wins, so school was capturing every amenity=college before
   // the dedicated `college` category below could — which left pgContext's
