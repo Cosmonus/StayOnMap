@@ -9,7 +9,7 @@ import {
   Plane, Camera, Hotel,
   Shield, Siren, Shirt,
   Thermometer, CloudRain, Umbrella,
-  Mountain, MoveVertical, Waves, Map,
+  Mountain, MoveVertical, WavesHorizontal, Map,
   CircleDot,
 } from 'lucide-react-native'
 
@@ -61,7 +61,7 @@ const FACT_ICONS = {
   // ── terrain ───────────────────────────────────────────────────────────────
   elevation:           Mountain,
   relative_height:     MoveVertical,
-  local_relief:        Waves,
+  local_relief:        WavesHorizontal,
 
   // ── locality ──────────────────────────────────────────────────────────────
   // Keyed by OSM admin level, so the shape is admin_<n> rather than a name.
