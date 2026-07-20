@@ -10,7 +10,7 @@
 // offices) are ones where Google's Indian coverage is no better than OSM's,
 // and paying per call for a worse answer is not a trade worth making.
 import { fact, PROVENANCE } from '../envelope.js'
-import { poisNear, pickNearest, cityCategoryCoverage, OSM_POI_SOURCE } from '../poiProvider.js'
+import { poisNear, pickNearest, cityCategoryCoverage, poiConfidenceFactors, OSM_POI_SOURCE, OSM_POI_SOURCE_ID } from '../poiProvider.js'
 import { RESIDENTIAL_TYPES } from '../propertyTypes.js'
 import { walkDisplay, formatDistance } from '../proximity.js'
 
@@ -164,6 +164,11 @@ export default {
       )
     }
 
+    // cityCategoryCoverage above can only see what the table CONTAINS. Whether
+    // the run that built it completed is a separate question, and an incomplete
+    // one reads here as a genuinely underserved neighbourhood.
+    const confidenceFactors = await poiConfidenceFactors(OSM_POI_SOURCE_ID, city)
+
     return {
       facts,
       assessment: assess(found),
@@ -171,6 +176,7 @@ export default {
       inputsPresent,
       sources: [{ ...OSM_POI_SOURCE, fetchedAt: result.fetchedAt }],
       sparselyMapped: result.sparselyMapped,
+      confidenceFactors,
     }
   },
 }

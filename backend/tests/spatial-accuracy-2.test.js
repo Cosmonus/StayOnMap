@@ -18,7 +18,8 @@ beforeEach(() => {
   prismaMock.poiIndex.findMany.mockResolvedValue([])
   prismaMock.poiIndex.aggregate.mockResolvedValue({ _max: { fetchedAt: null } })
   prismaMock.poiIndex.deleteMany.mockResolvedValue({ count: 0 })
-  prismaMock.spatialContext.updateMany.mockResolvedValue({ count: 0 })
+  prismaMock.spatialContext.findMany.mockResolvedValue([])
+  prismaMock.spatialContext.update.mockResolvedValue({})
 })
 
 // ── Re-seed invalidation ────────────────────────────────────────────────────
@@ -40,25 +41,57 @@ describe('re-seed maintenance', () => {
 
   it('marks the city\'s cells stale so corrected data does not wait out a 60-day TTL', async () => {
     const when = new Date('2026-07-19T00:00:00Z')
-    prismaMock.spatialContext.updateMany.mockResolvedValue({ count: 340 })
+    prismaMock.spatialContext.findMany.mockResolvedValue([
+      { id: 'c1', modules: {} }, { id: 'c2', modules: {} },
+    ])
 
     const count = await invalidateCityCells('Bengaluru', when)
 
-    expect(count).toBe(340)
-    expect(prismaMock.spatialContext.updateMany).toHaveBeenCalledWith({
+    expect(count).toBe(2)
+    expect(prismaMock.spatialContext.findMany).toHaveBeenCalledWith({
       where: { city: 'Bengaluru' },
-      data: { staleAfter: when },
+      select: { id: true, modules: true },
     })
+    expect(prismaMock.spatialContext.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'c1' }, data: expect.objectContaining({ staleAfter: when }) }),
+    )
+  })
+
+  // The bug this file's fifth test was written to prevent, and missed: staleness
+  // lives at two levels. Expiring only the ROW schedules a recompute that then
+  // reuses every envelope, because computeModules tests each module against its
+  // own staleAfter. A re-seed changed nothing for up to 90 days.
+  it('expires the module envelopes too, not just the row', async () => {
+    const when = new Date('2026-07-19T00:00:00Z')
+    prismaMock.spatialContext.findMany.mockResolvedValue([{
+      id: 'c1',
+      modules: {
+        // 60-day TTL: the module that hid the bug, since boundaries are what a
+        // re-seed most often corrects.
+        locality: { key: 'locality', staleAfter: '2026-09-01T00:00:00Z', facts: [] },
+        'mobility@ANY': { key: 'mobility', staleAfter: '2026-08-15T00:00:00Z', facts: [] },
+      },
+    }])
+
+    await invalidateCityCells('Bengaluru', when)
+
+    const written = prismaMock.spatialContext.update.mock.calls[0][0].data.modules
+    expect(written.locality.staleAfter).toBe(when.toISOString())
+    expect(written['mobility@ANY'].staleAfter).toBe(when.toISOString())
+    // Expired, not deleted — a stale cell still renders while the refresher
+    // catches up, same as everywhere else in this layer.
+    expect(written.locality.key).toBe('locality')
   })
 
   it('scopes invalidation to one city — re-seeding Pune must not recompute Delhi', async () => {
+    prismaMock.spatialContext.findMany.mockResolvedValue([])
     await invalidateCityCells('Pune')
-    expect(prismaMock.spatialContext.updateMany.mock.calls[0][0].where).toEqual({ city: 'Pune' })
+    expect(prismaMock.spatialContext.findMany.mock.calls[0][0].where).toEqual({ city: 'Pune' })
   })
 
   it('never throws into the seed script when the database is unhappy', async () => {
     prismaMock.poiIndex.deleteMany.mockRejectedValue(new Error('connection lost'))
-    prismaMock.spatialContext.updateMany.mockRejectedValue(new Error('connection lost'))
+    prismaMock.spatialContext.findMany.mockRejectedValue(new Error('connection lost'))
 
     await expect(removeStalePois('Bengaluru', new Date())).resolves.toBe(0)
     await expect(invalidateCityCells('Bengaluru')).resolves.toBe(0)

@@ -14,8 +14,15 @@ const CONFIG = {
 }
 
 export default function ProvenanceChip({ provenance, method }) {
-  const cfg = CONFIG[provenance]
-  if (!cfg) return null
+  // Returning null for an unknown provenance rendered the number bare — no
+  // attribution at all — which is precisely the failure this component exists
+  // to prevent, and the one case where silence is least affordable. An
+  // unlabelled source is flagged as such instead.
+  const cfg = CONFIG[provenance] ?? {
+    label: 'Unverified',
+    cls: 'bg-slate-100 text-slate-500',
+    title: 'This figure arrived without a stated source. Treat it with caution.',
+  }
 
   return (
     <span

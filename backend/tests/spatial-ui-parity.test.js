@@ -62,6 +62,104 @@ describe('spatial module UI parity', () => {
     }
   })
 
+  // ── Empty states ──────────────────────────────────────────────────────────
+  // The panel's own guard was `envelopes.length === 0 && !pending && !children`,
+  // and BOTH call sites pass children (the commute calculator) — so it could
+  // never fire, and the section rendered its heading, its Beta pill and "tap any
+  // card for the full report" above nothing at all. Three different conditions
+  // produced that same blank: a failed lookup, an undescribed cell, and an area
+  // with genuinely nothing mapped.
+  //
+  // A layer whose entire premise is "never show an unexplained number" must not
+  // show an unexplained absence either. Text-matching for the same reason as
+  // everything else in this file.
+  const PANELS = SURFACES.filter((s) => s.name.endsWith('panel'))
+
+  for (const surface of PANELS) {
+    it(`${surface.name} distinguishes all four outcomes, not just two`, () => {
+      const source = readFileSync(resolve(ROOT, surface.path), 'utf8')
+
+      // Branch on `status`, not on the older two-valued `pending` boolean.
+      expect(
+        source.includes('status'),
+        `${surface.path} must read the backend's status field — a boolean can ` +
+        'only express two of the four real outcomes',
+      ).toBe(true)
+
+      for (const state of ['pending', 'failed', 'nothingMapped']) {
+        expect(
+          source.includes(state),
+          `${surface.path} has no "${state}" branch — that outcome would fall ` +
+          'through to a heading with no cards and no explanation',
+        ).toBe(true)
+      }
+    })
+  }
+
+  it('neither panel gates its empty states on `children`', () => {
+    // The exact dead-guard regression. `children` is always truthy at both call
+    // sites, so any condition ANDed with `!children` is unreachable.
+    for (const surface of PANELS) {
+      const source = readFileSync(resolve(ROOT, surface.path), 'utf8')
+      expect(
+        source.includes('!children'),
+        `${surface.path} gates on !children, which is always false at every ` +
+        'call site — the guard cannot fire and the empty state never renders',
+      ).toBe(false)
+    }
+  })
+
+  it('both panels survive an envelope written by an older module shape', () => {
+    // `modules` is raw JSON, so a row can predate the current envelope shape.
+    // Indexing `.facts` on one of those throws mid-render and blanks the whole
+    // section — strictly worse than the missing card it would have been.
+    for (const surface of PANELS) {
+      const source = readFileSync(resolve(ROOT, surface.path), 'utf8')
+      expect(
+        source.includes('Array.isArray(e.facts)'),
+        `${surface.path} must guard that facts is an array before reading it`,
+      ).toBe(true)
+    }
+  })
+
+  // ── Confidence factors ────────────────────────────────────────────────────
+  // The backend reduces confidence for things input availability can't see —
+  // today an incomplete ETL fetch — and returns WHY alongside the number. A
+  // platform that renders only the number shows a score that silently
+  // disagrees with the other platform's, with nothing on screen accounting for
+  // the gap. Same class of drift as the module-order bug above, so it gets the
+  // same treatment.
+  const METERS = [
+    'frontend/src/features/spatial/components/ConfidenceMeter.jsx',
+    'mobile/src/features/spatial/components/ConfidenceMeter.js',
+  ]
+
+  for (const path of METERS) {
+    it(`${path.split('/')[0]} confidence meter renders the reduction reasons`, () => {
+      const source = readFileSync(resolve(ROOT, path), 'utf8')
+
+      expect(
+        source.includes('confidence.factors'),
+        `${path} ignores confidence.factors — the "why" half of the score is ` +
+        'computed and thrown away',
+      ).toBe(true)
+
+      expect(
+        source.includes('applied'),
+        `${path} must filter to factors that actually bit; rendering the inert ` +
+        'ones puts "this changed nothing" on a card',
+      ).toBe(true)
+
+      // Rows predate the factors field, so it is absent (not empty) on old
+      // envelopes. Calling .filter on undefined throws mid-render and blanks
+      // the card the caveat was meant to annotate.
+      expect(
+        source.includes('Array.isArray(confidence.factors)'),
+        `${path} must guard that factors is an array before filtering it`,
+      ).toBe(true)
+    })
+  }
+
   it('the two platforms order modules identically', () => {
     const orderOf = (path) => {
       const source = readFileSync(resolve(ROOT, path), 'utf8')

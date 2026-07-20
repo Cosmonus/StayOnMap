@@ -13,6 +13,7 @@ import { prisma } from '../../lib/prisma.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { haversineMeters } from '../../lib/geohash.js'
 import { intelError } from '../../lib/intelLog.js'
+import { coverageFactor, freshnessFactor } from './dataQuality.js'
 
 const DEG_LAT_M = 111_320
 
@@ -397,3 +398,41 @@ export async function cityCategoryCoverage(city) {
 }
 
 export const OSM_POI_SOURCE = { name: 'OpenStreetMap', license: 'ODbL', fetchedAt: null }
+
+/** The `source` string modules stamp on facts that came from PoiIndex. */
+export const OSM_POI_SOURCE_ID = 'osm-poi'
+
+/**
+ * Confidence factors arising from how this city's POI table was BUILT, as
+ * opposed to what it contains.
+ *
+ * Input availability already asks "did this module get a POI table". It cannot
+ * ask "was that table complete", because a half-failed fetch and a clean one
+ * produce the same shape — just fewer rows, which reads downstream as a genuinely
+ * quiet neighbourhood. That distinction is the entire reason DataQualityReport
+ * exists, and until now nothing consumed it.
+ *
+ * Empty on the Google fallback path: our ETL coverage says nothing about a
+ * result we didn't fetch ourselves.
+ *
+ * @param {string} sourceId  the module's resolved data source
+ * @param {string|null} city
+ * @returns {Promise<Array>} zero or one factor, ready for `confidenceFactors`
+ */
+export async function poiConfidenceFactors(sourceId, city) {
+  if (sourceId !== OSM_POI_SOURCE_ID || !city) return []
+
+  // Both read cached/indexed values, so this costs the read path nothing
+  // meaningful, and they answer genuinely different questions: coverage is
+  // "did the fetch finish", freshness is "how long ago was it".
+  const [coverage, fetchedAt] = await Promise.all([
+    coverageFactor('poi_index', city),
+    poiFreshness(city),
+  ])
+
+  // Order matters only for reporting: coverage caps, freshness scales, and
+  // computeConfidence applies them in sequence. Listing the cap first means a
+  // capped score isn't then reported as having been scaled from a number it
+  // never held.
+  return [coverage, freshnessFactor(fetchedAt)].filter(Boolean)
+}

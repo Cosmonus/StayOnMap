@@ -23,7 +23,28 @@ const READ_CACHE_TTL_S = 10 * 60
 
 // A cell that keeps failing is usually bad coordinates or a dead upstream.
 // Stop paying to rediscover that.
-const MAX_FAILURES = 5
+//
+// Exported because refresher.js needs the same number to exclude circuit-broken
+// cells from its due query. It kept a private copy commented "mirrors
+// spatial.service.js's breaker" — two constants that must agree, with nothing
+// making them agree.
+export const MAX_FAILURES = 5
+
+// What the caller is actually holding. `pending` (boolean) predates this and is
+// still emitted for released mobile builds that read it; `status` is the field
+// to branch on from here on, because a boolean can only express two of the four
+// real outcomes.
+//
+// READY   — modules are present (possibly partial, possibly stale; both render)
+// PENDING — materialisation is running, we do not have data YET
+// FAILED  — the lookup itself threw. Set by the caller, never returned here.
+//
+// The distinction is the point: a UI that cannot tell PENDING from FAILED from
+// "this cell genuinely has nothing mapped" renders all three as the same blank,
+// which is exactly the unexplained absence this layer exists to avoid.
+export const STATUS_READY = 'ready'
+export const STATUS_PENDING = 'pending'
+export const STATUS_FAILED = 'failed'
 
 function readCacheKey(geohash) {
   return `spatial:ctx:${geohash}`
@@ -197,8 +218,9 @@ function withTimeout(promise, ms) {
  * create/publish and by scripts/backfill-spatial-context.mjs, so in practice
  * this path is rare.
  *
- * Callers must handle `modules: null, pending: true` — it means "not yet",
- * which is a different thing from "nothing here".
+ * Callers must handle `modules: null, pending: true` (`status: 'pending'`) — it
+ * means "not yet", which is a different thing from "nothing here". Branch on
+ * `status`; `pending` is kept only for released clients that already read it.
  *
  * @param {number} lat
  * @param {number} lng
@@ -232,20 +254,20 @@ export async function getContext(lat, lng, { materializeIfMissing = true, waitMs
 
   const cached = await cacheGet(readCacheKey(geohash))
   if (cached?.v && hasAllWanted(cached.v)) {
-    return { geohash, city: resolveCity(lat, lng)?.city ?? null, modules: forType(cached.v), computedAt: null, pending: false }
+    return { geohash, city: resolveCity(lat, lng)?.city ?? null, modules: forType(cached.v), computedAt: null, pending: false, status: STATUS_READY }
   }
 
   const row = await prisma.spatialContext.findUnique({ where: { geohash } })
 
   if (!row || !hasAllWanted(row.modules)) {
-    if (!materializeIfMissing) return row ? { geohash, city: row.city, modules: forType(row.modules), computedAt: row.computedAt, pending: false } : null
+    if (!materializeIfMissing) return row ? { geohash, city: row.city, modules: forType(row.modules), computedAt: row.computedAt, pending: false, status: STATUS_READY } : null
 
     const city = resolveCity(lat, lng)?.city ?? null
     const work = materialize(geohash, propertyType).catch(() => null)
 
     if (waitMs > 0) {
       const modules = await withTimeout(work, waitMs)
-      if (modules) return { geohash, city, modules: forType(modules), computedAt: new Date(), pending: false }
+      if (modules) return { geohash, city, modules: forType(modules), computedAt: new Date(), pending: false, status: STATUS_READY }
     }
 
     // A partially-warm cell still has something worth showing while the
@@ -254,13 +276,13 @@ export async function getContext(lat, lng, { materializeIfMissing = true, waitMs
     if (row?.modules) {
       const partial = forType(row.modules)
       if (Object.keys(partial).length > 0) {
-        return { geohash, city: row.city, modules: partial, computedAt: row.computedAt, pending: false }
+        return { geohash, city: row.city, modules: partial, computedAt: row.computedAt, pending: false, status: STATUS_READY }
       }
     }
 
     // Still running. Say so, rather than returning null and letting the UI
     // imply the neighbourhood has nothing worth reporting.
-    return { geohash, city, modules: null, computedAt: null, pending: true }
+    return { geohash, city, modules: null, computedAt: null, pending: true, status: STATUS_PENDING }
   }
 
   // A stale row still renders — with its own computedAt on display — while a
@@ -280,6 +302,7 @@ export async function getContext(lat, lng, { materializeIfMissing = true, waitMs
     modules: forType(row.modules),
     computedAt: row.computedAt,
     pending: false,
+    status: STATUS_READY,
   }
 }
 

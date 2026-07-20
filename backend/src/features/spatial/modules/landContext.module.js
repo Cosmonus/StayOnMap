@@ -13,7 +13,7 @@
 // wrong — implying a coordinate can tell you whether a title is clean — would
 // be the most damaging thing this whole layer could do.
 import { fact, PROVENANCE } from '../envelope.js'
-import { poisNear, pickNearest, OSM_POI_SOURCE } from '../poiProvider.js'
+import { poisNear, pickNearest, poiConfidenceFactors, OSM_POI_SOURCE, OSM_POI_SOURCE_ID } from '../poiProvider.js'
 import { CITY_CENTERS, haversineKm } from '../../../config/cityCenters.js'
 import { walkDisplay } from '../proximity.js'
 
@@ -106,6 +106,16 @@ export default {
       }
     }
 
+    // "Largely undeveloped surroundings" is the conclusion an incomplete fetch
+    // produces too, and it is the one a buyer would act on hardest.
+    // Gated on `available`: this module still says something useful with no
+    // POIs at all (distance from the city centre needs none), and penalising
+    // that result for an incomplete POI fetch would attribute a shortfall to
+    // data the answer never used.
+    const confidenceFactors = nearby.available
+      ? await poiConfidenceFactors(OSM_POI_SOURCE_ID, city)
+      : []
+
     return {
       facts,
       assessment: assess(nearby, centre ? Math.round(haversineKm(lat, lng, centre.lat, centre.lng)) : null),
@@ -113,6 +123,7 @@ export default {
       inputsPresent,
       sources: nearby.available ? [{ ...OSM_POI_SOURCE, fetchedAt: nearby.fetchedAt }] : [],
       sparselyMapped: nearby.available ? nearby.sparselyMapped : null,
+      confidenceFactors,
     }
   },
 }

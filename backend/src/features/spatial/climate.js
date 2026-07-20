@@ -19,6 +19,8 @@ import { prisma } from '../../lib/prisma.js'
 import { encode, decode } from '../../lib/geohash.js'
 import { intelLog, intelError } from '../../lib/intelLog.js'
 import { climateNormals } from './providers.js'
+import { recordQualityReport } from './dataQuality.js'
+import { resolveCity } from '../../config/cityCenters.js'
 
 /** ~4.9km. See the file header for why this is not 7. */
 export const NORMALS_PRECISION = 5
@@ -117,6 +119,27 @@ async function persist(geohash, centre, series) {
       update: { value: row.value, ingestedAt: new Date() },
     })))
     intelLog('spatial.normals_stored', { geohash, rows: rows.length })
+
+    // Climate is the one dataset with no seeder script, so nothing was ever
+    // filing its receipt — DataQualityReport documents 'weather_normals' and
+    // the admin panel has a label for it, but the row could never appear.
+    // An observability hole shaped exactly like a working feature.
+    //
+    // Scoped to the city, not the cell. There is no city-wide "run" to report
+    // on — this is read-through per ~4.9km cell — but latestReports() keeps the
+    // newest row per (dataset, scope), so a cell-scoped report would fill the
+    // admin panel with hundreds of near-identical lines. Per city it reads as
+    // "when did we last ingest normals here", which is the useful question.
+    await recordQualityReport({
+      dataset: 'weather_normals',
+      scope: resolveCity(centre.lat, centre.lng)?.city ?? null,
+      recordCount: rows.length,
+      // A partial series never reaches persist() — getNormals rejects it
+      // upstream — so anything stored here is by definition a complete set.
+      completenessPct: 100,
+      complete: true,
+      notes: { precision: NORMALS_PRECISION, variables: Object.values(VARIABLES) },
+    })
   } catch (err) {
     // The data is still returned to the caller — failing to cache it is not a
     // reason to withhold a correct answer from this request.

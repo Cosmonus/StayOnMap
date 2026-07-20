@@ -5,7 +5,7 @@
 // holiday flat because it has a good school catchment; they book it because
 // it's 40 minutes from the airport and near things worth seeing.
 import { fact, PROVENANCE } from '../envelope.js'
-import { poisNear, pickNearest, OSM_POI_SOURCE } from '../poiProvider.js'
+import { poisNear, pickNearest, poiConfidenceFactors, OSM_POI_SOURCE, OSM_POI_SOURCE_ID } from '../poiProvider.js'
 import { walkDisplay, formatDistance } from '../proximity.js'
 
 const ARRIVAL_RADIUS = 60_000 // airports serve a whole metro region
@@ -142,12 +142,17 @@ export default {
       missing.push('No airport is mapped within 60 km of here.')
     }
 
+    // "A residential spot rather than a visitor one" is also what a partial
+    // fetch looks like, and a host would price against it.
+    const confidenceFactors = await poiConfidenceFactors(OSM_POI_SOURCE_ID, city)
+
     return {
       facts,
       assessment: assess(airport, attractions.length, dining.length),
       missing,
       inputsPresent,
       sources: [{ ...OSM_POI_SOURCE, fetchedAt: arrival.fetchedAt }],
+      confidenceFactors,
       // The local 2 km read, not the 60 km arrival one — a sparse count of
       // airports across a metro region says nothing about mapping quality.
       sparselyMapped: local.sparselyMapped,
