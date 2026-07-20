@@ -79,6 +79,14 @@ export async function recordQualityReport(report) {
 // for why this is a cap and not a multiplier.
 const INCOMPLETE_COVERAGE_CAP = 0.74
 
+// `reason` is shown to users, so the dataset needs a name a person would use.
+// "The last poi_index fetch" is our vocabulary, not theirs.
+const DATASET_LABEL = {
+  poi_index: 'places',
+  boundaries: 'neighbourhood boundaries',
+  weather_normals: 'climate records',
+}
+
 /**
  * A confidence factor reflecting whether the ETL run behind a dataset actually
  * covered what it claimed to.
@@ -113,12 +121,16 @@ export async function coverageFactor(dataset, scope = null) {
     })
     if (!report || report.complete !== false) return null
 
+    const what = DATASET_LABEL[dataset] ?? dataset.replace(/_/g, ' ')
     return {
       key: 'coverage',
+      // Says what we did wrong, not what the area lacks. The distinction is the
+      // point of the factor: a thin count here is our incomplete copy of the
+      // map, and reading it as a quiet neighbourhood would be our error
+      // presented as the area's character.
       reason:
-        `The last ${dataset.replace(/_/g, ' ')} fetch for ` +
-        `${scope ?? 'this dataset'} did not complete, so some places nearby ` +
-        'are probably missing from our copy of the map.',
+        `Our last download of ${what}${scope ? ` in ${scope}` : ''} didn't ` +
+        'finish, so some nearby places are probably missing from this count.',
       cap: INCOMPLETE_COVERAGE_CAP,
     }
   } catch (err) {
