@@ -8,6 +8,7 @@ import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { intelError } from '../../lib/intelLog.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
 import { buildFilterWhere, filterCacheKey } from './filters.registry.js'
+import { encode } from '../../lib/geohash.js'
 
 const FULL_INCLUDE = {
   images:    { orderBy: { order: 'asc' } },
@@ -155,6 +156,10 @@ export async function createProperty(ownerId, data) {
         displayId: generatePropertyDisplayId(type),
         ownerId,
         status: 'DRAFT',
+        // The listing's link to the spatial layer's per-cell data. Written here
+        // rather than derived at query time because proximity filters join on
+        // it, and a filter cannot join on a value it has to compute per row.
+        geohash: encode(Number(propertyData.lat), Number(propertyData.lng)),
         availableFrom: availableFrom ? new Date(availableFrom) : undefined,
         images:    { create: images.map((url, i) => ({ url, isPrimary: i === 0, order: i })) },
         amenities: { create: amenityIds.map((amenityId) => ({ amenityId })) },
@@ -196,6 +201,13 @@ export async function updateProperty(id, ownerId, data) {
       data: {
         ...propertyData,
         availableFrom: availableFrom ? new Date(availableFrom) : undefined,
+        // Recomputed only when the coordinates actually move. A listing edited
+        // to correct its rent must not have its cell rewritten as a side
+        // effect, and one moved to a new address must not keep pointing at the
+        // neighbourhood it left.
+        ...(propertyData.lat !== undefined && propertyData.lng !== undefined && {
+          geohash: encode(Number(propertyData.lat), Number(propertyData.lng)),
+        }),
         ...(images    !== undefined && { images:    { create: images.map((url, i) => ({ url, isPrimary: i === 0, order: i })) } }),
         ...(amenityIds !== undefined && { amenities: { create: amenityIds.map((amenityId) => ({ amenityId })) } }),
         ...(rules     !== undefined && { rules:     { upsert: { create: rules, update: rules } } }),

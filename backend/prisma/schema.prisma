@@ -555,6 +555,14 @@ model Property {
   availabilityBlocks AvailabilityBlock[]
   priceHistory       PropertyPriceHistory[]
 
+  // The geohash-7 cell this listing sits in (~153m), derived from lat/lng.
+  // Denormalised on purpose: it is the join key between a property and the
+  // spatial layer's per-cell data, and a filter cannot join on a value it has
+  // to compute per row. Nullable because it is derived — a row whose
+  // coordinates predate this column, or whose write path missed it, must read
+  // as "unknown cell" rather than silently matching the wrong one.
+  geohash String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -564,6 +572,7 @@ model Property {
   @@index([ownerId])
   @@index([type])
   @@index([pricingModel])
+  @@index([geohash])
 }
 
 model PropertyImage {
@@ -1167,6 +1176,43 @@ model WeatherNormal {
 
 // One row per ETL run, per dataset.
 //
+// What is near a CELL, in a shape a query can filter on.
+//
+// SpatialContext already knows this — but it knows it as JSON inside a module
+// envelope, which reads whole and filters not at all. docs/spatial-intelligence.md
+// states the trigger for promoting a value out of that JSON into a real column:
+// when a FILTER needs it, not before. "Show me flats within 800 m of a metro"
+// is that filter, and today it is impossible at any price.
+//
+// One row per (geohash, category) rather than one per (cell, POI). A relation
+// row per POI pair would be tens of millions of rows to answer a question that
+// only ever asks for the nearest and a couple of counts. This is the summary a
+// filter consumes, and it is derived data — safe to delete and recompute.
+//
+// `nearestM` is haversine from the CELL CENTRE, so it is approximate at the
+// property level by up to ~108 m. That is fine for a filter (the read path
+// re-anchors exact distances per property via reanchor.js) but it is why this
+// table must never be the source of a displayed number.
+model CellPoiSummary {
+  id       String @id @default(cuid())
+  geohash  String
+  category String
+
+  // Null means "none of this category within the search radius" — distinct
+  // from 0, and distinct from a missing row, which means "never computed".
+  nearestM   Int?
+  count800M  Int @default(0)
+  count1600M Int @default(0)
+
+  computedAt DateTime @default(now())
+
+  // One summary per category per cell; a recompute upserts rather than
+  // accumulating duplicates.
+  @@unique([geohash, category])
+  // The filter's access path: category first, then the distance predicate.
+  @@index([category, nearestM])
+}
+
 // The gap this closes: a partially-failed OSM fetch is currently invisible.
 // The seeder prints a warning to a terminal nobody kept, the table ends up
 // thinner than it should be, and the only symptom is a POI list that looks a
