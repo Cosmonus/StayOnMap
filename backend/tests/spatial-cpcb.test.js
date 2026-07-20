@@ -15,6 +15,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   groupStations, nearestStation, parseLastUpdate, stationConfidenceFactor,
+  resetStationCache,
 } from '../src/features/spatial/cpcbProvider.js'
 import { env } from '../src/config/env.js'
 
@@ -128,7 +129,9 @@ describe('nearestStation', () => {
     ok: true, status: 200, json: async () => ({ records }),
   })
 
-  beforeEach(() => { env.dataGovApiKey = 'test-key' })
+  // The in-process memo is module state: without this, one test's successful
+  // fetch answers the next test's simulated outage.
+  beforeEach(() => { resetStationCache(); env.dataGovApiKey = 'test-key' })
   afterEach(() => { env.dataGovApiKey = ORIGINAL_KEY })
 
   it('returns null with no API key, which is a supported state', async () => {
@@ -201,7 +204,9 @@ describe('nearestStation — failure handling', () => {
     ok: true, status: 200, json: async () => ({ records }),
   })
 
-  beforeEach(() => { env.dataGovApiKey = 'test-key' })
+  // The in-process memo is module state: without this, one test's successful
+  // fetch answers the next test's simulated outage.
+  beforeEach(() => { resetStationCache(); env.dataGovApiKey = 'test-key' })
   afterEach(() => { env.dataGovApiKey = ORIGINAL_KEY })
 
   it('returns null rather than throwing when the API fails', async () => {
@@ -218,5 +223,31 @@ describe('nearestStation — failure handling', () => {
   it('ignores nonsense coordinates from the caller', async () => {
     expect(await nearestStation(undefined, 80.2, { fetchImpl: feed(RECORDS) })).toBeNull()
     expect(await nearestStation(13.0, null, { fetchImpl: feed(RECORDS) })).toBeNull()
+  })
+
+  it('keeps answering from cache through an outage, rather than going dark', async () => {
+    // Deliberate, not accidental. An hour-old station reading beats no reading
+    // during a data.gov.in outage, and the fact carries its own observedAt so
+    // the staleness is visible rather than hidden. Asserted here so a future
+    // change to the memo has to argue with a test instead of a comment.
+    const good = feed(RECORDS)
+    expect(await nearestStation(12.9995, 80.1935, { fetchImpl: good })).not.toBeNull()
+
+    const dead = vi.fn().mockRejectedValue(new Error('data.gov.in down'))
+    const s = await nearestStation(12.9995, 80.1935, { fetchImpl: dead })
+    expect(s).not.toBeNull()
+    expect(s.pm25).toBe(48)
+    // And it did not even try — the memo short-circuits before the fetch.
+    expect(dead).not.toHaveBeenCalled()
+  })
+
+  it('does not download the national feed once per cell', async () => {
+    // The bug this cache exists for: cacheGet/cacheSet are no-ops without
+    // REDIS_URL, so a Redis-less backfill of 1000 cells meant 1000 full
+    // downloads of a free government service — the behaviour that gets a key
+    // blocked rather than throttled.
+    const fetchImpl = feed(RECORDS)
+    for (let i = 0; i < 5; i++) await nearestStation(12.9995, 80.1935, { fetchImpl })
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
   })
 })
