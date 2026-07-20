@@ -36,8 +36,27 @@ export const POI_CATEGORIES = {
   // mean "nearest care of any kind" merge the two at query time (see
   // lifestyle's poiKeys). Rows seeded before the split sit under `hospital`;
   // a re-run of scripts/fetch-osm-pois.mjs reclassifies them in place.
-  hospital:    { amenity: ['hospital'], shop: [], leisure: [] },
-  clinic:      { amenity: ['clinic', 'doctors'], shop: [], leisure: [] },
+  // `healthcare=*` added 2026-07-20. India/Tags/healthcare recommends that
+  // scheme over `amenity=*`, and a large health-facility import used it — so
+  // reading `amenity` alone missed anything tagged the recommended way.
+  //
+  // Probed before adding rather than trusting the national count: in a 6km box
+  // over central Bengaluru only 26 objects carry `healthcare` WITHOUT an
+  // `amenity`, so the gap is real but modest, not the tens of thousands the
+  // raw tag count implies. Most facilities are dual-tagged and were already
+  // being found.
+  //
+  // Only the values that mean "somewhere to get care" are folded in. The probe
+  // showed the rest is specialists and diagnostics — physiotherapist,
+  // optometrist, psychotherapist, rehabilitation, nursing, alternative — and
+  // calling any of those "the nearest clinic" would overstate what is there.
+  hospital:    { amenity: ['hospital'], shop: [], leisure: [], healthcare: ['hospital'] },
+  clinic:      { amenity: ['clinic', 'doctors'], shop: [], leisure: [], healthcare: ['clinic', 'centre', 'doctor'] },
+  // Diagnostic labs are their own answer to their own question — you need a
+  // blood test, not a doctor — and they were the single largest healthcare
+  // group in the probe (10 of 26). Folding them into `clinic` would have
+  // inflated "nearest care" with places that cannot treat you.
+  diagnostics: { amenity: [], shop: [], leisure: [], healthcare: ['laboratory'] },
   // 'college' removed from school's list (2026-07-19): categoryFor() is
   // first-match-wins, so school was capturing every amenity=college before
   // the dedicated `college` category below could — which left pgContext's
@@ -126,6 +145,25 @@ export const POI_CATEGORIES = {
   // discard it. "Nearest station 600 m" means a daily commute or a twice-a-year
   // trip depending on which it is. Splitting touches mobility, stayContext and
   // commerce, so it is its own change rather than a rider on a re-seed.
+  // Metro FIRST, so it wins the first-match-wins scan before the general rail
+  // rule below can swallow it.
+  //
+  // Indian metro stations are `railway=station` + `station=subway` (1,182 in
+  // India) — the subtag was always in what we fetch and we were discarding it,
+  // merging Mumbai suburban, long-distance IR and metro into one fact. "Nearest
+  // station 600 m" means a daily commute or a twice-a-year trip depending which
+  // it is, and those are different products for a renter.
+  //
+  // `light_rail` included: Delhi's Rapid Metro and Gurgaon carry it, and a
+  // rider does not experience it as a different mode.
+  metro_station: {
+    amenity: [], shop: [], leisure: [], railway: ['station'],
+    requires: (tags) => tags.station === 'subway' || tags.station === 'light_rail',
+    requiresSample: { station: 'subway' },
+  },
+  // Everything else on rails: suburban and long-distance. `halt` is "a small
+  // station, may not have a platform" — de facto, not deprecated, 1,250 in
+  // India, mostly rural so modest inside the 9 cities.
   railway_station: { amenity: [], shop: [], leisure: [], railway: ['station', 'halt'] },
   attraction:  { amenity: [], shop: [], leisure: [], tourism: ['attraction', 'museum', 'viewpoint', 'zoo', 'theme_park'] },
   hotel:       { amenity: [], shop: [], leisure: [], tourism: ['hotel', 'guest_house', 'hostel'] },
@@ -158,7 +196,7 @@ export const POI_CATEGORIES = {
 
 // Tag keys the vocabulary uses beyond amenity/shop/leisure. Listed once so
 // categoryFor() and overpassClauses() can't drift apart.
-const EXTRA_KEYS = ['aeroway', 'railway', 'tourism']
+const EXTRA_KEYS = ['aeroway', 'railway', 'tourism', 'healthcare']
 
 export const CATEGORY_KEYS = Object.keys(POI_CATEGORIES)
 
