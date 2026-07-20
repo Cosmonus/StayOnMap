@@ -15,8 +15,20 @@
  * Order matters only in that the first matching rule wins (see categoryFor).
  */
 export const POI_CATEGORIES = {
-  // Daily needs
-  supermarket: { amenity: [], shop: ['supermarket', 'convenience', 'greengrocer'], leisure: [] },
+  // Daily needs.
+  //
+  // `general` and `grocery` added 2026-07-20 after an audit against India tag
+  // counts: they are +34% on top of supermarket+convenience. In India the
+  // kirana — not the supermarket — decides whether you can buy milk without a
+  // vehicle, and `shop=general` is exactly that tag. `grocery` is current, not
+  // a deprecated synonym.
+  //
+  // `amenity=marketplace` (3,937 in India) is deliberately its OWN category
+  // below rather than folded in here: a weekly sabzi mandi and a shop open at
+  // 9pm answer different questions, and merging them makes "nearest groceries"
+  // unfalsifiable.
+  supermarket: { amenity: [], shop: ['supermarket', 'convenience', 'greengrocer', 'general', 'grocery'], leisure: [] },
+  marketplace: { amenity: ['marketplace'], shop: [], leisure: [] },
   pharmacy:    { amenity: ['pharmacy'], shop: ['chemist'], leisure: [] },
 
   // Civic. Hospitals and clinics are separate categories (split 2026-07-19)
@@ -47,8 +59,25 @@ export const POI_CATEGORIES = {
   // stayContext's dining). A re-seed reclassifies stored rows in place.
   restaurant:  { amenity: ['restaurant'], shop: [], leisure: [] },
   cafe:        { amenity: ['cafe'], shop: [], leisure: [] },
-  park:        { amenity: [], shop: [], leisure: ['park', 'garden'] },
-  gym:         { amenity: ['gym'], shop: [], leisure: ['fitness_centre'] },
+  // `leisure=garden` removed 2026-07-20. The OSM wiki is explicit that its most
+  // common form "is known as a residential garden and is generally found in
+  // proximity to a residence" — so counting them made apartment-complex
+  // landscaping read as public parks.
+  //
+  // Filtering instead of dropping was considered and rejected: only 12.8% of
+  // Indian gardens carry `garden:type=*` at all, and among those, private
+  // slightly outnumbers public. The signal needed to keep the good ones does
+  // not exist on 87% of rows.
+  //
+  // Expect roughly a sixth off this category, not half — `leisure=park` is
+  // genuinely the most-mapped leisure value in India, so the size of this
+  // category was mostly real.
+  park:        { amenity: [], shop: [], leisure: ['park'] },
+  // `amenity=gym` removed: exactly ONE object carries it in all of India, while
+  // `leisure=fitness_centre` (already here) carries 2,330. Not formally
+  // deprecated by the wiki, just vanishingly rare — removing it changes no
+  // count and stops the file implying the tag matters.
+  gym:         { amenity: [], shop: [], leisure: ['fitness_centre'] },
 
   // Infrastructure
   bank:        { amenity: ['bank'], shop: [], leisure: [] },
@@ -68,8 +97,36 @@ export const POI_CATEGORIES = {
 
   // SHORT_STAY: guests arrive before they do anything else, and then look for
   // something to do.
-  airport:     { amenity: [], shop: [], leisure: [], aeroway: ['aerodrome', 'international_airport'] },
-  railway_station: { amenity: [], shop: [], leisure: [], railway: ['station'] },
+  // `aeroway=international_airport` removed: it is not a valid value — Key:aeroway
+  // documents 34 and that is not among them, and it matches 0 objects in India.
+  // It was inert, which means the intent behind it was never implemented.
+  //
+  // `requires` is what implements it. `aeroway=aerodrome` covers all 414 Indian
+  // aerodromes including flying clubs and air-force strips; subtags do not
+  // rescue it (only 16 carry `aerodrome=*`, and `private` outnumbers
+  // `international`). An IATA code is the closest free proxy for "an airline
+  // actually flies here" — a tag, not a heuristic. "Airport 4 km away" pointing
+  // at a military airfield is a trust-destroying fact for a short-stay guest,
+  // and one they catch instantly.
+  airport: {
+    amenity: [], shop: [], leisure: [], aeroway: ['aerodrome'],
+    requires: (tags) => Boolean(tags.iata) && tags.military !== 'airfield',
+    // What `requires` wants, as data. Documents the predicate for a reader and
+    // lets the reachability test tell "gated" apart from "shadowed" — without
+    // it, a category behind a gate looks identical to one made unreachable by
+    // an earlier rule, which is the bug that test exists to catch.
+    requiresSample: { iata: 'BLR' },
+  },
+  // `halt` added: "a small station, may not have a platform", de facto and not
+  // deprecated, 1,250 in India. Mostly rural, so modest inside the 9 cities.
+  //
+  // NOT split into metro vs suburban rail, though it should be. Indian metro
+  // stations are already captured here (the convention is `railway=station` +
+  // `station=subway`, 1,182 in India) — the subtag is in what we fetch and we
+  // discard it. "Nearest station 600 m" means a daily commute or a twice-a-year
+  // trip depending on which it is. Splitting touches mobility, stayContext and
+  // commerce, so it is its own change rather than a rider on a re-seed.
+  railway_station: { amenity: [], shop: [], leisure: [], railway: ['station', 'halt'] },
   attraction:  { amenity: [], shop: [], leisure: [], tourism: ['attraction', 'museum', 'viewpoint', 'zoo', 'theme_park'] },
   hotel:       { amenity: [], shop: [], leisure: [], tourism: ['hotel', 'guest_house', 'hostel'] },
 
@@ -84,10 +141,19 @@ export const POI_CATEGORIES = {
   // one buys nothing but risk.
   retail:      {
     amenity: [], leisure: [],
+    // `department_store` added: the wiki separates it from a mall ("a single
+    // large shop with many departments") and it is a strong footfall anchor.
     shop: ['clothes', 'electronics', 'hardware', 'furniture', 'mobile_phone',
            'jewelry', 'bakery', 'butcher', 'books', 'shoes', 'beauty',
-           'optician', 'florist', 'stationery', 'sports', 'toys', 'mall'],
+           'optician', 'florist', 'stationery', 'sports', 'toys',
+           'department_store'],
   },
+  // `mall` moved OUT of retail 2026-07-20. The basket is a footfall proxy, and
+  // a mall holding 120 shops contributed exactly one row — the same as a single
+  // florist. That systematically under-weighted the highest-footfall locations
+  // in the index, inverting the signal COMMERCIAL wants. "3 malls within 2 km"
+  // is also a better commercial fact than a count that hides them.
+  mall:        { amenity: [], shop: ['mall'], leisure: [] },
 }
 
 // Tag keys the vocabulary uses beyond amenity/shop/leisure. Listed once so
@@ -122,9 +188,13 @@ export function classify(tags = {}) {
   for (const [category, rules] of Object.entries(POI_CATEGORIES)) {
     for (const key of ['amenity', 'shop', 'leisure', ...EXTRA_KEYS]) {
       const value = tags[key]
-      if (value && rules[key]?.includes(value)) {
-        return { category, sourceTag: `${key}=${value}` }
-      }
+      if (!value || !rules[key]?.includes(value)) continue
+      // A category may demand more than one tag. `requires` failing means this
+      // element is NOT that category — and, because the loop continues rather
+      // than returns, it stays eligible for a later one. An aerodrome with no
+      // IATA code simply goes unmapped, which is the honest outcome.
+      if (rules.requires && !rules.requires(tags)) continue
+      return { category, sourceTag: `${key}=${value}` }
     }
   }
   // Bus stops are tagged on the highway key, not amenity.

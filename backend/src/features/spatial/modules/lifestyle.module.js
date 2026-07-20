@@ -31,7 +31,12 @@ const REACHABLE = 1600
 // clinics — merging here keeps `nearest_hospital` meaning "nearest care",
 // which is the question, while the detail list can still show them apart.
 const CATEGORIES = [
-  { key: 'supermarket', label: 'Groceries',    googleType: 'supermarket', weight: 3 },
+  // Unions `marketplace`, which was split out of supermarket 2026-07-20 so the
+  // two stay distinguishable in a detail list. "Can I buy vegetables walking
+  // distance from here" is answered by a mandi as much as by a shop, so the
+  // headline weight counts both; `prefer` still headlines the shop, since a
+  // daily-open store is the better answer when both are equally close.
+  { key: 'supermarket', label: 'Groceries', googleType: 'supermarket', weight: 3, poiKeys: ['supermarket', 'marketplace'], prefer: ['supermarket', 'marketplace'] },
   { key: 'pharmacy',    label: 'Pharmacy',     googleType: 'pharmacy',    weight: 3 },
   // `prefer` breaks a near-tie toward the more substantial facility: asked for
   // "Healthcare", a hospital 450 m away is a better answer than one doctor's
