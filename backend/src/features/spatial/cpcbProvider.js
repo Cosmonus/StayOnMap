@@ -6,13 +6,26 @@
 // an input and left absent: its absence honestly holds the module's confidence
 // down rather than letting model output look like measurement.
 //
-// ⚠ SCHEMA IS UNVERIFIED AGAINST A LIVE RESPONSE. There is no data.gov.in key
-// in this environment, so the field names below come from the resource's
-// published documentation, not from a call that was made and inspected. The
-// parser is deliberately tolerant and returns null on anything it doesn't
-// recognise — a wrong guess must degrade to "no station data", never to a
-// confidently wrong number presented as MEASURED. Verify against a real
-// response before trusting the readings (docs/operator-actions.md).
+// VERIFIED against a live response 2026-07-20 (3416 records, 488 stations).
+//
+// That verification immediately caught the bug this file's paranoia was written
+// for. The resource's own `field` metadata advertises a column called
+// `pollutant_avg`; the records actually carry **`avg_value`**. Reading the
+// documented name found every station and every value as null, so the module
+// would have degraded to "no station data" — safe, exactly as designed, and
+// permanently dark. Both names are accepted now.
+//
+// Real-response facts worth keeping:
+//   - `avg_value` / `min_value` / `max_value`, all strings, `'NA'` for a dead
+//     sensor. 271 of 3416 rows were 'NA' on the day this was verified, so that
+//     path is normal traffic, not an edge case.
+//   - `last_update` is `DD-MM-YYYY HH:mm:ss`, NOT ISO. Handing it to a fact's
+//     `observedAt` unconverted produces a date a JS Date constructor reads as
+//     the wrong day or as Invalid Date.
+//   - pollutant_id spans NO2, CO, NH3, OZONE, SO2 as well as PM2.5/PM10.
+//   - All 9 supported cities have at least one station (Delhi 44, Mumbai 23,
+//     Hyderabad 11, Bengaluru 10, Kolkata 7, Ahmedabad 7, Chennai 6, Pune 6,
+//     Surat 1).
 //
 // Free, no cost tier, hourly updates. Get a key at data.gov.in (registration is
 // free; DigiLocker SSO works) and set DATA_GOV_API_KEY.
@@ -24,11 +37,64 @@ import { intelError, intelLog } from '../../lib/intelLog.js'
 const RESOURCE_ID = '3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69'
 const BASE = 'https://api.data.gov.in/resource'
 
-// CPCB stations are sparse — a handful per city, none in most towns. Beyond
-// this, a reading is describing somewhere else's air. 10 km is already generous
-// for a pollutant that varies street to street; past it the honest answer is
-// "no station near you", not a number with a caveat.
-const MAX_STATION_DISTANCE_M = 10_000
+// CPCB stations are sparse — 488 nationally, and most towns have none. An
+// earlier version refused anything past 10 km, which left the majority of real
+// listings with no reading at all.
+//
+// That was the wrong shape of honesty. The station's distance is known
+// EXACTLY, so it can grade the claim instead of gating it: a reading 2 km away
+// is close to your air, one 30 km away is your region's air, and both are more
+// informative than silence — provided the card says which it is. The fact
+// always names the station and its distance, and `stationConfidenceFactor()`
+// below reduces confidence with distance.
+//
+// The outer bound is not a quality threshold but an identity one: past 60 km
+// you are in a different airshed, usually a different city, and the reading has
+// stopped being about this place in any sense.
+const MAX_STATION_DISTANCE_M = 60_000
+
+// Where a reading stops being local. Bands rather than a curve, for the reason
+// CONFIDENCE_BANDS exist — nobody can defend the difference between 11 km and
+// 12 km, but "same neighbourhood / same city / same region" is real.
+const DISTANCE_BANDS = [
+  { maxM: 5_000, multiplier: 1, describe: () => null },
+  {
+    maxM: 15_000,
+    multiplier: 0.85,
+    describe: (km, name) =>
+      `The nearest air monitor (${name}) is about ${km} km away, so this is ` +
+      'your part of the city rather than your street.',
+  },
+  {
+    maxM: Infinity,
+    multiplier: 0.6,
+    describe: (km, name) =>
+      `The nearest air monitor (${name}) is about ${km} km away. Treat this as ` +
+      'a regional reading, not a local one.',
+  },
+]
+
+/**
+ * A reducing confidence factor for how far away the monitor is.
+ *
+ * A multiplier, not a cap, for the same reason freshness is: the magnitude is
+ * measured, not guessed. Floored at 0.6 rather than decaying to nothing — a
+ * distant real measurement still beats a model, which is what the alternative
+ * actually is here.
+ *
+ * @param {{distanceM: number, name: string|null}|null} station
+ * @returns {{key, reason, multiplier}|null}
+ */
+export function stationConfidenceFactor(station) {
+  if (!station || typeof station.distanceM !== 'number') return null
+
+  const band = DISTANCE_BANDS.find((b) => station.distanceM <= b.maxM)
+  const km = Math.round(station.distanceM / 1000)
+  const reason = band.describe(km, station.name ?? 'the nearest CPCB station')
+  if (!reason || band.multiplier >= 1) return null
+
+  return { key: 'station_distance', reason, multiplier: band.multiplier }
+}
 
 // Readings update hourly, so anything shorter re-fetches the same numbers.
 const CACHE_TTL_S = 60 * 60
@@ -45,6 +111,22 @@ function num(v) {
   if (v == null || v === '' || v === 'NA') return null
   const n = Number(v)
   return Number.isFinite(n) ? n : null
+}
+
+/**
+ * `20-07-2026 05:00:00` → `2026-07-20T05:00:00`.
+ *
+ * Day-first, which `new Date()` will misread as month-first for any day ≤ 12 —
+ * silently, and only for a third of the month. Returns null rather than
+ * guessing when the shape is unfamiliar; a fact with no `observedAt` is honest,
+ * a fact dated four months wrong is not.
+ */
+export function parseLastUpdate(s) {
+  const m = /^(\d{2})-(\d{2})-(\d{4})[ T](\d{2}):(\d{2}):(\d{2})$/.exec(String(s ?? '').trim())
+  if (!m) return null
+  const [, dd, mm, yyyy, hh, mi, ss] = m
+  if (Number(mm) < 1 || Number(mm) > 12 || Number(dd) < 1 || Number(dd) > 31) return null
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`
 }
 
 /**
@@ -71,16 +153,19 @@ export function groupStations(records) {
       byStation.set(key, {
         name, lat, lng,
         city: r?.city ?? null,
-        observedAt: r?.last_update ?? r?.lastupdate ?? null,
+        observedAt: parseLastUpdate(r?.last_update ?? r?.lastupdate),
         pm25: null, pm10: null,
       })
     }
 
     const station = byStation.get(key)
-    // `pollutant_avg` is the concentration. Sub-indices are a different scale
-    // entirely and must never be read as µg/m³ — mixing them is the mistake
-    // this whole comment exists to prevent.
-    const value = num(r?.pollutant_avg ?? r?.avg)
+    // `avg_value` is what the live feed actually sends; `pollutant_avg` is what
+    // the resource's field metadata claims. Accept both — the documented name
+    // is the one that would come back if they ever fix the mismatch.
+    //
+    // This is the CONCENTRATION in µg/m³. AQI sub-indices are a different scale
+    // entirely and must never be read as a concentration.
+    const value = num(r?.avg_value ?? r?.pollutant_avg ?? r?.avg)
     const id = String(r?.pollutant_id ?? r?.pollutant ?? '').toUpperCase()
 
     if (value === null) continue
@@ -129,8 +214,13 @@ async function nationalFeed(fetchImpl = fetch) {
 /**
  * The nearest CPCB station's particulate readings, if one is close enough.
  *
+ * Returns the nearest station anywhere in the country within the airshed bound,
+ * NOT only a very close one. Distance travels back with it so the caller can
+ * state it on the card and grade confidence by it — see
+ * `stationConfidenceFactor`.
+ *
  * @returns {Promise<{name, city, lat, lng, distanceM, pm25, pm10, observedAt}|null>}
- *          null when there is no key, no feed, or no station within range —
+ *          null when there is no key, no feed, or nothing within the bound —
  *          all of which mean the same thing to a caller: leave `cpcb_station`
  *          absent and let confidence reflect that.
  */
