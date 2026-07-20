@@ -1157,34 +1157,6 @@ model Boundary {
   @@index([city])
 }
 
-// 30-year monthly climate normals (WMO 1991-2020) from ERA5 reanalysis.
-//
-// Keyed at geohash precision 5 (~4.9 km), NOT the layer's usual precision 7
-// (~153 m), and that is a deliberate honesty decision rather than an
-// optimisation. ERA5's native grid is ~28 km; resolving normals to 153 m would
-// manufacture ~180 distinct-looking values out of one real number and make a
-// city-wide figure look like a street-level one — the exact failure the urban
-// heat note in environment.module.js refuses to ship. Precision 5 is still
-// finer than the source, but close enough that the shape of the claim matches
-// the shape of the data.
-//
-// A real table rather than a field on SpatialContext because these rows are
-// shared by thousands of cells and refresh on a decade scale, not a daily one.
-model WeatherNormal {
-  id       String @id @default(cuid())
-  geohash  String // precision 5, ~4.9km
-  lat      Decimal @db.Decimal(10, 7)
-  lng      Decimal @db.Decimal(10, 7)
-  variable String // 'temp_mean' | 'precip_sum'
-  month    Int    // 1-12
-  value    Float
-  source   String @default("open-meteo-era5")
-
-  ingestedAt DateTime @default(now())
-
-  @@unique([geohash, variable, month])
-  @@index([geohash])
-}
 
 // One row per ETL run, per dataset.
 //
