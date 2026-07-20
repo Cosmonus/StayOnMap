@@ -9,6 +9,7 @@ import { intelError } from '../../lib/intelLog.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
 import { buildFilterWhere, filterCacheKey } from './filters.registry.js'
 import { encode } from '../../lib/geohash.js'
+import { resolveProximityFilter, proximityCacheKey } from './proximityFilter.js'
 
 const FULL_INCLUDE = {
   images:    { orderBy: { order: 'asc' } },
@@ -23,11 +24,29 @@ const FULL_INCLUDE = {
 export async function listProperties(filters, { skip, limit }, userId = null) {
   const where = buildWhereClause(filters)
   applyVisibilityFilter(where, userId)
+
+  // Resolved against the where clause as it stands BEFORE the proximity
+  // constraint, so `unknown` counts listings this filter set aside for lack of
+  // data rather than every listing in the country.
+  const proximity = await resolveProximityFilter(filters, where)
+  if (proximity) Object.assign(where, proximity.where)
+
   const [properties, total] = await Promise.all([
     prisma.property.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' }, include: { images: { where: { isPrimary: true }, take: 1 }, trustScore: true, riskScore: true } }),
     prisma.property.count({ where }),
   ])
-  return { properties, total }
+
+  // Surfaced, not swallowed. A listing excluded because we have no map data for
+  // its area is not a listing we judged and rejected — and a filtered list is
+  // the one surface with nowhere to put a provenance chip, so the count travels
+  // with the response instead.
+  return {
+    properties,
+    total,
+    ...(proximity && {
+      proximity: { unknown: proximity.unknown, label: proximity.label },
+    }),
+  }
 }
 
 export async function getPinsInBounds(bounds, filters, userId = null) {
@@ -41,7 +60,7 @@ export async function getPinsInBounds(bounds, filters, userId = null) {
   // auth included: applyVisibilityFilter() below shows LOGGED_IN-only listings
   // to authenticated users — without this, one bucket's cached result could
   // leak into the other (e.g. an anon visitor served a logged-in-only listing)
-  const cacheKey = `pins:${JSON.stringify(roundedBounds)}:${filterCacheKey(filters ?? {})}:${!!userId}`
+  const cacheKey = `pins:${JSON.stringify(roundedBounds)}:${filterCacheKey(filters ?? {})}:${proximityCacheKey(filters)}:${!!userId}`
 
   const cached = await cacheGet(cacheKey)
   if (cached) return cached
@@ -52,6 +71,13 @@ export async function getPinsInBounds(bounds, filters, userId = null) {
     ...buildWhereClause(filters),
   }
   applyVisibilityFilter(where, userId)
+
+  // Same constraint on the map as in the list, or the two disagree about what
+  // the filter means. Pins have nowhere to show the unknown count — the list
+  // view carries that message.
+  const proximity = await resolveProximityFilter(filters, where)
+  if (proximity) Object.assign(where, proximity.where)
+
   const pins = await prisma.property.findMany({
     where,
     select: { id: true, lat: true, lng: true, rent: true, type: true, bhk: true, sharing: true, trustScore: { select: { badge: true } } },
@@ -66,7 +92,7 @@ export async function getPinsInBounds(bounds, filters, userId = null) {
 // /pins but a COUNT, uncapped by the 200-pin limit. Short TTL: the user is
 // actively toggling filters while this is on screen.
 export async function countPropertiesInBounds(bounds, filters, userId = null) {
-  const cacheKey = `count:${JSON.stringify(bounds)}:${filterCacheKey(filters ?? {})}:${!!userId}`
+  const cacheKey = `count:${JSON.stringify(bounds)}:${filterCacheKey(filters ?? {})}:${proximityCacheKey(filters)}:${!!userId}`
   const cached = await cacheGet(cacheKey)
   if (cached !== null && cached !== undefined) return cached
 
@@ -74,6 +100,11 @@ export async function countPropertiesInBounds(bounds, filters, userId = null) {
   const fragments = buildFilterWhere(filters ?? {})
   if (fragments.length) where.AND = fragments
   applyVisibilityFilter(where, userId)
+
+  // Without this the "Show N homes" button promises a number the list cannot
+  // deliver — the count would ignore the proximity filter the results obey.
+  const proximity = await resolveProximityFilter(filters, where)
+  if (proximity) Object.assign(where, proximity.where)
 
   const count = await prisma.property.count({ where })
   await cacheSet(cacheKey, count, 15)
