@@ -28,9 +28,9 @@ import { encode } from '../src/lib/geohash.js'
 import { materialize, storageKey } from '../src/features/spatial/spatial.service.js'
 import { modulesFor, isStale } from '../src/features/spatial/registry.js'
 import { resolveCity } from '../src/config/cityCenters.js'
+import { parseSeedArgs } from '../src/features/spatial/seedArgs.js'
 
-const CONFIRM = process.argv.includes('--confirm')
-const ALLOW_UNSEEDED = process.argv.includes('--allow-unseeded')
+const { confirm: CONFIRM, allowUnseeded: ALLOW_UNSEEDED } = parseSeedArgs(process.argv.slice(2))
 
 // Sequential with a small pause: this is bulk background work and there is no
 // reason to fan a burst of billed calls at Google all at once.

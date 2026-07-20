@@ -20,6 +20,8 @@ import { invalidateCityCells } from '../src/features/spatial/seedMaintenance.js'
 import { recordQualityReport, completeness } from '../src/features/spatial/dataQuality.js'
 import { assembleRings, ringsToGeometry, bboxOf } from '../src/features/spatial/boundaryGeometry.js'
 import { CITY_CENTERS, resolveCity } from '../src/config/cityCenters.js'
+import { parseSeedArgs } from '../src/features/spatial/seedArgs.js'
+import { bboxFor } from '../src/features/spatial/tiling.js'
 
 const ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
@@ -39,19 +41,7 @@ const DELAY_BETWEEN_LEVELS_MS = 3_000
 // each carries full polygon geometry, hence the longer timeout above.
 const ADMIN_LEVELS = [6, 8, 9, 10]
 
-const args = process.argv.slice(2)
-const CONFIRM = args.includes('--confirm')
-
-const cityFlag = args.indexOf('--city')
-const ONLY_CITY = cityFlag !== -1 && args[cityFlag + 1] && !args[cityFlag + 1].startsWith('--')
-  ? args[cityFlag + 1]
-  : null
-
-function bboxFor({ lat, lng, radiusKm }) {
-  const dLat = radiusKm / 111.32
-  const dLng = radiusKm / (111.32 * Math.cos((lat * Math.PI) / 180))
-  return { south: lat - dLat, west: lng - dLng, north: lat + dLat, east: lng + dLng }
-}
+const { confirm: CONFIRM, city: ONLY_CITY } = parseSeedArgs(process.argv.slice(2))
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
