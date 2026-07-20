@@ -89,7 +89,7 @@ describe('handleCallback', () => {
 
     // Failure after state resolution still knows where to land the error.
     prismaMock.socialAccount.findUnique.mockResolvedValue(null)
-    const err = await callbackFor({ data: { id: 'x-1', name: 'J' } }, { provider: 'twitter', platform: 'mobile' })
+    const err = await callbackFor({ sub: 'g-noemail', name: 'J' }, { platform: 'mobile' })
       .catch((e) => e)
     expect(err.oauthPlatform).toBe('mobile')
 
@@ -118,8 +118,8 @@ describe('handleCallback', () => {
     expect(prismaMock.socialAccount.create).not.toHaveBeenCalled()
   })
 
-  it('a provider that shares no email can never START an account (X)', async () => {
-    await expect(callbackFor({ data: { id: 'x-1', name: 'John' } }, { provider: 'twitter' }))
+  it('a login that shares no email can never START an account (denied email scope)', async () => {
+    await expect(callbackFor({ sub: 'g-noemail', name: 'John' }))
       .rejects.toMatchObject({ statusCode: 400 })
     expect(prismaMock.user.create).not.toHaveBeenCalled()
   })
@@ -198,6 +198,6 @@ describe('unlinkProvider — never remove the last way in', () => {
     prismaMock.user.findUnique.mockResolvedValue({ passwordHash: null })
     prismaMock.socialAccount.count.mockResolvedValue(2)
     prismaMock.socialAccount.deleteMany.mockResolvedValue({ count: 1 })
-    await expect(unlinkProvider('u1', 'twitter')).resolves.toBeUndefined()
+    await expect(unlinkProvider('u1', 'google')).resolves.toBeUndefined()
   })
 })

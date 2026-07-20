@@ -99,9 +99,6 @@ export const env = {
   // UI never shows a dead button. Creating these apps is operator work:
   // docs/auth-providers-setup.md.
   oauth: {
-    google:   { clientId: process.env.GOOGLE_OAUTH_CLIENT_ID   || null, clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET   || null },
-    facebook: { clientId: process.env.FACEBOOK_OAUTH_CLIENT_ID || null, clientSecret: process.env.FACEBOOK_OAUTH_CLIENT_SECRET || null },
-    linkedin: { clientId: process.env.LINKEDIN_OAUTH_CLIENT_ID || null, clientSecret: process.env.LINKEDIN_OAUTH_CLIENT_SECRET || null },
-    twitter:  { clientId: process.env.TWITTER_OAUTH_CLIENT_ID  || null, clientSecret: process.env.TWITTER_OAUTH_CLIENT_SECRET  || null },
+    google: { clientId: process.env.GOOGLE_OAUTH_CLIENT_ID || null, clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET || null },
   },
 }

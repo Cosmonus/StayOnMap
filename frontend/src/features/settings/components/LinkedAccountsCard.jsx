@@ -4,8 +4,8 @@ import { authService } from '@services/auth.service'
 import { toast } from '@components/common/Toaster'
 import { Card } from './SettingsPanel'
 
-const PROVIDER_LABELS = { GOOGLE: 'Google', FACEBOOK: 'Facebook', LINKEDIN: 'LinkedIn', TWITTER: 'X' }
-const PROVIDER_KEYS = { GOOGLE: 'google', FACEBOOK: 'facebook', LINKEDIN: 'linkedin', TWITTER: 'twitter' }
+const PROVIDER_LABELS = { GOOGLE: 'Google' }
+const PROVIDER_KEYS = { GOOGLE: 'google' }
 
 /**
  * Settings → Linked accounts. Connect walks the same OAuth redirect as login

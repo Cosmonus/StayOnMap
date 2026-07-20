@@ -7,8 +7,8 @@ import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-const PROVIDER_LABELS = { GOOGLE: 'Google', FACEBOOK: 'Facebook', LINKEDIN: 'LinkedIn', TWITTER: 'X' }
-const KEY_TO_ENUM = { google: 'GOOGLE', facebook: 'FACEBOOK', linkedin: 'LINKEDIN', twitter: 'TWITTER' }
+const PROVIDER_LABELS = { GOOGLE: 'Google' }
+const KEY_TO_ENUM = { google: 'GOOGLE' }
 
 /**
  * Settings → Linked accounts (mirrors web's LinkedAccountsCard). Connecting
