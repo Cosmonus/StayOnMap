@@ -142,6 +142,72 @@ export async function coverageFactor(dataset, scope = null) {
   }
 }
 
+// How old the underlying data may get before it stops deserving full marks.
+//
+// Bands, not a decay curve, for the same reason CONFIDENCE_BANDS exist: a
+// smooth function of age would imply we can distinguish 200-day-old data from
+// 210-day-old data, and we cannot. The boundaries are what we can actually
+// defend — one intended refresh cycle, and one year.
+//
+// §4.4 sets the intended POI refresh at quarterly, so 90 days is "on schedule"
+// and carries no penalty at all.
+const FRESHNESS_BANDS = [
+  {
+    maxAgeDays: 90,
+    multiplier: 1,
+    describe: () => null, // on schedule — nothing to say
+  },
+  {
+    maxAgeDays: 365,
+    multiplier: 0.9,
+    describe: (months) =>
+      `Our map data for this area is about ${months} months old, so a place ` +
+      'that opened or closed recently may not be reflected yet.',
+  },
+  {
+    maxAgeDays: Infinity,
+    // Floored deliberately rather than decaying toward zero. Old OSM data is
+    // still mostly right — hospitals, schools and parks do not move — so the
+    // penalty lands on the shop-level facts that genuinely rot, and stops.
+    multiplier: 0.75,
+    describe: (months) =>
+      `Our map data for this area is over ${Math.floor(months / 12)} year(s) ` +
+      'old. Shops and restaurants in particular may have changed.',
+  },
+]
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000
+
+/**
+ * A confidence factor reflecting how long ago the underlying data was fetched.
+ *
+ * A MULTIPLIER, where coverage is a cap — and the difference is not stylistic.
+ * `complete: false` tells us a run fell short without saying by how much, so
+ * capping is the only honest move. Age we know exactly, so a graded reduction
+ * is a claim we can actually support.
+ *
+ * @param {string|Date|null} fetchedAt  when the data was last pulled
+ * @param {Date} [now]  injectable so tests don't depend on the wall clock
+ * @returns {{key, reason, multiplier}|null} null when fresh or unknown
+ */
+export function freshnessFactor(fetchedAt, now = new Date()) {
+  if (!fetchedAt) return null
+
+  const then = fetchedAt instanceof Date ? fetchedAt : new Date(fetchedAt)
+  if (Number.isNaN(then.getTime())) return null
+
+  const ageDays = Math.floor((now.getTime() - then.getTime()) / MS_PER_DAY)
+  // A future timestamp is a clock problem, not fresher-than-fresh data. Treat
+  // it as current rather than letting it read as a negative age.
+  if (ageDays <= 0) return null
+
+  const band = FRESHNESS_BANDS.find((b) => ageDays <= b.maxAgeDays)
+  const reason = band.describe(Math.round(ageDays / 30))
+  if (!reason || band.multiplier >= 1) return null
+
+  return { key: 'freshness', reason, multiplier: band.multiplier }
+}
+
 /**
  * The most recent run per (dataset, scope) pair.
  *

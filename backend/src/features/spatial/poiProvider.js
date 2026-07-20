@@ -13,7 +13,7 @@ import { prisma } from '../../lib/prisma.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { haversineMeters } from '../../lib/geohash.js'
 import { intelError } from '../../lib/intelLog.js'
-import { coverageFactor } from './dataQuality.js'
+import { coverageFactor, freshnessFactor } from './dataQuality.js'
 
 const DEG_LAT_M = 111_320
 
@@ -421,6 +421,18 @@ export const OSM_POI_SOURCE_ID = 'osm-poi'
  */
 export async function poiConfidenceFactors(sourceId, city) {
   if (sourceId !== OSM_POI_SOURCE_ID || !city) return []
-  const factor = await coverageFactor('poi_index', city)
-  return factor ? [factor] : []
+
+  // Both read cached/indexed values, so this costs the read path nothing
+  // meaningful, and they answer genuinely different questions: coverage is
+  // "did the fetch finish", freshness is "how long ago was it".
+  const [coverage, fetchedAt] = await Promise.all([
+    coverageFactor('poi_index', city),
+    poiFreshness(city),
+  ])
+
+  // Order matters only for reporting: coverage caps, freshness scales, and
+  // computeConfidence applies them in sequence. Listing the cap first means a
+  // capped score isn't then reported as having been scaled from a number it
+  // never held.
+  return [coverage, freshnessFactor(fetchedAt)].filter(Boolean)
 }
