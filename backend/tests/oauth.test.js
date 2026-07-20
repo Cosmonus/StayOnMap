@@ -22,8 +22,8 @@ function mockProviderRoundTrip(profile) {
     .mockResolvedValueOnce({ ok: true, json: async () => profile })
 }
 
-async function callbackFor(profileData, { purpose = 'login', userId = null, provider = 'google' } = {}) {
-  const { redirectUrl } = await beginOAuth(provider, { purpose, userId })
+async function callbackFor(profileData, { purpose = 'login', userId = null, provider = 'google', platform } = {}) {
+  const { redirectUrl } = await beginOAuth(provider, { purpose, userId, platform })
   const state = new URL(redirectUrl).searchParams.get('state')
   mockProviderRoundTrip(profileData)
   return handleCallback(provider, { code: 'auth-code', state })
@@ -77,6 +77,28 @@ describe('handleCallback', () => {
     expect(result.login.token).toBeTruthy()
     expect(result.login.refreshToken).toBeTruthy()
     expect(prismaMock.socialAccount.create).not.toHaveBeenCalled()
+  })
+
+  it('the platform flag rides the SIGNED state — mobile in, mobile out, even on failure', async () => {
+    prismaMock.socialAccount.findUnique.mockResolvedValue({ userId: 'u1', user: USER })
+    const result = await callbackFor(
+      { sub: 'g-1', email: 'x@y.z', email_verified: true, name: 'John' },
+      { platform: 'mobile' }
+    )
+    expect(result.platform).toBe('mobile')
+
+    // Failure after state resolution still knows where to land the error.
+    prismaMock.socialAccount.findUnique.mockResolvedValue(null)
+    const err = await callbackFor({ data: { id: 'x-1', name: 'J' } }, { provider: 'twitter', platform: 'mobile' })
+      .catch((e) => e)
+    expect(err.oauthPlatform).toBe('mobile')
+
+    // Anything that isn't exactly 'mobile' normalises to web.
+    const web = await (async () => {
+      prismaMock.socialAccount.findUnique.mockResolvedValue({ userId: 'u1', user: USER })
+      return callbackFor({ sub: 'g-1', email: 'x@y.z', email_verified: true, name: 'John' }, { platform: 'evil://phish' })
+    })()
+    expect(web.platform).toBe('web')
   })
 
   it('provider-VERIFIED email attaches to the existing account — one John, not two', async () => {
