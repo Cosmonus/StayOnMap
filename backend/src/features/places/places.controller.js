@@ -57,7 +57,7 @@ export async function commute(req, res, next) {
 export async function pincode(req, res, next) {
   try {
     const code = String(req.params.code ?? '').trim()
-    if (!/^d{6}$/.test(code)) {
+    if (!/^\d{6}$/.test(code)) {
       return res.status(400).json({ success: false, error: 'BAD_PINCODE', message: 'A pincode is six digits' })
     }
     const info = await pincodeInfo(code)
