@@ -130,7 +130,7 @@ export default {
   // comes from the network file instead of a hardcoded date, and bus counts
   // change under node/way dedup. Stored envelopes hold all of that, so the
   // bump forces existing cells to recompute.
-  version: 5, // v4: humanised distances; v3: destination varies by property type
+  version: 6, // v6 (2026-07-20): railway_station now means MAINLINE only; metro is its own category // v4: humanised distances; v3: destination varies by property type
   // Everyone needs to know how to get somewhere — only the destination differs.
   appliesTo: ALL_TYPES,
   // Its DESTINATION depends on the property type, so its envelope must be

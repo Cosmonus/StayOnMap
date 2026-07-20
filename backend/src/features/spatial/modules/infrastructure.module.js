@@ -49,7 +49,7 @@ export default {
   // v6: nearest facts carry `at` + place name for read-time re-anchoring,
   // node/way dedup upstream changes counts, distance provenance corrected to
   // DERIVED, and the OSM source line carries the city's real fetch date.
-  version: 6,
+  version: 7, // v7 (2026-07-20): clinic split from hospital; underlying POI rows re-classified
   // Banking and fuel matter to a resident and to a shopkeeper. A bare plot is
   // served by landContext instead, which asks about road access rather than ATMs.
   appliesTo: [...RESIDENTIAL_TYPES, 'PG', 'COMMERCIAL', 'SHORT_STAY'],
