@@ -16,6 +16,17 @@ import { fact, PROVENANCE } from '../envelope.js'
 import { airQuality, OPEN_METEO_SOURCE, ERA5_SOURCE } from '../providers.js'
 import { getNormals, summarise } from '../climate.js'
 import { ALL_TYPES } from '../propertyTypes.js'
+import { nearestStation } from '../cpcbProvider.js'
+import { formatDistance } from '../proximity.js'
+
+// CPCB data is Government of India open data under the National Data Sharing
+// and Accessibility Policy — a different licence from OSM's ODbL, so it gets
+// its own source line rather than being folded into an existing one.
+const CPCB_SOURCE = {
+  name: 'CPCB (via data.gov.in)',
+  license: 'Government Open Data Licence — India',
+  fetchedAt: null,
+}
 
 // CPCB's National Air Quality Index PM2.5 breakpoints (24h, µg/m³). India's
 // own scale, not the US EPA one — this is an India product and a renter in
@@ -62,9 +73,12 @@ export default {
   async compute({ lat, lng }) {
     // Independent upstreams, so one being slow or down must not serialise or
     // sink the other. Either can be null; each missing one lowers confidence.
-    const [aq, normals] = await Promise.all([
+    const [aq, normals, station] = await Promise.all([
       airQuality(lat, lng),
       getNormals(lat, lng),
+      // Null whenever there is no data.gov.in key, no feed, or no station
+      // within 10 km — which to this module all mean the same thing.
+      nearestStation(lat, lng),
     ])
 
     if (!aq && !normals) {
@@ -184,13 +198,36 @@ export default {
       }
     }
 
+    // A real instrument reading real air — the only MEASURED fact this module
+    // can emit. Everything else here is model output, which is why the station
+    // fact names its distance: a reading from 8 km away is a measurement, just
+    // not necessarily a measurement of YOUR street, and stating the distance is
+    // what keeps "measured" from overclaiming.
+    if (station && station.pm25 != null) {
+      facts.push(fact({
+        key: 'pm25_station',
+        label: 'PM2.5 at the nearest monitor',
+        value: station.pm25,
+        unit: 'µg/m³',
+        display: `${station.pm25} µg/m³ at ${station.name ?? 'the nearest CPCB station'}` +
+          ` — ${formatDistance(station.distanceM)} away`,
+        provenance: PROVENANCE.MEASURED,
+        source: 'cpcb',
+        observedAt: station.observedAt ?? null,
+        at: { lat: station.lat, lng: station.lng },
+        place: station.name ?? undefined,
+      }))
+    }
+
     const inputsPresent = []
     if (aq) inputsPresent.push('air_quality_model')
     if (normals) inputsPresent.push('climate_normals')
+    if (station) inputsPresent.push('cpcb_station')
 
     const sources = []
     if (aq) sources.push(OPEN_METEO_SOURCE)
     if (normals) sources.push(ERA5_SOURCE)
+    if (station) sources.push(CPCB_SOURCE)
 
     return {
       facts,
