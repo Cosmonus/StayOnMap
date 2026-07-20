@@ -18,7 +18,7 @@
 // todo.md Phase 5 for the resequencing and the condition that would change it.
 import { prisma } from '../../lib/prisma.js'
 import { intelError } from '../../lib/intelLog.js'
-import { poisNear } from './poiProvider.js'
+import { poisNear, cityCategoryCoverage } from './poiProvider.js'
 
 // The two radii a filter actually asks about. 800 m is the widely-used
 // "10-15 minute walk"; 1600 m is the outer edge of where people walk at all.
@@ -70,16 +70,31 @@ export async function refreshCellProximity(geohash, cell, categories) {
     // baked into a filter where nobody would ever see the caveat.
     if (!result?.available) return 0
 
-    const rows = categories.map((category) => {
-      const hits = result.byCategory[category] ?? []
-      return {
-        geohash,
-        category,
-        nearestM: hits.length ? Math.round(hits[0].distanceM) : null,
-        count800M: hits.filter((h) => h.distanceM <= NEAR_M).length,
-        count1600M: hits.length,
-      }
-    })
+    // `available` is a CITY-WIDE row count across all categories, so it cannot
+    // tell "this city has POIs but none of this category was ever fetched" from
+    // "there are none near this cell". The category vocabulary has been extended
+    // after cities were seeded more than once (fast_food, college), so a city
+    // seeded before `park` existed reports available:true with no park rows at
+    // all — and writing zeroes there converts "never computed" into "none here",
+    // permanently, since cellsNear filters on `nearestM: { not: null }`.
+    //
+    // schema.prisma states that contract on the column itself. This is the check
+    // that keeps it true; cityCategoryCoverage was written for exactly this and
+    // had no caller.
+    const coverage = await cityCategoryCoverage(cell.city)
+
+    const rows = categories
+      .filter((category) => (coverage?.[category] ?? 0) > 0)
+      .map((category) => {
+        const hits = result.byCategory[category] ?? []
+        return {
+          geohash,
+          category,
+          nearestM: hits.length ? Math.round(hits[0].distanceM) : null,
+          count800M: hits.filter((h) => h.distanceM <= NEAR_M).length,
+          count1600M: hits.length,
+        }
+      })
 
     // Sequential upserts rather than createMany: this runs once per cell
     // materialisation over a handful of categories, and an upsert keeps a
@@ -119,7 +134,19 @@ export async function cellsNear(category, metres, cap = 20_000) {
   const rows = await prisma.cellPoiSummary.findMany({
     where: { category, nearestM: { not: null, lte: metres } },
     select: { geohash: true },
-    take: cap,
+    // Ordered so the cap is deterministic. Without it the surviving subset is
+    // whatever Postgres happened to return, so two identical requests could
+    // drop different listings — a filter that is not merely incomplete but
+    // inconsistent with itself.
+    orderBy: { nearestM: 'asc' },
+    take: cap + 1,
   })
-  return rows.map((r) => r.geohash)
+
+  // Reported, not swallowed. Delhi's built-up area is roughly 30,000 cells at
+  // geohash-7, and `bus_stop within 1600m` will match nearly all of them once
+  // materialisation catches up. Silently returning an arbitrary 20,000 of them
+  // makes listings vanish from a filter with nothing anywhere saying so; the
+  // caller can at least decline to apply a predicate this broad.
+  const truncated = rows.length > cap
+  return { geohashes: rows.slice(0, cap).map((r) => r.geohash), truncated }
 }

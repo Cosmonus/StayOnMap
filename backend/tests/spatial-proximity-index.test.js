@@ -24,6 +24,13 @@ beforeEach(() => {
     upsert: vi.fn().mockResolvedValue({}),
     findMany: vi.fn().mockResolvedValue([]),
   }
+  // City-wide per-category counts. Non-zero means the category was actually
+  // fetched for this city — see the "never seeded" test below for why writing a
+  // row without checking this is destructive.
+  prismaMock.poiIndex.groupBy.mockResolvedValue(
+    ['railway_station', 'bus_stop', 'school', 'hospital', 'supermarket', 'park']
+      .map((category) => ({ category, _count: { _all: 500 } }))
+  )
 })
 
 const seeded = (byCategory) => ({ available: true, byCategory, sparselyMapped: false })
@@ -52,6 +59,27 @@ describe('refreshCellProximity', () => {
     const { create } = prismaMock.cellPoiSummary.upsert.mock.calls[0][0]
     expect(create.nearestM).toBeNull()
     expect(create.count800M).toBe(0)
+  })
+
+  it('writes NOTHING for a category the city was never seeded FOR', async () => {
+    // `available` is a city-wide row count, so it cannot tell "this city has
+    // POIs but no park rows" from "no parks near this cell". The vocabulary has
+    // been extended after cities were seeded more than once (fast_food,
+    // college), so this is a real state — and writing zeroes converts "never
+    // computed" into "none here" permanently, since cellsNear filters on
+    // `nearestM: { not: null }`. schema.prisma states that contract on the
+    // column itself.
+    vi.spyOn(poiProvider, 'poisNear').mockResolvedValue(seeded({}))
+    prismaMock.poiIndex.groupBy.mockResolvedValue([
+      { category: 'railway_station', _count: { _all: 500 } },
+      // no `park` row — never fetched for this city
+    ])
+
+    await refreshCellProximity(GEOHASH, CELL, ['railway_station', 'park'])
+
+    const written = prismaMock.cellPoiSummary.upsert.mock.calls.map((c) => c[0].create.category)
+    expect(written).toContain('railway_station')
+    expect(written).not.toContain('park')
   })
 
   it('writes NOTHING when the city was never seeded', async () => {
@@ -107,9 +135,9 @@ describe('cellsNear', () => {
     expect(prismaMock.cellPoiSummary.findMany.mock.calls[0][0].take).toBeGreaterThan(0)
   })
 
-  it('returns plain geohashes, not rows', async () => {
+  it('returns geohashes plus a truncation flag, not rows', async () => {
     prismaMock.cellPoiSummary.findMany.mockResolvedValue([{ geohash: 'a' }, { geohash: 'b' }])
-    expect(await cellsNear('park', 800)).toEqual(['a', 'b'])
+    expect(await cellsNear('park', 800)).toEqual({ geohashes: ['a', 'b'], truncated: false })
   })
 })
 

@@ -49,11 +49,11 @@ describe('startRefreshQueue', () => {
     expect(bossMock.schedule.mock.calls[0][1]).toBe('*/5 * * * *')
   })
 
-  it('runs exactly one tick at a time', async () => {
+  it('runs exactly one tick at a time, in options pg-boss 12 actually reads', async () => {
     // Concurrent ticks would race on the same "stalest cells" query and pay
     // twice for the same cell — what the Redis lock existed to prevent.
     await startRefreshQueue(CONN, vi.fn())
-    expect(bossMock.work.mock.calls[0][1]).toMatchObject({ teamSize: 1, teamConcurrency: 1 })
+    expect(bossMock.work.mock.calls[0][1]).toMatchObject({ batchSize: 1, localConcurrency: 1 })
   })
 
   it('calls the injected handler, not something of its own', async () => {

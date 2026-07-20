@@ -28,14 +28,18 @@ const RECORDS = [
 
 describe('parseLastUpdate', () => {
   it('reads the feed\'s day-first format', () => {
-    expect(parseLastUpdate('20-07-2026 05:00:00')).toBe('2026-07-20T05:00:00')
+    // +05:30 matters: CPCB publishes IST, and a zone-less date-time is parsed
+    // as LOCAL time — so on a UTC host this reading would land 5.5 hours in the
+    // future and a staleness check would see a negative age.
+    expect(parseLastUpdate('20-07-2026 05:00:00')).toBe('2026-07-20T05:00:00+05:30')
+    expect(Date.parse(parseLastUpdate('20-07-2026 05:00:00'))).toBe(Date.parse('2026-07-19T23:30:00Z'))
   })
 
   it('does not let a day-first date be read as month-first', () => {
     // The silent one: `new Date('07-08-2026')` is 7 August in the feed's terms
     // and 8 July to a JS Date. Wrong for any day <= 12, i.e. a third of the
     // month, and correct the rest of the time — which is how it survives.
-    expect(parseLastUpdate('07-08-2026 05:00:00')).toBe('2026-08-07T05:00:00')
+    expect(parseLastUpdate('07-08-2026 05:00:00')).toBe('2026-08-07T05:00:00+05:30')
   })
 
   it('returns null on an unfamiliar shape rather than guessing', () => {
@@ -73,7 +77,7 @@ describe('groupStations', () => {
   })
 
   it('converts the day-first timestamp on the way through', () => {
-    expect(groupStations(RECORDS)[0].observedAt).toBe('2026-07-20T05:00:00')
+    expect(groupStations(RECORDS)[0].observedAt).toBe('2026-07-20T05:00:00+05:30')
   })
 
   it('drops records with no usable coordinates rather than defaulting them', () => {
