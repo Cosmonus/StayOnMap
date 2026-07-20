@@ -133,12 +133,22 @@ function senderReady() {
   return isBrevo() ? !!env.brevoApiKey : !!getTransport()
 }
 
+// Dev-only console delivery: with NO provider configured in development, an
+// email "sends" by printing to the server console — so OTP login and reset
+// links are testable on a fresh checkout with zero mail credentials (the
+// letter-opener pattern). Never in production: there a missing provider must
+// stay a loud drop, not a silent console success nobody reads.
+function devEcho() {
+  return env.nodeEnv === 'development' && !senderReady()
+}
+
 // Pre-flight: would a send of this kind go out right now? Lets a caller bail
 // BEFORE doing any account-specific work — OTP login uses this so a
 // quota-exhausted response is identical for registered and unregistered
 // emails, which would otherwise be an account-enumeration oracle (an
 // existing address 503s on a failed send while an unknown one 200s).
 export async function canSend(critical = false) {
+  if (devEcho()) return true
   if (!senderReady()) return false
   return hasQuota(await getUsed(), env.mailDailyCap, critical)
 }
@@ -146,6 +156,13 @@ export async function canSend(critical = false) {
 // ── Entry point — never throws; returns whether the email actually went out ─
 export async function sendMail({ to, subject, html, critical = false }) {
   const provider = isBrevo() ? 'brevo' : 'smtp'
+
+  if (devEcho()) {
+    // Text content only — an OTP code or reset link lives in the body, and
+    // reading it off the console IS the delivery.
+    console.log(`\n[mail dev-echo] To: ${to}\n[mail dev-echo] Subject: ${subject}\n[mail dev-echo] ${html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}\n`)
+    return true
+  }
 
   if (!senderReady()) {
     log('dropped', { provider, critical, reason: 'mail provider not configured' })
