@@ -79,6 +79,10 @@ export const env = {
   // blanks a page and never runs up a surprise bill.
   // Enforced only when REDIS_URL is set (the counter is shared state).
   spatialDailyApiBudget: Number(process.env.SPATIAL_DAILY_API_BUDGET) || 2000,
+  // Self-hosted OSRM routing server (infra/routing/) — measured walking
+  // distances. Absent is a supported state: every consumer falls back to
+  // haversine, so this can never break a page, only improve it.
+  routingUrl: (process.env.ROUTING_URL || '').replace(/\/$/, '') || null,
   // data.gov.in — CPCB ground-station air quality. Free, registration only.
   // Absent is a supported state, not a misconfiguration: the environment module
   // declares `cpcb_station` as an input and leaves it absent, which holds its

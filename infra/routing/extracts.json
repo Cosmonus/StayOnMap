@@ -1,0 +1,86 @@
+{
+  "directory": "/data/extracts",
+  "extracts": [
+    {
+      "output": "delhi.osm.pbf",
+      "bbox": [
+        76.595,
+        28.0749,
+        77.823,
+        29.1529
+      ]
+    },
+    {
+      "output": "mumbai.osm.pbf",
+      "bbox": [
+        72.3549,
+        18.5819,
+        73.4005,
+        19.5701
+      ]
+    },
+    {
+      "output": "kolkata.osm.pbf",
+      "bbox": [
+        87.9261,
+        22.1684,
+        88.8017,
+        22.9768
+      ]
+    },
+    {
+      "output": "chennai.osm.pbf",
+      "bbox": [
+        79.8557,
+        12.6785,
+        80.6857,
+        13.4869
+      ]
+    },
+    {
+      "output": "bengaluru.osm.pbf",
+      "bbox": [
+        77.1798,
+        12.5674,
+        78.0094,
+        13.3758
+      ]
+    },
+    {
+      "output": "hyderabad.osm.pbf",
+      "bbox": [
+        78.0631,
+        16.9808,
+        78.9103,
+        17.7892
+      ]
+    },
+    {
+      "output": "ahmedabad.osm.pbf",
+      "bbox": [
+        72.181,
+        22.6632,
+        72.9618,
+        23.3818
+      ]
+    },
+    {
+      "output": "pune.osm.pbf",
+      "bbox": [
+        73.4304,
+        18.1162,
+        74.283,
+        18.9246
+      ]
+    },
+    {
+      "output": "surat.osm.pbf",
+      "bbox": [
+        72.4939,
+        20.8558,
+        73.1683,
+        21.4846
+      ]
+    }
+  ]
+}
