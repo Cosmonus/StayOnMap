@@ -15,6 +15,7 @@ import { resolveCity } from '../../config/cityCenters.js'
 import { modulesFor, isStale, MODULES_BY_KEY } from './registry.js'
 import { buildEnvelope, unavailableEnvelope } from './envelope.js'
 import { reanchorModules } from './reanchor.js'
+import { enrichWithWalkTimes } from './walkEnrich.js'
 import { refreshCellProximity, FILTERABLE_POI_CATEGORIES } from './proximityIndex.js'
 
 // Redis sits in front of Postgres purely to absorb read bursts (a popular
@@ -252,37 +253,43 @@ export async function getContext(lat, lng, { materializeIfMissing = true, waitMs
   // cell edge doesn't inherit up-to-108 m of someone else's geometry. See
   // reanchor.js. The cell-anchored copy is what's cached — re-anchoring is
   // per-request arithmetic on top, never written back.
+  // Re-anchor (pure arithmetic), then — when the self-hosted router is up —
+  // attach MEASURED walk times from the same property position (walkEnrich.js;
+  // router absent means untouched facts, never an assumed number).
   const forType = (modules) =>
-    reanchorModules(
-      Object.fromEntries(
-        wanted.map((m) => [m.key, modules[storageKey(m, propertyType)]]).filter(([, v]) => v)
+    enrichWithWalkTimes(
+      reanchorModules(
+        Object.fromEntries(
+          wanted.map((m) => [m.key, modules[storageKey(m, propertyType)]]).filter(([, v]) => v)
+        ),
+        lat, lng
       ),
       lat, lng
     )
 
   const cached = await cacheGet(readCacheKey(geohash))
   if (cached?.v && hasAllWanted(cached.v)) {
-    return { geohash, city: resolveCity(lat, lng)?.city ?? null, modules: forType(cached.v), computedAt: null, pending: false, status: STATUS_READY }
+    return { geohash, city: resolveCity(lat, lng)?.city ?? null, modules: await forType(cached.v), computedAt: null, pending: false, status: STATUS_READY }
   }
 
   const row = await prisma.spatialContext.findUnique({ where: { geohash } })
 
   if (!row || !hasAllWanted(row.modules)) {
-    if (!materializeIfMissing) return row ? { geohash, city: row.city, modules: forType(row.modules), computedAt: row.computedAt, pending: false, status: STATUS_READY } : null
+    if (!materializeIfMissing) return row ? { geohash, city: row.city, modules: await forType(row.modules), computedAt: row.computedAt, pending: false, status: STATUS_READY } : null
 
     const city = resolveCity(lat, lng)?.city ?? null
     const work = materialize(geohash, propertyType).catch(() => null)
 
     if (waitMs > 0) {
       const modules = await withTimeout(work, waitMs)
-      if (modules) return { geohash, city, modules: forType(modules), computedAt: new Date(), pending: false, status: STATUS_READY }
+      if (modules) return { geohash, city, modules: await forType(modules), computedAt: new Date(), pending: false, status: STATUS_READY }
     }
 
     // A partially-warm cell still has something worth showing while the
     // missing modules compute — better than a pending state that hides facts
     // we already hold.
     if (row?.modules) {
-      const partial = forType(row.modules)
+      const partial = await forType(row.modules)
       if (Object.keys(partial).length > 0) {
         return { geohash, city: row.city, modules: partial, computedAt: row.computedAt, pending: false, status: STATUS_READY }
       }
@@ -307,7 +314,7 @@ export async function getContext(lat, lng, { materializeIfMissing = true, waitMs
   return {
     geohash,
     city: row.city,
-    modules: forType(row.modules),
+    modules: await forType(row.modules),
     computedAt: row.computedAt,
     pending: false,
     status: STATUS_READY,

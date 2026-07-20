@@ -1252,6 +1252,10 @@ model CellPoiSummary {
   // Null means "none of this category within the search radius" — distinct
   // from 0, and distinct from a missing row, which means "never computed".
   nearestM   Int?
+  // Network walking metres to that same nearest POI, from the self-hosted
+  // router (routingProvider.js). Null = router absent at compute time, or the
+  // POI didn't snap to the street network — "not measured", never 0.
+  nearestWalkM Int?
   count800M  Int @default(0)
   count1600M Int @default(0)
 
