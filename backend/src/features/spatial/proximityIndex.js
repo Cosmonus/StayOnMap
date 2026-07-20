@@ -70,6 +70,17 @@ export async function refreshCellProximity(geohash, cell, categories) {
     // baked into a filter where nobody would ever see the caveat.
     if (!result?.available) return 0
 
+    // A truncated scan cannot be summarised honestly. `bboxScan` pages by `id`,
+    // not by distance, so hitting MAX_ROWS means the retained subset is
+    // arbitrary — the true nearest may not be in it, and both counts undercount
+    // by an unknown amount. `lifestyle` already reads this flag and caveats its
+    // display; a filter index has nowhere to put a caveat, so the only honest
+    // move is to write no row and leave the cell out of the filter.
+    if (result.truncated) {
+      intelError('spatial.proximity_truncated', new Error('POI scan hit its row cap'), { geohash })
+      return 0
+    }
+
     // `available` is a CITY-WIDE row count across all categories, so it cannot
     // tell "this city has POIs but none of this category was ever fetched" from
     // "there are none near this cell". The category vocabulary has been extended

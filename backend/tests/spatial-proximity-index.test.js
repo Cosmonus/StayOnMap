@@ -103,6 +103,19 @@ describe('refreshCellProximity', () => {
     })
   })
 
+  it('writes NOTHING when the POI scan was truncated', async () => {
+    // bboxScan pages by id, not distance, so hitting the row cap means the
+    // retained subset is arbitrary — the true nearest may not be in it and both
+    // counts undercount by an unknown amount. lifestyle reads this flag and
+    // caveats its display; a filter index has nowhere to put a caveat.
+    vi.spyOn(poiProvider, 'poisNear').mockResolvedValue({
+      ...seeded({ park: [{ distanceM: 100 }] }), truncated: true,
+    })
+
+    expect(await refreshCellProximity(GEOHASH, CELL, ['park'])).toBe(0)
+    expect(prismaMock.cellPoiSummary.upsert).not.toHaveBeenCalled()
+  })
+
   it('writes NOTHING when the city was never seeded', async () => {
     // The one that matters. An unseeded city and an empty one look identical
     // here, and a zero baked into a filter index carries no caveat with it —
