@@ -56,8 +56,14 @@ async function main() {
   let written = 0
   for (let i = 0; i < updates.length; i += BATCH) {
     const batch = updates.slice(i, i + BATCH)
+    // updateMany, not update: `update` throws P2025 when a row has been deleted
+    // between the read above and this write, which on a live database rolls back
+    // the whole 500-row transaction and aborts the run — leaving earlier batches
+    // committed and the operator holding a stack trace with no idea how far it
+    // got. updateMany is a no-op on a missing row, which is what makes this
+    // script genuinely re-runnable, as its header claims.
     await prisma.$transaction(
-      batch.map((u) => prisma.property.update({ where: { id: u.id }, data: { geohash: u.geohash } }))
+      batch.map((u) => prisma.property.updateMany({ where: { id: u.id }, data: { geohash: u.geohash } }))
     )
     written += batch.length
     console.log(`  ${written}/${updates.length}`)

@@ -99,6 +99,10 @@ export function stationConfidenceFactor(station) {
 // Readings update hourly, so anything shorter re-fetches the same numbers.
 const CACHE_TTL_S = 60 * 60
 
+// Long enough to stop a per-cell loop hammering a struggling service, short
+// enough that a transient blip does not cost the next hour of readings.
+const FAILURE_BACKOFF_S = 5 * 60
+
 // The national feed is a few thousand rows. Fetching it whole once an hour and
 // picking the nearest beats a per-city filter whose column values we cannot
 // verify without a key.
@@ -158,7 +162,13 @@ export function parseLastUpdate(s) {
   if (!m) return null
   const [, dd, mm, yyyy, hh, mi, ss] = m
   if (Number(mm) < 1 || Number(mm) > 12 || Number(dd) < 1 || Number(dd) > 31) return null
-  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`
+  // +05:30 is not decoration. CPCB publishes in IST, and a date-TIME string
+  // with no offset is parsed as LOCAL time per the ES spec — so on a UTC host
+  // (Railway) a 05:00 IST reading would be read as 05:00 UTC, i.e. 10:30 IST,
+  // five and a half hours in the future. A staleness check would then see a
+  // fresh reading as having a negative age. Half-fixing the day-first bug and
+  // leaving the zone off would have been the same class of error again.
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}+05:30`
 }
 
 /**
@@ -234,7 +244,7 @@ async function nationalFeed(fetchImpl = fetch) {
       intelError('spatial.cpcb_empty', new Error('no stations parsed from a 200 response'), {
         recordCount: Array.isArray(body?.records) ? body.records.length : null,
       })
-      return null
+      return rememberFailure()
     }
 
     await cacheSet(NATIONAL_CACHE_KEY, { v: stations }, CACHE_TTL_S)
@@ -244,8 +254,25 @@ async function nationalFeed(fetchImpl = fetch) {
     return stations
   } catch (err) {
     intelError('spatial.cpcb_fetch_failed', err)
-    return null
+    return rememberFailure()
   }
+}
+
+/**
+ * Back off after a failed fetch.
+ *
+ * Without this, only SUCCESS was cached — so a cold process during an outage
+ * had no backstop at all, and the refresher's per-cell loop issued one
+ * full-country request per cell, each with a 20s timeout. A 500-cell backfill
+ * became 500 requests and hours of wall clock, with the retry rate rising
+ * exactly when the service was rate-limiting us.
+ *
+ * Short TTL, because this is "don't hammer them", not "give up for an hour".
+ */
+function rememberFailure() {
+  memoStations = []
+  memoExpiresAt = Date.now() + FAILURE_BACKOFF_S * 1000
+  return null
 }
 
 /**
@@ -267,12 +294,30 @@ export async function nearestStation(lat, lng, { fetchImpl } = {}) {
   const stations = await nationalFeed(fetchImpl)
   if (!stations?.length) return null
 
+  // Nearest station that carries the reading we actually want, NOT nearest
+  // station full stop.
+  //
+  // A station is kept in the feed if it has EITHER particulate, and 271 of 3416
+  // live rows read 'NA' — so a dead PM2.5 sensor at an otherwise healthy site is
+  // routine. Picking on distance alone meant one dead sensor 3 km away silently
+  // discarded a real PM2.5 reading 4 km away, and PM2.5 is the headline: it
+  // drives the band, the assessment label, everything the user reads.
+  //
+  // PM2.5 first, PM10 only as a fallback, because a card with PM10 alone is
+  // still worth more than a card with nothing.
+  const withPm25 = pickNearestWith(stations, lat, lng, 'pm25')
+  if (withPm25) return withPm25
+  return pickNearestWith(stations, lat, lng, 'pm10')
+}
+
+/** Nearest station carrying a non-null `field`, within the airshed bound. */
+function pickNearestWith(stations, lat, lng, field) {
   let best = null
   for (const s of stations) {
-    const distanceM = haversineMeters(lat, lng, s.lat, s.lng)
-    if (best === null || distanceM < best.distanceM) best = { ...s, distanceM: Math.round(distanceM) }
+    if (s[field] == null) continue
+    const distanceM = Math.round(haversineMeters(lat, lng, s.lat, s.lng))
+    if (best === null || distanceM < best.distanceM) best = { ...s, distanceM }
   }
-
   if (!best || best.distanceM > MAX_STATION_DISTANCE_M) return null
   return best
 }

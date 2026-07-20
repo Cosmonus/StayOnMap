@@ -206,7 +206,16 @@ export default {
     // away. Naming that is what keeps MEASURED from overclaiming, and
     // `stationConfidenceFactor` grades the score by the same number rather than
     // the module pretending a 25 km reading is a 2 km one.
+    // Tracked separately from `station` being truthy. A station kept in the feed
+    // for its PM10 while its PM2.5 sensor reads 'NA' is routine — 271 of 3416
+    // live rows are 'NA' — and crediting `cpcb_station` for it while emitting no
+    // fact would inflate confidence by 40% and list a government source on a
+    // card carrying nothing from it. Confidence for a measurement the user
+    // never sees is the precise failure this layer exists to prevent.
+    let stationFacts = 0
+
     if (station && station.pm25 != null) {
+      stationFacts++
       facts.push(fact({
         key: 'pm25_station',
         label: 'PM2.5 at the nearest monitor',
@@ -221,34 +230,44 @@ export default {
         place: station.name ?? undefined,
       }))
 
-      if (station.pm10 != null) {
-        facts.push(fact({
-          key: 'pm10_station',
-          label: 'PM10 at the nearest monitor',
-          value: station.pm10,
-          unit: 'µg/m³',
-          display: `${station.pm10} µg/m³ at ${station.name ?? 'the nearest CPCB station'}`,
-          provenance: PROVENANCE.MEASURED,
-          source: 'cpcb',
-          observedAt: station.observedAt ?? null,
-        }))
-      }
+    }
+
+    // NOT nested under the PM2.5 branch. It was, and that silently threw away a
+    // perfectly good measured PM10 whenever the PM2.5 sensor at the same station
+    // was dead.
+    if (station && station.pm10 != null) {
+      stationFacts++
+      facts.push(fact({
+        key: 'pm10_station',
+        label: 'PM10 at the nearest monitor',
+        value: station.pm10,
+        unit: 'µg/m³',
+        display: `${station.pm10} µg/m³ at ${station.name ?? 'the nearest CPCB station'}`,
+        provenance: PROVENANCE.MEASURED,
+        source: 'cpcb',
+        observedAt: station.observedAt ?? null,
+      }))
     }
 
     const inputsPresent = []
     if (aq) inputsPresent.push('air_quality_model')
     if (normals) inputsPresent.push('climate_normals')
-    if (station) inputsPresent.push('cpcb_station')
+    // Gated on a fact actually being emitted, not on a station existing.
+    if (stationFacts > 0) inputsPresent.push('cpcb_station')
 
     // Having a station present raises confidence (a declared input arrived);
     // its distance then reduces it. Both are true at once, and reporting them
     // separately is what stops a 40 km reading scoring like a 2 km one.
-    const confidenceFactors = [stationConfidenceFactor(station)].filter(Boolean)
+    // Same gate: no fact, no credit and no penalty.
+    const confidenceFactors = stationFacts > 0
+      ? [stationConfidenceFactor(station)].filter(Boolean)
+      : []
 
     const sources = []
     if (aq) sources.push(OPEN_METEO_SOURCE)
     if (normals) sources.push(ERA5_SOURCE)
-    if (station) sources.push(CPCB_SOURCE)
+    // Only cite a source we actually showed something from.
+    if (stationFacts > 0) sources.push(CPCB_SOURCE)
 
     return {
       facts,

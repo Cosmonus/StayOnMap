@@ -189,6 +189,8 @@ export async function updateProperty(id, ownerId, data) {
     const existing = await tx.property.findUnique({ where: { id, ownerId } })
     if (!existing) throw Object.assign(new Error('Property not found or access denied'), { statusCode: 404 })
 
+    const movedCoords = propertyData.lat !== undefined || propertyData.lng !== undefined
+
     if (amenityIds !== undefined) {
       await tx.propertyAmenity.deleteMany({ where: { propertyId: id } })
     }
@@ -201,12 +203,20 @@ export async function updateProperty(id, ownerId, data) {
       data: {
         ...propertyData,
         availableFrom: availableFrom ? new Date(availableFrom) : undefined,
-        // Recomputed only when the coordinates actually move. A listing edited
-        // to correct its rent must not have its cell rewritten as a side
-        // effect, and one moved to a new address must not keep pointing at the
-        // neighbourhood it left.
-        ...(propertyData.lat !== undefined && propertyData.lng !== undefined && {
-          geohash: encode(Number(propertyData.lat), Number(propertyData.lng)),
+        // Recomputed whenever EITHER coordinate moves, using the existing value
+        // for the one that didn't. `updatePropertySchema` marks lat and lng
+        // optional INDEPENDENTLY, so `{ lat: 12.98 }` alone is a valid request —
+        // and requiring both here meant that request wrote a new latitude while
+        // leaving the geohash pointing at the cell the listing had left. A 0.01°
+        // move is ~1.1km, about seven cells, and nothing on any request path
+        // would ever repair it: proximity filters join on geohash alone, so the
+        // listing would keep matching "within 800m of a station" on the strength
+        // of an address it no longer has.
+        ...(movedCoords && {
+          geohash: encode(
+            Number(propertyData.lat ?? existing.lat),
+            Number(propertyData.lng ?? existing.lng)
+          ),
         }),
         ...(images    !== undefined && { images:    { create: images.map((url, i) => ({ url, isPrimary: i === 0, order: i })) } }),
         ...(amenityIds !== undefined && { amenities: { create: amenityIds.map((amenityId) => ({ amenityId })) } }),
@@ -220,6 +230,15 @@ export async function updateProperty(id, ownerId, data) {
   // create-time results are stale once the listing points somewhere else
   if (['address', 'lat', 'lng', 'city', 'rent'].some((f) => propertyData[f] !== undefined)) {
     evaluateListing(id, 'update')
+  }
+
+  // Warm the cell the listing moved INTO. createProperty has always done this;
+  // updateProperty never did, so a listing edited to a new address got a
+  // correct new geohash pointing at a cell with no context and no proximity
+  // rows — invisible to every proximity filter until somebody happened to open
+  // its page, which for a draft may be never.
+  if (propertyData.lat !== undefined || propertyData.lng !== undefined) {
+    ensureContextForProperty(updated.lat, updated.lng, updated.type).catch(() => {})
   }
 
   return updated

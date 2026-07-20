@@ -214,7 +214,14 @@ export function computeConfidence(declared, presentKeys, maxConfidence = 1, fact
   let value = base
   for (const f of factors ?? []) {
     const before = value
-    value = applyFactor(value, f)
+    // Rounded at every step, not only at the end. Carrying an unrounded running
+    // value made factor N's reported `to` differ from factor N+1's `from` (the
+    // UI walking the chain would show 0.5 becoming 0.495), and let a no-op
+    // factor be reported as `applied` purely because rounding moved the number.
+    // Neither fires today — every module passes zero or one factor, or a
+    // cap-then-multiplier pair that happens to stay clean at 2dp — which is
+    // exactly what makes it the kind of trap that goes off later.
+    value = round(applyFactor(value, f))
     // Report every declared factor, including the ones that changed nothing —
     // "coverage was complete, so this did not reduce anything" is information.
     applied.push({
@@ -223,11 +230,10 @@ export function computeConfidence(declared, presentKeys, maxConfidence = 1, fact
       multiplier: f.multiplier ?? null,
       cap: f.cap ?? null,
       from: before,
-      to: round(value),
-      applied: round(value) < before,
+      to: value,
+      applied: value < before,
     })
   }
-  value = round(value)
 
   const reduced = applied.filter((f) => f.applied)
   const basis = reduced.length
