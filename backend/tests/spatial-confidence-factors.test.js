@@ -9,7 +9,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prismaMock } from './mocks/prisma.js'
 import { computeConfidence, buildEnvelope, bandFor } from '../src/features/spatial/envelope.js'
-import { coverageFactor } from '../src/features/spatial/dataQuality.js'
+import { coverageFactor, freshnessFactor } from '../src/features/spatial/dataQuality.js'
 import lifestyle from '../src/features/spatial/modules/lifestyle.module.js'
 
 const INPUTS = [
@@ -133,6 +133,54 @@ describe('buildEnvelope passes factors through', () => {
   })
 })
 
+describe('freshnessFactor', () => {
+  const NOW = new Date('2026-07-20T00:00:00Z')
+  const daysAgo = (n) => new Date(NOW.getTime() - n * 24 * 60 * 60 * 1000)
+
+  it('says nothing while the data is within its intended refresh cycle', () => {
+    // §4.4 sets POI refresh at quarterly. On schedule is not a defect.
+    expect(freshnessFactor(daysAgo(10), NOW)).toBeNull()
+    expect(freshnessFactor(daysAgo(89), NOW)).toBeNull()
+  })
+
+  it('reduces gently once a refresh has been missed', () => {
+    const f = freshnessFactor(daysAgo(200), NOW)
+    expect(f.multiplier).toBe(0.9)
+    expect(f.reason).toMatch(/months old/i)
+  })
+
+  it('reduces harder past a year, but floors rather than collapsing', () => {
+    // Old OSM data is still mostly right — hospitals, schools and parks do not
+    // move. The penalty belongs on the shop-level facts that genuinely rot.
+    const f = freshnessFactor(daysAgo(900), NOW)
+    expect(f.multiplier).toBe(0.75)
+    expect(f.multiplier).toBeGreaterThan(0)
+    expect(f.reason).toMatch(/year/i)
+  })
+
+  it('is a multiplier, not a cap — unlike coverage', () => {
+    // We know the magnitude here (age is exact), so a graded reduction is a
+    // claim we can support. `complete: false` never says by how much, which is
+    // why that one caps instead.
+    expect(freshnessFactor(daysAgo(200), NOW).cap).toBeUndefined()
+  })
+
+  it('says nothing when the fetch date is unknown or unparseable', () => {
+    expect(freshnessFactor(null, NOW)).toBeNull()
+    expect(freshnessFactor(undefined, NOW)).toBeNull()
+    expect(freshnessFactor('not-a-date', NOW)).toBeNull()
+  })
+
+  it('treats a future timestamp as current, not as negative age', () => {
+    // A clock skew is our problem, not fresher-than-fresh data.
+    expect(freshnessFactor(daysAgo(-30), NOW)).toBeNull()
+  })
+
+  it('accepts an ISO string, which is what poiFreshness returns', () => {
+    expect(freshnessFactor('2025-01-01', NOW).multiplier).toBe(0.75)
+  })
+})
+
 describe('end to end — an incomplete fetch reaches the card', () => {
   // The point of the whole wire. Everything above tests a part; this tests that
   // the parts are actually connected, which is the failure mode that let
@@ -159,6 +207,35 @@ describe('end to end — an incomplete fetch reaches the card', () => {
     expect(e.confidence.value).toBeLessThan(e.confidence.base)
     expect(e.confidence.factors.some((f) => f.key === 'coverage' && f.applied)).toBe(true)
     expect(e.confidence.basis).toMatch(/coverage/)
+  })
+
+  it('composes coverage and freshness on one card', async () => {
+    // The two answer different questions — "did the fetch finish" and "how long
+    // ago was it" — and a card can be hit by both. Each must appear as its own
+    // line: collapsing them into one penalty would leave the user unable to
+    // tell a gap we can fix by re-running from one we fix by re-fetching.
+    prismaMock.dataQualityReport.findFirst.mockResolvedValue({
+      dataset: 'poi_index', scope: 'Bengaluru', complete: false,
+    })
+    prismaMock.poiIndex.aggregate.mockResolvedValue({
+      _max: { fetchedAt: new Date(Date.now() - 800 * 24 * 60 * 60 * 1000) },
+    })
+
+    const e = buildEnvelope(lifestyle, await lifestyle.compute(CELL))
+    const bit = e.confidence.factors.filter((f) => f.applied).map((f) => f.key)
+
+    expect(bit).toContain('coverage')
+    expect(bit).toContain('freshness')
+
+    // Cap first, then scale — reporting the scale first would describe the
+    // score as having been reduced from a number it never held. Asserted as an
+    // ordering and a bound rather than a literal: 0.74 × 0.75 is 0.5549999… in
+    // floating point, and pinning the rounded output would be testing IEEE 754
+    // rather than the policy.
+    const order = e.confidence.factors.map((f) => f.key)
+    expect(order.indexOf('coverage')).toBeLessThan(order.indexOf('freshness'))
+    expect(e.confidence.value).toBeLessThanOrEqual(0.74 * 0.75)
+    expect(e.confidence.value).toBeLessThan(e.confidence.base)
   })
 
   it('leaves the same card alone when that fetch completed', async () => {
