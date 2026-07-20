@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
 import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
-import { formatRent } from '@utils/format'
+import { formatRent, imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -117,7 +117,7 @@ export default function MyListingsScreen({ navigation }) {
                 accessibilityLabel={`Manage listing ${item.title}`}
               >
                 <View style={styles.cardImageWrap}>
-                  {item.images?.[0] ? <Image source={{ uri: item.images[0].url }} style={styles.cardImage} /> : <View style={styles.cardImage} />}
+                  {item.images?.[0] ? <Image source={{ uri: imgUrl(item.images[0].url, 'card') }} style={styles.cardImage} resizeMode="cover" /> : <View style={styles.cardImage} />}
                   <View style={styles.statusPillWrap}><StatusPill status={item.status} /></View>
                 </View>
                 <View style={styles.cardBody}>

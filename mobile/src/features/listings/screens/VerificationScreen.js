@@ -43,6 +43,7 @@ export default function VerificationScreen({ route }) {
   const [docType, setDocType] = useState(DOC_TYPES[0].value)
   const [docUrl, setDocUrl] = useState('')
   const [urlError, setUrlError] = useState('')
+  const [docAddress, setDocAddress] = useState('')
 
   const { data: verification, isLoading } = useQuery({
     queryKey: ['verification', propertyId],
@@ -51,7 +52,10 @@ export default function VerificationScreen({ route }) {
   })
 
   const submitMutation = useMutation({
-    mutationFn: () => verificationService.submit(propertyId),
+    mutationFn: () => verificationService.submit(
+      propertyId,
+      docAddress.trim() ? { documentAddress: docAddress.trim() } : undefined
+    ),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['verification', propertyId] }),
   })
 
@@ -168,6 +172,21 @@ export default function VerificationScreen({ route }) {
               <Text style={styles.whyItem}>• Builds trust with potential tenants</Text>
               <Text style={styles.whyItem}>• Increases appointment requests</Text>
             </View>
+            <View>
+              <Text style={styles.fieldLabel}>Property address as printed on your document</Text>
+              <TextInput
+                style={styles.addressInput}
+                value={docAddress}
+                onChangeText={setDocAddress}
+                placeholder="Exactly as it appears on the tax bill / deed"
+                placeholderTextColor={colors.slate400}
+                maxLength={300}
+                multiline
+              />
+              <Text style={styles.fieldHint}>
+                The reviewer compares this against your listing address — a match speeds verification up.
+              </Text>
+            </View>
             <Pressable
               style={styles.darkButton}
               onPress={() => submitMutation.mutate()}
@@ -186,6 +205,27 @@ export default function VerificationScreen({ route }) {
               )}
             </Pressable>
           </View>
+        )}
+
+        {/* Server-computed comparison of the declared document address against
+            the CURRENT listing address. Amber only for a pincode contradiction
+            — low text overlap gets a nudge, never an accusation. */}
+        {verification?.addressMatch?.verdict === 'mismatch' && (
+          <View style={styles.matchWarnBox}>
+            <Text style={styles.matchWarnTitle}>The document and listing addresses disagree</Text>
+            <Text style={styles.matchWarnText}>{verification.addressMatch.notes[0]}</Text>
+            <Text style={styles.matchWarnText}>
+              Fix the listing address, or upload the document that matches it — a reviewer will compare them.
+            </Text>
+          </View>
+        )}
+        {verification?.addressMatch?.verdict === 'partial' && (
+          <Text style={styles.matchNote}>{verification.addressMatch.notes[0]}</Text>
+        )}
+        {verification?.addressMatch?.verdict === 'match' && (
+          <Text style={styles.matchNote}>
+            Document address matches the listing{verification.addressMatch.pincode?.match ? ' (pincode confirmed)' : ''}.
+          </Text>
         )}
 
         {canAddDocs && (
@@ -274,6 +314,15 @@ const styles = StyleSheet.create({
   whyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand900 },
   whyItem: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.brand700 },
   addDocForm: { borderTopWidth: 1, borderTopColor: colors.slate100, paddingTop: spacing.md, gap: spacing.sm },
+  fieldLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginBottom: 4 },
+  addressInput: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800, minHeight: 44, textAlignVertical: 'top' },
+  fieldHint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 4 },
+  // The address-comparison notes. Amber only for the pincode contradiction —
+  // the one accusation the comparison is allowed to make.
+  matchWarnBox: { backgroundColor: colors.warning50, borderWidth: 1, borderColor: '#FDE68A', borderRadius: radius.md, padding: spacing.md },
+  matchWarnTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.warning700 },
+  matchWarnText: { fontFamily: fonts.body, fontSize: 11, color: colors.warning700, marginTop: 2 },
+  matchNote: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
   addDocHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.md, borderWidth: 1, borderColor: colors.slate200 },

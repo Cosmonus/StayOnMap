@@ -33,11 +33,43 @@ function StatusPill({ status }) {
   )
 }
 
+// How the document's address compares to the listing's — rendered from the
+// server's deterministic comparison, never computed client-side. Only a pincode
+// contradiction gets the amber accusation; low text overlap is a nudge to
+// double-check, because spellings of the same address legitimately differ.
+function AddressMatchNote({ match }) {
+  if (!match) return null
+  if (match.verdict === 'mismatch') {
+    return (
+      <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+        <p className="text-xs font-semibold text-amber-800">The document and listing addresses disagree</p>
+        <p className="text-xs text-amber-700 mt-0.5">{match.notes[0]}</p>
+        {match.documentPincodeArea && (
+          <p className="text-xs text-amber-700 mt-0.5">
+            The document&apos;s pincode is in {match.documentPincodeArea.districts.join('/')}, {match.documentPincodeArea.state}.
+          </p>
+        )}
+        <p className="text-xs text-amber-700 mt-1.5">
+          Fix the listing address, or upload the document that matches it — a reviewer will compare them.
+        </p>
+      </div>
+    )
+  }
+  if (match.verdict === 'partial') {
+    return <p className="text-xs text-slate-500">{match.notes[0]}</p>
+  }
+  if (match.verdict === 'match') {
+    return <p className="text-xs text-slate-400">Document address matches the listing{match.pincode.match ? ' (pincode confirmed)' : ''}.</p>
+  }
+  return null
+}
+
 export default function VerificationWizard({ propertyId, propertyTitle }) {
   const qc = useQueryClient()
   const [docType, setDocType] = useState(DOC_TYPES[0].value)
   const [docUrl, setDocUrl] = useState('')
   const [urlError, setUrlError] = useState('')
+  const [docAddress, setDocAddress] = useState('')
 
   const { data: verification, isLoading } = useQuery({
     queryKey: ['verification', propertyId],
@@ -46,7 +78,10 @@ export default function VerificationWizard({ propertyId, propertyTitle }) {
   })
 
   const submitMutation = useMutation({
-    mutationFn: () => verificationService.submit(propertyId),
+    mutationFn: () => verificationService.submit(
+      propertyId,
+      docAddress.trim() ? { documentAddress: docAddress.trim() } : undefined
+    ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['verification', propertyId] })
       toast.success('Submitted', 'Verification request sent. Add your documents below.')
@@ -147,6 +182,19 @@ export default function VerificationWizard({ propertyId, propertyTitle }) {
               <li>Increases appointment requests</li>
             </ul>
           </div>
+          <div>
+            <p className="text-xs text-slate-500 mb-1.5">Property address as printed on your document</p>
+            <input
+              value={docAddress}
+              onChange={(e) => setDocAddress(e.target.value)}
+              placeholder="Exactly as it appears on the tax bill / deed"
+              maxLength={300}
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+            />
+            <p className="text-xs text-slate-400 mt-1">
+              The reviewer compares this against your listing address — a match speeds verification up.
+            </p>
+          </div>
           <button
             onClick={() => submitMutation.mutate()}
             disabled={submitMutation.isPending}
@@ -156,6 +204,10 @@ export default function VerificationWizard({ propertyId, propertyTitle }) {
           </button>
         </div>
       )}
+
+      {/* How the declared document address compares to the listing — computed
+          server-side, fresh against the CURRENT listing address on every load. */}
+      {verification?.addressMatch && <AddressMatchNote match={verification.addressMatch} />}
 
       {/* Add document form */}
       {canAddDocs && (

@@ -1,4 +1,6 @@
 import { View, Text, TextInput, Pressable, Switch, StyleSheet } from 'react-native'
+import { useQuery } from '@tanstack/react-query'
+import { placeIntelligenceService } from '@services/placeIntelligence.service'
 import Dropdown from '@components/common/Dropdown'
 import ImageUploader from '../ImageUploader'
 import LocationPicker from '../LocationPicker'
@@ -64,6 +66,54 @@ export function FieldsScreen({ categoryKey, draft, setDraft }) {
   )
 }
 
+// What India Post says the typed pincode is — mirrors web's PincodeTruth, same
+// day (users are mostly on mobile; a check that exists on one platform is a
+// check most owners never see). Same three states and the same deliberate
+// silence: "directory unseeded" renders nothing, because "we cannot check"
+// must never wear the clothes of a warning.
+function PincodeTruth({ pincode, city }) {
+  const valid = /^\d{6}$/.test(pincode ?? '')
+  const { data } = useQuery({
+    queryKey: ['pincode', pincode, city],
+    queryFn: () => placeIntelligenceService.getPincode(pincode, city).then((r) => r.data),
+    enabled: valid,
+    staleTime: 24 * 60 * 60 * 1000, // pincodes change glacially
+  })
+
+  if (!valid || !data || !data.available) return null
+
+  if (!data.found) {
+    return (
+      <Text style={pincodeStyles.warn}>
+        India Post has no pincode {pincode} — double-check for a typo.
+      </Text>
+    )
+  }
+
+  const office = data.found.offices?.[0]?.name
+  const place = `${data.found.districts.join('/')}, ${data.found.state}`
+
+  if (data.matchesCity === false) {
+    return (
+      <Text style={pincodeStyles.warn}>
+        This pincode is in {place} — not {city}. Double-check before publishing.
+      </Text>
+    )
+  }
+
+  return (
+    <Text style={pincodeStyles.truth}>
+      {office ? `${office} — ` : ''}{place} (India Post)
+    </Text>
+  )
+}
+
+const pincodeStyles = StyleSheet.create({
+  // warning700, the same amber every other data caveat in the app uses.
+  warn: { fontFamily: fonts.body, fontSize: 11, color: colors.warning700, marginTop: 4 },
+  truth: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 4 },
+})
+
 export function LocationScreen({ draft, setDraft }) {
   const loc = draft.location
   function set(key, value) { setDraft((d) => ({ ...d, location: { ...d.location, [key]: value } })) }
@@ -96,6 +146,7 @@ export function LocationScreen({ draft, setDraft }) {
               keyboardType="numeric"
               maxLength={6}
             />
+            <PincodeTruth pincode={loc.pincode} city={loc.city} />
           </View>
         </View>
         <View>
