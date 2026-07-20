@@ -9,7 +9,7 @@
 // CANNOT do is measure footfall — nobody sells per-street pedestrian counts for
 // India — so it reports retail density as a stated proxy and says so.
 import { fact, PROVENANCE } from '../envelope.js'
-import { poisNear, pickNearest, OSM_POI_SOURCE } from '../poiProvider.js'
+import { poisNear, pickNearest, poiConfidenceFactors, OSM_POI_SOURCE, OSM_POI_SOURCE_ID } from '../poiProvider.js'
 import { formatDistance } from '../proximity.js'
 
 const IMMEDIATE = 300   // the same parade of shops
@@ -161,6 +161,10 @@ export default {
       )
     }
 
+    // A half-failed POI fetch and a genuinely quiet parade produce the same
+    // low count here, so how the city's table was built has to reach confidence.
+    const confidenceFactors = await poiConfidenceFactors(OSM_POI_SOURCE_ID, city)
+
     return {
       facts,
       assessment: assess(immediate.total, anchorHits.length),
@@ -168,6 +172,7 @@ export default {
       inputsPresent,
       sources: [{ ...OSM_POI_SOURCE, fetchedAt: immediate.fetchedAt }],
       sparselyMapped: immediate.sparselyMapped,
+      confidenceFactors,
     }
   },
 }

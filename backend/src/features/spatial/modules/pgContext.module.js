@@ -6,7 +6,7 @@
 // their questions specific: cheap food within walking distance, a college or
 // employment centre in reach, and what the walk home looks like after dark.
 import { fact, PROVENANCE } from '../envelope.js'
-import { poisNear, pickNearest, OSM_POI_SOURCE } from '../poiProvider.js'
+import { poisNear, pickNearest, poiConfidenceFactors, OSM_POI_SOURCE, OSM_POI_SOURCE_ID } from '../poiProvider.js'
 import { walkDisplay, formatDistance } from '../proximity.js'
 
 const WALKABLE = 800
@@ -128,6 +128,10 @@ export default {
       missing.push('No laundry is mapped nearby — OSM coverage of small services in India is thin, so ask rather than assume.')
     }
 
+    // Small eateries and laundries are the first thing a partial fetch loses,
+    // and they are exactly what this module is counting.
+    const confidenceFactors = await poiConfidenceFactors(OSM_POI_SOURCE_ID, city)
+
     return {
       facts,
       assessment: assess(food, colleges),
@@ -135,6 +139,7 @@ export default {
       inputsPresent,
       sources: [{ ...OSM_POI_SOURCE, fetchedAt: walk.fetchedAt }],
       sparselyMapped: walk.sparselyMapped,
+      confidenceFactors,
     }
   },
 }

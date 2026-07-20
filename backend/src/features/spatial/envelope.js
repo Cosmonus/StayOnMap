@@ -129,18 +129,77 @@ export function fact(f) {
 }
 
 /**
- * Confidence = weighted share of declared inputs that were actually available,
- * capped by the module's ceiling.
+ * Apply one confidence factor, enforcing the rule the whole mechanism rests on.
  *
- *   confidence = (sum of weights present / sum of all weights) * maxConfidence
+ * A factor may only ever REDUCE. That is not a stylistic preference: input
+ * availability is the only signal that has actually been *measured*, and
+ * anything else — how fresh the data is, whether the fetch completed, how
+ * precisely the cell locates the property — is a reason to trust it less, never
+ * a reason to trust it more. Without this rule, "confidence v2" becomes a set
+ * of knobs someone turns until the cards look good, which is the failure mode
+ * this layer exists to prevent.
+ *
+ * Two forms, because they answer different questions:
+ *   - `multiplier` — we know roughly HOW MUCH worse this is (0 < m <= 1)
+ *   - `cap`        — we know it is worse but not by how much, so we refuse to
+ *                    claim above a ceiling rather than invent a magnitude
+ *
+ * @param {number} value  current 0..1 confidence
+ * @param {{key: string, reason: string, multiplier?: number, cap?: number}} f
+ * @returns {number}
+ */
+function applyFactor(value, f) {
+  if (!f?.key) throw new Error('confidence factor: key is required')
+  if (!f.reason) {
+    throw new Error(
+      `confidence factor ${f.key}: reason is required — an unexplained ` +
+      'confidence penalty is as opaque as an unexplained number'
+    )
+  }
+  if (f.multiplier == null && f.cap == null) {
+    throw new Error(`confidence factor ${f.key}: needs a multiplier or a cap`)
+  }
+  if (f.multiplier != null && !(f.multiplier > 0 && f.multiplier <= 1)) {
+    throw new Error(
+      `confidence factor ${f.key}: multiplier must be in (0, 1] — a factor ` +
+      'above 1 would raise confidence above what input availability justifies'
+    )
+  }
+  if (f.cap != null && !(f.cap >= 0 && f.cap <= 1)) {
+    throw new Error(`confidence factor ${f.key}: cap must be in [0, 1]`)
+  }
+
+  let next = value
+  if (f.multiplier != null) next *= f.multiplier
+  if (f.cap != null) next = Math.min(next, f.cap)
+  return next
+}
+
+/**
+ * Confidence = weighted share of declared inputs that were actually available,
+ * capped by the module's ceiling, then reduced by any applicable factors.
+ *
+ *   base       = (sum of weights present / sum of all weights) * maxConfidence
+ *   confidence = base, reduced by each factor in turn
+ *
+ * The per-factor breakdown is returned alongside the number, because "why is
+ * this 0.48" is the useful half. A bare score invites the reader to treat it as
+ * a measurement of the neighbourhood rather than a measurement of our own
+ * knowledge of it.
  *
  * @param {Array<{key: string, weight: number}>} declared  module.inputs
  * @param {string[]} presentKeys  inputs that actually produced data this run
  * @param {number} maxConfidence  module ceiling, 0..1
+ * @param {Array<{key, reason, multiplier?, cap?}>} [factors]  reducing-only
  */
-export function computeConfidence(declared, presentKeys, maxConfidence = 1) {
+export function computeConfidence(declared, presentKeys, maxConfidence = 1, factors = []) {
   const total = declared.reduce((sum, i) => sum + i.weight, 0)
-  if (total === 0) return { value: 0, band: 'MINIMAL', basis: 'no inputs declared', inputsPresent: [], inputsMissing: [] }
+  if (total === 0) {
+    return {
+      value: 0, base: 0, band: 'MINIMAL', basis: 'no inputs declared',
+      inputsPresent: [], inputsMissing: [], factors: [],
+    }
+  }
 
   const present = new Set(presentKeys)
   const got = declared.filter((i) => present.has(i.key))
@@ -148,14 +207,41 @@ export function computeConfidence(declared, presentKeys, maxConfidence = 1) {
   const gotWeight = got.reduce((sum, i) => sum + i.weight, 0)
 
   // Round to 2dp. Anything finer is noise dressed as precision.
-  const value = Math.round((gotWeight / total) * maxConfidence * 100) / 100
+  const round = (n) => Math.round(n * 100) / 100
+  const base = round((gotWeight / total) * maxConfidence)
+
+  const applied = []
+  let value = base
+  for (const f of factors ?? []) {
+    const before = value
+    value = applyFactor(value, f)
+    // Report every declared factor, including the ones that changed nothing —
+    // "coverage was complete, so this did not reduce anything" is information.
+    applied.push({
+      key: f.key,
+      reason: f.reason,
+      multiplier: f.multiplier ?? null,
+      cap: f.cap ?? null,
+      from: before,
+      to: round(value),
+      applied: round(value) < before,
+    })
+  }
+  value = round(value)
+
+  const reduced = applied.filter((f) => f.applied)
+  const basis = reduced.length
+    ? `${got.length} of ${declared.length} expected inputs available, reduced by ${reduced.map((f) => f.key).join(', ')}`
+    : `${got.length} of ${declared.length} expected inputs available`
 
   return {
     value,
+    base,
     band: bandFor(value),
-    basis: `${got.length} of ${declared.length} expected inputs available`,
+    basis,
     inputsPresent: got.map((i) => i.key),
     inputsMissing: missing.map((i) => i.key),
+    factors: applied,
   }
 }
 
@@ -172,12 +258,17 @@ export function computeConfidence(declared, presentKeys, maxConfidence = 1) {
  * @param {boolean|null} [result.sparselyMapped]  true when the area looks
  *        under-mapped in OSM — carried structurally (not only as a missing[]
  *        sentence) so the UI can caveat counts without string-matching prose
+ * @param {Array<{key, reason, multiplier?, cap?}>} [result.confidenceFactors]
+ *        reducing-only adjustments beyond input availability — e.g. the ETL run
+ *        that produced this module's data knew its coverage was incomplete.
+ *        See computeConfidence.
  */
 export function buildEnvelope(module, result) {
   const confidence = computeConfidence(
     module.inputs,
     result.inputsPresent ?? [],
-    module.maxConfidence ?? 1
+    module.maxConfidence ?? 1,
+    result.confidenceFactors ?? []
   )
 
   const facts = result.facts ?? []
