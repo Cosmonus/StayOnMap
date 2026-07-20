@@ -18,3 +18,10 @@ export const adminReviewSchema = z.object({
   status: z.enum(['VERIFIED', 'REJECTED', 'UNDER_REVIEW', 'SUSPENDED']),
   adminNote: z.string().max(500).optional(),
 })
+
+// The property address exactly as printed on the ownership document. Optional
+// (verification predates this field) but bounded: an owner pasting their whole
+// deed into it defeats the comparison it feeds.
+export const submitVerificationSchema = z.object({
+  documentAddress: z.string().trim().min(10).max(300).optional(),
+})
