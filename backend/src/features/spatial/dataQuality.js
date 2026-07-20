@@ -74,6 +74,62 @@ export async function recordQualityReport(report) {
   }
 }
 
+// A known-incomplete fetch cannot claim HIGH confidence. 0.74 sits just under
+// the HIGH band boundary (envelope.js's CONFIDENCE_BANDS) — see coverageFactor
+// for why this is a cap and not a multiplier.
+const INCOMPLETE_COVERAGE_CAP = 0.74
+
+/**
+ * A confidence factor reflecting whether the ETL run behind a dataset actually
+ * covered what it claimed to.
+ *
+ * This is the wire between `DataQualityReport.complete` — which every seeder
+ * has been writing all along — and the number a user reads on a card. Until it
+ * existed, a city whose POI fetch half-failed produced cards indistinguishable
+ * from a city whose fetch succeeded, because input availability only asks "did
+ * this module get *a* POI table", never "was that table complete".
+ *
+ * A CAP rather than a multiplier, deliberately. `complete: false` says the run
+ * knew it fell short; it does not say by how much — one timed-out tile out of
+ * sixteen and fifteen timed-out tiles record identically. Picking a multiplier
+ * would mean inventing that magnitude, which is precisely the authored-number
+ * problem computed confidence exists to avoid. Refusing to claim HIGH is
+ * something we can actually justify.
+ *
+ * A missing report is NOT penalised: the dev database holds 114k POIs seeded
+ * before quality reporting existed, and treating absent bookkeeping as evidence
+ * of bad data would degrade every card until the next re-seed. Absence of a
+ * receipt is not evidence of a bad delivery.
+ *
+ * @param {string} dataset  'poi_index' | 'boundaries' | 'weather_normals'
+ * @param {string|null} [scope]  city, or null for a global run
+ * @returns {Promise<{key, reason, cap}|null>} null when there is nothing to say
+ */
+export async function coverageFactor(dataset, scope = null) {
+  try {
+    const report = await prisma.dataQualityReport.findFirst({
+      where: { dataset, scope: scope ?? null },
+      orderBy: { runAt: 'desc' },
+    })
+    if (!report || report.complete !== false) return null
+
+    return {
+      key: 'coverage',
+      reason:
+        `The last ${dataset.replace(/_/g, ' ')} fetch for ` +
+        `${scope ?? 'this dataset'} did not complete, so some places nearby ` +
+        'are probably missing from our copy of the map.',
+      cap: INCOMPLETE_COVERAGE_CAP,
+    }
+  } catch (err) {
+    // Confidence is a read-path concern; a bookkeeping lookup must never be
+    // what stops a card rendering. No factor means no reduction, which is the
+    // same state as before this function existed.
+    intelError('spatial.coverage_factor_failed', err, { dataset, scope })
+    return null
+  }
+}
+
 /**
  * The most recent run per (dataset, scope) pair.
  *

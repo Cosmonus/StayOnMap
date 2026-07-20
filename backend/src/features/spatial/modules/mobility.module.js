@@ -14,7 +14,7 @@ import { COMMUTE_TARGET, ALL_TYPES } from '../propertyTypes.js'
 import { haversineMeters } from '../../../lib/geohash.js'
 import { fact, PROVENANCE } from '../envelope.js'
 import { nearbyCount, distanceMatrix, OSM_SOURCE, GOOGLE_PLACES_SOURCE, GOOGLE_DM_SOURCE } from '../providers.js'
-import { poisNear, OSM_POI_SOURCE } from '../poiProvider.js'
+import { poisNear, poiConfidenceFactors, OSM_POI_SOURCE, OSM_POI_SOURCE_ID } from '../poiProvider.js'
 // Straight-line distance underestimates a real walk, because streets are not
 // straight. The detour ratio and pace are assumptions, which is why every fact
 // derived from them is ESTIMATED and carries WALK_METHOD to the user. The
@@ -325,12 +325,20 @@ export default {
       }
     }
 
+    // Keyed on where the bus count actually came from: our ETL coverage says
+    // nothing about a Google result, so the fallback path earns no factor.
+    const confidenceFactors = await poiConfidenceFactors(
+      localBus.available ? OSM_POI_SOURCE_ID : 'google-places',
+      city
+    )
+
     return {
       facts,
       assessment: assess({ metro, busStops, facts, operating: Boolean(network?.lines?.length) }),
       missing,
       inputsPresent,
       sources: dedupeSources(sources),
+      confidenceFactors,
     }
   },
 }
