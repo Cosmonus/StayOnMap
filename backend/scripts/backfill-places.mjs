@@ -1,0 +1,120 @@
+// PoiIndex → Place/PlaceSource — the OSM-only first pass of entity resolution.
+//
+// One canonical Place per real-world place, with a PlaceSource row recording
+// OSM's view of it. Conflation uses features/spatial/places.js's match rule,
+// which also self-dedupes OSM's own residual doubles (same shop mapped twice
+// ~30 m apart). Idempotent: PlaceSource is unique on (source, sourceKey), so
+// a re-run skips everything already ingested and only conflates new rows.
+//
+// Dry run by default — prints what it WOULD do. --confirm writes.
+//   node scripts/backfill-places.mjs [--city Bengaluru] [--confirm]
+import 'dotenv/config'
+import { prisma } from '../src/lib/prisma.js'
+import { parseSeedArgs } from '../src/features/spatial/seedArgs.js'
+import { matchPlace } from '../src/features/spatial/places.js'
+
+const { confirm, city: onlyCity } = parseSeedArgs(process.argv.slice(2))
+
+// ~200 m grid so candidate lookup is O(1) per record, not O(n).
+const CELL = 0.002
+const gridKey = (lat, lng) => `${Math.round(lat / CELL)}:${Math.round(lng / CELL)}`
+
+function* neighbours(grid, lat, lng) {
+  const cy = Math.round(lat / CELL)
+  const cx = Math.round(lng / CELL)
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const bucket = grid.get(`${cy + dy}:${cx + dx}`)
+      if (bucket) yield* bucket
+    }
+  }
+}
+
+async function backfillCity(city) {
+  const [pois, existingKeys] = await Promise.all([
+    prisma.poiIndex.findMany({
+      where: { city },
+      select: { osmId: true, category: true, name: true, lat: true, lng: true },
+      orderBy: { osmId: 'asc' }, // deterministic: re-runs conflate in the same order
+    }),
+    prisma.placeSource.findMany({ where: { source: 'osm', place: { city } }, select: { sourceKey: true } }),
+  ])
+  const alreadyIngested = new Set(existingKeys.map((r) => r.sourceKey))
+
+  // Per-category spatial grids of the Places built so far in this run —
+  // conflation only ever compares within a category (the rule's precondition).
+  const grids = new Map()
+  const newPlaces = [] // { place, sourceRows }
+  let attached = 0
+  let skipped = 0
+
+  for (const poi of pois) {
+    if (alreadyIngested.has(poi.osmId)) { skipped++; continue }
+    const record = { name: poi.name, lat: Number(poi.lat), lng: Number(poi.lng) }
+
+    if (!grids.has(poi.category)) grids.set(poi.category, new Map())
+    const grid = grids.get(poi.category)
+
+    const match = matchPlace(record, [...neighbours(grid, record.lat, record.lng)])
+    if (match) {
+      match._sources.push(poi)
+      attached++
+      continue
+    }
+
+    const entry = { ...record, category: poi.category, city, _sources: [poi] }
+    newPlaces.push(entry)
+    const k = gridKey(record.lat, record.lng)
+    if (!grid.has(k)) grid.set(k, [])
+    grid.get(k).push(entry)
+  }
+
+  console.log(
+    `${city}: ${pois.length} PoiIndex rows → ${newPlaces.length} places ` +
+    `(${attached} OSM doubles conflated, ${skipped} already ingested)` +
+    (confirm ? '' : '  [dry run]')
+  )
+  if (!confirm) return
+
+  // Chunked create: one Place per entry, its sources nested. createMany can't
+  // do nested writes, so chunk plain creates inside transactions.
+  const CHUNK = 500
+  for (let i = 0; i < newPlaces.length; i += CHUNK) {
+    const chunk = newPlaces.slice(i, i + CHUNK)
+    await prisma.$transaction(
+      chunk.map((p) =>
+        prisma.place.create({
+          data: {
+            name: p.name,
+            category: p.category,
+            lat: p.lat,
+            lng: p.lng,
+            city: p.city,
+            sources: {
+              create: p._sources.map((s) => ({
+                source: 'osm',
+                sourceKey: s.osmId,
+                name: s.name,
+                lat: s.lat,
+                lng: s.lng,
+                category: s.category,
+              })),
+            },
+          },
+        })
+      )
+    )
+    process.stdout.write(`  wrote ${Math.min(i + CHUNK, newPlaces.length)}/${newPlaces.length}\r`)
+  }
+  if (newPlaces.length) process.stdout.write('\n')
+}
+
+const cities = onlyCity
+  ? [onlyCity]
+  : (await prisma.poiIndex.findMany({ select: { city: true }, distinct: ['city'] })).map((r) => r.city)
+
+for (const city of cities) await backfillCity(city)
+
+const [places, sources] = await Promise.all([prisma.place.count(), prisma.placeSource.count()])
+console.log(`Totals now: ${places} places, ${sources} source records`)
+await prisma.$disconnect()

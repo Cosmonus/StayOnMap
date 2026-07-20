@@ -358,6 +358,53 @@ model AuthSession {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Canonical places — entity resolution across POI datasets
+// ─────────────────────────────────────────────────────────────────
+
+// One row per REAL-WORLD place; PlaceSource holds each dataset's record of
+// it. Exists because the Overture bake-off (docs/overture-bakeoff-2026-07-20)
+// measured 10-64% mutual overlap with PoiIndex — two sources describing
+// overlapping-but-different realities, which is the condition
+// proximityIndex.js set for building this. PoiIndex remains the SERVING
+// table; Place is the conflation layer new sources merge into, and where the
+// future consistency factor gets its measured disagreement from.
+// Deliberately NO PlaceRelation table yet: CellPoiSummary already serves the
+// proximity filter, and columns are promoted when a consumer needs them.
+model Place {
+  id        String   @id @default(cuid())
+  name      String?
+  category  String // poiCategories.js vocabulary
+  lat       Decimal  @db.Decimal(10, 7)
+  lng       Decimal  @db.Decimal(10, 7)
+  city      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sources PlaceSource[]
+
+  @@index([city, category])
+  @@index([category, lat, lng]) // bbox prefilter, same pattern as PoiIndex
+}
+
+model PlaceSource {
+  id         String   @id @default(cuid())
+  placeId    String
+  source     String // 'osm' | 'overture' | a government list later
+  sourceKey  String // the source's own stable id (osmId, Overture GERS id)
+  name       String? // as THIS source spells it — the consistency factor's raw material
+  lat        Decimal? @db.Decimal(10, 7)
+  lng        Decimal? @db.Decimal(10, 7)
+  category   String?
+  confidence Decimal? @db.Decimal(4, 3) // source-asserted (Overture); null for OSM
+  ingestedAt DateTime @default(now())
+
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([source, sourceKey])
+  @@index([placeId])
+}
+
+// ─────────────────────────────────────────────────────────────────
 // Password Reset Tokens
 // ─────────────────────────────────────────────────────────────────
 
