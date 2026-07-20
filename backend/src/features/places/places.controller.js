@@ -1,4 +1,5 @@
 import { ok } from '../../utils/response.js'
+import { pincodeInfo } from '../spatial/pincodeProvider.js'
 import { isWithinIndia } from '../../utils/geo.js'
 import * as service from './places.service.js'
 import * as intelligence from './areaIntelligence.service.js'
@@ -46,5 +47,22 @@ export async function commute(req, res, next) {
     if (!isWithinIndia(lat, lng) || !destination?.trim()) return badCoords(res)
     const data = await intelligence.computeCommute(lat, lng, destination)
     ok(res, data)
+  } catch (err) { next(err) }
+}
+
+// What India Post says a pincode is — for the listing wizard, so an owner sees
+// "560095 - Koramangala VI Bk, Bengaluru, KARNATAKA" the moment they type it,
+// and a typo is caught BEFORE publish instead of by a moderator after.
+// Free: reads the locally-seeded directory, no external call.
+export async function pincode(req, res, next) {
+  try {
+    const code = String(req.params.code ?? '').trim()
+    if (!/^d{6}$/.test(code)) {
+      return res.status(400).json({ success: false, error: 'BAD_PINCODE', message: 'A pincode is six digits' })
+    }
+    const info = await pincodeInfo(code)
+    // available:false = directory not seeded — say so rather than implying the
+    // pincode is unknown. The wizard treats it as "no data", never as a warning.
+    ok(res, info)
   } catch (err) { next(err) }
 }
