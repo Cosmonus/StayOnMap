@@ -43,8 +43,25 @@ async function backfillCity(city) {
 
   // Per-category spatial grids of the Places built so far in this run —
   // conflation only ever compares within a category (the rule's precondition).
+  // SEEDED from the places already in the DB for this city: a resumed run
+  // (an interrupted first pass, or a later second-source ingestion) must
+  // conflate against what exists, or every partner of an already-ingested row
+  // becomes a duplicate Place.
   const grids = new Map()
+  const existingPlaces = await prisma.place.findMany({
+    where: { city },
+    select: { id: true, name: true, category: true, lat: true, lng: true },
+  })
+  for (const p of existingPlaces) {
+    if (!grids.has(p.category)) grids.set(p.category, new Map())
+    const entry = { name: p.name, lat: Number(p.lat), lng: Number(p.lng), _existingId: p.id, _sources: [] }
+    const grid = grids.get(p.category)
+    const k = gridKey(entry.lat, entry.lng)
+    if (!grid.has(k)) grid.set(k, [])
+    grid.get(k).push(entry)
+  }
   const newPlaces = [] // { place, sourceRows }
+  const attachToExisting = [] // sources that conflate onto a DB-existing place
   let attached = 0
   let skipped = 0
 
@@ -57,7 +74,8 @@ async function backfillCity(city) {
 
     const match = matchPlace(record, [...neighbours(grid, record.lat, record.lng)])
     if (match) {
-      match._sources.push(poi)
+      if (match._existingId) attachToExisting.push({ placeId: match._existingId, poi })
+      else match._sources.push(poi)
       attached++
       continue
     }
@@ -110,6 +128,23 @@ async function backfillCity(city) {
     process.stdout.write(`  wrote ${Math.min(i + CHUNK, newPlaces.length)}/${newPlaces.length}\r`)
   }
   if (newPlaces.length) process.stdout.write('\n')
+
+  // Sources that matched a DB-existing place — flat rows, one batched insert.
+  if (attachToExisting.length) {
+    await prisma.placeSource.createMany({
+      data: attachToExisting.map(({ placeId, poi }) => ({
+        placeId,
+        source: 'osm',
+        sourceKey: poi.osmId,
+        name: poi.name,
+        lat: poi.lat,
+        lng: poi.lng,
+        category: poi.category,
+      })),
+      skipDuplicates: true,
+    })
+    console.log(`  attached ${attachToExisting.length} sources to existing places`)
+  }
 }
 
 const cities = onlyCity
