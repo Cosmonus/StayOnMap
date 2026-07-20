@@ -22,12 +22,7 @@ import { assembleRings, ringsToGeometry, bboxOf } from '../src/features/spatial/
 import { CITY_CENTERS, resolveCity } from '../src/config/cityCenters.js'
 import { parseSeedArgs } from '../src/features/spatial/seedArgs.js'
 import { bboxFor } from '../src/features/spatial/tiling.js'
-
-const ENDPOINTS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-]
+import { overpassQuery } from '../src/features/spatial/overpassClient.js'
 
 const REQUEST_TIMEOUT_MS = 240_000
 const DELAY_BETWEEN_LEVELS_MS = 3_000
@@ -45,27 +40,10 @@ const { confirm: CONFIRM, city: ONLY_CITY } = parseSeedArgs(process.argv.slice(2
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-async function overpass(query) {
-  let lastError = null
-  for (const endpoint of ENDPOINTS) {
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'StayOnMap/1.0 (spatial intelligence boundary seed; https://www.stayonmap.com)',
-        },
-        body: new URLSearchParams({ data: query }),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      })
-      if (!res.ok) { lastError = new Error(`${endpoint} → HTTP ${res.status}`); continue }
-      return await res.json()
-    } catch (err) {
-      lastError = err
-    }
-  }
-  throw lastError ?? new Error('all Overpass endpoints failed')
-}
+const overpass = (query) => overpassQuery(query, {
+  userAgent: 'StayOnMap/1.0 (spatial intelligence boundary seed; https://www.stayonmap.com)',
+  timeoutMs: REQUEST_TIMEOUT_MS,
+})
 
 /**
  * Turn one relation into a row, or null if its geometry can't be trusted.
