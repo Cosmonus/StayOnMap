@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { proximitySchema } from './proximityFilter.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
 import { PROPERTY_TYPES, PRICING_MODELS, filterQueryShape } from './filters.registry.js'
 
@@ -255,6 +256,7 @@ export const listQuerySchema = z.object({
   page:      z.coerce.number().int().min(1).default(1),
   limit:     z.coerce.number().int().min(1).max(50).default(20),
   ...filterQueryShape(),
+  ...proximitySchema,
   pricingModel: publicPricingModel,
   swLat:     z.coerce.number().optional(),
   swLng:     z.coerce.number().optional(),
@@ -277,6 +279,7 @@ export const pinsQuerySchema = z.object({
   neLat: clampedTo(6, 38),
   neLng: clampedTo(68, 98),
   ...filterQueryShape(),
+  ...proximitySchema,
   pricingModel: publicPricingModel,
 })
 

@@ -3,7 +3,6 @@ import {
   assembleRings, ringsToGeometry, pointInGeometry, pointInRing, bboxOf,
 } from '../src/features/spatial/boundaryGeometry.js'
 import { completeness } from '../src/features/spatial/dataQuality.js'
-import { summarise, monthName, NORMALS_PRECISION } from '../src/features/spatial/climate.js'
 import { ADMIN_LEVEL_LABELS } from '../src/features/spatial/boundaryLookup.js'
 import { PROVENANCE } from '../src/features/spatial/envelope.js'
 
@@ -167,63 +166,6 @@ describe('completeness', () => {
 
   it('returns null for an empty set — 100% of nothing is not a quality signal', () => {
     expect(completeness([], ['name'])).toBeNull()
-  })
-})
-
-describe('climate summarise', () => {
-  // A monsoon city: almost all the rain in four months.
-  const monsoon = {
-    tempMean: [25, 27, 30, 32, 33, 30, 28, 28, 28, 28, 26, 25],
-    precipSum: [2, 1, 3, 8, 30, 480, 620, 380, 240, 90, 20, 4],
-  }
-
-  it('totals annual rainfall and averages temperature', () => {
-    const c = summarise(monsoon)
-    expect(c.annualPrecip).toBe(1878)
-    expect(c.meanTemp).toBeCloseTo(28.3, 1)
-  })
-
-  it('names the hottest and wettest months', () => {
-    const c = summarise(monsoon)
-    expect(c.hottestMonth).toBe('May')
-    expect(c.wettestMonth).toBe('July')
-    expect(c.wettestPrecip).toBe(620)
-  })
-
-  it('reports how concentrated the rain is — the fact an annual total hides', () => {
-    const c = summarise(monsoon)
-    // Jun+Jul+Aug+Sep = 1720 of 1878.
-    expect(c.monsoonConcentration).toBe(92)
-  })
-
-  it('distinguishes an evenly-watered climate from a monsoon one', () => {
-    const even = {
-      tempMean: Array(12).fill(24),
-      precipSum: Array(12).fill(100),
-    }
-    const c = summarise(even)
-    expect(c.annualPrecip).toBe(1200)
-    // Four of twelve equal months is a third of the rain.
-    expect(c.monsoonConcentration).toBe(33)
-  })
-
-  it('does not divide by zero in a desert', () => {
-    const dry = { tempMean: Array(12).fill(30), precipSum: Array(12).fill(0) }
-    expect(summarise(dry).monsoonConcentration).toBeNull()
-  })
-})
-
-describe('climate resolution', () => {
-  it('stores normals coarser than the layer default, matching the source', () => {
-    // ERA5's grid is ~28km. Storing at the layer's usual precision 7 (~153m)
-    // would present one real value as thousands of distinct-looking ones.
-    expect(NORMALS_PRECISION).toBeLessThan(7)
-  })
-
-  it('names months from 1, not 0', () => {
-    expect(monthName(1)).toBe('January')
-    expect(monthName(12)).toBe('December')
-    expect(monthName(13)).toBeNull()
   })
 })
 

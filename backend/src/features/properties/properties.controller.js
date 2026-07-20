@@ -8,8 +8,15 @@ export async function listProperties(req, res, next) {
   try {
     const pagination = getPaginationParams(req.query)
     const userId = req.user?.id ?? null
-    const { properties, total } = await service.listProperties(req.query, pagination, userId)
-    ok(res, properties, 'OK', buildPaginationMeta(total, pagination.page, pagination.limit))
+    const { properties, total, proximity } = await service.listProperties(req.query, pagination, userId)
+    // `proximity` rides in meta, not in the array. It describes the RESULT SET
+    // — how many listings a proximity filter had to set aside for lack of map
+    // data — and dropping it here would rebuild the silent-exclusion problem
+    // the service went to the trouble of measuring.
+    ok(res, properties, 'OK', {
+      ...buildPaginationMeta(total, pagination.page, pagination.limit),
+      ...(proximity && { proximity }),
+    })
   } catch (err) { next(err) }
 }
 

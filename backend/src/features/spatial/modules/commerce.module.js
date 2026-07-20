@@ -18,9 +18,14 @@ const CATCHMENT = 1500  // the area a small business draws from
 // Businesses that bring people to a street for their own reasons. A shop next
 // to a busy restaurant strip inherits its traffic; one next to a warehouse
 // does not.
-const FOOTFALL_DRIVERS = ['retail', 'restaurant', 'cafe', 'food_cheap', 'supermarket', 'bank', 'atm']
+// `mall` and `marketplace` split out of retail/supermarket 2026-07-20 and added
+// here explicitly — otherwise the audit's fix would have QUIETLY REMOVED them
+// from the footfall count, which is the opposite of what it was for.
+const FOOTFALL_DRIVERS = ['retail', 'mall', 'marketplace', 'restaurant', 'cafe', 'food_cheap', 'supermarket', 'bank', 'atm']
 // Things that put people on the street at a predictable hour.
-const ANCHORS = ['college', 'school', 'hospital', 'railway_station', 'bus_stop']
+// metro_station added alongside railway_station after the 2026-07-20 split —
+// without it the split would have QUIETLY REMOVED metro from the anchor count.
+const ANCHORS = ['college', 'school', 'hospital', 'metro_station', 'railway_station', 'bus_stop']
 
 const DENSITY_METHOD =
   'count of mapped retail, food and banking premises within 300 m — a proxy for ' +
@@ -179,7 +184,7 @@ export default {
 
 const ANCHOR_LABEL = {
   college: 'College', school: 'School', hospital: 'Hospital',
-  railway_station: 'Railway station', bus_stop: 'Bus station',
+  metro_station: 'Metro station', railway_station: 'Railway station', bus_stop: 'Bus station',
 }
 
 const FOOTFALL_NOTE =

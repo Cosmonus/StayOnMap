@@ -37,12 +37,23 @@ export default function HomesInAreaList() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['properties-in-view', params],
-    queryFn: () => propertyService.getList(params).then((r) => r.data),
+    // The whole envelope, not just `.data` — `meta.proximity` says how many
+    // homes a distance filter had to set aside for lack of map data.
+    queryFn: () => propertyService.getList(params),
     enabled: !!params,
   })
 
-  const properties = data ?? []
-  if (!bounds || (!isLoading && properties.length === 0)) return null
+  const properties = data?.data ?? []
+  const unjudged = data?.meta?.proximity?.unknown ?? 0
+  const proximityLabel = data?.meta?.proximity?.label
+
+  // Hiding the panel entirely is right when there is simply nothing here, and
+  // WRONG when a filter set homes aside because we could not judge them: the
+  // list vanishes and the reason vanishes with it. Stay visible in that case
+  // and say so — it is the one moment the user can act on the information, by
+  // widening or clearing the filter.
+  if (!bounds) return null
+  if (!isLoading && properties.length === 0 && unjudged === 0) return null
 
   return (
     <SafeAreaView edges={['bottom']} style={styles.wrap} pointerEvents="box-none">
@@ -76,6 +87,19 @@ export default function HomesInAreaList() {
             ))}
           </View>
         )}
+
+        {/*
+          Homes this filter could not judge either way. Without this, one
+          excluded for lack of map data looks identical to one we measured and
+          rejected — and the owner whose listing vanished is never told why.
+        */}
+        {unjudged > 0 && (
+          <Text style={styles.unjudged}>
+            {unjudged} home{unjudged !== 1 ? 's' : ''} hidden — no map data for
+            {unjudged !== 1 ? ' their areas' : ' its area'} yet, so we can’t tell
+            {unjudged !== 1 ? ' if they’re' : ' if it’s'} within {proximityLabel}.
+          </Text>
+        )}
       </View>
     </SafeAreaView>
   )
@@ -95,4 +119,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: spacing.sm },
   skeletonCard: { flex: 1 },
   skeletonImage: { aspectRatio: 4 / 3, borderRadius: radius.md, backgroundColor: colors.slate100 },
+  // warning700, the same amber the spatial cards use for a caveat — this is a
+  // limitation of our data, not an error and not a neutral aside.
+  unjudged: { fontFamily: fonts.body, fontSize: 11, color: colors.warning700, marginTop: spacing.sm },
 })

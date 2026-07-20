@@ -91,6 +91,37 @@ describe('computeConfidence — the breakdown', () => {
     expect(c.factors[1].applied).toBe(false)
   })
 
+  it('rounding never ratchets a reduction back up', () => {
+    // The regression a "tidier" per-step rounding introduced. Math.round is
+    // half-up, so rounding the running value made `round(0.495) = 0.50` — with
+    // base 0.50 and two ×0.99 factors, every step rounded back to 0.50, BOTH
+    // reductions reported `applied: false`, the basis line stopped mentioning
+    // them, and confidence ended higher than the factors said. A rule enforced
+    // by a throw elsewhere in this file, quietly undone by a rounding mode.
+    const c = computeConfidence([{ key: 'a', weight: 1 }], ['a'], 0.5, [
+      { key: 'x', reason: 'r', multiplier: 0.99 },
+      { key: 'y', reason: 'r', multiplier: 0.99 },
+    ])
+
+    expect(c.base).toBe(0.5)
+    expect(c.value).toBeLessThan(c.base)
+    expect(c.factors.every((f) => f.applied)).toBe(true)
+    expect(c.basis).toMatch(/x/)
+    expect(c.basis).toMatch(/y/)
+  })
+
+  it('reports a continuous chain — each factor starts where the last ended', () => {
+    const c = computeConfidence([{ key: 'a', weight: 1 }], ['a'], 1, [
+      { key: 'x', reason: 'r', multiplier: 0.9 },
+      { key: 'y', reason: 'r', multiplier: 0.9 },
+      { key: 'z', reason: 'r', multiplier: 0.9 },
+    ])
+    for (let i = 1; i < c.factors.length; i++) {
+      expect(c.factors[i].from).toBe(c.factors[i - 1].to)
+    }
+    expect(c.value).toBe(c.factors.at(-1).to)
+  })
+
   it('never pushes a module above its own ceiling', () => {
     // maxConfidence is a hard ceiling for inherently inferential modules; no
     // combination of factors may exceed it, and factors only reduce anyway.

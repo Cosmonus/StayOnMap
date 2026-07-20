@@ -36,6 +36,9 @@ export const PARAM_DEFS = {
   availableBy:    { kind: 'date',   def: '' },
   leaseDurationMax: { kind: 'num',  def: null },
   amenities:      { kind: 'csv',    def: [] },
+  // Straight-line metres to the nearest metro station, from the spatial layer's
+  // per-cell proximity index. Only the three radii the backend allows.
+  nearMetro:      { kind: 'num',    def: null },
   petsAllowed:    { kind: 'bool',   def: false },
   smokingAllowed: { kind: 'bool',   def: false },
   bachelorAllowed:{ kind: 'bool',   def: false },
@@ -253,6 +256,28 @@ export const FILTER_SECTIONS = [
       { kind: 'chips', label: 'Nights you’ll stay', id: 'stayNights', single: true, options: [{ value: 2, label: '2 nights' }, { value: 3, label: '3 nights' }, { value: 7, label: '1 week' }, { value: 30, label: '1 month' }] },
       { kind: 'toggles', items: [{ id: 'instantBook', label: 'Instant booking' }] },
       { kind: 'chips', label: 'Stay features', id: 'amenities', withIcons: true, options: asOptions(['TV', 'Workspace', 'Kitchen', 'AC', 'WiFi', 'Beachfront']) },
+    ],
+  },
+  {
+    // Excluded for LAND deliberately: a plot is bought to build on, and
+    // "walkable to a metro" is a renter's question, not a buyer's.
+    id: 'location', label: 'Getting around', types: [...HOMES, 'PG', 'SHORT_STAY', 'COMMERCIAL'],
+    rows: [
+      {
+        // Labelled in DISTANCE, never in minutes. The number behind it is a
+        // straight line between two points — calling it "a 10 minute walk"
+        // would be the assumption deleted from the backend's proximity.js
+        // wearing a friendlier face. A reader can judge 800 m for themselves;
+        // they cannot judge a walk time we invented.
+        //
+        // Three fixed radii, matching PROXIMITY_RADII on the server.
+        kind: 'chips', label: 'Distance to a metro station', id: 'nearMetro', single: true,
+        options: [
+          { value: 800,  label: 'Within 800 m' },
+          { value: 1500, label: 'Within 1.5 km' },
+          { value: 3000, label: 'Within 3 km' },
+        ],
+      },
     ],
   },
   {

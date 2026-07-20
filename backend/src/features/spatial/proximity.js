@@ -36,18 +36,32 @@ export function formatDistance(meters) {
 }
 
 /**
- * A distance rendered the way a person weighs it: walk time first while
- * walking is realistic, plain distance beyond that.
+ * A distance, rendered plainly.
  *
- *   90   → "about a 2 min walk (90 m)"
- *   420  → "about a 6 min walk (420 m)"
+ *   90   → "90 m away"
+ *   420  → "420 m away"
  *   2300 → "2.3 km away"
+ *
+ * This used to lead with a walk time — "about a 6 min walk (420 m)". It no
+ * longer does, and the reason is worth keeping:
+ *
+ * The distance is real. The minutes were two assumptions stacked on top of it —
+ * a 1.35x detour factor and a 4.8 km/h pace — applied to a STRAIGHT LINE that
+ * may not be walkable at all. In Indian cities that is not a rounding error:
+ * across a rail line, a nullah, or an arterial with no crossing, a 420 m
+ * straight line is a 1.5 km walk. We said six minutes; the truth was twenty.
+ *
+ * A DERIVED fact must not smuggle an estimate into its display. If the value is
+ * measured, the display says the measured thing. An honest metre count a reader
+ * can judge for themselves beats a confident minute count that is wrong exactly
+ * where it matters most.
+ *
+ * Walk time comes back the day a routing engine can MEASURE it (see
+ * docs/spatial-intelligence.md, Phase 3) — as network distance, not arithmetic.
+ * Until then `walkMinutes` survives for facts that are explicitly ESTIMATED and
+ * disclose WALK_METHOD, which is the contract that makes an estimate honest.
  */
 export function walkDisplay(meters) {
-  if (meters <= MAX_WALK_PHRASE_M) {
-    const min = walkMinutes(meters)
-    return `about a ${min} min walk (${formatDistance(meters)})`
-  }
   return `${formatDistance(meters)} away`
 }
 
