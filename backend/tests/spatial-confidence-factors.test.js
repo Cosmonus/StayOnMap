@@ -182,8 +182,13 @@ describe('coverageFactor', () => {
     const f = await coverageFactor('poi_index', 'Chennai')
     expect(f.cap).toBe(0.74)
     expect(bandFor(f.cap)).toBe('MODERATE') // specifically: not HIGH
-    expect(f.reason).toMatch(/did not complete/i)
+    expect(f.reason).toMatch(/didn't finish/i)
     expect(f.reason).toMatch(/Chennai/)
+    // Says what WE failed to do, not what the area lacks. Reading a thin count
+    // as a quiet neighbourhood is our error presented as its character.
+    expect(f.reason).toMatch(/our last download/i)
+    // And no machine vocabulary: `poi_index` is our word, not a user's.
+    expect(f.reason).not.toMatch(/poi_index|poi index/i)
   })
 
   it('says nothing when the run completed', async () => {

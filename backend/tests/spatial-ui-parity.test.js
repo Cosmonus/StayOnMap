@@ -122,6 +122,44 @@ describe('spatial module UI parity', () => {
     }
   })
 
+  // ── Confidence factors ────────────────────────────────────────────────────
+  // The backend reduces confidence for things input availability can't see —
+  // today an incomplete ETL fetch — and returns WHY alongside the number. A
+  // platform that renders only the number shows a score that silently
+  // disagrees with the other platform's, with nothing on screen accounting for
+  // the gap. Same class of drift as the module-order bug above, so it gets the
+  // same treatment.
+  const METERS = [
+    'frontend/src/features/spatial/components/ConfidenceMeter.jsx',
+    'mobile/src/features/spatial/components/ConfidenceMeter.js',
+  ]
+
+  for (const path of METERS) {
+    it(`${path.split('/')[0]} confidence meter renders the reduction reasons`, () => {
+      const source = readFileSync(resolve(ROOT, path), 'utf8')
+
+      expect(
+        source.includes('confidence.factors'),
+        `${path} ignores confidence.factors — the "why" half of the score is ` +
+        'computed and thrown away',
+      ).toBe(true)
+
+      expect(
+        source.includes('applied'),
+        `${path} must filter to factors that actually bit; rendering the inert ` +
+        'ones puts "this changed nothing" on a card',
+      ).toBe(true)
+
+      // Rows predate the factors field, so it is absent (not empty) on old
+      // envelopes. Calling .filter on undefined throws mid-render and blanks
+      // the card the caveat was meant to annotate.
+      expect(
+        source.includes('Array.isArray(confidence.factors)'),
+        `${path} must guard that factors is an array before filtering it`,
+      ).toBe(true)
+    })
+  }
+
   it('the two platforms order modules identically', () => {
     const orderOf = (path) => {
       const source = readFileSync(resolve(ROOT, path), 'utf8')

@@ -27,6 +27,13 @@ export default function ConfidenceMeter({ confidence }) {
   }
   const pct = Math.round((confidence.value ?? 0) * 100)
 
+  // Array-guarded: `confidence` is read out of a raw JSON column, so a row
+  // written before factors existed has no such key at all — and .filter on
+  // undefined throws mid-render, blanking the card it was meant to annotate.
+  const reductions = Array.isArray(confidence.factors)
+    ? confidence.factors.filter((f) => f?.applied && f.reason)
+    : []
+
   return (
     <div className="mt-3 pt-3 border-t border-slate-100">
       <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -48,6 +55,29 @@ export default function ConfidenceMeter({ confidence }) {
       </div>
 
       {confidence.basis && <p className="text-[10px] text-slate-400 mt-1.5">{confidence.basis}</p>}
+
+      {/*
+        Why the score is lower than the inputs alone would give.
+
+        Only the factors that actually bit are rendered. The backend reports the
+        inert ones too — "coverage was complete, so this changed nothing" is
+        useful in an API response and is noise on a card, where every extra line
+        competes with the finding.
+
+        These read as our shortfall, not the area's: "our last download didn't
+        finish" is a different claim from "there is little here", and collapsing
+        them would present our own gap as the neighbourhood's character.
+      */}
+      {reductions.length > 0 && (
+        <ul className="mt-1.5 space-y-1">
+          {reductions.map((f) => (
+            <li key={f.key} className="flex gap-1.5 text-[10px] text-amber-700">
+              <span aria-hidden="true">↓</span>
+              <span>{f.reason}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
