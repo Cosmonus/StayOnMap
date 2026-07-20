@@ -1197,6 +1197,43 @@ model CellPoiSummary {
   @@index([category, nearestM])
 }
 
+// India Post's pincode directory — the ground truth a listing's location
+// claims are checked against.
+//
+// Every location fact on a listing is the OWNER'S claim: address, pincode,
+// state, even where the map pin sits. Nothing verified that pincode 560095 is
+// actually Bengaluru, so a mistyped (or invented) pincode sailed through and a
+// renter searching by area found listings that are not where they say they are.
+//
+// One row per POST OFFICE (~155k), several per pincode — a pincode is a
+// delivery route set, not a polygon, and India publishes no official pincode
+// boundaries. So this table answers "what does India Post say this pincode IS"
+// (offices, district, state), which is exactly what a claim check needs. It
+// deliberately cannot answer "which pincode contains this coordinate" — that
+// would require boundary polygons this data does not honestly support.
+//
+// Seeded by scripts/fetch-pincode-directory.mjs from data.gov.in (free, the
+// same key as CPCB). Pincodes change glacially; yearly refresh is plenty.
+model PincodeDirectory {
+  id         String  @id @default(cuid())
+  pincode    String
+  officeName String
+  officeType String? // 'S.O' | 'B.O' | 'H.O'
+  delivery   Boolean @default(true)
+  taluk      String?
+  division   String?
+  region     String?
+  circle     String?
+  district   String
+  state      String
+  fetchedAt  DateTime @default(now())
+
+  // One row per office per pincode; a re-run updates in place.
+  @@unique([pincode, officeName])
+  // The lookup is always by pincode.
+  @@index([pincode])
+}
+
 // The gap this closes: a partially-failed OSM fetch is currently invisible.
 // The seeder prints a warning to a terminal nobody kept, the table ends up
 // thinner than it should be, and the only symptom is a POI list that looks a

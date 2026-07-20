@@ -65,6 +65,7 @@ export async function scoreFraud(propertyId, extraContext = {}) {
     marketAvgRent:     extraContext.marketAvgRent ?? undefined,
     comparableCount:   extraContext.comparableCount ?? undefined,
     distanceFromCityKm: extraContext.distanceFromCityKm ?? undefined,
+    pincodeFindings:    extraContext.pincodeFindings ?? undefined,
   })
 
   const prompt = `You are the listing-integrity scorer for StayOnMap, an Indian map-first property platform.
@@ -81,6 +82,7 @@ Red flags to weigh:
 - Vague, templated, or copied-sounding description
 - Unresolved fraud signals or HIGH/CRITICAL severity reports already on record
 - Coordinates far from the claimed city (distanceFromCityKm, when provided)
+- Pincode contradictions from India Post ground truth (pincodeFindings, when provided) — an unknown pincode or a wrong-state pincode is a strong integrity signal
 - Zero photos on a listing making strong claims
 Base every signal on the data given — do not invent facts. An unremarkable listing scores low with an empty signals array.
 

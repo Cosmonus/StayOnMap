@@ -9,6 +9,7 @@ import { intelLog, intelError } from '../lib/intelLog.js'
 // Shared with the spatial intelligence layer, which resolves a bare lat/lng to
 // a city the same way. Was duplicated here before features/spatial/ needed it.
 import { CITY_CENTERS, haversineKm } from '../config/cityCenters.js'
+import { checkListingLocation } from '../features/properties/locationCheck.js'
 
 // Average rent across other ACTIVE listings of the same city + type + size
 // (BHK count, or sharing for PGs) — free, uses only our own DB data. Requires
@@ -43,7 +44,10 @@ export async function evaluateListing(propertyId, trigger) {
   try {
     const property = await prisma.property.findUnique({
       where: { id: propertyId },
-      select: { id: true, address: true, lat: true, lng: true, city: true, type: true, bhk: true, sharing: true, pricingModel: true },
+      // `pincode` is here because checkListingLocation reads it — without it the
+      // location check received undefined and silently never ran, which is the
+      // exact "wired but inert" failure this file exists to prevent.
+      select: { id: true, address: true, lat: true, lng: true, city: true, pincode: true, type: true, bhk: true, sharing: true, pricingModel: true },
     })
     if (!property) return
 
@@ -85,6 +89,20 @@ export async function evaluateListing(propertyId, trigger) {
       }
     }
 
+    // Claimed pincode vs India Post, and the pin vs OSM districts. Same
+    // contract as the city-distance check above: null means "could not check"
+    // (directory unseeded, infra down) and is skippable — the one thing this
+    // must never do is take the evaluation down or auto-penalise. High findings
+    // are logged for moderation; everything is handed to the AI as evidence.
+    const location = await checkListingLocation(property)
+    if (location && !location.ok) {
+      intelLog('listing.pincode_mismatch', {
+        propertyId,
+        pincode: property.pincode,
+        findings: location.findings.map((f) => f.code),
+      })
+    }
+
     const benchmark = await getRentBenchmark(property).catch(() => null)
     const ai = await runFraudScan(propertyId, {
       marketAvgRent:   benchmark?.avgRent,
@@ -95,6 +113,9 @@ export async function evaluateListing(propertyId, trigger) {
       // for that listing. The location check is meant to be skippable; it was
       // taking the whole evaluation down with it.
       distanceFromCityKm: outsideCity ? distanceFromCityKm : undefined,
+      pincodeFindings: location?.findings?.length
+        ? location.findings.map((f) => f.message)
+        : undefined,
     })
 
     intelLog('listing.evaluated', {
