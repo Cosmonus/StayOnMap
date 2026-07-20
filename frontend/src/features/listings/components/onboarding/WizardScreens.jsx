@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import { Check, Home } from 'lucide-react'
 import Select from '@components/common/Select'
 import Toggle from '@components/common/Toggle'
@@ -7,6 +8,7 @@ import FieldControl from './FieldControl'
 import AvailabilityCalendar from './AvailabilityCalendar'
 import { CATEGORIES, DESCRIBE, FIELDS, FEATURES, pricingRows, LEASE_CATEGORIES, VERIFY } from '../../config/onboarding.js'
 import { CITIES, CITY_NAMES, CITY_LIST_LABEL } from '@/config/cities'
+import { placesService } from '@services/places.service'
 
 function Head({ kicker, title, sub }) {
   return (
@@ -60,6 +62,53 @@ export function FieldsScreen({ categoryKey, draft, setDraft }) {
   )
 }
 
+// What India Post says the typed pincode is — so a typo dies here, in front of
+// the owner, instead of reaching a moderator after publish.
+//
+// Three states and a deliberate silence:
+//   matches / no city   → the ground truth, quietly confirming
+//   contradicts city    → amber warning naming BOTH places
+//   unknown pincode     → amber, phrased as "double-check" — a typo is far more
+//                         likely than fraud, and this line talks to the owner
+//   directory unseeded  → nothing at all. "We cannot check" must never wear
+//                         the clothes of a warning.
+function PincodeTruth({ pincode, city }) {
+  const valid = /^\d{6}$/.test(pincode ?? '')
+  const { data } = useQuery({
+    queryKey: ['pincode', pincode, city],
+    queryFn: () => placesService.getPincode(pincode, city).then((r) => r.data),
+    enabled: valid,
+    staleTime: 24 * 60 * 60 * 1000, // pincodes change glacially
+  })
+
+  if (!valid || !data || !data.available) return null
+
+  if (!data.found) {
+    return (
+      <p className="text-xs text-amber-700 mt-1.5">
+        India Post has no pincode {pincode} — double-check for a typo.
+      </p>
+    )
+  }
+
+  const office = data.found.offices?.[0]?.name
+  const place = `${data.found.districts.join('/')}, ${data.found.state}`
+
+  if (data.matchesCity === false) {
+    return (
+      <p className="text-xs text-amber-700 mt-1.5">
+        This pincode is in {place} — not {city}. Double-check before publishing.
+      </p>
+    )
+  }
+
+  return (
+    <p className="text-xs text-slate-400 mt-1.5">
+      {office ? `${office} — ` : ''}{place} (India Post)
+    </p>
+  )
+}
+
 export function LocationScreen({ draft, setDraft }) {
   const loc = draft.location
   function set(key, value) { setDraft((d) => ({ ...d, location: { ...d.location, [key]: value } })) }
@@ -84,6 +133,7 @@ export function LocationScreen({ draft, setDraft }) {
           <div className="flex-1">
             <p className="text-xs text-slate-500 mb-1.5">Pincode</p>
             <input value={loc.pincode} onChange={(e) => set('pincode', e.target.value)} placeholder="600028" maxLength={6} className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-slate-400" />
+            <PincodeTruth pincode={loc.pincode} city={loc.city} />
           </div>
         </div>
         <div>

@@ -1,5 +1,6 @@
 import { ok } from '../../utils/response.js'
 import { pincodeInfo } from '../spatial/pincodeProvider.js'
+import { STATE_OF_CITY } from '../../config/cities.js'
 import { isWithinIndia } from '../../utils/geo.js'
 import * as service from './places.service.js'
 import * as intelligence from './areaIntelligence.service.js'
@@ -61,8 +62,21 @@ export async function pincode(req, res, next) {
       return res.status(400).json({ success: false, error: 'BAD_PINCODE', message: 'A pincode is six digits' })
     }
     const info = await pincodeInfo(code)
+
+    // The city verdict is computed HERE, not on the client. Otherwise both
+    // wizards need their own copy of STATE_OF_CITY, and three copies of a
+    // mapping is how the amenity list drifted before it got a checker.
+    //   true  → pincode's state matches the claimed city's state
+    //   false → it does not (the wizard warns)
+    //   null  → no city given, city unknown, or pincode not found
+    const city = String(req.query.city ?? '').trim()
+    const expected = STATE_OF_CITY[city]
+    const matchesCity = info.found && expected
+      ? info.found.state.toUpperCase() === expected
+      : null
+
     // available:false = directory not seeded — say so rather than implying the
     // pincode is unknown. The wizard treats it as "no data", never as a warning.
-    ok(res, info)
+    ok(res, { ...info, matchesCity })
   } catch (err) { next(err) }
 }
