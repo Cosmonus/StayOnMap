@@ -66,6 +66,14 @@ export const FIELDS = {
     { t: 'seg',   k: 'furnished', field: 'furnished', label: 'Furnishing', opts: [['UNFURNISHED', 'Unfurnished'], ['SEMI', 'Semi'], ['FULLY', 'Fully']] },
   ],
   land: [
+    // First, because it changes what every number below MEANS — an advance on a
+    // sale and a deposit on a lease are different commitments.
+    //
+    // `saleOrLease` was a real Property column, a public filter and an admin
+    // filter with no control anywhere that could set it: a listing made through
+    // this wizard always left it null, so the "Sale or lease" filter could never
+    // match anything a user actually created.
+    { t: 'seg', k: 'saleOrLease', field: 'saleOrLease', label: 'Sale or lease?', opts: [['SALE', 'For sale'], ['LEASE', 'For lease']] },
     { t: 'two', k: 'ext', label: 'Extent', a: ['extent', 'Area', '2400'], b: ['extentUnit', 'Unit', 'sq.ft'] },
     { t: 'txt', k: 'dimensions', field: 'dimensions', label: 'Dimensions (L x B)', ph: '40 x 60 ft', suf: '' },
     { t: 'txt', k: 'roadWidth', field: 'roadWidth', label: 'Approach road width', ph: '30', suf: 'ft' },

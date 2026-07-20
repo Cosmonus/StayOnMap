@@ -16,7 +16,7 @@ import { fact, PROVENANCE } from '../envelope.js'
 import { airQuality, OPEN_METEO_SOURCE, ERA5_SOURCE } from '../providers.js'
 import { getNormals, summarise } from '../climate.js'
 import { ALL_TYPES } from '../propertyTypes.js'
-import { nearestStation, stationConfidenceFactor } from '../cpcbProvider.js'
+import { nearestStations, stationConfidenceFactor } from '../cpcbProvider.js'
 import { formatDistance } from '../proximity.js'
 
 // CPCB data is Government of India open data under the National Data Sharing
@@ -73,12 +73,12 @@ export default {
   async compute({ lat, lng }) {
     // Independent upstreams, so one being slow or down must not serialise or
     // sink the other. Either can be null; each missing one lowers confidence.
-    const [aq, normals, station] = await Promise.all([
+    const [aq, normals, stations] = await Promise.all([
       airQuality(lat, lng),
       getNormals(lat, lng),
       // Null whenever there is no data.gov.in key, no feed, or no station
       // within 10 km — which to this module all mean the same thing.
-      nearestStation(lat, lng),
+      nearestStations(lat, lng),
     ])
 
     if (!aq && !normals) {
@@ -206,46 +206,49 @@ export default {
     // away. Naming that is what keeps MEASURED from overclaiming, and
     // `stationConfidenceFactor` grades the score by the same number rather than
     // the module pretending a 25 km reading is a 2 km one.
-    // Tracked separately from `station` being truthy. A station kept in the feed
-    // for its PM10 while its PM2.5 sensor reads 'NA' is routine — 271 of 3416
-    // live rows are 'NA' — and crediting `cpcb_station` for it while emitting no
-    // fact would inflate confidence by 40% and list a government source on a
-    // card carrying nothing from it. Confidence for a measurement the user
-    // never sees is the precise failure this layer exists to prevent.
-    let stationFacts = 0
+    // Each pollutant comes from its own nearest monitor — they are separate
+    // measurements and there is no reason they must share a site. Crediting
+    // `cpcb_station` is gated on a fact actually being EMITTED, not on a station
+    // merely existing: confidence for a measurement the user never sees is the
+    // precise failure this layer exists to prevent.
+    const stationFacts = []
 
-    if (station && station.pm25 != null) {
-      stationFacts++
+    if (stations.pm25) {
+      const s = stations.pm25
+      stationFacts.push(s)
       facts.push(fact({
         key: 'pm25_station',
         label: 'PM2.5 at the nearest monitor',
-        value: station.pm25,
+        value: s.pm25,
         unit: 'µg/m³',
-        display: `${station.pm25} µg/m³ at ${station.name ?? 'the nearest CPCB station'}` +
-          ` — ${formatDistance(station.distanceM)} away`,
+        display: `${s.pm25} µg/m³ at ${s.name ?? 'the nearest CPCB station'}` +
+          ` — ${formatDistance(s.distanceM)} away`,
         provenance: PROVENANCE.MEASURED,
         source: 'cpcb',
-        observedAt: station.observedAt ?? null,
-        at: { lat: station.lat, lng: station.lng },
-        place: station.name ?? undefined,
+        observedAt: s.observedAt ?? null,
+        at: { lat: s.lat, lng: s.lng },
+        place: s.name ?? undefined,
       }))
-
     }
 
-    // NOT nested under the PM2.5 branch. It was, and that silently threw away a
-    // perfectly good measured PM10 whenever the PM2.5 sensor at the same station
-    // was dead.
-    if (station && station.pm10 != null) {
-      stationFacts++
+    if (stations.pm10) {
+      const s = stations.pm10
+      stationFacts.push(s)
       facts.push(fact({
         key: 'pm10_station',
         label: 'PM10 at the nearest monitor',
-        value: station.pm10,
+        value: s.pm10,
         unit: 'µg/m³',
-        display: `${station.pm10} µg/m³ at ${station.name ?? 'the nearest CPCB station'}`,
+        // Names its own distance too: with per-pollutant lookup the two facts
+        // can genuinely come from different places, and a reader comparing them
+        // needs to know that rather than assume one site.
+        display: `${s.pm10} µg/m³ at ${s.name ?? 'the nearest CPCB station'}` +
+          ` — ${formatDistance(s.distanceM)} away`,
         provenance: PROVENANCE.MEASURED,
         source: 'cpcb',
-        observedAt: station.observedAt ?? null,
+        observedAt: s.observedAt ?? null,
+        at: { lat: s.lat, lng: s.lng },
+        place: s.name ?? undefined,
       }))
     }
 
@@ -253,21 +256,22 @@ export default {
     if (aq) inputsPresent.push('air_quality_model')
     if (normals) inputsPresent.push('climate_normals')
     // Gated on a fact actually being emitted, not on a station existing.
-    if (stationFacts > 0) inputsPresent.push('cpcb_station')
+    if (stationFacts.length) inputsPresent.push('cpcb_station')
 
-    // Having a station present raises confidence (a declared input arrived);
-    // its distance then reduces it. Both are true at once, and reporting them
-    // separately is what stops a 40 km reading scoring like a 2 km one.
-    // Same gate: no fact, no credit and no penalty.
-    const confidenceFactors = stationFacts > 0
-      ? [stationConfidenceFactor(station)].filter(Boolean)
-      : []
+    // Graded on the CLOSEST monitor we actually used. With per-pollutant
+    // lookup the two facts can come from different sites, and penalising the
+    // pair by the farther one would understate a reading taken at the door.
+    const closest = stationFacts.reduce(
+      (best, s) => (best === null || s.distanceM < best.distanceM ? s : best),
+      null
+    )
+    const confidenceFactors = [stationConfidenceFactor(closest)].filter(Boolean)
 
     const sources = []
     if (aq) sources.push(OPEN_METEO_SOURCE)
     if (normals) sources.push(ERA5_SOURCE)
     // Only cite a source we actually showed something from.
-    if (stationFacts > 0) sources.push(CPCB_SOURCE)
+    if (stationFacts.length) sources.push(CPCB_SOURCE)
 
     return {
       facts,

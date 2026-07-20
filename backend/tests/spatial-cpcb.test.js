@@ -14,7 +14,7 @@
 // all eleven tests passed while the feature could never have worked.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
-  groupStations, nearestStation, parseLastUpdate, stationConfidenceFactor,
+  groupStations, nearestStations, parseLastUpdate, stationConfidenceFactor,
   resetStationCache,
 } from '../src/features/spatial/cpcbProvider.js'
 import { env } from '../src/config/env.js'
@@ -126,7 +126,7 @@ describe('groupStations', () => {
   })
 })
 
-describe('nearestStation', () => {
+describe('nearestStations', () => {
   const ORIGINAL_KEY = env.dataGovApiKey
 
   const feed = (records) => vi.fn().mockResolvedValue({
@@ -142,16 +142,16 @@ describe('nearestStation', () => {
     // Not a misconfiguration. `cpcb_station` stays absent and confidence
     // reflects that honestly — the documented design, not a degraded one.
     env.dataGovApiKey = null
-    expect(await nearestStation(13.0, 80.2, { fetchImpl: feed(RECORDS) })).toBeNull()
+    expect(await nearestStations(13.0, 80.2, { fetchImpl: feed(RECORDS) })).toEqual({ pm25: null, pm10: null })
     env.dataGovApiKey = 'test-key'
   })
 
   it('picks the closest station', async () => {
     // Just off the real Alandur station's real coordinates.
-    const s = await nearestStation(12.9995, 80.1935, { fetchImpl: feed(RECORDS) })
-    expect(s.name).toMatch(/Alandur/)
-    expect(s.distanceM).toBeLessThan(200)
-    expect(s.pm25).toBe(48)
+    const { pm25 } = await nearestStations(12.9995, 80.1935, { fetchImpl: feed(RECORDS) })
+    expect(pm25.name).toMatch(/Alandur/)
+    expect(pm25.distanceM).toBeLessThan(200)
+    expect(pm25.pm25).toBe(48)
   })
 
   it('still returns a station tens of km away, rather than nothing', async () => {
@@ -159,16 +159,37 @@ describe('nearestStation', () => {
     // kilometres off. Refusing those left the majority of real listings with no
     // reading at all — the wrong shape of honesty, since the distance is known
     // exactly and can grade the claim instead of gating it.
-    const s = await nearestStation(13.15, 80.30, { fetchImpl: feed(RECORDS) })
-    expect(s).not.toBeNull()
-    expect(s.distanceM).toBeGreaterThan(15_000)
+    const { pm25 } = await nearestStations(13.15, 80.30, { fetchImpl: feed(RECORDS) })
+    expect(pm25).not.toBeNull()
+    expect(pm25.distanceM).toBeGreaterThan(15_000)
+  })
+
+  it('resolves each pollutant to its own nearest monitor', async () => {
+    // The reason this returns a pair rather than one station. A single
+    // PM2.5-preferred pick threw away a PM10 monitor at the door in favour of a
+    // PM2.5 reading tens of km away — they are separate measurements and there
+    // is no reason they must share a site.
+    const MIXED = [
+      // 600m away, PM10 only (its PM2.5 sensor is dead)
+      { station: 'Close - PM10 only', latitude: '13.0050', longitude: '80.2700', pollutant_id: 'PM10',  avg_value: '88' },
+      { station: 'Close - PM10 only', latitude: '13.0050', longitude: '80.2700', pollutant_id: 'PM2.5', avg_value: 'NA' },
+      // ~11km away, has PM2.5
+      { station: 'Far - PM2.5',       latitude: '13.1000', longitude: '80.2700', pollutant_id: 'PM2.5', avg_value: '42' },
+    ]
+
+    const { pm25, pm10 } = await nearestStations(13.0000, 80.2700, { fetchImpl: feed(MIXED) })
+
+    expect(pm10.name).toBe('Close - PM10 only')
+    expect(pm10.distanceM).toBeLessThan(1_000)
+    expect(pm25.name).toBe('Far - PM2.5')
+    expect(pm25.distanceM).toBeGreaterThan(5_000)
   })
 
   it('refuses a station in an entirely different airshed', async () => {
     // The outer bound is an identity threshold, not a quality one: Chennai's
     // air says nothing about Mumbai.
-    const s = await nearestStation(19.0760, 72.8777, { fetchImpl: feed(RECORDS) })
-    expect(s).toBeNull()
+    const s = await nearestStations(19.0760, 72.8777, { fetchImpl: feed(RECORDS) })
+    expect(s).toEqual({ pm25: null, pm10: null })
   })
 })
 
@@ -202,7 +223,7 @@ describe('stationConfidenceFactor', () => {
   })
 })
 
-describe('nearestStation — failure handling', () => {
+describe('nearestStations — failure handling', () => {
   const ORIGINAL_KEY = env.dataGovApiKey
   const feed = (records) => vi.fn().mockResolvedValue({
     ok: true, status: 200, json: async () => ({ records }),
@@ -215,18 +236,18 @@ describe('nearestStation — failure handling', () => {
 
   it('returns null rather than throwing when the API fails', async () => {
     const fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 503, json: async () => ({}) })
-    await expect(nearestStation(13.0, 80.2, { fetchImpl })).resolves.toBeNull()
+    await expect(nearestStations(13.0, 80.2, { fetchImpl })).resolves.toEqual({ pm25: null, pm10: null })
   })
 
   it('returns null when a 200 response parses to zero stations', async () => {
     // The schema-drift case. An empty list must not be cached and served as
     // "no stations in India" for an hour.
-    await expect(nearestStation(13.0, 80.2, { fetchImpl: feed([{ x: 1 }]) })).resolves.toBeNull()
+    await expect(nearestStations(13.0, 80.2, { fetchImpl: feed([{ x: 1 }]) })).resolves.toEqual({ pm25: null, pm10: null })
   })
 
   it('ignores nonsense coordinates from the caller', async () => {
-    expect(await nearestStation(undefined, 80.2, { fetchImpl: feed(RECORDS) })).toBeNull()
-    expect(await nearestStation(13.0, null, { fetchImpl: feed(RECORDS) })).toBeNull()
+    expect(await nearestStations(undefined, 80.2, { fetchImpl: feed(RECORDS) })).toEqual({ pm25: null, pm10: null })
+    expect(await nearestStations(13.0, null, { fetchImpl: feed(RECORDS) })).toEqual({ pm25: null, pm10: null })
   })
 
   it('keeps answering from cache through an outage, rather than going dark', async () => {
@@ -235,12 +256,12 @@ describe('nearestStation — failure handling', () => {
     // the staleness is visible rather than hidden. Asserted here so a future
     // change to the memo has to argue with a test instead of a comment.
     const good = feed(RECORDS)
-    expect(await nearestStation(12.9995, 80.1935, { fetchImpl: good })).not.toBeNull()
+    expect((await nearestStations(12.9995, 80.1935, { fetchImpl: good })).pm25).not.toBeNull()
 
     const dead = vi.fn().mockRejectedValue(new Error('data.gov.in down'))
-    const s = await nearestStation(12.9995, 80.1935, { fetchImpl: dead })
-    expect(s).not.toBeNull()
-    expect(s.pm25).toBe(48)
+    const { pm25 } = await nearestStations(12.9995, 80.1935, { fetchImpl: dead })
+    expect(pm25).not.toBeNull()
+    expect(pm25.pm25).toBe(48)
     // And it did not even try — the memo short-circuits before the fetch.
     expect(dead).not.toHaveBeenCalled()
   })
@@ -251,7 +272,7 @@ describe('nearestStation — failure handling', () => {
     // downloads of a free government service — the behaviour that gets a key
     // blocked rather than throttled.
     const fetchImpl = feed(RECORDS)
-    for (let i = 0; i < 5; i++) await nearestStation(12.9995, 80.1935, { fetchImpl })
+    for (let i = 0; i < 5; i++) await nearestStations(12.9995, 80.1935, { fetchImpl })
     expect(fetchImpl).toHaveBeenCalledTimes(1)
   })
 })

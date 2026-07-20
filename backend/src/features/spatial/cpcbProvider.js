@@ -288,26 +288,30 @@ function rememberFailure() {
  *          all of which mean the same thing to a caller: leave `cpcb_station`
  *          absent and let confidence reflect that.
  */
-export async function nearestStation(lat, lng, { fetchImpl } = {}) {
-  if (typeof lat !== 'number' || typeof lng !== 'number') return null
+export async function nearestStations(lat, lng, { fetchImpl } = {}) {
+  const none = { pm25: null, pm10: null }
+  if (typeof lat !== 'number' || typeof lng !== 'number') return none
 
   const stations = await nationalFeed(fetchImpl)
-  if (!stations?.length) return null
+  if (!stations?.length) return none
 
-  // Nearest station that carries the reading we actually want, NOT nearest
-  // station full stop.
+  // Resolved INDEPENDENTLY per pollutant, not once per property.
   //
   // A station is kept in the feed if it has EITHER particulate, and 271 of 3416
-  // live rows read 'NA' — so a dead PM2.5 sensor at an otherwise healthy site is
-  // routine. Picking on distance alone meant one dead sensor 3 km away silently
-  // discarded a real PM2.5 reading 4 km away, and PM2.5 is the headline: it
-  // drives the band, the assessment label, everything the user reads.
+  // live rows read 'NA' — so a dead sensor at an otherwise healthy site is
+  // routine, not an edge case. Two earlier versions of this both lost real
+  // data: picking on distance alone let one dead PM2.5 sensor 3 km away
+  // discard a real reading 4 km away, and then picking a single
+  // PM2.5-preferred station meant a PM10 monitor 600 m from the door was
+  // thrown away in favour of a PM2.5 reading 45 km off.
   //
-  // PM2.5 first, PM10 only as a fallback, because a card with PM10 alone is
-  // still worth more than a card with nothing.
-  const withPm25 = pickNearestWith(stations, lat, lng, 'pm25')
-  if (withPm25) return withPm25
-  return pickNearestWith(stations, lat, lng, 'pm10')
+  // Each fact should come from the closest instrument that actually measured
+  // the thing the fact is about. They are separate measurements; there is no
+  // reason they must share a site.
+  return {
+    pm25: pickNearestWith(stations, lat, lng, 'pm25'),
+    pm10: pickNearestWith(stations, lat, lng, 'pm10'),
+  }
 }
 
 /** Nearest station carrying a non-null `field`, within the airshed bound. */

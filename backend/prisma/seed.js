@@ -199,6 +199,20 @@ const PROPERTIES = [
   // geohash-7 cell and intelligence.service.js sanity-checks coordinates against
   // the stated city. A plausible-looking made-up point lands in a cell with no
   // POIs and looks like a bug in the layer rather than a bug in the fixture.
+  //
+  // NOTE ON `rules`: these fixtures deliberately carry NONE, except the PG,
+  // which carries only `genderPreference`. That is exactly what the wizard
+  // produces — `buildPayload` sets `payload.rules` only when
+  // `fields.genderPreference` exists, and that field appears only in
+  // FIELDS.pg. So a real APARTMENT / LAND / COMMERCIAL / SHORT_STAY listing has
+  // `rules === null`.
+  //
+  // The older fixtures above set six or seven rule booleans each, which no
+  // listing created through the product can have. That made the seed exercise a
+  // state production cannot reach while NEVER exercising `rules === null` — the
+  // state the property page actually hits for nearly every listing. The gap is
+  // real and worth closing in the wizard; until it is, the fixtures should show
+  // what the product does, not what the schema permits.
 
   // ── Mumbai ─────────────────────────────────────────────────────────────
   {
@@ -216,7 +230,6 @@ const PROPERTIES = [
       { url: 'https://placehold.co/800x600/7c2d12/ffffff?text=Linking+Road+Shop', isPrimary: true, order: 0 },
       { url: 'https://placehold.co/800x600/9a3412/ffffff?text=Shopfront', isPrimary: false, order: 1 },
     ],
-    rules: { smokingAllowed: false, petsAllowed: false, bachelorAllowed: true, familyPreferred: false, visitorsAllowed: true, nonVegAllowed: true, genderPreference: 'ANY' },
   },
   {
     title: 'Studio near Powai Lake',
@@ -233,7 +246,6 @@ const PROPERTIES = [
       { url: 'https://placehold.co/800x600/0c4a6e/ffffff?text=Powai+Studio', isPrimary: true, order: 0 },
       { url: 'https://placehold.co/800x600/075985/ffffff?text=Lake+View', isPrimary: false, order: 1 },
     ],
-    rules: { smokingAllowed: false, petsAllowed: false, bachelorAllowed: true, familyPreferred: true, visitorsAllowed: false, nonVegAllowed: true, genderPreference: 'ANY' },
   },
 
   // ── Pune ───────────────────────────────────────────────────────────────
@@ -255,7 +267,6 @@ const PROPERTIES = [
       { url: 'https://placehold.co/800x600/365314/ffffff?text=Baner+Plot', isPrimary: true, order: 0 },
       { url: 'https://placehold.co/800x600/4d7c0f/ffffff?text=Road+Frontage', isPrimary: false, order: 1 },
     ],
-    rules: { smokingAllowed: true, petsAllowed: true, bachelorAllowed: true, familyPreferred: false, visitorsAllowed: true, nonVegAllowed: true, genderPreference: 'ANY' },
   },
   {
     title: '3 BHK in Hinjawadi Phase 1',
@@ -271,7 +282,6 @@ const PROPERTIES = [
       { url: 'https://placehold.co/800x600/1e3a8a/ffffff?text=Hinjawadi+3BHK', isPrimary: true, order: 0 },
       { url: 'https://placehold.co/800x600/1d4ed8/ffffff?text=Living+Room', isPrimary: false, order: 1 },
     ],
-    rules: { smokingAllowed: false, petsAllowed: true, bachelorAllowed: true, familyPreferred: true, visitorsAllowed: true, nonVegAllowed: true, genderPreference: 'ANY' },
   },
 
   // ── Kolkata ────────────────────────────────────────────────────────────
@@ -289,7 +299,6 @@ const PROPERTIES = [
       { url: 'https://placehold.co/800x600/581c87/ffffff?text=Ballygunge+3BHK', isPrimary: true, order: 0 },
       { url: 'https://placehold.co/800x600/6b21a8/ffffff?text=Verandah', isPrimary: false, order: 1 },
     ],
-    rules: { smokingAllowed: false, petsAllowed: true, bachelorAllowed: false, familyPreferred: true, visitorsAllowed: true, nonVegAllowed: true, genderPreference: 'ANY' },
   },
   {
     title: 'Ladies PG in Salt Lake Sector V',
@@ -306,7 +315,10 @@ const PROPERTIES = [
       { url: 'https://placehold.co/800x600/831843/ffffff?text=Salt+Lake+PG', isPrimary: true, order: 0 },
       { url: 'https://placehold.co/800x600/9d174d/ffffff?text=Twin+Room', isPrimary: false, order: 1 },
     ],
-    rules: { smokingAllowed: false, petsAllowed: false, bachelorAllowed: true, familyPreferred: false, visitorsAllowed: false, nonVegAllowed: true, genderPreference: 'FEMALE', curfewTime: '22:00' },
+    // Exactly what the wizard writes for a PG, and nothing more: `buildPayload`
+    // sets `rules` to `{ genderPreference }` alone. `curfewTime` and the
+    // booleans have no control anywhere in the flow.
+    rules: { genderPreference: 'FEMALE' },
   },
 
   // ── Ahmedabad ──────────────────────────────────────────────────────────
@@ -328,7 +340,6 @@ const PROPERTIES = [
     images: [
       { url: 'https://placehold.co/800x600/3f6212/ffffff?text=Sanand+Farmland', isPrimary: true, order: 0 },
     ],
-    rules: { smokingAllowed: true, petsAllowed: true, bachelorAllowed: true, familyPreferred: false, visitorsAllowed: true, nonVegAllowed: true, genderPreference: 'ANY' },
   },
   {
     title: '2 BHK in Prahlad Nagar',
@@ -343,7 +354,6 @@ const PROPERTIES = [
     images: [
       { url: 'https://placehold.co/800x600/155e75/ffffff?text=Prahlad+Nagar+2BHK', isPrimary: true, order: 0 },
     ],
-    rules: { smokingAllowed: false, petsAllowed: false, bachelorAllowed: true, familyPreferred: true, visitorsAllowed: true, nonVegAllowed: false, genderPreference: 'ANY' },
   },
 
   // ── Surat ──────────────────────────────────────────────────────────────
@@ -364,7 +374,6 @@ const PROPERTIES = [
     images: [
       { url: 'https://placehold.co/800x600/1e293b/ffffff?text=Vesu+Office', isPrimary: true, order: 0 },
     ],
-    rules: { smokingAllowed: false, petsAllowed: false, bachelorAllowed: true, familyPreferred: false, visitorsAllowed: true, nonVegAllowed: true, genderPreference: 'ANY' },
   },
   {
     title: '3 BHK in Adajan',
@@ -379,7 +388,6 @@ const PROPERTIES = [
     images: [
       { url: 'https://placehold.co/800x600/7f1d1d/ffffff?text=Adajan+3BHK', isPrimary: true, order: 0 },
     ],
-    rules: { smokingAllowed: false, petsAllowed: false, bachelorAllowed: false, familyPreferred: true, visitorsAllowed: true, nonVegAllowed: false, genderPreference: 'ANY' },
   },
 ]
 
@@ -478,7 +486,10 @@ async function main() {
             .filter(n => amenityMap[n])
             .map(n => ({ amenityId: amenityMap[n] })),
         },
-        rules: { create: rules },
+        // Conditional, because most fixtures now deliberately have none — see
+        // the note above the new listings. `rules: { create: undefined }` is a
+        // Prisma error, not a no-op.
+        ...(rules && { rules: { create: rules } }),
         // Seed a basic trust score so TrustBadge renders
         trustScore: {
           create: {
