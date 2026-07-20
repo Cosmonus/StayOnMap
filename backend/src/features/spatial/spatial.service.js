@@ -15,6 +15,7 @@ import { resolveCity } from '../../config/cityCenters.js'
 import { modulesFor, isStale, MODULES_BY_KEY } from './registry.js'
 import { buildEnvelope, unavailableEnvelope } from './envelope.js'
 import { reanchorModules } from './reanchor.js'
+import { refreshCellProximity, FILTERABLE_POI_CATEGORIES } from './proximityIndex.js'
 
 // Redis sits in front of Postgres purely to absorb read bursts (a popular
 // listing, a map pan). Short TTL — the durable copy is the table, and a stale
@@ -178,6 +179,13 @@ export async function materialize(geohash, propertyType = null) {
     })
 
     await cacheSet(readCacheKey(geohash), { v: modules }, READ_CACHE_TTL_S)
+
+    // Promote the handful of proximity numbers a filter can use out of the
+    // envelopes' JSON and into queryable columns. Awaited rather than
+    // fire-and-forget so the summary can never describe a different moment than
+    // the envelopes it was derived from; it is one indexed read plus a few
+    // upserts, and refreshCellProximity swallows its own failures.
+    await refreshCellProximity(geohash, cell, FILTERABLE_POI_CATEGORIES)
 
     intelLog('spatial.cell_materialized', {
       geohash,
