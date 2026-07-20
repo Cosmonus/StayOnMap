@@ -1,0 +1,11 @@
+# OSRM serving container — the graph is prebuilt by setup-osrm.sh; this only
+# serves it. MLD algorithm matches the partition/customize steps in setup.
+services:
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:v6.0.0
+    command: osrm-routed --algorithm mld --max-table-size 200 /data/cities.osrm
+    volumes:
+      - /data:/data
+    ports:
+      - "5000:5000"
+    restart: always
