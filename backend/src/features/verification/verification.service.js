@@ -1,15 +1,25 @@
 import { prisma } from '../../lib/prisma.js'
 import { recalculateRiskScore } from '../trust/trust.service.js'
 import { notifyUser } from '../notifications/notifications.service.js'
+import { compareAddresses } from './addressMatch.js'
 
-export async function submitVerification(ownerId, propertyId) {
+export async function submitVerification(ownerId, propertyId, { documentAddress } = {}) {
   const property = await prisma.property.findUnique({ where: { id: propertyId, ownerId } })
   if (!property) throw Object.assign(new Error('Property not found or access denied'), { statusCode: 404 })
-  return prisma.ownershipVerification.upsert({
+
+  const verification = await prisma.ownershipVerification.upsert({
     where: { propertyId },
-    create: { propertyId, ownerId, status: 'PENDING' },
-    update: { status: 'PENDING', adminNote: null },
+    create: { propertyId, ownerId, status: 'PENDING', documentAddress: documentAddress ?? null },
+    update: { status: 'PENDING', adminNote: null, ...(documentAddress !== undefined && { documentAddress }) },
   })
+
+  // Computed and RETURNED, not stored: the owner sees a pincode contradiction
+  // in the submit response — while they can still fix the listing or pick the
+  // right document — instead of discovering it as a rejection days later. Not
+  // persisted because the listing address can change after submission, and a
+  // stored verdict would then describe an address that no longer exists.
+  const addressMatch = await compareAddresses(property, documentAddress).catch(() => null)
+  return { ...verification, addressMatch }
 }
 
 export async function addDocument(ownerId, propertyId, data) {
@@ -19,19 +29,32 @@ export async function addDocument(ownerId, propertyId, data) {
 }
 
 export async function getVerificationStatus(ownerId, propertyId) {
-  const v = await prisma.ownershipVerification.findUnique({ where: { propertyId }, include: { documents: true } })
+  const v = await prisma.ownershipVerification.findUnique({ where: { propertyId }, include: { documents: true, property: { select: { address: true, pincode: true, city: true } } } })
   if (!v || v.ownerId !== ownerId) throw Object.assign(new Error('Not found'), { statusCode: 404 })
-  return v
+  const { property, ...rest } = v
+  // Fresh against the CURRENT listing address — see submitVerification.
+  const addressMatch = await compareAddresses(property, v.documentAddress).catch(() => null)
+  return { ...rest, addressMatch }
 }
 
 export async function adminListVerifications({ status, page = 1, limit = 20 }) {
   const where = status ? { status } : {}
   const skip = (page - 1) * limit
   const [verifications, total] = await Promise.all([
-    prisma.ownershipVerification.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' }, include: { property: { select: { id: true, title: true, city: true } }, documents: true } }),
+    // address + pincode included so the reviewer sees the listing's claim next
+    // to the owner's declaration — the whole point of collecting it.
+    prisma.ownershipVerification.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' }, include: { property: { select: { id: true, title: true, city: true, address: true, pincode: true } }, documents: true } }),
     prisma.ownershipVerification.count({ where }),
   ])
-  return { verifications, total, page, limit }
+  // Verification is admin judgement by design (docs/verification.md). The
+  // comparison upgrades the evidence on the table, never the decision: the
+  // reviewer gets listing address, declared document address, and a
+  // deterministic verdict side by side, and still reads the document.
+  const withMatch = await Promise.all(verifications.map(async (v) => ({
+    ...v,
+    addressMatch: await compareAddresses(v.property, v.documentAddress).catch(() => null),
+  })))
+  return { verifications: withMatch, total, page, limit }
 }
 
 export async function adminReviewVerification(verificationId, adminId, { status, adminNote }) {
