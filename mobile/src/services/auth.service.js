@@ -11,4 +11,15 @@ export const authService = {
   requestLoginOtp: (data) => api.post('/auth/otp/request', data),
   verifyLoginOtp: (data) => api.post('/auth/otp/verify', data),
   logout: (data) => api.post('/auth/logout', data),
+  logoutAll: () => api.post('/auth/logout-all'),
+  getSessions: () => api.get('/auth/sessions'),
+  revokeSession: (id) => api.delete(`/auth/sessions/${id}`),
+
+  // Social login. Sign-in itself is a system-browser navigation (see
+  // SocialLoginButtons) — these are the XHR halves of the flow.
+  getOAuthProviders: () => api.get('/auth/oauth/providers'),
+  completeOAuthSignup: (data) => api.post('/auth/oauth/complete', data),
+  getLinkedAccounts: () => api.get('/auth/linked-accounts'),
+  startLinkProvider: (provider) => api.post(`/auth/oauth/${provider}/link`, { platform: 'mobile' }),
+  unlinkProvider: (provider) => api.delete(`/auth/oauth/${provider}`),
 }

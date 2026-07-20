@@ -14,6 +14,8 @@ import EditProfileSheet from '@features/profile/components/EditProfileSheet'
 import SocialLinksSheet from '@features/profile/components/SocialLinksSheet'
 import PrivacySheet from '@features/profile/components/PrivacySheet'
 import DeleteAccountSheet from '@features/profile/components/DeleteAccountSheet'
+import LinkedAccountsSheet from '@features/profile/components/LinkedAccountsSheet'
+import DevicesSheet from '@features/profile/components/DevicesSheet'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -223,6 +225,18 @@ export default function SettingsScreen({ navigation }) {
           hint="We will email you a reset link"
           onPress={() => !sendingReset && sendPasswordReset()}
         />
+        <MenuItem
+          icon="link"
+          label="Linked accounts"
+          hint="Google, Facebook, LinkedIn, X sign-in"
+          onPress={() => setActiveSheet('linked')}
+        />
+        <MenuItem
+          icon="phone"
+          label="Devices"
+          hint="See where you're signed in"
+          onPress={() => setActiveSheet('devices')}
+        />
         {!isOwner && (
           <MenuItem
             icon="home"
@@ -250,6 +264,8 @@ export default function SettingsScreen({ navigation }) {
       <SocialLinksSheet visible={activeSheet === 'social'} onClose={() => setActiveSheet(null)} settings={settings} />
       <PrivacySheet visible={activeSheet === 'privacy'} onClose={() => setActiveSheet(null)} settings={settings} />
       <DeleteAccountSheet visible={activeSheet === 'delete'} onClose={() => setActiveSheet(null)} />
+      <LinkedAccountsSheet visible={activeSheet === 'linked'} onClose={() => setActiveSheet(null)} />
+      <DevicesSheet visible={activeSheet === 'devices'} onClose={() => setActiveSheet(null)} />
     </SafeAreaView>
   )
 }

@@ -63,15 +63,18 @@ async function popState(nonce) {
 
 /**
  * @param {string} providerKey
- * @param {{ purpose: 'login'|'link', userId?: string }} opts — `link` carries
- *   the already-authenticated user the callback should attach to.
+ * @param {{ purpose: 'login'|'link', userId?: string, platform?: 'web'|'mobile' }} opts —
+ *   `link` carries the already-authenticated user the callback should attach
+ *   to; `platform` picks where the callback lands the result (the web app or
+ *   the mobile deep link). It rides in the SIGNED state, never as a
+ *   client-supplied redirect URL — both destinations are hardcoded server-side.
  */
-export async function beginOAuth(providerKey, { purpose = 'login', userId = null } = {}) {
+export async function beginOAuth(providerKey, { purpose = 'login', userId = null, platform = 'web' } = {}) {
   const provider = getProvider(providerKey)
   if (!provider) throw badRequest('This sign-in method is not available')
 
   const nonce = crypto.randomBytes(24).toString('hex')
-  const state = { provider: provider.key, purpose, userId }
+  const state = { provider: provider.key, purpose, userId, platform: platform === 'mobile' ? 'mobile' : 'web' }
 
   const params = new URLSearchParams({
     response_type: 'code',
@@ -157,7 +160,19 @@ export async function handleCallback(providerKey, { code, state: nonce }, ctx = 
   if (!state || state.provider !== provider.key) {
     throw badRequest('This sign-in attempt expired — please try again')
   }
+  const platform = state.platform ?? 'web'
 
+  try {
+    return { platform, ...(await resolveCallback(provider, state, code, ctx)) }
+  } catch (err) {
+    // The controller needs the platform even on failure — a mobile user's
+    // error must land back in the app, not on the web page.
+    err.oauthPlatform = platform
+    throw err
+  }
+}
+
+async function resolveCallback(provider, state, code, ctx) {
   const accessToken = await exchangeCode(provider, String(code), state.verifier)
   const profile = await fetchProfile(provider, accessToken)
 
