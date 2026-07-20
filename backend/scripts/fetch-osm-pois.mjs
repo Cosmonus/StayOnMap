@@ -26,7 +26,7 @@ import { prisma } from '../src/lib/prisma.js'
 import { removeStalePois, invalidateCityCells } from '../src/features/spatial/seedMaintenance.js'
 import { recordQualityReport, completeness } from '../src/features/spatial/dataQuality.js'
 import { CITY_CENTERS, resolveCity } from '../src/config/cityCenters.js'
-import { categoryFor, overpassClauses, CATEGORY_KEYS } from '../src/features/spatial/poiCategories.js'
+import { classify, overpassClauses, CATEGORY_KEYS } from '../src/features/spatial/poiCategories.js'
 import { parseSeedArgs } from '../src/features/spatial/seedArgs.js'
 import { bboxFor, tiles } from '../src/features/spatial/tiling.js'
 import { overpassQuery } from '../src/features/spatial/overpassClient.js'
@@ -61,8 +61,9 @@ const overpass = (query) => overpassQuery(query, {
 function elementsToRows(elements) {
   const rows = []
   for (const el of elements) {
-    const category = categoryFor(el.tags ?? {})
-    if (!category) continue
+    const match = classify(el.tags ?? {})
+    if (!match) continue
+    const { category, sourceTag } = match
 
     // Ways and relations come back with a `center` because the query asks for
     // `out center`. Nodes carry lat/lng directly.
@@ -82,6 +83,10 @@ function elementsToRows(elements) {
     rows.push({
       osmId: `${el.type}/${el.id}`,
       category,
+      // Which OSM tag produced this category. Makes a suspected mis-mapping
+      // measurable against stored rows instead of requiring a re-fetch to
+      // investigate — see PoiIndex.sourceTag.
+      sourceTag,
       name: el.tags?.name ?? null,
       // Straight from OSM where a mapper recorded them — sparse, and shown to
       // users only when present. brand falls back to operator so "ICICI"
@@ -115,7 +120,8 @@ async function writeRows(rows) {
       where: { osmId: row.osmId },
       create: { ...row, fetchedAt },
       update: {
-        category: row.category, name: row.name, brand: row.brand,
+        category: row.category, sourceTag: row.sourceTag,
+        name: row.name, brand: row.brand,
         openingHours: row.openingHours, lat: row.lat, lng: row.lng,
         city: row.city, fetchedAt,
       },

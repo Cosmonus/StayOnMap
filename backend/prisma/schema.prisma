@@ -1076,6 +1076,18 @@ model PoiIndex {
   // place instead of duplicating the whole dataset.
   osmId    String  @unique
   category String // normalised to the spatial layer's own vocabulary, not raw OSM tags
+  // The OSM tag this row was classified FROM, e.g. "leisure=garden".
+  //
+  // Without it the mapping is lossy and irreversible: a park row could have come
+  // from leisure=park or leisure=garden, and nothing in the database can say
+  // which — so a suspected mis-mapping cannot be measured, and correcting one
+  // means re-fetching the country rather than reclassifying in place. That is
+  // not theoretical; this vocabulary has already mis-grouped school/college and
+  // restaurant/fast_food, and each fix cost a full re-seed.
+  //
+  // Nullable because rows seeded before this column exist and are not worth
+  // discarding — null means "seeded before we recorded this", not "no tag".
+  sourceTag String?
   name     String?
   // Straight from OSM tags where a mapper recorded them — sparse in India and
   // shown only when present, never inferred. brand falls back to operator
