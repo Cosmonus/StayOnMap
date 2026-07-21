@@ -25,7 +25,7 @@ function buildLabel(area) {
       background:white;border:1px solid #e2e8f0;
       border-radius:999px;padding:3px 10px 3px 7px;
       box-shadow:0 2px 8px rgba(0,0,0,0.12);
-      font-family:Inter,sans-serif;font-size:11px;font-weight:600;
+      font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:600;
       color:#1e293b;white-space:nowrap;
       transition:box-shadow 0.15s,transform 0.15s;
     ">
