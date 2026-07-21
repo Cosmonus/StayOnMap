@@ -138,7 +138,7 @@ function WriteReviewForm({ propertyId, onCancel, onSuccess }) {
       {/* Ratings */}
       <div>
         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Rate each category</p>
-        <div className="grid grid-cols-2 gap-x-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
           {Object.entries(RATING_LABELS).map(([key, label]) => (
             <RatingRow key={key} label={label} value={form[key]} onChange={v => setRating(key, v)} />
           ))}

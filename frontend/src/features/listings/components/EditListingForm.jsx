@@ -235,7 +235,7 @@ export default function EditListingForm({ property, onSuccess }) {
             </Field>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Field label="Unit Floor" error={errors.floor} hint="Which floor is this unit on?">
               <input type="number" min="0" max="200" value={data.floor} onChange={e => set('floor', e.target.value)} placeholder="4" className="input" />
             </Field>
@@ -253,7 +253,7 @@ export default function EditListingForm({ property, onSuccess }) {
           </div>
 
           <SectionHeading>Pricing</SectionHeading>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Field label="Rent / mo (₹) *" error={errors.rent}>
               <input type="number" min="0" value={data.rent} onChange={e => set('rent', e.target.value)} placeholder="28000" className="input" />
             </Field>
