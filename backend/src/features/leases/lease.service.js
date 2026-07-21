@@ -3,7 +3,9 @@ import { notifyUser } from '../notifications/notifications.service.js'
 import { awardPoints } from '../points/points.service.js'
 
 const LEASE_INCLUDE = {
-  property: { select: { id: true, title: true, city: true, rent: true, images: { where: { isPrimary: true }, take: 1 } } },
+  // landmark feeds the "I'm home" share card's area line — area + city is all
+  // the card may carry (docs/points-and-sharing.md §4)
+  property: { select: { id: true, title: true, city: true, landmark: true, rent: true, images: { where: { isPrimary: true }, take: 1 } } },
   tenant:   { select: { id: true, name: true, email: true, avatarUrl: true } },
   owner:    { select: { id: true, name: true, email: true, avatarUrl: true } },
 }
