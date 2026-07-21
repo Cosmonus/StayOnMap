@@ -7,7 +7,7 @@ import LocationPicker from '../LocationPicker'
 import FieldControl from './FieldControl'
 import AvailabilityCalendar from './AvailabilityCalendar'
 import Icon from '@components/common/Icon'
-import { CATEGORIES, DESCRIBE, FIELDS, FEATURES, pricingRows, LEASE_CATEGORIES } from '../../config/onboarding.js'
+import { CATEGORIES, DESCRIBE, FIELDS, FEATURES, pricingRows, LEASE_CATEGORIES, TITLE_HINTS, DESC_PROMPTS, PHOTO_HINTS } from '../../config/onboarding.js'
 import { CITIES, CITY_NAMES, CITY_LIST_LABEL } from '@config/cities'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -192,24 +192,27 @@ export function FeaturesScreen({ categoryKey, draft, setDraft }) {
   )
 }
 
-export function PhotosScreen({ draft, setDraft }) {
+export function PhotosScreen({ categoryKey, draft, setDraft }) {
   return (
     <View>
       <Head kicker="Shared · core" title="Add some photos" sub="Add at least 5. The first is your cover — lead with the best light." />
+      <Text style={styles.helperHint}>{PHOTO_HINTS[categoryKey]}</Text>
       <ImageUploader value={draft.images} onChange={(urls) => setDraft((d) => ({ ...d, images: urls }))} />
     </View>
   )
 }
 
-export function TitleScreen({ draft, setDraft }) {
+export function TitleScreen({ categoryKey, draft, setDraft }) {
+  const hint = TITLE_HINTS[categoryKey]
   return (
     <View>
       <Head title="Now, give it a title" sub="Short titles work best. You can always change it later." />
+      <Text style={styles.helperHint}>e.g. &ldquo;{hint.example}&rdquo;</Text>
       <TextInput
         style={styles.input}
         value={draft.title}
         onChangeText={(v) => setDraft((d) => ({ ...d, title: v.slice(0, 100) }))}
-        placeholder="e.g. Sunlit 2BHK steps from the beach"
+        placeholder={hint.placeholder}
         placeholderTextColor={colors.slate400}
       />
       <Text style={styles.charCount}>{draft.title.length}/100 characters</Text>
@@ -217,10 +220,15 @@ export function TitleScreen({ draft, setDraft }) {
   )
 }
 
-export function DescriptionScreen({ draft, setDraft }) {
+export function DescriptionScreen({ categoryKey, draft, setDraft }) {
   return (
     <View>
       <Head title="Create your description" sub="Tell renters what makes it special and what's nearby." />
+      <View style={styles.promptList}>
+        {DESC_PROMPTS[categoryKey].map((p) => (
+          <Text key={p} style={styles.promptLine}>· {p}</Text>
+        ))}
+      </View>
       <TextInput
         style={[styles.input, styles.textarea]}
         value={draft.description}
@@ -353,7 +361,7 @@ export function ContactScreen({ categoryKey, draft, setDraft }) {
   )
 }
 
-export function ReviewScreen({ categoryKey, draft }) {
+export function ReviewScreen({ categoryKey, draft, missing = [], onJump }) {
   const cat = CATEGORIES[categoryKey]
   const priceRow = pricingRows(categoryKey, draft.pricingModel)[0]
   const facts = [
@@ -367,6 +375,25 @@ export function ReviewScreen({ categoryKey, draft }) {
   return (
     <View>
       <Head kicker="Almost there" title="Review your listing" sub="Confirm the details. On publish it saves as DRAFT and moves to PENDING for verification." />
+      {missing.length > 0 && (
+        <View style={styles.missingBlock}>
+          <Text style={styles.missingTitle}>
+            {missing.length} {missing.length === 1 ? 'thing' : 'things'} left before publish
+          </Text>
+          {missing.map((m, i) => (
+            <Pressable
+              key={i}
+              onPress={() => onJump?.(m.screenK)}
+              style={styles.missingChip}
+              accessibilityRole="button"
+              accessibilityLabel={`${m.label} — go to that step`}
+            >
+              <Text style={styles.missingChipText}>{m.label}</Text>
+              <Icon name="chevronRight" size={16} color={colors.warning700} />
+            </Pressable>
+          ))}
+        </View>
+      )}
       <View style={styles.reviewCard}>
         <View style={styles.reviewHeader}>
           <View style={[styles.reviewIcon, cat.tier === 'biz' && styles.reviewIconBiz]}>
@@ -406,6 +433,17 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800 },
   textarea: { minHeight: 110, textAlignVertical: 'top' },
   charCount: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: spacing.xs },
+  helperHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginBottom: spacing.sm, lineHeight: 18 },
+  promptList: { marginBottom: spacing.sm, gap: 4 },
+  promptLine: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, lineHeight: 18 },
+  missingBlock: { backgroundColor: colors.warning50, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.md, gap: spacing.sm },
+  missingTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.warning700 },
+  missingChip: {
+    minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: colors.white, borderWidth: 1, borderColor: colors.warning,
+    borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+  },
+  missingChipText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.warning700, flexShrink: 1 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.full, borderWidth: 1, borderColor: colors.slate200, backgroundColor: colors.white },
   chipActive: { backgroundColor: colors.brand600, borderColor: colors.brand600 },
