@@ -88,6 +88,24 @@ describe('errorMiddleware in production', () => {
     expect(status).toBe(500)
     expect(body.message).toBe('Internal server error')
   })
+
+  it('hides err.code on an un-flagged 5xx — an uncaught Prisma error must not disclose the ORM', async () => {
+    const mw = await loadMiddleware('production')
+    const { body } = run(mw, Object.assign(new Error('Record not found'), { statusCode: 500, code: 'P2025' }))
+    expect(body.error).toBe('INTERNAL_ERROR')
+  })
+
+  it('keeps err.code on 4xx (machine-readable codes like ACCOUNT_BLOCKED are the contract)', async () => {
+    const mw = await loadMiddleware('production')
+    const { body } = run(mw, Object.assign(new Error('Blocked'), { statusCode: 403, code: 'ACCOUNT_BLOCKED' }))
+    expect(body.error).toBe('ACCOUNT_BLOCKED')
+  })
+
+  it('keeps err.code on a 5xx that is explicitly exposed', async () => {
+    const mw = await loadMiddleware('production')
+    const { body } = run(mw, Object.assign(new Error('Sign-in codes unavailable'), { statusCode: 503, expose: true, code: 'OTP_UNAVAILABLE' }))
+    expect(body.error).toBe('OTP_UNAVAILABLE')
+  })
 })
 
 describe('errorMiddleware outside production', () => {
@@ -95,5 +113,11 @@ describe('errorMiddleware outside production', () => {
     const mw = await loadMiddleware('development')
     const { body } = run(mw, Object.assign(new Error('connect ECONNREFUSED'), { statusCode: 500 }))
     expect(body.message).toBe('connect ECONNREFUSED')
+  })
+
+  it('shows err.code on 5xx for debugging', async () => {
+    const mw = await loadMiddleware('development')
+    const { body } = run(mw, Object.assign(new Error('Record not found'), { statusCode: 500, code: 'P2025' }))
+    expect(body.error).toBe('P2025')
   })
 })

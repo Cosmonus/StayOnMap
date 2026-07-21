@@ -16,29 +16,35 @@ export async function notifyUser(userId, { type, title, body, referenceId, refer
   const notification = await prisma.notification.create({ data: { userId, type, title, body, referenceId, referenceType } })
   emitToUser(userId, 'notification:new', notification)
 
+  // Delivery (push + email) is fire-and-forget — the caller's request must
+  // never wait on the mailer (same pattern as chat.service.js's sendMessage).
+  // Only the DB notification row above is awaited.
   if (PUSH_TYPES.has(type)) {
     sendPushToUser(userId, { title, body, url: '/user?tab=notifications' }).catch(() => {})
     sendExpoPushToUser(userId, { title, body, data: { referenceId, referenceType } }).catch(() => {})
   }
 
   if (EMAIL_TYPES.has(type) && emailMeta) {
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } })
-    if (user?.email) {
-      let emailContent
-      if (type === 'APPOINTMENT_ACCEPTED') {
-        emailContent = appointmentAcceptedEmail({ tenantName: user.name ?? 'there', ...emailMeta })
-      } else if (type === 'APPOINTMENT_REJECTED') {
-        emailContent = appointmentRejectedEmail({ tenantName: user.name ?? 'there', ...emailMeta })
-      } else if (type === 'VERIFICATION_UPDATE') {
-        emailContent = verificationUpdateEmail({ ownerName: user.name ?? 'there', ...emailMeta })
-      }
-      if (emailContent) {
-        await sendEmail({ to: user.email, ...emailContent })
-      }
-    }
+    deliverEmail(userId, type, emailMeta).catch(() => {})
   }
 
   return notification
+}
+
+async function deliverEmail(userId, type, emailMeta) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } })
+  if (!user?.email) return
+  let emailContent
+  if (type === 'APPOINTMENT_ACCEPTED') {
+    emailContent = appointmentAcceptedEmail({ tenantName: user.name ?? 'there', ...emailMeta })
+  } else if (type === 'APPOINTMENT_REJECTED') {
+    emailContent = appointmentRejectedEmail({ tenantName: user.name ?? 'there', ...emailMeta })
+  } else if (type === 'VERIFICATION_UPDATE') {
+    emailContent = verificationUpdateEmail({ ownerName: user.name ?? 'there', ...emailMeta })
+  }
+  if (emailContent) {
+    await sendEmail({ to: user.email, ...emailContent })
+  }
 }
 
 export async function getUserNotifications(userId) {
