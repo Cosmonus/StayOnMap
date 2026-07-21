@@ -9,8 +9,22 @@ import { VerificationDocType } from '@prisma/client'
 // submitted was rejected 400 and, because the wizard swallowed the error,
 // silently vanished. The owner saw success; the admin saw an empty request.
 // Fixed 2026-07-17; z.nativeEnum means this can never drift from the DB again.
+//
+// Identity documents PAUSED 2026-07-21 (operator decision): Aadhaar/PAN/
+// govt-ID/selfie collection carries DPDP Act weight the platform is not
+// taking on pre-launch — verification runs on property/business documents
+// only. The enum VALUES stay (existing rows reference them; dropping a
+// Postgres enum value is a destructive migration); new submissions are
+// refused here and the pickers no longer offer them. Reversing this later
+// is deleting IDENTITY_DOC_TYPES — after the legal review, not before.
+const IDENTITY_DOC_TYPES = new Set(['AADHAAR', 'PAN', 'GOVT_ID', 'SELFIE'])
+
 export const addDocumentSchema = z.object({
-  type: z.nativeEnum(VerificationDocType),
+  type: z
+    .nativeEnum(VerificationDocType)
+    .refine((t) => !IDENTITY_DOC_TYPES.has(t), {
+      message: 'Identity documents are not collected — upload a property or business document instead',
+    }),
   url: z.string().url(),
 })
 
