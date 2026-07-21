@@ -5,6 +5,8 @@ import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { sendEmail, adminPasswordChangedEmail } from '../../services/email.service.js'
 import { ADMIN_FILTERS, buildFilterWhere } from '../properties/filters.registry.js'
 import { parseBounds, boundsFilter } from '../../utils/geo.js'
+import { getContext, STATUS_FAILED } from '../spatial/spatial.service.js'
+import { intelError } from '../../lib/intelLog.js'
 
 export async function adminLogin(email, password) {
   const admin = await prisma.admin.findUnique({ where: { email } })
@@ -197,6 +199,20 @@ export async function getAdminPropertyById(id) {
     },
   })
   if (!property) throw Object.assign(new Error('Property not found'), { statusCode: 404 })
+
+  // Same spatial join as the public getPropertyById (properties.service.js) —
+  // the admin detail view renders the identical SpatialContextPanel, and a
+  // moderator judging a listing needs the same area facts a renter sees.
+  // A MISS may schedule computation, exactly like the public path. A failure
+  // must not read as "this neighbourhood has nothing" — say which it was.
+  property.spatialContext = await getContext(
+    Number(property.lat), Number(property.lng),
+    { waitMs: 3000, propertyType: property.type }
+  ).catch((err) => {
+    intelError('spatial.context_failed', err, { propertyId: property.id })
+    return { modules: null, pending: false, status: STATUS_FAILED }
+  })
+
   return property
 }
 
