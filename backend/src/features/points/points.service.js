@@ -109,9 +109,13 @@ export async function getPointsSummary(userId) {
   ])
 
   // Which one-time actions are still available — this is what makes the UI a
-  // checklist ("verify your phone → +50") instead of an opaque number.
+  // checklist ("verify your email → +50") instead of an opaque number.
+  // PHONE_VERIFIED is deliberately NOT listed: the platform has no phone
+  // verification flow (no SMS), so advertising it would be a checklist item
+  // nobody can complete. The POINTS entry stays for when such a flow exists —
+  // awarding it for merely typing a number would pay for unverified data.
   const earned = new Set(rows.map((r) => r.action))
-  const available = ['EMAIL_VERIFIED', 'PHONE_VERIFIED', 'PROFILE_COMPLETED']
+  const available = ['EMAIL_VERIFIED', 'PROFILE_COMPLETED']
     .filter((a) => !earned.has(a))
     .map((a) => ({ action: a, points: POINTS[a] }))
 
