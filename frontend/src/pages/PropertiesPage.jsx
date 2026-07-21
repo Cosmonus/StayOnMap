@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Home } from 'lucide-react'
 import { propertyService } from '@services/property.service'
+import { resolvePlace } from '@lib/googleMaps'
 import { useFilterStore } from '@store/filterStore'
 import { useFilterUrlSync } from '@features/filters/hooks/useFilterUrlSync'
 import { toQueryParams } from '@/config/filters'
@@ -42,24 +43,57 @@ export default function PropertiesPage() {
 
   const filters = useFilterStore((s) => s.filters)
 
-  // Every active filter (modal included) shapes the grid — same schema-driven
-  // params the map's pin fetch uses.
-  const params = useMemo(() => ({ limit: 50, ...toQueryParams(filters) }), [filters])
+  // The header search sets `area` — on the map that flies the viewport, but a
+  // grid has no viewport, so searching a place here used to do NOTHING (the
+  // operator-reported "typed chennai, Chennai listings didn't show" bug).
+  // Resolve the place and constrain the grid with its own extent: a city
+  // query carries its whole municipal viewport, a neighbourhood its few km.
+  const area = filters.area || null
+  const { data: place, isFetched: placeResolved } = useQuery({
+    queryKey: ['resolve-area', area, filters.city],
+    queryFn: () => resolvePlace(area, filters.city),
+    enabled: !!area,
+    staleTime: Infinity,
+    retry: 1,
+  })
 
-  const { data, isLoading, isError } = useQuery({
+  const bounds = useMemo(() => {
+    if (!area || !place) return null
+    if (place.viewport) return place.viewport
+    // No viewport on the geometry (rare) — a ~2km box around the point beats
+    // silently ignoring the search.
+    const d = 0.02
+    return { swLat: place.lat - d, swLng: place.lng - d, neLat: place.lat + d, neLng: place.lng + d }
+  }, [area, place])
+
+  // Every active filter (modal included) shapes the grid — same schema-driven
+  // params the map's pin fetch uses, plus the searched place's bounds.
+  const params = useMemo(
+    () => ({ limit: 50, ...toQueryParams(filters), ...(bounds ?? {}) }),
+    [filters, bounds]
+  )
+
+  const { data, isPending, isError } = useQuery({
     queryKey: ['properties', params],
     // The whole envelope, not just `.data` — `meta.proximity` says how many
     // listings a distance filter had to set aside for lack of map data, and
     // dropping it here would silently hide them.
     queryFn: () => propertyService.getList(params),
+    // Hold the fetch until the searched place resolves — fetching unbounded
+    // first would flash every listing before snapping to the searched area.
+    // A failed/unresolvable geocode falls through to an unbounded fetch.
+    enabled: !area || placeResolved,
   })
+  // isPending (not isLoading) so the geocode wait renders skeletons too —
+  // a disabled query is pending but not "loading" in React Query v5 terms.
+  const isLoading = isPending
 
   const properties = data?.data ?? []
   // Present only when a proximity filter is active AND some listings could not
   // be judged either way.
   const unjudged = data?.meta?.proximity?.unknown ?? 0
   const proximityLabel = data?.meta?.proximity?.label
-  const locationLabel = filters.city || null
+  const locationLabel = (area && (place?.name ?? area)) || filters.city || null
 
   // Pad the grid so the last row is never left lopsided — targets the widest
   // breakpoint's column count (4); narrower breakpoints may not land on a
