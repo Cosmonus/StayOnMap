@@ -48,24 +48,27 @@ export const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   aiProvider: process.env.AI_PROVIDER || 'stub',
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || null,
-  // Mailer (lib/mailer.js) — two delivery paths, same interface.
+  // Mailer (lib/mailer.js) — three delivery paths, same interface.
   //   MAIL_PROVIDER=smtp  (default) → nodemailer to any SMTP endpoint. Works
   //     locally and on hosts that allow outbound SMTP.
-  //   MAIL_PROVIDER=brevo           → Brevo's REST API over HTTPS (plain
-  //     fetch, no SDK). Required on Railway below the Pro plan, which blocks
-  //     outbound SMTP ports (25/465/587/2525) outright — SMTP there fails no
-  //     matter how it's configured. See docs/production-readiness.md.
+  //   MAIL_PROVIDER=resend          → Resend's REST API over HTTPS (plain
+  //     fetch, no SDK). The chosen production path — Railway below the Pro
+  //     plan blocks outbound SMTP ports (25/465/587/2525) outright, so an
+  //     HTTPS API is the only way to send there.
+  //   MAIL_PROVIDER=brevo           → Brevo's REST API, same reason. Kept as
+  //     an alternative; the product decision (2026-07-21) is Resend.
   // Unset/unconfigured → email is a logged no-op (same as before).
   mailProvider: process.env.MAIL_PROVIDER || 'smtp',
+  resendApiKey: process.env.RESEND_API_KEY || null,
   brevoApiKey: process.env.BREVO_API_KEY || null,
   mailFrom: process.env.MAIL_FROM || process.env.SMTP_USER || 'StayOnMap <noreply@stayonmap.com>',
   smtpHost: process.env.SMTP_HOST || null,
   smtpPort: Number(process.env.SMTP_PORT) || 465,
   smtpUser: process.env.SMTP_USER || null,
   smtpPass: process.env.SMTP_PASS || null,
-  // Default matches Gmail's ~500/day. Brevo's free tier is 300/day — set
-  // MAIL_DAILY_CAP=300 when MAIL_PROVIDER=brevo. SMTP_DAILY_CAP is still read
-  // for backwards compatibility with existing deploys.
+  // Default matches Gmail's ~500/day. Resend's free tier is 100/day (3,000/mo)
+  // — set MAIL_DAILY_CAP=100 when MAIL_PROVIDER=resend. Brevo's free tier is
+  // 300/day. SMTP_DAILY_CAP is still read for backwards compatibility.
   mailDailyCap: Number(process.env.MAIL_DAILY_CAP) || Number(process.env.SMTP_DAILY_CAP) || 450,
   vapidPublicKey:  process.env.VAPID_PUBLIC_KEY  || null,
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || null,
