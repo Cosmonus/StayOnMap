@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { View, Text, Pressable, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, BackHandler, Alert, StyleSheet } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
-import { verificationService } from '@services/verification.service'
 import { availabilityService } from '@services/availability.service'
 import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
@@ -11,7 +10,7 @@ import TypePicker, { BusinessGate } from './TypePicker'
 import PhaseInterstitial from './PhaseInterstitial'
 import {
   DescribeScreen, FieldsScreen, LocationScreen, FeaturesScreen, PhotosScreen,
-  TitleScreen, DescriptionScreen, PricingScreen, ContactScreen, VerifyScreen, ReviewScreen,
+  TitleScreen, DescriptionScreen, PricingScreen, ContactScreen, ReviewScreen,
 } from './WizardScreens'
 import { CATEGORIES, BUSINESS_GATED_TYPES, pricingRows, DESCRIBE, getScreens, phaseOf, deriveType } from '../../config/onboarding.js'
 import { colors } from '@theme/colors'
@@ -33,7 +32,6 @@ const EMPTY_DRAFT = {
   appointmentWindowStart: '',
   appointmentWindowEnd: '',
   instantBook: false,
-  docs: [],
   blockedDates: [],
 }
 
@@ -122,8 +120,9 @@ function DoneScreen({ category, onListAnother, onDone }) {
       </View>
       <Text style={styles.doneTitle}>Your listing is submitted</Text>
       <Text style={styles.doneBody}>
-        Your {category.label} is a draft in PENDING status. We&apos;ll verify your documents and
-        put it on the map the moment it&apos;s approved.
+        Your {category.label} is pending review — we&apos;ll put it on the map the
+        moment it&apos;s approved. Want the Verified badge? Add ownership documents
+        any time from My Listing.
       </Text>
       <View style={styles.doneStatusRow}>
         {['DRAFT', 'PENDING', 'ACTIVE'].map((s, i) => (
@@ -182,10 +181,6 @@ export default function OnboardingWizard({ onDone }) {
       const payload = buildPayload(categoryKey, type, draft, amenityIds)
       const property = await propertyService.create(payload).then((r) => r.data)
 
-      if (draft.docs.length > 0) {
-        await verificationService.submit(property.id).catch(() => {})
-        await Promise.all(draft.docs.map((doc) => verificationService.addDocument(property.id, doc).catch(() => {})))
-      }
       if (categoryKey === 'stay' && draft.blockedDates.length > 0) {
         await availabilityService.set(property.id, draft.blockedDates.map((date) => ({ date: `${date}T00:00:00.000Z`, isBlocked: true }))).catch(() => {})
       }
@@ -326,7 +321,6 @@ export default function OnboardingWizard({ onDone }) {
           {screen.k === 'description' && <DescriptionScreen draft={draft} setDraft={setDraft} />}
           {screen.k === 'pricing' && <PricingScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
           {screen.k === 'contact' && <ContactScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'verify' && <VerifyScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
           {screen.k === 'review' && <ReviewScreen categoryKey={categoryKey} draft={draft} />}
 
           {!!blockError && <Text style={styles.blockError}>{blockError}</Text>}
