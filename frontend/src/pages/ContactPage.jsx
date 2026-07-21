@@ -41,15 +41,15 @@ const TOPICS = [
 ]
 
 const CONTACT_CHANNELS = [
-  { label: 'General enquiry', email: 'srigokulkrishnan@gmail.com', desc: 'Questions about the platform, features, or your account.', icon: Mail, color: 'bg-blue-50 border-blue-100 text-blue-600 hover:border-blue-300' },
-  { label: 'Report a listing', email: 'srigokulkrishnan@gmail.com', desc: 'Found something suspicious? Our trust team reviews every report within 24 hours.', icon: ShieldCheck, color: 'bg-amber-50 border-amber-100 text-amber-600 hover:border-amber-300' },
-  { label: 'Partnerships', email: 'srigokulkrishnan@gmail.com', desc: 'Want to work together? We partner with property managers, housing societies, and corporates.', icon: Building2, color: 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:border-emerald-300' },
+  { label: 'General enquiry', email: 'hello@cosmonus.com', desc: 'Questions about the platform, features, or your account.', icon: Mail, color: 'bg-blue-50 border-blue-100 text-blue-600 hover:border-blue-300' },
+  { label: 'Report a listing', email: 'hello@cosmonus.com', desc: 'Found something suspicious? Our trust team reviews every report within 24 hours.', icon: ShieldCheck, color: 'bg-amber-50 border-amber-100 text-amber-600 hover:border-amber-300' },
+  { label: 'Partnerships', email: 'hello@cosmonus.com', desc: 'Want to work together? We partner with property managers, housing societies, and corporates.', icon: Building2, color: 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:border-emerald-300' },
 ]
 
 const FAQS = [
   { q: 'How long does it take to get a reply?', a: 'We aim to respond within 24 hours on business days. Report-a-listing queries are prioritised and typically handled within 6 hours.' },
   { q: 'Can I call instead of emailing?', a: 'We don\'t have a phone line yet — email is the fastest way to reach us. We\'re a small team and written communication helps us give you a better, more considered answer.' },
-  { q: 'I found a fake listing. What should I do?', a: 'Use the "Report a listing" topic in the form below, or email srigokulkrishnan@gmail.com directly with the listing URL. Our trust team investigates every report and takes action within 24 hours.' },
+  { q: 'I found a fake listing. What should I do?', a: 'Use the "Report a listing" topic in the form below, or email hello@cosmonus.com directly with the listing URL. Our trust team investigates every report and takes action within 24 hours.' },
   { q: 'Do you offer partnerships for housing societies?', a: 'Yes! If you manage a society or corporate housing program, reach out via the partnerships channel. We offer bulk listing tools, branded pages, and priority verification.' },
 ]
 

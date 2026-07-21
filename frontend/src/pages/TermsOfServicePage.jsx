@@ -199,7 +199,7 @@ export default function TermsOfServicePage() {
         <Section id="contact" title="17. Contact">
           <p>
             Questions about these Terms? Email us at{' '}
-            <a href="mailto:srigokulkrishnan@gmail.com" className="text-brand-600">srigokulkrishnan@gmail.com</a>.
+            <a href="mailto:hello@cosmonus.com" className="text-brand-600">hello@cosmonus.com</a>.
           </p>
         </Section>
 

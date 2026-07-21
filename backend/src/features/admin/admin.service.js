@@ -181,6 +181,10 @@ export async function getAdminPropertyById(id) {
           },
         },
         orderBy: { lastMessageAt: 'desc' },
+        // Bounded like the messages above — without it this include grows with
+        // chat volume until the response OOMs. 50 most-recent threads is more
+        // than the moderation view renders; _count still carries the true total.
+        take: 50,
       },
       reports: {
         select: {
@@ -229,18 +233,10 @@ export async function listAdminProperties({ page = 1, limit = 20, ...query } = {
           select: { userId: true, createdAt: true, user: { select: { id: true, name: true, email: true, avatarUrl: true } } },
           orderBy: { createdAt: 'desc' },
         },
-        conversations: {
-          select: {
-            id: true, tenantId: true, lastMessageAt: true,
-            tenant: { select: { id: true, name: true, email: true, avatarUrl: true } },
-            messages: {
-              select: { id: true, senderId: true, body: true, attachmentUrl: true, editedAt: true, deletedAt: true, createdAt: true, sender: { select: { id: true, name: true } } },
-              orderBy: { createdAt: 'desc' },
-              take: 50,
-            },
-          },
-          orderBy: { lastMessageAt: 'desc' },
-        },
+        // conversations deliberately NOT included — the list renders summaries
+        // and _count; chat threads come from getAdminPropertyById when a row is
+        // opened. The old unbounded include (every thread × 50 messages × 20
+        // rows per page) degraded from slow to OOM purely as chat volume grew.
         reports: {
           select: {
             id: true, reporterId: true, category: true, description: true, severity: true, status: true, isAnonymous: true, createdAt: true,
