@@ -150,17 +150,11 @@ export function pricingRows(categoryKey, pricingModel = 'RENT') {
     : PRICING[categoryKey]
 }
 
-// Verification doc checklist per type — tuples of [VerificationDocType, label].
-export const VERIFY = {
-  // Identity docs (Aadhaar/PAN/govt ID/selfie) paused 2026-07-21 pending
-  // legal review — ownership/business documents only; backend refuses the rest.
-  apartment: { docs: [['PROPERTY_TAX', 'Latest electricity bill or property tax'], ['UTILITY_BILL', 'Water / gas / utility bill in your name'], ['RENTAL_AGREEMENT', 'Sale deed / ownership proof']], biz: false },
-  house:     { docs: [['PROPERTY_TAX', 'Property tax receipt'], ['RENTAL_AGREEMENT', 'Sale deed / Khata extract'], ['UTILITY_BILL', 'Utility bill in your name']], biz: false },
-  land:      { docs: [['PATTA_TITLE', 'Patta / Title deed'], ['PROPERTY_TAX', 'Survey number & EC'], ['OTHER', 'Encumbrance certificate (30 yr)']], biz: false },
-  pg:        { docs: [['GST', 'GST / trade license'], ['RENTAL_AGREEMENT', 'Property ownership or lease proof'], ['OTHER', 'Fire & safety NOC']], biz: true },
-  shop:      { docs: [['GST', 'GST certificate'], ['TRADE_LICENSE', 'Trade / shop license'], ['PROPERTY_TAX', 'Property tax or registered lease']], biz: true },
-  stay:      { docs: [['PROPERTY_TAX', 'Property ownership proof'], ['HOMESTAY_PERMIT', 'Local homestay / tourism permit'], ['OTHER', 'Bank account for payouts']], biz: true },
-}
+// Verification documents are deliberately NOT part of this wizard (removed
+// 2026-07-21 — the paste-a-link step stopped the listing flow dead). Owners
+// are asked for ownership/business documents in the dedicated verification
+// flow on their listing page instead (VerificationWizard). Listing and
+// verifying are two decisions, not one.
 
 export const BUSINESS_GATED_TYPES = ['pg', 'shop', 'stay']
 
@@ -172,8 +166,8 @@ export function getScreens() {
     { k: 'describe' }, { k: 'fields' }, { k: 'location' }, { k: 'features' },
     { k: 'phase', n: 2, title: 'Make it stand out', blurb: 'Add photos and the words renters see first. A great listing always leads with great photos.' },
     { k: 'photos' }, { k: 'title' }, { k: 'description' },
-    { k: 'phase', n: 3, title: 'Finish up and publish', blurb: 'Set your price, verify ownership, and review everything before it goes live on the map.' },
-    { k: 'pricing' }, { k: 'contact' }, { k: 'verify' }, { k: 'review' },
+    { k: 'phase', n: 3, title: 'Finish up and publish', blurb: 'Set your price and review everything before it goes live on the map.' },
+    { k: 'pricing' }, { k: 'contact' }, { k: 'review' },
   ]
 }
 

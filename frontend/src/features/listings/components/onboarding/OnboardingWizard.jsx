@@ -1,15 +1,14 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Check, Plus } from 'lucide-react'
 import { propertyService } from '@services/property.service'
-import { verificationService } from '@services/verification.service'
 import { availabilityService } from '@services/availability.service'
 import { toast } from '@components/common/Toaster'
 import TypePicker, { BecomeHostIntro, BusinessGate } from './TypePicker'
 import PhaseInterstitial from './PhaseInterstitial'
 import {
   DescribeScreen, FieldsScreen, LocationScreen, FeaturesScreen, PhotosScreen,
-  TitleScreen, DescriptionScreen, PricingScreen, ContactScreen, VerifyScreen, ReviewScreen,
+  TitleScreen, DescriptionScreen, PricingScreen, ContactScreen, ReviewScreen,
 } from './WizardScreens'
 import { CATEGORIES, BUSINESS_GATED_TYPES, pricingRows, DESCRIBE, getScreens, phaseOf, deriveType } from '../../config/onboarding.js'
 import ListingManager from '../ListingManager'
@@ -31,7 +30,6 @@ const EMPTY_DRAFT = {
   appointmentWindowStart: '',
   appointmentWindowEnd: '',
   instantBook: false,
-  docs: [],
   blockedDates: [],
 }
 
@@ -120,8 +118,9 @@ function DoneScreen({ category, onListAnother, onGoToListings }) {
       </div>
       <h1 className="font-display font-bold text-2xl text-slate-900 tracking-tight">Your listing is submitted</h1>
       <p className="text-sm text-slate-500 leading-relaxed mt-3.5">
-        Your {category.label} is a draft in PENDING status. We&apos;ll verify your documents and
-        put it on the map the moment it&apos;s approved.
+        Your {category.label} is pending review — we&apos;ll put it on the map the moment
+        it&apos;s approved. Want the Verified badge? Add ownership documents any time from
+        your listing page.
       </p>
       <div className="flex items-center justify-center gap-2 my-7">
         {['DRAFT', 'PENDING', 'ACTIVE'].map((s, i) => (
@@ -178,7 +177,6 @@ export default function OnboardingWizard({ profile }) {
   const qc = useQueryClient()
   const [stage, setStage] = useState(profile?.role === 'OWNER' ? 'listings' : 'become-host')
   // Survives the mutation without re-rendering mid-publish; read in onSuccess.
-  const docsFailedRef = useRef(0)
   const [categoryKey, setCategoryKey] = useState(null)
   const [screenIdx, setScreenIdx] = useState(0)
   const [draft, setDraft] = useState(EMPTY_DRAFT)
@@ -198,20 +196,6 @@ export default function OnboardingWizard({ profile }) {
       const payload = buildPayload(categoryKey, type, draft, amenityIds)
       const property = await propertyService.create(payload).then((r) => r.data)
 
-      // Documents are best-effort — a failure here must not lose the listing
-      // that was just created — but it is NOT silent. A swallowed error here
-      // hid a real bug for months: 4 doc types were rejected by the API, so
-      // land/PG/shop/stay owners "submitted" documents that never arrived,
-      // saw success, and waited on a verification the admin saw as empty.
-      // Report it and let them retry from the listing's verification screen.
-      if (draft.docs.length > 0) {
-        const results = await Promise.allSettled([
-          verificationService.submit(property.id),
-          ...draft.docs.map((doc) => verificationService.addDocument(property.id, doc)),
-        ])
-        const failed = results.filter((r) => r.status === 'rejected').length
-        if (failed > 0) docsFailedRef.current = failed
-      }
       if (categoryKey === 'stay' && draft.blockedDates.length > 0) {
         await availabilityService.set(property.id, draft.blockedDates.map((date) => ({ date: `${date}T00:00:00.000Z`, isBlocked: true }))).catch(() => {})
       }
@@ -221,15 +205,7 @@ export default function OnboardingWizard({ profile }) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['my-listings'] })
-      if (docsFailedRef.current > 0) {
-        toast.error(
-          'Listing submitted — documents didn’t upload',
-          `${docsFailedRef.current} document${docsFailedRef.current > 1 ? 's' : ''} failed. Add them again from the listing to start verification.`
-        )
-      } else {
-        toast.success('Submitted', 'Your listing is now pending verification')
-      }
-      docsFailedRef.current = 0
+      toast.success('Submitted', 'Your listing is now pending review')
       setStage('done')
     },
     onError: (err) => toast.error('Couldn’t publish', err.message ?? 'Please try again'),
@@ -367,7 +343,6 @@ export default function OnboardingWizard({ profile }) {
           {screen.k === 'description' && <DescriptionScreen draft={draft} setDraft={setDraft} />}
           {screen.k === 'pricing' && <PricingScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
           {screen.k === 'contact' && <ContactScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'verify' && <VerifyScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
           {screen.k === 'review' && <ReviewScreen categoryKey={categoryKey} draft={draft} />}
         </div>
 
