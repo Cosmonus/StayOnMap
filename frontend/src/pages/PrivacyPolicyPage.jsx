@@ -1,6 +1,6 @@
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
-import { LegalPageLayout, Section, Placeholder } from '@components/common/LegalPageLayout'
+import { LegalPageLayout, Section } from '@components/common/LegalPageLayout'
 import { CITY_LIST_LABEL } from '@/config/cities'
 
 const SECTIONS = [
@@ -27,7 +27,7 @@ export default function PrivacyPolicyPage() {
         description="How StayOnMap collects, uses, and protects your personal data — including owner verification documents."
         canonical={canonical('/privacy')}
       />
-      <LegalPageLayout title="Privacy Policy" lastUpdated="July 4, 2026" sections={SECTIONS}>
+      <LegalPageLayout title="Privacy Policy" lastUpdated="July 21, 2026" sections={SECTIONS}>
 
         <Section id="scope" title="1. Scope & who we are">
           <p>
@@ -37,9 +37,8 @@ export default function PrivacyPolicyPage() {
             owners, and visitors browsing without an account.
           </p>
           <p>
-            StayOnMap is operated by{' '}
-            <Placeholder>[Legal entity name &mdash; e.g. &ldquo;Cosmonus Pvt. Ltd.&rdquo;]</Placeholder>, registered
-            at <Placeholder>[registered business address]</Placeholder>. StayOnMap is a data
+            StayOnMap is operated by Cosmonus Pvt. Ltd., registered
+            at Vivekanandar Street, Gandhi Nagar, Avadi, Ambattur, Tiruvallur &ndash; 600054, Tamil Nadu. StayOnMap is a data
             fiduciary under India&rsquo;s Digital Personal Data Protection Act, 2023 (&ldquo;DPDP Act&rdquo;)
             for the personal data described below.
           </p>
@@ -208,9 +207,9 @@ export default function PrivacyPolicyPage() {
             For privacy questions, data requests, or complaints, contact our Grievance Officer:
           </p>
           <p>
-            <Placeholder>[Grievance Officer name]</Placeholder><br />
+            Sri Gokul Krishnan<br />
             Email: <a href="mailto:srigokulkrishnan@gmail.com" className="text-brand-600">srigokulkrishnan@gmail.com</a><br />
-            Address: <Placeholder>[registered business address]</Placeholder>
+            Address: Vivekanandar Street, Gandhi Nagar, Avadi, Ambattur, Tiruvallur &ndash; 600054, Tamil Nadu
           </p>
           <p className="text-xs text-slate-400">
             StayOnMap currently operates in {CITY_LIST_LABEL}.
