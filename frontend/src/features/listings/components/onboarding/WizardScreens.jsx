@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { Check, Home } from 'lucide-react'
+import { Home } from 'lucide-react'
 import Select from '@components/common/Select'
 import Toggle from '@components/common/Toggle'
 import ImageUploader from '../ImageUploader'
 import LocationPicker from '../LocationPicker'
 import FieldControl from './FieldControl'
 import AvailabilityCalendar from './AvailabilityCalendar'
-import { CATEGORIES, DESCRIBE, FIELDS, FEATURES, pricingRows, LEASE_CATEGORIES, VERIFY } from '../../config/onboarding.js'
+import { CATEGORIES, DESCRIBE, FIELDS, FEATURES, pricingRows, LEASE_CATEGORIES } from '../../config/onboarding.js'
 import { CITIES, CITY_NAMES, CITY_LIST_LABEL } from '@/config/cities'
 import { placesService } from '@services/places.service'
 
@@ -318,41 +318,6 @@ export function ContactScreen({ categoryKey, draft, setDraft }) {
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-export function VerifyScreen({ categoryKey, draft, setDraft }) {
-  const v = VERIFY[categoryKey]
-  const docs = draft.docs
-  function setUrl(type, url) {
-    setDraft((d) => ({ ...d, docs: url ? [...d.docs.filter((x) => x.type !== type), { type, url }] : d.docs.filter((x) => x.type !== type) }))
-  }
-  return (
-    <div>
-      {v.biz && (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 text-white text-[11px] font-bold tracking-wide mb-5">BUSINESS KYC</span>
-      )}
-      <Head title={v.biz ? 'Verify your business' : 'Verify ownership'} sub="Your listing saves as a draft and goes live once the trust team approves these. Paste a link to each document (Google Drive, Dropbox, etc.)." />
-      <div className="max-w-lg flex flex-col gap-3">
-        {v.docs.map(([type, label]) => {
-          const existing = docs.find((x) => x.type === type)
-          return (
-            <div key={type} className="flex items-center gap-3 p-4 rounded-xl border border-slate-200">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800">{label}</p>
-                <input
-                  defaultValue={existing?.url ?? ''}
-                  onBlur={(e) => setUrl(type, e.target.value.trim())}
-                  placeholder="Paste document URL"
-                  className="w-full mt-1.5 px-3 py-2 rounded-lg border border-slate-200 text-xs outline-none focus:border-slate-400"
-                />
-              </div>
-              {existing && <Check size={18} color="#0284c7" strokeWidth={2.5} className="shrink-0" />}
-            </div>
-          )
-        })}
-      </div>
     </div>
   )
 }
