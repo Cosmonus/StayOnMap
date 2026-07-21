@@ -241,6 +241,7 @@ export default function LoginModal() {
                 email={email}
                 setEmail={setEmail}
                 onUsePassword={() => switchTab('login')}
+                onSignup={() => switchTab('signup')}
                 onDone={handleClose}
               />
             ) : tab === 'forgot' ? (

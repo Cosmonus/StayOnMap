@@ -29,7 +29,7 @@ function useCountdown(until) {
   return secondsUntil(until)
 }
 
-export default function OtpLoginForm({ email, setEmail, onUsePassword, styles: s }) {
+export default function OtpLoginForm({ email, setEmail, onUsePassword, onSignup, styles: s }) {
   const { loginSuccess } = useAuth()
   const [step, setStep] = useState('email')
   const [code, setCode] = useState('')
@@ -105,6 +105,20 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, styles: s
         >
           <Text style={s.linkText}>Use my password instead</Text>
         </Pressable>
+
+        {/* Codes only go to registered emails — say so up front and point new
+            users at signup. Shown to everyone, so it reveals nothing about
+            whether any particular email has an account. */}
+        <View style={local.signupNudge}>
+          <Text style={local.nudgeText}>Sign-in codes only work for existing accounts. </Text>
+          <Pressable
+            onPress={onSignup}
+            accessibilityRole="button"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text style={s.linkText}>New here? Sign up first</Text>
+          </Pressable>
+        </View>
       </>
     )
   }
@@ -113,9 +127,19 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, styles: s
     <>
       {/* Deliberately hedged: the backend no-ops silently for unregistered
           emails so this screen can't confirm whether an account exists. */}
-      <Text style={[s.confirmBody, { marginBottom: spacing.md }]}>
+      <Text style={[s.confirmBody, { marginBottom: spacing.xs }]}>
         If {email} has an account, a 6-digit code is on its way. It expires in 10 minutes.
       </Text>
+      <View style={[local.signupNudge, { marginBottom: spacing.md, marginTop: 0 }]}>
+        <Text style={local.nudgeText}>No code after a minute? You may not have an account yet — </Text>
+        <Pressable
+          onPress={onSignup}
+          accessibilityRole="button"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <Text style={s.linkText}>create one</Text>
+        </Pressable>
+      </View>
 
       <Text style={s.label}>Sign-in code</Text>
       <View style={s.inputWrap}>
@@ -186,5 +210,18 @@ const local = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.md,
     minHeight: 44,
+  },
+  signupNudge: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
+  nudgeText: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.xs,
+    color: colors.slate400,
+    textAlign: 'center',
   },
 })
