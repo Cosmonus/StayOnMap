@@ -1,11 +1,15 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Lock, X, Navigation, Phone, ArrowRight } from 'lucide-react'
+import { Lock, X, Navigation, Phone, ArrowRight, ImageOff } from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { appointmentService } from '@services/appointment.service'
 import { useMapStore } from '@store/mapStore'
 import { useAuth } from '@features/auth/hooks/useAuth'
-import { formatPrice, formatCurrency } from '@utils/format'
+import { formatPrice, formatCurrency, imgUrl } from '@utils/format'
+import { previewHighlights } from '@features/spatial/previewHighlights'
+import { factIcon } from '@features/spatial/factIcons'
+import TrustBadge from '@components/common/TrustBadge'
+import RiskAlert from '@components/common/RiskAlert'
 
 function Pill({ children, color = 'slate' }) {
   const styles = {
@@ -42,7 +46,10 @@ function LockedRow({ icon, label }) {
   )
 }
 
-export default function PropertyPopup() {
+// `bare` — rendered inside the mobile bottom sheet, which owns the card
+// chrome and the scrolling; the popup drops its border/shadow and inner
+// scroll cap so there's one scroll surface, not two nested ones.
+export default function PropertyPopup({ bare = false }) {
   const selectedPinId  = useMapStore((s) => s.selectedPinId)
   const clearSelection = useMapStore((s) => s.clearSelection)
   const { user } = useAuth()
@@ -73,26 +80,61 @@ export default function PropertyPopup() {
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([property.address, property.city].filter(Boolean).join(', '))}`
     : null
 
-  const bhkLabel = property?.type === 'PG'
-    ? `🏘️ ${property.sharing}-Sharing PG`
-    : property?.bhk === 0 ? '🛏️ Studio'
-    : property?.bhk ? `🛏️ ${property.bhk} BHK` : null
+  // Spec chip is per-type: BHK means nothing on a plot, sharing is the number
+  // that matters for a PG, guests for a short stay, carpet area for a shop.
+  const bhkLabel = !property ? null
+    : property.type === 'PG' ? `🏘️ ${property.sharing}-Sharing PG`
+    : property.type === 'LAND' ? (property.extent ? `📐 ${property.extent} ${(property.extentUnit ?? '').toLowerCase()}`.trim() : null)
+    : property.type === 'SHORT_STAY' ? (property.maxGuests ? `👥 Up to ${property.maxGuests} guests` : null)
+    : property.type === 'COMMERCIAL' ? (property.carpetArea ? `📐 ${property.carpetArea} sq.ft carpet` : null)
+    : property.bhk === 0 ? '🛏️ Studio'
+    : property.bhk ? `🛏️ ${property.bhk} BHK` : null
 
   const FURNISHED_EMOJI = { FULLY: '🛋️', SEMI: '🪑', UNFURNISHED: '📦' }
   const furnished = property?.furnished
     ? `${FURNISHED_EMOJI[property.furnished] ?? ''} ${property.furnished.charAt(0) + property.furnished.slice(1).toLowerCase().replace('_', ' ')}`.trim()
     : null
 
-  const TYPE_EMOJI = { APARTMENT: '🏢', HOUSE: '🏠', VILLA: '🏡', PG: '🏘️', INDEPENDENT_HOUSE: '🏠', COMMERCIAL: '🏪' }
+  const TYPE_EMOJI = { APARTMENT: '🏢', HOUSE: '🏠', VILLA: '🏡', PG: '🏘️', INDEPENDENT_HOUSE: '🏠', COMMERCIAL: '🏪', LAND: '🏞️', SHORT_STAY: '🏨' }
   const typeLabel = property?.type
     ? `${TYPE_EMOJI[property.type] ?? '🏠'} ${property.type.replace(/_/g, ' ').charAt(0) + property.type.replace(/_/g, ' ').slice(1).toLowerCase()}`
     : null
 
+  // Nightly for a short stay; formatPrice covers rent vs lease for the rest.
+  const priceLabel = property?.type === 'SHORT_STAY' ? 'Nightly rate'
+    : property?.pricingModel === 'LEASE' ? 'Lease amount' : 'Monthly rent'
+  const priceValue = property?.type === 'SHORT_STAY'
+    ? `${formatCurrency(Number(property.nightlyRate ?? property.rent))}/night`
+    : property ? formatPrice(property) : ''
+
+  const highlights = previewHighlights(property?.spatialContext)
+  const images = property?.images ?? []
+
   return (
     <div
-      className="w-full bg-white rounded-2xl overflow-hidden border border-slate-100"
-      style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)' }}
+      className={bare ? 'w-full bg-white' : 'w-full bg-white rounded-2xl overflow-hidden border border-slate-100'}
+      style={bare ? undefined : { boxShadow: '0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)' }}
     >
+      {/* ── Photo ── */}
+      {isLoading ? (
+        <div className="aspect-[16/9] bg-slate-100 animate-pulse" />
+      ) : (
+        <div className="relative aspect-[16/9] bg-slate-100">
+          {images[0]?.url ? (
+            <img src={imgUrl(images[0].url, 'card')} alt={property?.title ?? ''} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-slate-300">
+              <ImageOff size={28} strokeWidth={1.5} />
+            </div>
+          )}
+          {images.length > 1 && (
+            <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-black/60 text-white text-[11px] font-semibold">
+              1 / {images.length}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* ── Header ── */}
       <div className="flex items-start gap-2 px-4 pt-4 pb-3">
         <div className="flex-1 min-w-0">
@@ -117,15 +159,36 @@ export default function PropertyPopup() {
         </button>
       </div>
 
-      {/* ── Scrollable body ── */}
-      <div className="overflow-y-auto px-4 pb-4 flex flex-col gap-4" style={{ maxHeight: '72vh', scrollbarWidth: 'none' }}>
+      {/* ── Scrollable body (the sheet scrolls instead when bare) ── */}
+      <div
+        className={`px-4 pb-4 flex flex-col gap-4 ${bare ? '' : 'overflow-y-auto'}`}
+        style={bare ? undefined : { maxHeight: '60vh', scrollbarWidth: 'none' }}
+      >
+        {/* Risk warning — renders nothing unless MEDIUM or worse */}
+        {!isLoading && property?.riskScore && <RiskAlert riskScore={property.riskScore} />}
 
         {/* Pills */}
-        {!isLoading && (bhkLabel || furnished || typeLabel) && (
-          <div className="flex flex-wrap gap-1.5">
+        {!isLoading && (bhkLabel || furnished || typeLabel || property?.trustScore?.badge) && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {property?.trustScore?.badge && <TrustBadge badge={property.trustScore.badge} size="sm" />}
             {bhkLabel  && <Pill color="brand">{bhkLabel}</Pill>}
             {furnished && <Pill>{furnished}</Pill>}
             {typeLabel && <Pill color="violet">{typeLabel}</Pill>}
+          </div>
+        )}
+
+        {/* Nearby highlights — property-anchored distances from the spatial layer */}
+        {highlights.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {highlights.map((h) => {
+              const Icon = factIcon(h.key)
+              return (
+                <span key={h.key} className="flex items-center gap-1.5 rounded-full bg-slate-50 border border-slate-100 px-2.5 py-1 text-[11px] text-slate-600">
+                  <Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" strokeWidth={2} aria-hidden="true" />
+                  {h.label} <span className="font-bold text-slate-800">{h.distance}</span>
+                </span>
+              )
+            })}
           </div>
         )}
 
@@ -139,21 +202,24 @@ export default function PropertyPopup() {
         {/* Pricing */}
         {!isLoading && property && (
           <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 overflow-hidden">
-            <PriceRow
-              label={property.pricingModel === 'LEASE' ? 'Lease amount' : 'Monthly rent'}
-              value={formatPrice(property)}
-              accent
-            />
+            <PriceRow label={priceLabel} value={priceValue} accent />
             {Number(property.deposit) > 0 && (
               <PriceRow
                 label="Security deposit"
                 value={formatCurrency(Number(property.deposit))}
               />
             )}
-            <PriceRow
-              label="Maintenance"
-              value={Number(property.maintenance) > 0 ? `${formatCurrency(Number(property.maintenance))}/mo` : 'Not included'}
-            />
+            {/* Maintenance is a monthly-tenancy concept — meaningless for a
+                plot or a nightly stay; a short stay shows its cleaning fee. */}
+            {property.type !== 'LAND' && property.type !== 'SHORT_STAY' && (
+              <PriceRow
+                label="Maintenance"
+                value={Number(property.maintenance) > 0 ? `${formatCurrency(Number(property.maintenance))}/mo` : 'Not included'}
+              />
+            )}
+            {property.type === 'SHORT_STAY' && Number(property.cleaningFee) > 0 && (
+              <PriceRow label="Cleaning fee" value={formatCurrency(Number(property.cleaningFee))} />
+            )}
           </div>
         )}
         {isLoading && <div className="h-20 bg-slate-100 rounded-xl animate-pulse" />}
