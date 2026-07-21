@@ -1,11 +1,12 @@
-// Mailer — one interface (`sendMail`), three delivery paths behind MAIL_PROVIDER.
+// Mailer — one interface (`sendMail`), four delivery paths behind MAIL_PROVIDER.
 //
-//   smtp  (default) — nodemailer to any SMTP endpoint: a Gmail app password
-//                     today, a self-hosted server later. Works locally.
-//   resend          — Resend's transactional REST API over plain fetch (no
-//                     SDK, no new dependency). The production path.
-//   brevo           — Brevo's transactional REST API, same shape. Kept as an
-//                     alternative.
+//   smtp      (default) — nodemailer to any SMTP endpoint: a Gmail app
+//                         password today, a self-hosted server later. Works
+//                         locally.
+//   zeptomail           — Zoho ZeptoMail's transactional REST API over plain
+//                         fetch (no SDK, no new dependency). The production
+//                         path (2026-07-21 decision).
+//   resend / brevo      — same shape, kept as alternatives.
 //
 // Why the HTTPS paths exist: Railway blocks outbound SMTP ports
 // (25/465/587/2525) on every plan below Pro, so SMTP there fails no matter how
@@ -145,8 +146,34 @@ async function deliverViaResend({ to, subject, html }) {
   }
 }
 
+// ── Delivery: Zoho ZeptoMail REST API ───────────────────────────────────────
+async function deliverViaZeptomail({ to, subject, html }) {
+  const from = parseFrom(env.mailFrom)
+  const res = await fetch(env.zeptomailApiUrl, {
+    method: 'POST',
+    headers: {
+      authorization: `Zoho-enczapikey ${env.zeptomailToken}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: { address: from.email, name: from.name },
+      to: [{ email_address: { address: to } }],
+      subject,
+      htmlbody: html,
+    }),
+    signal: AbortSignal.timeout(HTTP_TIMEOUT_MS),
+  })
+  if (!res.ok) {
+    // Body carries ZeptoMail's reason (unverified domain, bad token, blocked
+    // content) — worth surfacing, but truncated so it can't flood the logs.
+    const detail = await res.text().catch(() => '')
+    throw new Error(`zeptomail ${res.status}: ${detail.slice(0, 200)}`)
+  }
+}
+
 // ── Provider selection ──────────────────────────────────────────────────────
 function provider() {
+  if (env.mailProvider === 'zeptomail') return 'zeptomail'
   if (env.mailProvider === 'resend') return 'resend'
   if (env.mailProvider === 'brevo') return 'brevo'
   return 'smtp'
@@ -155,13 +182,14 @@ function provider() {
 // Is a sender configured at all? (Not "will it succeed" — that needs a send.)
 function senderReady() {
   switch (provider()) {
+    case 'zeptomail': return !!env.zeptomailToken
     case 'resend': return !!env.resendApiKey
     case 'brevo': return !!env.brevoApiKey
     default: return !!getTransport()
   }
 }
 
-const DELIVER = { resend: deliverViaResend, brevo: deliverViaBrevo, smtp: deliverViaSmtp }
+const DELIVER = { zeptomail: deliverViaZeptomail, resend: deliverViaResend, brevo: deliverViaBrevo, smtp: deliverViaSmtp }
 
 // Dev-only console delivery: with NO provider configured in development, an
 // email "sends" by printing to the server console — so OTP login and reset
