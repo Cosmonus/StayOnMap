@@ -55,7 +55,7 @@ export default function MapHomeCard({ property, isSaved: initialSaved = false, o
         </Pressable>
       </View>
       <Text style={styles.rent} numberOfLines={1}>
-        {formatCompact(Number(property.rent))}<Text style={styles.rentUnit}>/mo</Text>
+        {formatCompact(Number(property.rent))}<Text style={styles.rentUnit}>{property.pricingModel === 'LEASE' ? ' lease' : '/mo'}</Text>
       </Text>
       <Text style={styles.title} numberOfLines={1}>{property.title}</Text>
       <Text style={styles.spec} numberOfLines={1}>

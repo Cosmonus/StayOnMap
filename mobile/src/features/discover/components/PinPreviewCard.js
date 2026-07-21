@@ -63,6 +63,9 @@ export default function PinPreviewCard({ propertyId, onPress }) {
   const deposit = Number(property.deposit)
   const isStay = property.type === 'SHORT_STAY'
   const price = formatCompact(Number(isStay ? (property.nightlyRate ?? property.rent) : property.rent))
+  // Nightly for a short stay; on a LEASE listing `rent` is the lump sum, so
+  // "/mo" would be exactly the misread pricingModel exists to prevent.
+  const priceUnit = isStay ? '/night' : property.pricingModel === 'LEASE' ? ' lease' : '/mo'
 
   return (
     <SafeAreaView edges={['bottom']} style={styles.wrap} pointerEvents="box-none">
@@ -89,7 +92,7 @@ export default function PinPreviewCard({ propertyId, onPress }) {
           <View style={styles.priceRow}>
             <Text style={styles.price} numberOfLines={1}>
               {price}
-              <Text style={styles.priceUnit}>{isStay ? '/night' : '/mo'}</Text>
+              <Text style={styles.priceUnit}>{priceUnit}</Text>
               {deposit > 0 && <Text style={styles.deposit}>  ·  {formatCompact(deposit)} deposit</Text>}
             </Text>
             <TrustBadge badge={property.trustScore?.badge} size="sm" />
