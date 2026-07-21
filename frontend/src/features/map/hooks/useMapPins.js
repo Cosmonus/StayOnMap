@@ -97,7 +97,7 @@ function makePinEl(pin, selected) {
     border-radius: 999px;
     font-size: 12px;
     font-weight: 600;
-    font-family: Inter, sans-serif;
+    font-family: 'Plus Jakarta Sans', sans-serif;
     white-space: nowrap;
     cursor: pointer;
     color: #fff;
@@ -134,7 +134,7 @@ function makeClusterEl(count) {
     border-radius: 999px;
     font-size: 12px;
     font-weight: 700;
-    font-family: Inter, sans-serif;
+    font-family: 'Plus Jakarta Sans', sans-serif;
     white-space: nowrap;
     cursor: pointer;
     background: #0284c7;

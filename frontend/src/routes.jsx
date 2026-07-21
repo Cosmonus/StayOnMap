@@ -6,24 +6,44 @@ import AdminGuard         from '@features/auth/AdminGuard'
 // Eagerly loaded — needed immediately on first paint
 import HomePage           from '@pages/HomePage'
 
+// Every deploy renames the hashed chunk files, so a tab still holding the old
+// index.html 404s when it lazy-imports a route and the page renders blank.
+// Reload once to pick up the fresh manifest; the sessionStorage guard stops a
+// reload loop when the import failure is real.
+function lazyRetry(importer) {
+  return lazy(() =>
+    importer()
+      .then((mod) => {
+        sessionStorage.removeItem('chunk_reload')
+        return mod
+      })
+      .catch((err) => {
+        if (sessionStorage.getItem('chunk_reload')) throw err
+        sessionStorage.setItem('chunk_reload', '1')
+        window.location.reload()
+        return new Promise(() => {}) // hold Suspense until the reload lands
+      })
+  )
+}
+
 // Lazy loaded — not needed until user navigates there
-const PropertiesPage    = lazy(() => import('@pages/PropertiesPage'))
-const PropertyPage      = lazy(() => import('@pages/PropertyPage'))
-const ServicesPage      = lazy(() => import('@pages/ServicesPage'))
-const AboutPage         = lazy(() => import('@pages/AboutPage'))
-const IntelligencePage  = lazy(() => import('@pages/IntelligencePage'))
-const ContactPage       = lazy(() => import('@pages/ContactPage'))
-const RulesPage         = lazy(() => import('@pages/RulesPage'))
-const PrivacyPolicyPage    = lazy(() => import('@pages/PrivacyPolicyPage'))
-const TermsOfServicePage   = lazy(() => import('@pages/TermsOfServicePage'))
-const DashboardPage     = lazy(() => import('@pages/DashboardPage'))
-const HostOnboardingPage = lazy(() => import('@pages/HostOnboardingPage'))
-const NotFoundPage      = lazy(() => import('@pages/NotFoundPage'))
-const AdminLoginPage    = lazy(() => import('@pages/AdminLoginPage'))
-const AdminPage         = lazy(() => import('@pages/AdminPage'))
-const ResetPasswordPage = lazy(() => import('@pages/ResetPasswordPage'))
-const VerifyEmailPage   = lazy(() => import('@pages/VerifyEmailPage'))
-const OAuthCompletePage = lazy(() => import('@pages/OAuthCompletePage'))
+const PropertiesPage    = lazyRetry(() => import('@pages/PropertiesPage'))
+const PropertyPage      = lazyRetry(() => import('@pages/PropertyPage'))
+const ServicesPage      = lazyRetry(() => import('@pages/ServicesPage'))
+const AboutPage         = lazyRetry(() => import('@pages/AboutPage'))
+const IntelligencePage  = lazyRetry(() => import('@pages/IntelligencePage'))
+const ContactPage       = lazyRetry(() => import('@pages/ContactPage'))
+const RulesPage         = lazyRetry(() => import('@pages/RulesPage'))
+const PrivacyPolicyPage    = lazyRetry(() => import('@pages/PrivacyPolicyPage'))
+const TermsOfServicePage   = lazyRetry(() => import('@pages/TermsOfServicePage'))
+const DashboardPage     = lazyRetry(() => import('@pages/DashboardPage'))
+const HostOnboardingPage = lazyRetry(() => import('@pages/HostOnboardingPage'))
+const NotFoundPage      = lazyRetry(() => import('@pages/NotFoundPage'))
+const AdminLoginPage    = lazyRetry(() => import('@pages/AdminLoginPage'))
+const AdminPage         = lazyRetry(() => import('@pages/AdminPage'))
+const ResetPasswordPage = lazyRetry(() => import('@pages/ResetPasswordPage'))
+const VerifyEmailPage   = lazyRetry(() => import('@pages/VerifyEmailPage'))
+const OAuthCompletePage = lazyRetry(() => import('@pages/OAuthCompletePage'))
 
 function PageFallback() {
   return (

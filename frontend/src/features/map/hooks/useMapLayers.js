@@ -110,7 +110,7 @@ function createTooltip() {
     'border-radius:10px',
     'padding:8px 12px',
     'box-shadow:0 4px 16px rgba(0,0,0,0.14)',
-    'font-family:Inter,sans-serif',
+    "font-family:'Plus Jakarta Sans',sans-serif",
     'font-size:12px',
     'line-height:1.5',
     'color:#1e293b',
