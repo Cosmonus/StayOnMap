@@ -10,7 +10,7 @@ import {
   DescribeScreen, FieldsScreen, LocationScreen, FeaturesScreen, PhotosScreen,
   TitleScreen, DescriptionScreen, PricingScreen, ContactScreen, ReviewScreen,
 } from './WizardScreens'
-import { CATEGORIES, BUSINESS_GATED_TYPES, pricingRows, DESCRIBE, getScreens, phaseOf, deriveType } from '../../config/onboarding.js'
+import { CATEGORIES, BUSINESS_GATED_TYPES, DESCRIBE, getScreens, phaseOf, deriveType, missingRequirements } from '../../config/onboarding.js'
 import ListingManager from '../ListingManager'
 import ListingDetailContent from '../ListingDetailContent'
 import { CreateLeaseModal } from '@features/leases/components/LeaseManager'
@@ -85,27 +85,6 @@ function buildPayload(categoryKey, type, draft, amenityIds) {
   if (fields.genderPreference) payload.rules = { genderPreference: fields.genderPreference }
 
   return payload
-}
-
-function getBlockingError(screen, categoryKey, draft) {
-  if (screen.k === 'describe' && draft.fields[DESCRIBE[categoryKey].k] === undefined) return 'Make a selection to continue.'
-  if (screen.k === 'location') {
-    const l = draft.location
-    if (l.address.trim().length < 5) return 'Enter a full address.'
-    if (!l.city) return 'Select a city.'
-    if (!/^\d{6}$/.test(l.pincode)) return 'Enter a valid 6-digit pincode.'
-    if (l.lat == null) return 'Drop a pin on the map.'
-  }
-  if (screen.k === 'photos' && draft.images.length < 1) return 'Add at least one photo.'
-  if (screen.k === 'title' && draft.title.trim().length < 5) return 'Title needs at least 5 characters.'
-  if (screen.k === 'description' && draft.description.trim().length < 10) return 'Description needs at least 10 characters.'
-  if (screen.k === 'pricing') {
-    for (const [key] of pricingRows(categoryKey, draft.pricingModel)) {
-      if (['deposit', 'maintenance', 'cleaningFee', 'weekendRate'].includes(key)) continue
-      if (!draft.pricing[key]) return 'Fill in the required price fields.'
-    }
-  }
-  return null
 }
 
 function DoneScreen({ category, onListAnother, onGoToListings }) {
@@ -293,15 +272,26 @@ export default function OnboardingWizard({ profile }) {
   const doneCount = screens.slice(0, screenIdx).filter((s) => s.k !== 'phase').length
   const pct = Math.round((doneCount / totalScreens) * 100)
   const isLast = screenIdx === screens.length - 1
+  const missing = missingRequirements(categoryKey, draft)
+  const showFinishLater = !isPhase && !['describe', 'review'].includes(screen.k)
+    && missing.some((m) => m.screenK === screen.k)
 
   function next() {
-    if (!isPhase) {
-      const err = getBlockingError(screen, categoryKey, draft)
-      if (err) { setBlockError(err); return }
+    // The describe choice is the one mid-flow gate — screen branching and type
+    // derivation hang off it, and it's a single tap. Everything else surfaces
+    // at review via missingRequirements.
+    if (screen.k === 'describe' && draft.fields[DESCRIBE[categoryKey].k] === undefined) {
+      setBlockError('Make a selection to continue.')
+      return
     }
     setBlockError('')
     if (isLast) { publish(); return }
     setScreenIdx((i) => i + 1)
+  }
+
+  function jumpTo(screenK) {
+    const idx = screens.findIndex((s) => s.k === screenK)
+    if (idx >= 0) { setBlockError(''); setScreenIdx(idx) }
   }
 
   function back() {
@@ -338,15 +328,20 @@ export default function OnboardingWizard({ profile }) {
           {screen.k === 'fields' && <FieldsScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
           {screen.k === 'location' && <LocationScreen draft={draft} setDraft={setDraft} />}
           {screen.k === 'features' && <FeaturesScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'photos' && <PhotosScreen draft={draft} setDraft={setDraft} />}
-          {screen.k === 'title' && <TitleScreen draft={draft} setDraft={setDraft} />}
-          {screen.k === 'description' && <DescriptionScreen draft={draft} setDraft={setDraft} />}
+          {screen.k === 'photos' && <PhotosScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
+          {screen.k === 'title' && <TitleScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
+          {screen.k === 'description' && <DescriptionScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
           {screen.k === 'pricing' && <PricingScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
           {screen.k === 'contact' && <ContactScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'review' && <ReviewScreen categoryKey={categoryKey} draft={draft} />}
+          {screen.k === 'review' && <ReviewScreen categoryKey={categoryKey} draft={draft} missing={missing} onJump={jumpTo} />}
         </div>
 
         {blockError && <p className="px-8 -mt-4 pb-4 text-sm text-red-500">{blockError}</p>}
+        {showFinishLater && (
+          <p className="px-8 -mt-4 pb-4 text-xs text-slate-400">
+            You can finish this later — we&apos;ll flag anything missing at review.
+          </p>
+        )}
 
         <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50">
           <button onClick={back} className="text-sm font-bold text-slate-700 underline underline-offset-2">Back</button>
@@ -354,8 +349,8 @@ export default function OnboardingWizard({ profile }) {
             {!isPhase && <span className="text-xs font-mono text-slate-400">{pct}%</span>}
             <button
               onClick={next}
-              disabled={isPending}
-              className="px-7 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold disabled:opacity-50 transition-colors"
+              disabled={isPending || (isLast && missing.length > 0)}
+              className="px-7 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isPhase ? 'Get started →' : isLast ? (isPending ? 'Publishing…' : 'Publish listing') : 'Next →'}
             </button>
