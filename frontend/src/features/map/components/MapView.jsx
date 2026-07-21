@@ -71,6 +71,16 @@ export default function MapView({ contained = false }) {
 
       useMapStore.getState().setFlyTo((opts) => {
         if (!mapRef.current) return
+        // A place's own extent beats any fixed zoom: "Delhi" frames the whole
+        // city, a street frames the street. Zoom+pan stays the fallback.
+        if (opts.bounds) {
+          const { swLat, swLng, neLat, neLng } = opts.bounds
+          mapRef.current.fitBounds(
+            new window.google.maps.LatLngBounds({ lat: swLat, lng: swLng }, { lat: neLat, lng: neLng }),
+            40
+          )
+          return
+        }
         const [lng, lat] = opts.center
         mapRef.current.setZoom(opts.zoom ?? mapRef.current.getZoom())
         mapRef.current.panTo({ lat, lng })

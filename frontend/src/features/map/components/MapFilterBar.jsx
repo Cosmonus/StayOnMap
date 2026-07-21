@@ -32,7 +32,7 @@ export default function MapFilterBar() {
 
     const place = await resolvePlace(query, city).catch(() => null)
     if (!place) return
-    useMapStore.getState().flyTo?.({ center: [place.lng, place.lat], zoom: 16, duration: 800 })
+    useMapStore.getState().flyTo?.({ center: [place.lng, place.lat], zoom: 16, bounds: place.viewport ?? undefined, duration: 800 })
     useMapStore.getState().setSearchedPlace(place)
   }
 
