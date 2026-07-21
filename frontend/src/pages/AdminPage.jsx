@@ -1548,7 +1548,7 @@ function ReviewListingsSection() {
   const qc = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const [statusFilter, setStatusFilter] = useState('')
-  const [selected, setSelected] = useState(null)
+  const [selectedId, setSelectedId] = useState(null)
 
   const deepLinkId = searchParams.get('propertyId')
 
@@ -1558,36 +1558,40 @@ function ReviewListingsSection() {
     staleTime: 0,
   })
 
-  // Fetch the deep-linked property when arriving from another tab
-  const { data: deepLinkedProperty } = useQuery({
-    queryKey: ['admin-property', deepLinkId],
-    queryFn: () => adminService.propertyById(deepLinkId).then(r => r.data),
-    enabled: !!deepLinkId && !selected,
+  // Opening a card always fetches the full property — list rows are summaries
+  // and no longer carry chat threads (the unbounded include was an OOM risk).
+  const { data: selectedProperty } = useQuery({
+    queryKey: ['admin-property', selectedId],
+    queryFn: () => adminService.propertyById(selectedId).then(r => r.data),
+    enabled: !!selectedId,
   })
 
   useEffect(() => {
-    if (deepLinkedProperty && !selected) {
-      setSelected(deepLinkedProperty)
+    if (deepLinkId) {
+      setSelectedId(deepLinkId)
       setSearchParams({ tab: 'review-listings' }, { replace: true })
     }
-  }, [deepLinkedProperty, selected, setSearchParams])
+  }, [deepLinkId, setSearchParams])
 
   const mutation = useMutation({
     mutationFn: ({ id, status }) => adminService.setPropertyStatus(id, { status }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-review-listings'] })
-      setSelected(null)
+      setSelectedId(null)
     },
   })
 
   const properties = data?.properties ?? []
 
   // Show detail view inline when a property is selected
-  if (selected) {
+  if (selectedId) {
+    if (!selectedProperty) {
+      return <div className="bg-slate-100 animate-pulse rounded-xl h-[420px]" />
+    }
     return (
       <PropertyDetailView
-        property={selected}
-        onBack={() => setSelected(null)}
+        property={selectedProperty}
+        onBack={() => setSelectedId(null)}
         onApprove={(id) => mutation.mutate({ id, status: 'ACTIVE' })}
         onReject={(id) => mutation.mutate({ id, status: 'REJECTED' })}
       />
@@ -1627,7 +1631,7 @@ function ReviewListingsSection() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {properties.map(p => (
-            <ReviewCard key={p.id} property={p} onSelect={setSelected} />
+            <ReviewCard key={p.id} property={p} onSelect={(prop) => setSelectedId(prop.id)} />
           ))}
         </div>
       )}

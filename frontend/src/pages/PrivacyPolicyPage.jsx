@@ -209,7 +209,7 @@ export default function PrivacyPolicyPage() {
           </p>
           <p>
             Sri Gokul Krishnan<br />
-            Email: <a href="mailto:srigokulkrishnan@gmail.com" className="text-brand-600">srigokulkrishnan@gmail.com</a><br />
+            Email: <a href="mailto:hello@cosmonus.com" className="text-brand-600">hello@cosmonus.com</a><br />
             Address: Vivekanandar Street, Gandhi Nagar, Avadi, Ambattur, Tiruvallur &ndash; 600054, Tamil Nadu
           </p>
           <p className="text-xs text-slate-400">

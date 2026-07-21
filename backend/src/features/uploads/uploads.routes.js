@@ -9,7 +9,8 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (_req, file, cb) => {
-    // Whitelist specific types — rejects svg, gif, tiff, and spoofed types
+    // Cheap early reject on the DECLARED type only — a spoofed declaration
+    // passes here; uploads.service.js sniffs the actual bytes before storing.
     if (!ALLOWED_MIMETYPES.includes(file.mimetype)) {
       return cb(Object.assign(new Error('Only JPEG, PNG and WebP images are allowed'), { statusCode: 400 }))
     }
