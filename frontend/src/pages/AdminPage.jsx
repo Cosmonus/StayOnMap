@@ -14,6 +14,7 @@ import {
   Eye, EyeOff,
 } from 'lucide-react'
 import { adminService } from '@services/admin.service'
+import { formatPrice, formatCurrency, formatCompact } from '@utils/format'
 import SEOMeta from '@components/common/SEOMeta'
 import { AmenityIcon } from '@components/common/AmenityIcon'
 import { googleMapsReady, createHtmlMarker } from '@lib/googleMaps'
@@ -32,6 +33,7 @@ ChartJS.register(
 )
 import Select           from '@components/common/Select'
 import TrustBadge       from '@components/common/TrustBadge'
+import RiskAlert        from '@components/common/RiskAlert'
 import TrustScoreWidget from '@features/trust/components/TrustScoreWidget'
 import ReviewsSection   from '@features/reviews/components/ReviewsSection'
 import PropertyStatusPill from '@components/common/PropertyStatusPill'
@@ -289,11 +291,13 @@ const TYPE_SHORT = {
 }
 
 function makeMapPin(pin, selected) {
-  const rent  = `₹${(Number(pin.rent) / 1000).toFixed(0)}K`
+  // Admin pins mix RENT and LEASE listings (and LAND totals), so no "/mo"
+  // suffix — a lease lump sum labelled monthly is exactly the misread to avoid.
+  const rent  = formatCompact(Number(pin.rent))
   const type  = TYPE_SHORT[pin.type] ?? ''
   const label = type ? `${rent} · ${type}` : rent
   const el    = document.createElement('div')
-  el.setAttribute('aria-label', `Property at ${rent}/mo`)
+  el.setAttribute('aria-label', `Property at ${rent}`)
   el.style.cssText = `
     display:inline-flex;align-items:center;padding:4px 10px;
     border-radius:999px;font-size:12px;font-weight:600;
@@ -365,17 +369,18 @@ function typeHeadline(p) {
     case 'SHORT_STAY': return p.maxGuests ? `Up to ${p.maxGuests} guests` : null
     case 'LAND':       return p.extent ? `${Number(p.extent).toLocaleString('en-IN')} ${(p.extentUnit ?? 'sq.ft').toLowerCase()}` : null
     case 'COMMERCIAL': return p.carpetArea ? `${Number(p.carpetArea).toLocaleString('en-IN')} sq.ft carpet` : null
-    default:           return p.bhk ? `${p.bhk} BHK` : null
+    default:           return p.bhk === 0 ? 'Studio' : p.bhk ? `${p.bhk} BHK` : null
   }
 }
 
-// LAND repurposes rent as total price; SHORT_STAY's headline price is per night
+// LAND repurposes rent as total price; SHORT_STAY's headline price is per
+// night; everything else reads through formatPrice, which knows a LEASE
+// listing's rent column holds a lump sum and must never render "/mo".
 function priceLabel(p) {
-  const amount = p?.type === 'SHORT_STAY' && p.nightlyRate != null ? p.nightlyRate : p?.rent
-  const formatted = `₹${Number(amount).toLocaleString('en-IN')}`
-  if (p?.type === 'SHORT_STAY') return `${formatted}/night`
-  if (p?.type === 'LAND') return formatted
-  return `${formatted}/mo`
+  if (!p) return ''
+  if (p.type === 'SHORT_STAY') return `${formatCurrency(Number(p.nightlyRate ?? p.rent))}/night`
+  if (p.type === 'LAND') return formatCurrency(Number(p.rent))
+  return formatPrice(p)
 }
 
 function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprove, onSuspend, onReject }) {
@@ -444,6 +449,9 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
 
         {/* Details */}
         <div className="px-4 pt-4 pb-3 space-y-3">
+          {/* Risk warning — renders nothing unless MEDIUM or worse */}
+          {!isLoading && property?.riskScore && <RiskAlert riskScore={property.riskScore} />}
+
           {isLoading ? (
             <div className="w-28 h-7 bg-slate-100 rounded animate-pulse" />
           ) : (
@@ -468,16 +476,23 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
           )}
 
           {!isLoading && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {property?.trustScore?.badge && <TrustBadge badge={property.trustScore.badge} size="sm" />}
+              {property?.pricingModel === 'LEASE' && (
+                <span className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full text-xs font-bold">Lease listing</span>
+              )}
               {bhkLabel && <span className="px-2 py-0.5 bg-brand-50 text-brand-600 rounded-full text-xs font-semibold">{bhkLabel}</span>}
-              {property?.furnished && (
+              {property?.houseStyle && (
+                <span className="px-2 py-0.5 bg-slate-100 rounded-full text-xs font-medium text-slate-600">{property.houseStyle}</span>
+              )}
+              {property?.furnished && property?.type !== 'LAND' && (
                 <span className="px-2 py-0.5 bg-slate-100 rounded-full text-xs font-medium text-slate-600">
                   {property.furnished.charAt(0) + property.furnished.slice(1).toLowerCase()}
                 </span>
               )}
               {property?.type && (
                 <span className="px-2 py-0.5 bg-slate-100 rounded-full text-xs font-medium text-slate-600">
-                  {property.type.replace('_', ' ')}
+                  {property.type.replace(/_/g, ' ')}
                 </span>
               )}
             </div>
@@ -883,10 +898,14 @@ function aggregatePropertyUsers(property) {
 /* ── Simple card for the grid ── */
 function ReviewCard({ property, onSelect }) {
   const img = property.images?.[0]?.url
-  const rent = property.type === 'SHORT_STAY' && property.nightlyRate != null
-    ? Number(property.nightlyRate)
-    : Number(property.rent)
-  const rentSuffix = property.type === 'SHORT_STAY' ? '/night' : property.type === 'LAND' ? '' : '/mo'
+  // Compact but pricingModel-aware — a LEASE lump sum must never read "/mo".
+  const priceText = property.type === 'SHORT_STAY'
+    ? `${formatCompact(Number(property.nightlyRate ?? property.rent))}/night`
+    : property.type === 'LAND'
+    ? formatCompact(Number(property.rent))
+    : property.pricingModel === 'LEASE'
+    ? `${formatCompact(Number(property.rent))} lease`
+    : `${formatCompact(Number(property.rent))}/mo`
   const headline = typeHeadline(property)
   const ownerName = property.owner?.name || property.owner?.email?.split('@')[0] || '—'
 
@@ -922,10 +941,21 @@ function ReviewCard({ property, onSelect }) {
             <p className="text-[10px] font-mono text-slate-400">{property.displayId}</p>
           )}
           <p className="text-xs text-slate-500 mt-0.5">
-            ₹{rent >= 1000 ? `${(rent / 1000).toFixed(rent % 1000 === 0 ? 0 : 1)}K` : rent}{rentSuffix}
+            {priceText}
             {property.city ? ` · ${property.city}` : ''}
             {headline ? ` · ${headline}` : ''}
           </p>
+        </div>
+
+        {/* Trust + type chips */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {property.trustScore?.badge && <TrustBadge badge={property.trustScore.badge} size="sm" />}
+          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[11px] font-medium text-slate-600">
+            {property.type?.replace(/_/g, ' ')}
+          </span>
+          {property.pricingModel === 'LEASE' && (
+            <span className="px-2 py-0.5 rounded-full bg-amber-50 text-[11px] font-bold text-amber-700">Lease</span>
+          )}
         </div>
 
         {/* Owner line */}
@@ -1026,8 +1056,9 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
   // poisons a moderation decision. Stays are nightly.
   const isLease = property.pricingModel === 'LEASE'
   const isStay = property.type === 'SHORT_STAY'
+  const isLand = property.type === 'LAND'
   const priceValue = isStay ? Number(property.nightlyRate ?? property.rent) : rent
-  const priceUnit = isLease ? ' lease' : isStay ? '/night' : '/mo'
+  const priceUnit = isLease ? ' lease' : isStay ? '/night' : isLand ? '' : '/mo'
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null
 
@@ -1119,6 +1150,9 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
             )}
           </div>
 
+          {/* Risk warning — renders nothing unless MEDIUM or worse */}
+          {property.riskScore && <RiskAlert riskScore={property.riskScore} />}
+
           {/* Title + Price + Tags */}
           <div>
             <div className="flex items-start justify-between gap-3">
@@ -1128,12 +1162,12 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
               </div>
               <div className="shrink-0 text-right">
                 <p className="text-xl font-bold text-brand-600">₹{priceValue.toLocaleString('en-IN')}<span className="text-xs font-medium text-slate-400">{priceUnit}</span></p>
-                <p className="text-xs text-slate-500 mt-0.5">Deposit: ₹{deposit.toLocaleString('en-IN')}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{isLand ? 'Advance' : 'Deposit'}: ₹{deposit.toLocaleString('en-IN')}</p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-1.5 mt-3">
               {isLease && <span className="px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg border border-amber-200">📜 LEASE listing</span>}
-              {property.bhk != null && property.bhk > 0 && <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-lg border border-brand-100">🏠 {property.bhk} BHK</span>}
+              {property.bhk != null && !['PG', 'LAND', 'COMMERCIAL', 'SHORT_STAY'].includes(property.type) && <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-lg border border-brand-100">🏠 {property.bhk === 0 ? 'Studio' : `${property.bhk} BHK`}</span>}
               {property.sharing && <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-lg border border-brand-100">👥 {property.sharing}-Sharing</span>}
               {property.type === 'LAND' && property.extent && <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-lg border border-brand-100">📐 {property.extent} {(property.extentUnit ?? '').toLowerCase()}</span>}
               {property.type === 'COMMERCIAL' && property.carpetArea && <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-lg border border-brand-100">📐 {property.carpetArea} sq.ft carpet</span>}
@@ -1211,6 +1245,12 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
                 <>
                   <AdminPriceRow label="Total Price"    value={`₹${rent.toLocaleString('en-IN')}`} accent />
                   <AdminPriceRow label="Advance"        value={`₹${deposit.toLocaleString('en-IN')}`} />
+                </>
+              ) : isLease ? (
+                <>
+                  <AdminPriceRow label="Lease Amount"   value={`₹${rent.toLocaleString('en-IN')}`} accent />
+                  <AdminPriceRow label="Deposit"        value={`₹${deposit.toLocaleString('en-IN')}`} />
+                  <AdminPriceRow label="Maintenance"    value={maintenance > 0 ? `₹${maintenance.toLocaleString('en-IN')}/mo` : 'Not included'} />
                 </>
               ) : (
                 <>
