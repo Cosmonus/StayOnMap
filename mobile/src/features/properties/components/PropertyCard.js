@@ -70,7 +70,7 @@ export default function PropertyCard({ property, isSaved: initialSaved = false, 
         <View style={styles.priceRow}>
           <Text style={styles.price}>
             {formatCompact(Number(property.rent))}
-            <Text style={styles.priceUnit}>/mo</Text>
+            <Text style={styles.priceUnit}>{property.pricingModel === 'LEASE' ? ' lease' : '/mo'}</Text>
           </Text>
           {property.deposit > 0 && <Text style={styles.deposit}>{formatCompact(Number(property.deposit))} dep.</Text>}
         </View>

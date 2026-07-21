@@ -8,7 +8,10 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useResetOnOpen } from '@/hooks/useResetOnOpen'
 import { useFilterStore } from '@store/filterStore'
-import { DEFAULT_FILTERS, SEARCH_KEYS, countActiveFilters, staleFilterPatch } from '@config/filters'
+import {
+  DEFAULT_FILTERS, SEARCH_KEYS, TYPE_CATEGORIES, LEASE_CATEGORY_IDS,
+  countActiveFilters, staleFilterPatch, modeChangePatch,
+} from '@config/filters'
 import Icon from '@components/common/Icon'
 import PropertyTypeSwitcher from '@features/filters/components/PropertyTypeSwitcher'
 import DynamicFilterRenderer from '@features/filters/components/DynamicFilterRenderer'
@@ -17,6 +20,16 @@ import { colors } from '@theme/colors'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
+
+// Rent vs Lease: two different deals, not two price ranges. Rent is monthly;
+// lease is the Kerala/Karnataka lump sum the owner returns when you leave.
+// One mode at a time — see PricingModel in schema.prisma.
+const MODES = [
+  { value: 'RENT', label: 'Rent', hint: 'Pay monthly' },
+  { value: 'LEASE', label: 'Lease', hint: 'Lump sum, refunded on exit' },
+]
+
+const LEASE_CATEGORIES = TYPE_CATEGORIES.filter((c) => LEASE_CATEGORY_IDS.includes(c.id))
 
 export default function MapFiltersSheet({ visible, onClose }) {
   const setFilters = useFilterStore((s) => s.setFilters)
@@ -29,6 +42,25 @@ export default function MapFiltersSheet({ visible, onClose }) {
   const activeCount = countActiveFilters(draft)
 
   const patch = (p) => setDraft((d) => ({ ...d, ...p }))
+
+  const mode = draft.pricingModel || 'RENT'
+  const categories = mode === 'LEASE' ? LEASE_CATEGORIES : TYPE_CATEGORIES
+
+  // Switching modes resets the mode-gated rows (the two budget rows share
+  // rentMin/rentMax on different scales) and drops any now-ineligible type
+  // selection — picking PG then switching to Lease would otherwise filter to
+  // "leased PGs", which can't exist.
+  function handleModeChange(next) {
+    const types = (draft.types ?? []).filter(
+      (t) => next !== 'LEASE' || LEASE_CATEGORIES.some((c) => c.types.includes(t))
+    )
+    patch({
+      pricingModel: next,
+      types,
+      ...modeChangePatch(),
+      ...staleFilterPatch(types, next),
+    })
+  }
 
   function handleReset() {
     setDraft((d) => ({
@@ -63,11 +95,31 @@ export default function MapFiltersSheet({ visible, onClose }) {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Text style={styles.groupLabel}>Looking to</Text>
+              <View style={styles.modeRow}>
+                {MODES.map((m) => {
+                  const active = mode === m.value
+                  return (
+                    <Pressable
+                      key={m.value}
+                      style={[styles.modeCard, active && styles.modeCardActive]}
+                      onPress={() => handleModeChange(m.value)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${m.label} — ${m.hint}`}
+                      accessibilityState={{ selected: active }}
+                    >
+                      <Text style={[styles.modeLabel, active && styles.modeLabelActive]}>{m.label}</Text>
+                      <Text style={styles.modeHint}>{m.hint}</Text>
+                    </Pressable>
+                  )
+                })}
+              </View>
               <Text style={styles.groupLabel}>Property type</Text>
               <View style={styles.typeSwitcher}>
                 <PropertyTypeSwitcher
                   selectedTypes={draft.types ?? []}
-                  onChange={(types) => patch({ types, ...staleFilterPatch(types) })}
+                  categories={categories}
+                  onChange={(types) => patch({ types, ...staleFilterPatch(types, mode) })}
                 />
               </View>
               <DynamicFilterRenderer draft={draft} patch={patch} />
@@ -108,6 +160,16 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.md - 2 },
   heading: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
   groupLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm + 1, color: colors.slate800, marginBottom: spacing.sm + 4 },
+  modeRow: { flexDirection: 'row', gap: spacing.sm, paddingBottom: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.slate100, marginBottom: spacing.md },
+  modeCard: {
+    flex: 1, minHeight: 44, justifyContent: 'center',
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4,
+    borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate200, backgroundColor: colors.white,
+  },
+  modeCardActive: { borderColor: colors.slate800, backgroundColor: colors.slate50 },
+  modeLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate500 },
+  modeLabelActive: { fontFamily: fonts.bodySemiBold, color: colors.slate800 },
+  modeHint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 2 },
   typeSwitcher: { paddingBottom: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.slate100 },
   footer: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

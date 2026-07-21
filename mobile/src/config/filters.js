@@ -22,6 +22,9 @@ export const TYPE_CATEGORIES = [
 export const PARAM_DEFS = {
   types:          { param: 'type', kind: 'csv', def: [] },
   city:           { kind: 'str',    def: '' },
+  // Rent/Lease mode. Defaults to RENT — the public map only ever shows one
+  // mode at a time, and a lease sum must never surface as if it were rent.
+  pricingModel:   { kind: 'str',    def: 'RENT' },
   rentMin:        { kind: 'num',    def: null },
   rentMax:        { kind: 'num',    def: null },
   depositMax:     { kind: 'num',    def: null },
@@ -142,6 +145,12 @@ const asOptions = (list) => list.map((v) => ({ value: v, label: v }))
 const HOMES = ['APARTMENT', 'HOUSE', 'VILLA', 'INDEPENDENT_HOUSE']
 const HOME_TYPES = [...HOMES, 'SHORT_STAY']
 
+// Mirrors the backend's LEASE_ELIGIBLE_TYPES (properties.validation.js): PG
+// prices per bed, SHORT_STAY per night, LAND carries its own saleOrLease —
+// none of them can be leased, so lease mode never offers them.
+export const LEASE_TYPES = [...HOMES, 'COMMERCIAL']
+export const LEASE_CATEGORY_IDS = ['apartment', 'house', 'shop']
+
 export const FILTER_SECTIONS = [
   {
     id: 'budget', label: 'Budget', types: null, defaultOpen: true,
@@ -150,7 +159,7 @@ export const FILTER_SECTIONS = [
         // Residential scale only — COMMERCIAL and LAND price in their own
         // sections at lakh/crore scale, reusing the same rentMin/rentMax ids
         kind: 'range', label: 'Monthly rent', unit: '₹', idMin: 'rentMin', idMax: 'rentMax',
-        types: [...HOMES, 'PG'],
+        types: [...HOMES, 'PG'], modes: ['RENT'],
         slider: { min: 0, max: 500000, step: 2500 },
         chips: [
           { label: 'Under ₹10k', min: null, max: 10000 }, { label: '₹10–20k', min: 10000, max: 20000 },
@@ -158,7 +167,21 @@ export const FILTER_SECTIONS = [
           { label: '₹60k–1L', min: 60000, max: 100000 }, { label: '₹1L+', min: 100000, max: null },
         ],
       },
-      { kind: 'chips', label: 'Max deposit', id: 'depositMax', single: true, types: [...HOMES, 'PG'], options: [{ value: 25000, label: 'Up to ₹25k' }, { value: 50000, label: '₹50k' }, { value: 100000, label: '₹1L' }, { value: 200000, label: '₹2L' }] },
+      {
+        // Lease mode's budget row — same rentMin/rentMax ids, lakh scale,
+        // because on a LEASE listing `rent` holds the one-time lump sum.
+        // Only one of these two rows is ever visible (see matchesMode).
+        kind: 'range', label: 'Lease amount', unit: '₹', idMin: 'rentMin', idMax: 'rentMax',
+        types: LEASE_TYPES, modes: ['LEASE'],
+        slider: { min: 0, max: 5000000, step: 50000 },
+        chips: [
+          { label: 'Under ₹2L', min: null, max: 200000 }, { label: '₹2–5L', min: 200000, max: 500000 },
+          { label: '₹5–10L', min: 500000, max: 1000000 }, { label: '₹10–25L', min: 1000000, max: 2500000 },
+          { label: '₹25L+', min: 2500000, max: null },
+        ],
+      },
+      // Deposit is meaningless on a lease — the lump sum IS the money at stake.
+      { kind: 'chips', label: 'Max deposit', id: 'depositMax', single: true, types: [...HOMES, 'PG'], modes: ['RENT'], options: [{ value: 25000, label: 'Up to ₹25k' }, { value: 50000, label: '₹50k' }, { value: 100000, label: '₹1L' }, { value: 200000, label: '₹2L' }] },
       { kind: 'chips', label: 'Max maintenance / mo', id: 'maintenanceMax', single: true, types: HOMES, options: [{ value: 1000, label: 'Up to ₹1k' }, { value: 2000, label: '₹2k' }, { value: 5000, label: '₹5k' }] },
     ],
   },
@@ -212,7 +235,10 @@ export const FILTER_SECTIONS = [
     id: 'commercial', label: 'Commercial', types: ['COMMERCIAL'], requiresType: true, defaultOpen: true,
     rows: [
       {
+        // modes: RENT only — a leased shop prices via the Budget section's
+        // lease row, which owns the same rentMin/rentMax ids.
         kind: 'range', label: 'Monthly rent', unit: '₹', idMin: 'rentMin', idMax: 'rentMax',
+        modes: ['RENT'],
         slider: { min: 0, max: 1000000, step: 5000 },
         chips: [
           { label: 'Under ₹50k', min: null, max: 50000 }, { label: '₹50k–1L', min: 50000, max: 100000 },
@@ -308,44 +334,71 @@ function matchesTypes(types, selectedTypes) {
   return selectedTypes.length === 0 || intersects(selectedTypes, types)
 }
 
-export function visibleRows(section, selectedTypes) {
-  return section.rows.filter((row) => matchesTypes(row.types, selectedTypes))
+// Second, independent gate: a row may declare `modes: ['LEASE']` to appear
+// only in that pricing mode. Needed because Rent and Lease price on totally
+// different scales (₹28k/mo vs ₹8L once) while sharing the rentMin/rentMax
+// ids — so exactly one budget row may ever be visible at a time.
+// `mode` falls back to RENT everywhere, which keeps every pre-lease caller
+// rendering the monthly-rent row as before.
+function matchesMode(modes, mode) {
+  if (!modes) return true
+  return modes.includes(mode || 'RENT')
 }
 
-export function visibleSections(selectedTypes) {
+export function visibleRows(section, selectedTypes, mode = 'RENT') {
+  return section.rows.filter((row) => matchesTypes(row.types, selectedTypes) && matchesMode(row.modes, mode))
+}
+
+export function visibleSections(selectedTypes, mode = 'RENT') {
   return FILTER_SECTIONS.filter((section) => {
     if (section.requiresType) {
       if (!intersects(selectedTypes, section.types)) return false
     } else if (!matchesTypes(section.types, selectedTypes)) return false
-    return visibleRows(section, selectedTypes).length > 0
+    if (!matchesMode(section.modes, mode)) return false
+    return visibleRows(section, selectedTypes, mode).length > 0
   })
 }
 
-export function sectionFilterIds(section, selectedTypes = []) {
-  const rows = selectedTypes.length ? visibleRows(section, selectedTypes) : section.rows
-  const ids = new Set()
-  for (const row of rows) {
-    if (row.kind === 'range') { ids.add(row.idMin); ids.add(row.idMax) }
-    else if (row.kind === 'toggles') row.items.forEach((t) => ids.add(t.id))
-    else ids.add(row.id)
+function rowFilterIds(row) {
+  if (row.kind === 'range') return [row.idMin, row.idMax]
+  if (row.kind === 'toggles') return row.items.map((t) => t.id)
+  return [row.id]
+}
+
+export function sectionFilterIds(section, selectedTypes = [], mode = 'RENT') {
+  const rows = selectedTypes.length ? visibleRows(section, selectedTypes, mode) : section.rows
+  return [...new Set(rows.flatMap(rowFilterIds))]
+}
+
+// Switching Rent ↔ Lease must reset every mode-gated row's filters. The two
+// budget rows share rentMin/rentMax on wildly different scales, so a leftover
+// "under ₹35k" from rent mode would silently return zero lease results.
+export function modeChangePatch() {
+  const patch = {}
+  for (const section of FILTER_SECTIONS) {
+    for (const row of section.rows) {
+      if (!row.modes) continue
+      for (const id of rowFilterIds(row)) patch[id] = PARAM_DEFS[id].def
+    }
   }
-  return [...ids]
+  return patch
 }
 
 export function countSectionActive(section, filters) {
-  return sectionFilterIds(section, filters.types ?? []).filter((id) => !isDefault(id, filters[id])).length
+  return sectionFilterIds(section, filters.types ?? [], filters.pricingModel)
+    .filter((id) => !isDefault(id, filters[id])).length
 }
 
-export function clearSectionPatch(section, selectedTypes = []) {
-  return Object.fromEntries(sectionFilterIds(section, selectedTypes).map((id) => [id, PARAM_DEFS[id].def]))
+export function clearSectionPatch(section, selectedTypes = [], mode = 'RENT') {
+  return Object.fromEntries(sectionFilterIds(section, selectedTypes, mode).map((id) => [id, PARAM_DEFS[id].def]))
 }
 
 // When the property-type selection changes, filters whose rows are no longer
 // visible must reset — an invisible PG filter would otherwise keep
 // constraining an Apartment search to zero results.
-export function staleFilterPatch(newTypes) {
-  const visible = visibleSections(newTypes)
-  const visibleIds = new Set(visible.flatMap((s) => sectionFilterIds(s, newTypes)))
+export function staleFilterPatch(newTypes, mode = 'RENT') {
+  const visible = visibleSections(newTypes, mode)
+  const visibleIds = new Set(visible.flatMap((s) => sectionFilterIds(s, newTypes, mode)))
   const patch = {}
   for (const section of FILTER_SECTIONS) {
     for (const id of sectionFilterIds(section)) {
