@@ -7,7 +7,7 @@ import LocationPicker from '../LocationPicker'
 import FieldControl from './FieldControl'
 import AvailabilityCalendar from './AvailabilityCalendar'
 import Icon from '@components/common/Icon'
-import { CATEGORIES, DESCRIBE, FIELDS, FEATURES, pricingRows, LEASE_CATEGORIES, VERIFY } from '../../config/onboarding.js'
+import { CATEGORIES, DESCRIBE, FIELDS, FEATURES, pricingRows, LEASE_CATEGORIES } from '../../config/onboarding.js'
 import { CITIES, CITY_NAMES, CITY_LIST_LABEL } from '@config/cities'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -353,47 +353,6 @@ export function ContactScreen({ categoryKey, draft, setDraft }) {
   )
 }
 
-export function VerifyScreen({ categoryKey, draft, setDraft }) {
-  const v = VERIFY[categoryKey]
-  const docs = draft.docs
-  function setUrl(type, url) {
-    setDraft((d) => ({ ...d, docs: url ? [...d.docs.filter((x) => x.type !== type), { type, url }] : d.docs.filter((x) => x.type !== type) }))
-  }
-  return (
-    <View>
-      {v.biz && (
-        <View style={styles.bizBadge}>
-          <Text style={styles.bizBadgeText}>BUSINESS KYC</Text>
-        </View>
-      )}
-      <Head
-        title={v.biz ? 'Verify your business' : 'Verify ownership'}
-        sub="Your listing saves as a draft and goes live once the trust team approves these. Paste a link to each document (Google Drive, Dropbox, etc.)."
-      />
-      <View style={{ gap: spacing.sm }}>
-        {v.docs.map(([type, label]) => {
-          const existing = docs.find((x) => x.type === type)
-          return (
-            <View key={type} style={styles.docRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.docLabel}>{label}</Text>
-                <TextInput
-                  style={styles.docInput}
-                  defaultValue={existing?.url ?? ''}
-                  onEndEditing={(e) => setUrl(type, e.nativeEvent.text.trim())}
-                  placeholder="Paste document URL"
-                  placeholderTextColor={colors.slate400}
-                />
-              </View>
-              {!!existing && <Icon name="check" size={16} color={colors.brand600} />}
-            </View>
-          )
-        })}
-      </View>
-    </View>
-  )
-}
-
 export function ReviewScreen({ categoryKey, draft }) {
   const cat = CATEGORIES[categoryKey]
   const priceRow = pricingRows(categoryKey, draft.pricingModel)[0]
@@ -466,11 +425,6 @@ const styles = StyleSheet.create({
   instantBookRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, backgroundColor: colors.slate50, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100 },
   instantBookTitle: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate800 },
   instantBookBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
-  bizBadge: { alignSelf: 'flex-start', backgroundColor: colors.slate800, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 6, marginBottom: spacing.lg },
-  bizBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.white, letterSpacing: 0.6 },
-  docRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.lg },
-  docLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
-  docInput: { marginTop: spacing.xs, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs + 2, fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate800 },
   reviewCard: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.lg, overflow: 'hidden' },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.slate100 },
   reviewIcon: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center' },
