@@ -85,15 +85,18 @@ export async function resolvePlace(query, city) {
     )
   })
   if (prediction?.place_id) {
-    const location = await new Promise((resolve) => {
+    const geometry = await new Promise((resolve) => {
       new g.places.PlacesService(document.createElement('div')).getDetails(
         { placeId: prediction.place_id, fields: ['geometry'] },
-        (place, status) => resolve(status === 'OK' ? place?.geometry?.location ?? null : null)
+        (place, status) => resolve(status === 'OK' ? place?.geometry ?? null : null)
       )
     })
-    if (location) {
+    if (geometry?.location) {
       const name = prediction.structured_formatting?.main_text || query
-      return { name, lat: location.lat(), lng: location.lng() }
+      // viewport is the place's own extent — a city query carries the whole
+      // city, a neighbourhood its few km. Callers filtering by place should
+      // prefer it over inventing a radius around the point.
+      return { name, lat: geometry.location.lat(), lng: geometry.location.lng(), viewport: viewportOf(geometry) }
     }
   }
 
@@ -104,5 +107,20 @@ export async function resolvePlace(query, city) {
   })
   if (!result) return null
   const loc = result.geometry.location
-  return { name: result.address_components?.[0]?.long_name || query, lat: loc.lat(), lng: loc.lng() }
+  return {
+    name: result.address_components?.[0]?.long_name || query,
+    lat: loc.lat(),
+    lng: loc.lng(),
+    viewport: viewportOf(result.geometry),
+  }
+}
+
+// LatLngBounds → the flat sw/ne shape the backend's bounds params use.
+// Null when the geometry has no viewport (rare — a bare rooftop point).
+function viewportOf(geometry) {
+  const vp = geometry?.viewport
+  if (!vp) return null
+  const sw = vp.getSouthWest()
+  const ne = vp.getNorthEast()
+  return { swLat: sw.lat(), swLng: sw.lng(), neLat: ne.lat(), neLng: ne.lng() }
 }
