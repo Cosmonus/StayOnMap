@@ -9,6 +9,7 @@ import { sendEmail, canSend, passwordResetEmail, emailVerificationEmail, loginOt
 import { SUPPORTED_CITIES } from '../../config/cities.js'
 import { signUserToken, stripPasswordHash } from './tokens.js'
 import { issueSession, revokeAllSessions } from './session.service.js'
+import { awardPoints } from '../points/points.service.js'
 
 export { stripPasswordHash } // users.service imports it from here
 
@@ -215,6 +216,10 @@ export async function verifyEmail(rawToken) {
 
   const { count } = await prisma.user.updateMany({ where: { id: payload.sub }, data: { isVerified: true } })
   if (count === 0) throw Object.assign(new Error('This verification link is invalid or has expired'), { statusCode: 400 })
+
+  // Fire-and-forget — a points failure must never break verification, and the
+  // unique (userId, action, '') makes a re-clicked link a no-op, not a payout.
+  awardPoints(payload.sub, 'EMAIL_VERIFIED').catch(() => {})
 }
 
 // ── Passwordless login — emailed 6-digit OTP ────────────────────────────────
@@ -336,6 +341,10 @@ export async function verifyLoginOtp(email, code, ctx = {}) {
     prisma.emailOtp.update({ where: { id: otp.id }, data: { consumedAt: new Date() } }),
     prisma.user.update({ where: { id: user.id }, data: { isVerified: true } }),
   ])
+
+  // Same award as the link flow — both prove inbox control. Fire-and-forget,
+  // idempotent, so a second OTP login never pays twice.
+  awardPoints(updated.id, 'EMAIL_VERIFIED').catch(() => {})
 
   const refreshToken = await issueSession(updated.id, ctx)
   return { token: signUserToken(updated), refreshToken, user: stripPasswordHash(updated) }
