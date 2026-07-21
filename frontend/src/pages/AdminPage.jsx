@@ -10,8 +10,7 @@ import {
 } from 'chart.js'
 import {
   X, ChevronLeft, ChevronRight, Home, MapPin, Users, CircleCheck, ArrowLeft, Copy,
-  ChefHat, User, DoorOpen, PawPrint, Cigarette, Wine, Check, Star, Building2,
-  Eye, EyeOff,
+  Star, Building2, Eye, EyeOff,
 } from 'lucide-react'
 import { adminService } from '@services/admin.service'
 import { formatPrice, formatCurrency, formatCompact } from '@utils/format'
@@ -34,10 +33,8 @@ ChartJS.register(
 import Select           from '@components/common/Select'
 import TrustBadge       from '@components/common/TrustBadge'
 import RiskAlert        from '@components/common/RiskAlert'
-import TrustScoreWidget from '@features/trust/components/TrustScoreWidget'
-import ReviewsSection   from '@features/reviews/components/ReviewsSection'
 import PropertyStatusPill from '@components/common/PropertyStatusPill'
-import SpatialContextPanel from '@features/spatial/components/SpatialContextPanel'
+import PropertyDetailBody from '@features/properties/components/detail/PropertyDetailBody'
 import UnifiedSidebar from '@components/layout/UnifiedSidebar'
 import AdminMonitorSection from '@features/admin/components/AdminMonitorSection'
 import VerificationsSection from '@features/admin/components/VerificationsSection'
@@ -996,42 +993,6 @@ function AdminCard({ title, children }) {
   )
 }
 
-function AdminPriceRow({ label, value, accent }) {
-  if (!value) return null
-  return (
-    <div className="flex justify-between items-center py-2.5 border-b border-slate-50 last:border-0">
-      <span className="text-sm text-slate-500">{label}</span>
-      <span className={`text-sm font-semibold ${accent ? 'text-brand-600' : 'text-slate-800'}`}>{value}</span>
-    </div>
-  )
-}
-
-function AdminLocationMap({ lat, lng }) {
-  const ref = useRef(null)
-  useEffect(() => {
-    if (!lat || !lng || !ref.current) return
-    let marker = null; let cancelled = false
-    googleMapsReady.then(() => {
-      if (cancelled || !ref.current) return
-      const center = { lat: Number(lat), lng: Number(lng) }
-      const map = new window.google.maps.Map(ref.current, { center, zoom: 15, mapTypeId: 'roadmap', disableDefaultUI: true, gestureHandling: 'none', clickableIcons: false })
-      const el = document.createElement('div')
-      el.style.cssText = 'width:14px;height:14px;border-radius:50%;background:#0284c7;border:3px solid white;box-shadow:0 2px 8px rgba(2,132,199,0.55)'
-      marker = createHtmlMarker({ element: el, lat: center.lat, lng: center.lng, map })
-    })
-    return () => { cancelled = true; marker?.remove() }
-  }, [lat, lng])
-  return (
-    <AdminCard title="Map">
-      <div ref={ref} className="w-full h-40 rounded-xl overflow-hidden" />
-      <a href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`} target="_blank" rel="noreferrer"
-        className="mt-3 flex items-center justify-center gap-1.5 px-3 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg transition-colors">
-        Directions
-      </a>
-    </AdminCard>
-  )
-}
-
 /* ── Section label helper ── */
 function SectionLabel({ children }) {
   return <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2.5">{children}</p>
@@ -1039,27 +1000,11 @@ function SectionLabel({ children }) {
 
 /* ── Inline property detail view (3 columns: Property | Users | User Detail) ── */
 function PropertyDetailView({ property, onBack, onApprove, onReject }) {
-  const [imgIdx, setImgIdx] = useState(0)
   const [selectedUserId, setSelectedUserId] = useState(null)
 
-  useEffect(() => { setImgIdx(0); setSelectedUserId(null) }, [property?.id])
+  useEffect(() => { setSelectedUserId(null) }, [property?.id])
 
   if (!property) return null
-
-  const images = property.images?.map(i => i.url) ?? []
-  const rent = Number(property.rent)
-  const deposit = Number(property.deposit || 0)
-  const maintenance = Number(property.maintenance || 0)
-  const owner = property.owner
-
-  // Price must read through the pricing model — admin sees BOTH modes, and a
-  // lakh-scale LEASE lump sum labelled "/mo" is exactly the misread that
-  // poisons a moderation decision. Stays are nightly.
-  const isLease = property.pricingModel === 'LEASE'
-  const isStay = property.type === 'SHORT_STAY'
-  const isLand = property.type === 'LAND'
-  const priceValue = isStay ? Number(property.nightlyRate ?? property.rent) : rent
-  const priceUnit = isLease ? ' lease' : isStay ? '/night' : isLand ? '' : '/mo'
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null
 
@@ -1121,300 +1066,31 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
       {/* 3-column body */}
       <div className="flex-1 grid divide-x divide-slate-200 min-h-0 bg-white" style={{ gridTemplateColumns: '5fr 3fr 4fr' }}>
 
-        {/* ── Column 1: Property Details ── */}
-        <div className="p-5 space-y-4 overflow-y-auto thin-scrollbar bg-slate-50">
-          {/* Image carousel */}
-          <div className="relative rounded-2xl overflow-hidden bg-slate-200 aspect-[16/10]">
-            {images.length > 0 ? (
-              <>
-                <img src={images[imgIdx]} alt="" className="w-full h-full object-cover" />
-                {images.length > 1 && (
-                  <>
-                    <button onClick={() => setImgIdx(i => (i - 1 + images.length) % images.length)}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 hover:bg-white shadow flex items-center justify-center">
-                      <ChevronLeft size={14} stroke="#334155" strokeWidth={2.5} />
-                    </button>
-                    <button onClick={() => setImgIdx(i => (i + 1) % images.length)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 hover:bg-white shadow flex items-center justify-center">
-                      <ChevronRight size={14} stroke="#334155" strokeWidth={2.5} />
-                    </button>
-                    <div className="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-black/60 text-white text-[11px] font-semibold">
-                      {imgIdx + 1} / {images.length}
-                    </div>
-                  </>
-                )}
-              </>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-300">
-                <Home className="w-12 h-12" />
-              </div>
-            )}
+        {/* ── Column 1: Property Details ──
+            Operator decision (2026-07-22): this column renders the EXACT same
+            UI as the public property page via the shared PropertyDetailBody
+            (variant="admin" — tenant actions suppressed). The other two
+            columns keep their admin layout untouched. */}
+        <div className="overflow-y-auto thin-scrollbar bg-slate-50">
+          <div className="pt-5">
+            <PropertyDetailBody property={property} variant="admin" />
           </div>
 
-          {/* Risk warning — renders nothing unless MEDIUM or worse */}
-          {property.riskScore && <RiskAlert riskScore={property.riskScore} />}
-
-          {/* Title + Price + Tags */}
-          <div>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-lg font-bold text-slate-900 leading-snug">{property.title}</p>
-                <p className="text-sm text-slate-500 mt-1">
-                  {property.address}, {property.city}
-                  {property.state ? `, ${property.state}` : ''}
-                  {property.pincode ? ` — ${property.pincode}` : ''}
-                  {property.landmark ? <span className="text-slate-400"> · near {property.landmark}</span> : ''}
-                </p>
-              </div>
-              <div className="shrink-0 text-right">
-                <p className="text-xl font-bold text-brand-600">₹{priceValue.toLocaleString('en-IN')}<span className="text-xs font-medium text-slate-400">{priceUnit}</span></p>
-                <p className="text-xs text-slate-500 mt-0.5">{isLand ? 'Advance' : 'Deposit'}: ₹{deposit.toLocaleString('en-IN')}</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5 mt-3">
-              {isLease && <span className="px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg border border-amber-200">📜 LEASE listing</span>}
-              {property.bhk != null && !['PG', 'LAND', 'COMMERCIAL', 'SHORT_STAY'].includes(property.type) && <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-lg border border-brand-100">🏠 {property.bhk === 0 ? 'Studio' : `${property.bhk} BHK`}</span>}
-              {property.sharing && <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-lg border border-brand-100">👥 {property.sharing}-Sharing</span>}
-              {property.type === 'LAND' && property.extent && <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-lg border border-brand-100">📐 {property.extent} {(property.extentUnit ?? '').toLowerCase()}</span>}
-              {property.type === 'COMMERCIAL' && property.carpetArea && <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-lg border border-brand-100">📐 {property.carpetArea} sq.ft carpet</span>}
-              {isStay && property.maxGuests && <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-lg border border-brand-100">👥 Up to {property.maxGuests} guests</span>}
-              {property.houseStyle && <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-lg">🏡 {property.houseStyle}</span>}
-              {property.type !== 'LAND' && <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-lg">🛋️ {property.furnished === 'FULLY' ? 'Furnished' : property.furnished === 'SEMI' ? 'Semi Furnished' : 'Unfurnished'}</span>}
-              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-lg">🏷️ {property.type?.replace(/_/g, ' ')}</span>
-            </div>
-          </div>
-
-          {/* About */}
-          {property.description && (
-            <AdminCard title="About this property">
-              <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">{property.description}</p>
-            </AdminCard>
-          )}
-
-          {/* Property Details — common rows plus the listing type's specific columns */}
-          {(() => {
-            const detailRows = [
-              ['📐', 'Built-up Area',   property.area ? `${Number(property.area).toLocaleString('en-IN')} sq.ft` : null],
-              ['🏢', 'Floor',           property.floor != null ? `${property.floor}${property.totalFloors ? ` of ${property.totalFloors}` : ''}` : null],
-              ['🧭', 'Facing',          property.facingDirection ? property.facingDirection.charAt(0) + property.facingDirection.slice(1).toLowerCase() : null],
-              ['🏠', 'House Style',     property.houseStyle],
-              ['📅', 'Available From',  fmtDate(property.availableFrom)],
-              ['📋', 'Minimum Lease',   property.leaseDuration ? `${property.leaseDuration} months` : null],
-              ['👥', 'Max Occupancy',   property.occupancyLimit ? `${property.occupancyLimit} persons` : null],
-              // LAND
-              ['🌾', 'Land Type',       property.landType],
-              ['📏', 'Extent',          property.extent ? `${Number(property.extent).toLocaleString('en-IN')} ${(property.extentUnit ?? 'sq.ft').toLowerCase()}` : null],
-              ['📐', 'Dimensions',      property.dimensions],
-              ['🛣️', 'Road Width',      property.roadWidth ? `${property.roadWidth} ft` : null],
-              ['✅', 'Approval',        property.approvalStatus],
-              ['📜', 'Sale / Lease',    property.saleOrLease],
-              // COMMERCIAL
-              ['🏪', 'Commercial Type', property.commercialType],
-              ['📐', 'Carpet Area',     property.carpetArea ? `${Number(property.carpetArea).toLocaleString('en-IN')} sq.ft` : null],
-              ['🚪', 'Frontage',        property.frontage ? `${property.frontage} ft` : null],
-              ['⚡', 'Power Load',      property.powerLoad],
-              // PG
-              ['🛏️', 'Beds',            property.totalBeds ? `${property.availableBeds ?? '?'} of ${property.totalBeds} available` : null],
-              ['🗓️', 'Notice Period',   property.noticePeriodDays ? `${property.noticePeriodDays} days` : null],
-              // SHORT_STAY
-              ['🏡', 'Place Type',      property.placeType],
-              ['👥', 'Max Guests',      property.maxGuests ? `${property.maxGuests} guests` : null],
-              ['🛏️', 'Guest Beds',      property.beds ? `${property.beds} beds` : null],
-              ['🌙', 'Stay Length',     property.minNights ? `${property.minNights}–${property.maxNights ?? '∞'} nights` : null],
-              ['⚡', 'Instant Book',    property.instantBook === true ? 'Yes' : property.instantBook === false ? 'No' : null],
-            ].filter(([,, v]) => v)
-            return detailRows.length > 0 && (
-              <AdminCard title="Property details">
-                {detailRows.map(([icon, label, value]) => (
-                  <div key={label} className="flex items-center gap-3 py-2.5 border-b border-slate-50 last:border-0">
-                    <span className="text-sm shrink-0">{icon}</span>
-                    <span className="text-sm text-slate-500 flex-1">{label}</span>
-                    <span className="text-sm font-semibold text-slate-800">{value}</span>
-                  </div>
-                ))}
-              </AdminCard>
-            )
-          })()}
-
-          {/* Pricing + Amenities side by side */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Pricing */}
-            <AdminCard title="Pricing">
-              {property.type === 'SHORT_STAY' ? (
-                <>
-                  <AdminPriceRow label="Nightly Rate"   value={`₹${Number(property.nightlyRate ?? rent).toLocaleString('en-IN')}`} accent />
-                  {property.weekendRate > 0 && <AdminPriceRow label="Weekend Rate"  value={`₹${Number(property.weekendRate).toLocaleString('en-IN')}`} />}
-                  {property.cleaningFee > 0 && <AdminPriceRow label="Cleaning Fee"  value={`₹${Number(property.cleaningFee).toLocaleString('en-IN')}`} />}
-                  <AdminPriceRow label="Deposit"        value={`₹${deposit.toLocaleString('en-IN')}`} />
-                </>
-              ) : property.type === 'LAND' ? (
-                <>
-                  <AdminPriceRow label="Total Price"    value={`₹${rent.toLocaleString('en-IN')}`} accent />
-                  <AdminPriceRow label="Advance"        value={`₹${deposit.toLocaleString('en-IN')}`} />
-                </>
-              ) : isLease ? (
-                <>
-                  <AdminPriceRow label="Lease Amount"   value={`₹${rent.toLocaleString('en-IN')}`} accent />
-                  <AdminPriceRow label="Deposit"        value={`₹${deposit.toLocaleString('en-IN')}`} />
-                  <AdminPriceRow label="Maintenance"    value={maintenance > 0 ? `₹${maintenance.toLocaleString('en-IN')}/mo` : 'Not included'} />
-                </>
-              ) : (
-                <>
-                  <AdminPriceRow label="Monthly Rent"   value={`₹${rent.toLocaleString('en-IN')}`} accent />
-                  <AdminPriceRow label="Deposit"        value={`₹${deposit.toLocaleString('en-IN')}`} />
-                  <AdminPriceRow label="Maintenance"    value={maintenance > 0 ? `₹${maintenance.toLocaleString('en-IN')}/mo` : 'Not included'} />
-                </>
-              )}
-              <AdminPriceRow label="Brokerage"          value={property.brokerage ? `₹${Number(property.brokerage).toLocaleString('en-IN')}` : 'None'} />
-              {property.electricityCharges > 0 && <AdminPriceRow label="Electricity (est.)" value={`₹${Number(property.electricityCharges).toLocaleString('en-IN')}/mo`} />}
-              {property.waterCharges > 0      && <AdminPriceRow label="Water (est.)"        value={`₹${Number(property.waterCharges).toLocaleString('en-IN')}/mo`} />}
-            </AdminCard>
-
-            {/* Amenities */}
-            {(property.amenities?.length ?? 0) > 0 && (
-              <AdminCard title="Amenities">
-                <div className="grid grid-cols-1 gap-2">
-                  {property.amenities.map(a => {
-                    const name = a.amenity?.name ?? a.name
-                    return (
-                      <div key={a.amenity?.id ?? a.amenityId} className="flex items-center gap-2.5 px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                        <span className="text-slate-400 shrink-0"><AmenityIcon name={name} size={16} /></span>
-                        <span className="text-sm font-medium text-slate-700 truncate min-w-0">{name}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </AdminCard>
-            )}
-          </div>
-
-          {/* Zero Brokerage banner */}
-          {!property.brokerage && (
-            <div className="px-4 py-3 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-2.5">
-              <span className="text-lg">🎉</span>
-              <div>
-                <p className="text-sm font-semibold text-emerald-700">Zero Brokerage</p>
-                <p className="text-xs text-emerald-600/70">Direct owner listing — no middlemen fees</p>
-              </div>
-            </div>
-          )}
-
-          {/* House Rules */}
-          {property.rules && (
-            <AdminCard title="House rules">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {[
-                  { Icon: ChefHat,   label: 'Non-veg Cooking', allowed: property.rules.nonVegAllowed },
-                  { Icon: User,      label: 'Bachelors',       allowed: property.rules.bachelorAllowed },
-                  { Icon: DoorOpen,  label: 'Visitors',        allowed: property.rules.visitorsAllowed },
-                  { Icon: PawPrint,  label: 'Pets',            allowed: property.rules.petsAllowed },
-                  { Icon: Cigarette, label: 'Smoking',         allowed: property.rules.smokingAllowed },
-                  { Icon: Wine,      label: 'Alcohol',         allowed: property.rules.alcoholAllowed },
-                ].map(r => (
-                  <div key={r.label} className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border ${r.allowed ? 'bg-emerald-50 border-emerald-100' : 'bg-slate-50 border-slate-100'}`}>
-                    <r.Icon size={15} stroke={r.allowed ? '#059669' : '#94a3b8'} strokeWidth={1.9} className="shrink-0" />
-                    <span className={`text-sm font-medium flex-1 ${r.allowed ? 'text-slate-800' : 'text-slate-400'}`}>{r.label}</span>
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${r.allowed ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                      {r.allowed ? <Check size={10} color="white" strokeWidth={3} /> : <X size={10} color="white" strokeWidth={3} />}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {(property.rules.genderPreference !== 'ANY' || property.rules.curfewTime) && (
-                <div className="mt-3 space-y-2">
-                  {property.rules.genderPreference && property.rules.genderPreference !== 'ANY' && (
-                    <div className="flex items-center gap-2.5 px-3 py-2.5 bg-brand-50 rounded-xl border border-brand-100">
-                      <span className="w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold shrink-0">!</span>
-                      <span className="text-sm font-medium text-brand-700">{property.rules.genderPreference === 'MALE' ? 'Male tenants only' : 'Female tenants only'}</span>
-                    </div>
-                  )}
-                  {property.rules.curfewTime && (
-                    <div className="flex items-center gap-2.5 px-3 py-2.5 bg-amber-50 rounded-xl border border-amber-100">
-                      <span className="text-base shrink-0">⏰</span>
-                      <span className="text-sm font-medium text-amber-800">Curfew at {property.rules.curfewTime}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </AdminCard>
-          )}
-
-          {/* Owner card */}
-          {owner && (
-            <AdminCard title="Listed by">
-              <div className="flex items-center gap-3">
-                <Avatar name={owner.name} email={owner.email} avatarUrl={owner.avatarUrl} size={10} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-slate-800">{owner.name || owner.email?.split('@')[0]}</p>
-                  <p className="text-xs text-slate-500 truncate mt-0.5">{owner.email}</p>
-                  {owner.phone && <p className="text-xs text-slate-500 mt-0.5">{owner.phone}</p>}
-                </div>
-                {owner.isBusiness && (
-                  <span className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 border border-indigo-200 text-indigo-600 uppercase">Business</span>
-                )}
-                {owner.isVerified && (
-                  <span className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-green-50 border border-green-200 text-green-600 uppercase">Verified</span>
-                )}
-              </div>
-            </AdminCard>
-          )}
-
-          {/* Trust & Risk */}
-          {(property.trustScore?.badge || property.riskScore?.level) && (
-            <div className="flex items-center gap-2 flex-wrap">
-              {property.trustScore?.badge && <TrustBadge badge={property.trustScore.badge} />}
-              {property.riskScore?.level && (
-                <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase border ${
-                  property.riskScore.level === 'HIGH' || property.riskScore.level === 'SUSPICIOUS'
-                    ? 'bg-red-50 border-red-200 text-red-600' : 'bg-green-50 border-green-200 text-green-600'
-                }`}>
-                  Risk: {property.riskScore.level}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Wishlisted by */}
+          {/* Wishlisted by — admin-only data with no tenant-page equivalent */}
           {(property.savedBy?.length ?? 0) > 0 && (
-            <AdminCard title={`Wishlisted by (${property._count?.savedBy ?? property.savedBy.length})`}>
-              <div className="flex flex-wrap gap-2">
-                {property.savedBy.map(s => (
-                  <div key={s.userId} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-50 border border-slate-100">
-                    <Avatar name={s.user?.name} email={s.user?.email} avatarUrl={s.user?.avatarUrl} />
-                    <span className="text-xs text-slate-600 font-medium">{s.user?.name || s.user?.email?.split('@')[0] || '—'}</span>
-                  </div>
-                ))}
-              </div>
-            </AdminCard>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
+              <AdminCard title={`Wishlisted by (${property._count?.savedBy ?? property.savedBy.length})`}>
+                <div className="flex flex-wrap gap-2">
+                  {property.savedBy.map(s => (
+                    <div key={s.userId} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-50 border border-slate-100">
+                      <Avatar name={s.user?.name} email={s.user?.email} avatarUrl={s.user?.avatarUrl} />
+                      <span className="text-xs text-slate-600 font-medium">{s.user?.name || s.user?.email?.split('@')[0] || '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              </AdminCard>
+            </div>
           )}
-
-          {/* Spatial intelligence — the same shared panel the public property
-              page renders, fed by the same spatialContext join on the admin
-              payload. The panel owns its own heading and its own empty/
-              pending/failed states, so it renders bare (no AdminCard shell).
-              No CommuteCalculator child here — that's a tenant tool with
-              mutation state, not moderation information. */}
-          <SpatialContextPanel
-            context={property.spatialContext}
-            coords={{ lat: property.lat, lng: property.lng }}
-          />
-
-          {/* Location map */}
-          {property.lat && property.lng && (
-            <AdminLocationMap lat={property.lat} lng={property.lng} />
-          )}
-
-          {/* Trust & Safety */}
-          {property.trustScore && (
-            <AdminCard title="Trust &amp; safety">
-              <TrustScoreWidget trustScore={property.trustScore} riskScore={property.riskScore} />
-            </AdminCard>
-          )}
-
-          {/* Community reviews */}
-          <AdminCard title="Community reviews">
-            <ReviewsSection propertyId={property.id} isOwner={false} />
-          </AdminCard>
         </div>
 
         {/* ── Column 2: Users who contacted ── */}
