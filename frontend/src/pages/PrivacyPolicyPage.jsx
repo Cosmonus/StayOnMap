@@ -52,11 +52,12 @@ export default function PrivacyPolicyPage() {
             share one account system &mdash; the same person can list properties and browse as
             a tenant.</p>
           <p><strong>Owner verification documents.</strong> Listing a property may require
-            government-issued identity or ownership documents to verify authorization to
-            rent it out &mdash; this can include Aadhaar, PAN, a selfie, property tax receipts,
-            utility bills, or a rental agreement. These are uploaded directly by the owner and
-            reviewed by our team; we do not independently verify them with any government
-            database.</p>
+            documents that show authorization to rent it out &mdash; property tax receipts,
+            utility bills, sale or rental agreements, title deeds, or business licenses
+            (GST, trade license, homestay permit). We do <strong>not</strong> collect
+            government identity documents such as Aadhaar or PAN, and we do not request
+            selfies. Documents are uploaded directly by the owner and reviewed by our team;
+            we do not independently verify them with any government database.</p>
           <p><strong>Listing information.</strong> Property address, coordinates, rent, deposit,
             photos, amenities, and house rules provided when creating a listing.</p>
           <p><strong>Appointments &amp; leases.</strong> Visit requests (date, time, contact

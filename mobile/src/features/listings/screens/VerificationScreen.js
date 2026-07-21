@@ -8,14 +8,16 @@ import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
 
+// Property/business documents only — identity docs (Aadhaar/PAN/govt ID/
+// selfie) paused 2026-07-21 pending legal review; the backend refuses them.
 const DOC_TYPES = [
-  { value: 'AADHAAR', label: 'Aadhaar Card' },
-  { value: 'PAN', label: 'PAN Card' },
-  { value: 'GOVT_ID', label: 'Government ID' },
   { value: 'PROPERTY_TAX', label: 'Property Tax Receipt' },
   { value: 'UTILITY_BILL', label: 'Utility Bill' },
-  { value: 'RENTAL_AGREEMENT', label: 'Rental Agreement' },
-  { value: 'SELFIE', label: 'Selfie with ID' },
+  { value: 'RENTAL_AGREEMENT', label: 'Rental / Sale Agreement' },
+  { value: 'PATTA_TITLE', label: 'Patta / Title Deed' },
+  { value: 'GST', label: 'GST Certificate' },
+  { value: 'TRADE_LICENSE', label: 'Trade / Shop License' },
+  { value: 'HOMESTAY_PERMIT', label: 'Homestay / Tourism Permit' },
   { value: 'OTHER', label: 'Other' },
 ]
 
