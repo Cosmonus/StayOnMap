@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
-import { LegalPageLayout, Section, Placeholder } from '@components/common/LegalPageLayout'
+import { LegalPageLayout, Section } from '@components/common/LegalPageLayout'
 
 const SECTIONS = [
   { id: 'acceptance',   label: 'Acceptance of terms' },
@@ -31,7 +31,7 @@ export default function TermsOfServicePage() {
         description="The rules and disclaimers that govern your use of StayOnMap."
         canonical={canonical('/terms')}
       />
-      <LegalPageLayout title="Terms of Service" lastUpdated="July 4, 2026" sections={SECTIONS}>
+      <LegalPageLayout title="Terms of Service" lastUpdated="July 21, 2026" sections={SECTIONS}>
 
         <Section id="acceptance" title="1. Acceptance of terms">
           <p>
@@ -41,7 +41,7 @@ export default function TermsOfServicePage() {
             agree, please do not use the Platform.
           </p>
           <p>
-            StayOnMap is operated by <Placeholder>[Legal entity name]</Placeholder>{' '}
+            StayOnMap is operated by Cosmonus Pvt. Ltd.{' '}
             (&ldquo;StayOnMap&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;).
           </p>
         </Section>
@@ -157,7 +157,7 @@ export default function TermsOfServicePage() {
         <Section id="liability" title="12. Limitation of liability">
           <p>
             To the maximum extent permitted by law, StayOnMap and{' '}
-            <Placeholder>[legal entity name]</Placeholder> are not liable for any indirect,
+            Cosmonus Pvt. Ltd. are not liable for any indirect,
             incidental, or consequential damages arising from your use of the Platform,
             including disputes, losses, or damages arising from a tenancy, lease, or payment
             arrangement between users &mdash; those are between the tenant and owner directly.
@@ -184,8 +184,7 @@ export default function TermsOfServicePage() {
         <Section id="law" title="15. Governing law & disputes">
           <p>
             These Terms are governed by the laws of India. Any dispute will be subject to the
-            exclusive jurisdiction of the courts in{' '}
-            <Placeholder>[city, e.g. &ldquo;Chennai, Tamil Nadu&rdquo;]</Placeholder>.
+            exclusive jurisdiction of the courts in Chennai, Tamil Nadu.
           </p>
         </Section>
 
