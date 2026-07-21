@@ -152,12 +152,14 @@ export function pricingRows(categoryKey, pricingModel = 'RENT') {
 
 // Verification doc checklist per type — tuples of [VerificationDocType, label].
 export const VERIFY = {
-  apartment: { docs: [['GOVT_ID', 'Government ID (Aadhaar / PAN)'], ['PROPERTY_TAX', 'Latest electricity bill or property tax'], ['SELFIE', 'Selfie with ID']], biz: false },
-  house:     { docs: [['GOVT_ID', 'Government ID'], ['PROPERTY_TAX', 'Property tax receipt'], ['RENTAL_AGREEMENT', 'Sale deed / Khata extract'], ['SELFIE', 'Selfie with ID']], biz: false },
-  land:      { docs: [['GOVT_ID', 'Government ID'], ['PATTA_TITLE', 'Patta / Title deed'], ['PROPERTY_TAX', 'Survey number & EC'], ['OTHER', 'Encumbrance certificate (30 yr)']], biz: false },
-  pg:        { docs: [['GOVT_ID', 'Owner Government ID'], ['GST', 'GST / trade license'], ['RENTAL_AGREEMENT', 'Property ownership or lease proof'], ['OTHER', 'Fire & safety NOC']], biz: true },
-  shop:      { docs: [['GOVT_ID', 'Owner Government ID'], ['GST', 'GST certificate'], ['TRADE_LICENSE', 'Trade / shop license'], ['PROPERTY_TAX', 'Property tax or registered lease']], biz: true },
-  stay:      { docs: [['GOVT_ID', 'Host Government ID'], ['PROPERTY_TAX', 'Property ownership proof'], ['HOMESTAY_PERMIT', 'Local homestay / tourism permit'], ['OTHER', 'Bank account for payouts']], biz: true },
+  // Identity docs (Aadhaar/PAN/govt ID/selfie) paused 2026-07-21 pending
+  // legal review — ownership/business documents only; backend refuses the rest.
+  apartment: { docs: [['PROPERTY_TAX', 'Latest electricity bill or property tax'], ['UTILITY_BILL', 'Water / gas / utility bill in your name'], ['RENTAL_AGREEMENT', 'Sale deed / ownership proof']], biz: false },
+  house:     { docs: [['PROPERTY_TAX', 'Property tax receipt'], ['RENTAL_AGREEMENT', 'Sale deed / Khata extract'], ['UTILITY_BILL', 'Utility bill in your name']], biz: false },
+  land:      { docs: [['PATTA_TITLE', 'Patta / Title deed'], ['PROPERTY_TAX', 'Survey number & EC'], ['OTHER', 'Encumbrance certificate (30 yr)']], biz: false },
+  pg:        { docs: [['GST', 'GST / trade license'], ['RENTAL_AGREEMENT', 'Property ownership or lease proof'], ['OTHER', 'Fire & safety NOC']], biz: true },
+  shop:      { docs: [['GST', 'GST certificate'], ['TRADE_LICENSE', 'Trade / shop license'], ['PROPERTY_TAX', 'Property tax or registered lease']], biz: true },
+  stay:      { docs: [['PROPERTY_TAX', 'Property ownership proof'], ['HOMESTAY_PERMIT', 'Local homestay / tourism permit'], ['OTHER', 'Bank account for payouts']], biz: true },
 }
 
 export const BUSINESS_GATED_TYPES = ['pg', 'shop', 'stay']
