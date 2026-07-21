@@ -71,6 +71,70 @@ describe('sendMail with no provider configured', () => {
   })
 })
 
+describe('MAIL_PROVIDER=resend', () => {
+  beforeEach(() => {
+    env.mailProvider = 'resend'
+    env.resendApiKey = 'test-key'
+    env.mailFrom = 'StayOnMap <no-reply@stayonmap.com>'
+    env.mailDailyCap = 100
+  })
+
+  afterEach(() => {
+    env.mailProvider = 'smtp'
+    env.resendApiKey = null
+    env.mailDailyCap = 450
+    vi.unstubAllGlobals()
+  })
+
+  it('posts to Resend over HTTPS and reports success', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(sendMail({ to: 'a@b.c', subject: 'Hi', html: '<p>x</p>', critical: true })).resolves.toBe(true)
+
+    const [url, opts] = fetchMock.mock.calls[0]
+    expect(url).toBe('https://api.resend.com/emails')
+    expect(opts.headers.authorization).toBe('Bearer test-key')
+    const body = JSON.parse(opts.body)
+    // Resend takes `from` as the raw display-name string — no parseFrom split
+    expect(body.from).toBe('StayOnMap <no-reply@stayonmap.com>')
+    expect(body.to).toEqual(['a@b.c'])
+    expect(body.html).toBe('<p>x</p>')
+  })
+
+  it('returns false (never throws) when Resend rejects the send', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false, status: 403, text: () => Promise.resolve('domain not verified'),
+    }))
+
+    await expect(sendMail({ to: 'a@b.c', subject: 's', html: '<p>x</p>' })).resolves.toBe(false)
+  })
+
+  it('returns false when the request times out or the network fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('timed out')))
+
+    await expect(sendMail({ to: 'a@b.c', subject: 's', html: '<p>x</p>' })).resolves.toBe(false)
+  })
+
+  it('never touches the network once the daily cap is exhausted', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    env.mailDailyCap = 0
+
+    await expect(sendMail({ to: 'a@b.c', subject: 's', html: '<p>x</p>', critical: true })).resolves.toBe(false)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('canSend is true when configured with quota left', async () => {
+    await expect(canSend(true)).resolves.toBe(true)
+  })
+
+  it('canSend is false when the API key is missing, so OTP 503s cleanly', async () => {
+    env.resendApiKey = null
+    await expect(canSend(true)).resolves.toBe(false)
+  })
+})
+
 describe('MAIL_PROVIDER=brevo', () => {
   beforeEach(() => {
     env.mailProvider = 'brevo'

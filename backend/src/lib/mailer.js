@@ -1,11 +1,13 @@
-// Mailer — one interface (`sendMail`), two delivery paths behind MAIL_PROVIDER.
+// Mailer — one interface (`sendMail`), three delivery paths behind MAIL_PROVIDER.
 //
 //   smtp  (default) — nodemailer to any SMTP endpoint: a Gmail app password
 //                     today, a self-hosted server later. Works locally.
-//   brevo           — Brevo's transactional REST API over plain fetch (no SDK,
-//                     no new dependency).
+//   resend          — Resend's transactional REST API over plain fetch (no
+//                     SDK, no new dependency). The production path.
+//   brevo           — Brevo's transactional REST API, same shape. Kept as an
+//                     alternative.
 //
-// Why the second path exists: Railway blocks outbound SMTP ports
+// Why the HTTPS paths exist: Railway blocks outbound SMTP ports
 // (25/465/587/2525) on every plan below Pro, so SMTP there fails no matter how
 // it's configured — an HTTPS API is the only way to send. Nothing else in the
 // app knows or cares which path is active.
@@ -123,15 +125,43 @@ async function deliverViaBrevo({ to, subject, html }) {
   }
 }
 
+// ── Delivery: Resend REST API ───────────────────────────────────────────────
+async function deliverViaResend({ to, subject, html }) {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${env.resendApiKey}`,
+      'content-type': 'application/json',
+    },
+    // Unlike Brevo, Resend takes `from` as the raw "Name <email>" string.
+    body: JSON.stringify({ from: env.mailFrom, to: [to], subject, html }),
+    signal: AbortSignal.timeout(HTTP_TIMEOUT_MS),
+  })
+  if (!res.ok) {
+    // Body carries Resend's reason (unverified domain, bad key, rate limit) —
+    // worth surfacing, but truncated so a huge error page can't flood the logs.
+    const detail = await res.text().catch(() => '')
+    throw new Error(`resend ${res.status}: ${detail.slice(0, 200)}`)
+  }
+}
+
 // ── Provider selection ──────────────────────────────────────────────────────
-function isBrevo() {
-  return env.mailProvider === 'brevo'
+function provider() {
+  if (env.mailProvider === 'resend') return 'resend'
+  if (env.mailProvider === 'brevo') return 'brevo'
+  return 'smtp'
 }
 
 // Is a sender configured at all? (Not "will it succeed" — that needs a send.)
 function senderReady() {
-  return isBrevo() ? !!env.brevoApiKey : !!getTransport()
+  switch (provider()) {
+    case 'resend': return !!env.resendApiKey
+    case 'brevo': return !!env.brevoApiKey
+    default: return !!getTransport()
+  }
 }
+
+const DELIVER = { resend: deliverViaResend, brevo: deliverViaBrevo, smtp: deliverViaSmtp }
 
 // Dev-only console delivery: with NO provider configured in development, an
 // email "sends" by printing to the server console — so OTP login and reset
@@ -155,7 +185,7 @@ export async function canSend(critical = false) {
 
 // ── Entry point — never throws; returns whether the email actually went out ─
 export async function sendMail({ to, subject, html, critical = false }) {
-  const provider = isBrevo() ? 'brevo' : 'smtp'
+  const active = provider()
 
   if (devEcho()) {
     // Text content only — an OTP code or reset link lives in the body, and
@@ -165,24 +195,24 @@ export async function sendMail({ to, subject, html, critical = false }) {
   }
 
   if (!senderReady()) {
-    log('dropped', { provider, critical, reason: 'mail provider not configured' })
+    log('dropped', { provider: active, critical, reason: 'mail provider not configured' })
     return false
   }
 
   const used = await getUsed()
   if (!hasQuota(used, env.mailDailyCap, critical)) {
-    log('dropped', { provider, critical, used, cap: env.mailDailyCap, reason: 'daily quota exhausted' })
+    log('dropped', { provider: active, critical, used, cap: env.mailDailyCap, reason: 'daily quota exhausted' })
     return false
   }
 
   const startedAt = Date.now()
   try {
-    await (isBrevo() ? deliverViaBrevo({ to, subject, html }) : deliverViaSmtp({ to, subject, html }))
+    await DELIVER[active]({ to, subject, html })
     await markUsed()
-    log('sent', { provider, critical, used: used + 1, cap: env.mailDailyCap, ms: Date.now() - startedAt })
+    log('sent', { provider: active, critical, used: used + 1, cap: env.mailDailyCap, ms: Date.now() - startedAt })
     return true
   } catch (err) {
-    log('send_failed', { provider, critical, error: err.message, ms: Date.now() - startedAt })
+    log('send_failed', { provider: active, critical, error: err.message, ms: Date.now() - startedAt })
     return false
   }
 }
