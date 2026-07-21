@@ -297,7 +297,7 @@ function makeMapPin(pin, selected) {
   el.style.cssText = `
     display:inline-flex;align-items:center;padding:4px 10px;
     border-radius:999px;font-size:12px;font-weight:600;
-    font-family:Inter,sans-serif;white-space:nowrap;cursor:pointer;
+    font-family:'Plus Jakarta Sans',sans-serif;white-space:nowrap;cursor:pointer;
     box-shadow:0 2px 8px rgba(0,0,0,0.18);
     transition:transform 150ms ease,background 150ms ease,color 150ms ease;
     transform-origin:center bottom;will-change:transform;user-select:none;

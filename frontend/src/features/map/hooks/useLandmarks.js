@@ -63,7 +63,7 @@ function makeLandmarkEl(place) {
     marginTop: '2px', padding: '1px 6px',
     background: 'white', borderRadius: '4px',
     fontSize: '9px', fontWeight: '600', color: '#334155',
-    fontFamily: 'Inter, sans-serif',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
     maxWidth: '80px', overflow: 'hidden',
     textOverflow: 'ellipsis', whiteSpace: 'nowrap',

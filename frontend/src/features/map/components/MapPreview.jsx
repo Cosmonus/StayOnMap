@@ -40,7 +40,7 @@ export default function MapPreview() {
           padding: 5px 12px 5px 5px;
           box-shadow: 0 4px 16px rgba(0,0,0,0.13);
           border: 1.5px solid #f1f5f9;
-          font-family: Inter, sans-serif;
+          font-family: 'Plus Jakarta Sans', sans-serif;
           pointer-events: none;
           display: flex;
           align-items: center;
