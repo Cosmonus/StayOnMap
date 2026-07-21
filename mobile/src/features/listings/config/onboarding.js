@@ -112,6 +112,63 @@ export const FEATURES = {
   stay:      { label: 'What can guests use?', opts: ['WiFi', 'AC', 'Air Cooler', 'Kitchen', 'Swimming Pool', 'Parking', 'Washing Machine', 'TV', 'Workspace', 'Beachfront', 'Pet Friendly', 'Geyser', 'Fridge', 'Microwave', 'Sofa', 'Bed', 'Wardrobe', 'Dining Table', 'Fire Safety', 'Wheelchair Accessible'] },
 }
 
+// Title guidance — placeholder goes inside the input, example renders as a
+// muted "e.g. …" line. Written per category because a good land title and a
+// good PG title lead with completely different facts.
+export const TITLE_HINTS = {
+  apartment: { placeholder: 'Bright 2 BHK near the metro',          example: '2 BHK with balcony near Indiranagar metro' },
+  house:     { placeholder: '3 BHK independent house with garden',  example: '3 BHK independent house with terrace garden' },
+  land:      { placeholder: '1200 sq.ft plot on a 30 ft road',      example: '1200 sq.ft east-facing plot on 30 ft road' },
+  pg:        { placeholder: 'Single sharing PG with food',          example: 'Single sharing PG for women with food, HSR' },
+  shop:      { placeholder: 'Ground-floor shop on main road',       example: '400 sq.ft ground-floor shop with frontage on main road' },
+  stay:      { placeholder: 'Cosy 1 BHK near the beach',            example: 'Cosy 1 BHK near the beach, sleeps 4' },
+}
+
+// Description prompts — the three questions a renter of THAT type actually
+// asks. Shown above the description input as guidance, never enforced.
+export const DESC_PROMPTS = {
+  apartment: [
+    'How is the light and ventilation through the day?',
+    'What is the water situation — supply timings, borewell, tanker?',
+    'What does the commute look like — nearest metro, bus, main road?',
+  ],
+  house: [
+    'How is the light and ventilation through the day?',
+    'Water and power — borewell, tank capacity, backup?',
+    'Commute anchors — how far to the main road, metro, schools?',
+  ],
+  land: [
+    'How is the road access — width, surface, who maintains it?',
+    'Soil and levelling — ready to build, or does it need work?',
+    'What is coming up nearby — roads, layouts, projects?',
+  ],
+  pg: [
+    'Food — what is served, and at what timings?',
+    'Who lives here — students, working professionals, the mix?',
+    'How do the house rules feel day to day — curfew, visitors, quiet hours?',
+  ],
+  shop: [
+    'Footfall — who passes by, and when is it busiest?',
+    'Power and water — sanctioned load, backup, supply?',
+    'What businesses already thrive on this stretch?',
+  ],
+  stay: [
+    'What can guests walk to — food, sights, the water?',
+    'How easy is check-in — self check-in, keys, timings?',
+    'What makes staying here special?',
+  ],
+}
+
+// One line of photo direction per category — what the first photo should be.
+export const PHOTO_HINTS = {
+  apartment: 'Lead with the living room in daylight, then kitchen, bedrooms and the balcony view.',
+  house:     'Start at the entrance, then the living spaces — and don’t skip the terrace or garden.',
+  land:      'Shoot the plot from the approach road, plus any boundary markers.',
+  pg:        'Show a room, the bathroom, and the dining/common area.',
+  shop:      'Lead with the frontage — it’s what a business looks for first.',
+  stay:      'Show where guests sleep, the bathroom, and the view they wake up to.',
+}
+
 // Pricing fields — `field` is the real Property column each input writes
 // to. LAND repurposes `rent`/`deposit` as "total price"/"advance" (no
 // separate columns — land doesn't have a monthly rent concept, but every
@@ -148,6 +205,32 @@ export function pricingRows(categoryKey, pricingModel = 'RENT') {
   return pricingModel === 'LEASE' && LEASE_PRICING[categoryKey]
     ? LEASE_PRICING[categoryKey]
     : PRICING[categoryKey]
+}
+
+// Publish-readiness, shared by both platforms' wizards and the review screen.
+// These are the checks that used to hard-block Next mid-flow; now the only
+// mid-flow gate is the describe selection (screen branching and type
+// derivation hang off it) and everything else surfaces here, at review.
+// UX guidance only — the backend re-validates at create/publish.
+const OPTIONAL_PRICE_KEYS = ['deposit', 'maintenance', 'cleaningFee', 'weekendRate']
+
+export function missingRequirements(categoryKey, draft) {
+  const missing = []
+  const add = (screenK, label) => missing.push({ screenK, label })
+  if (draft.fields[DESCRIBE[categoryKey].k] === undefined) add('describe', 'Answer the opening question')
+  const l = draft.location
+  if (l.address.trim().length < 5) add('location', 'Enter a full address')
+  if (!l.city) add('location', 'Select a city')
+  if (!/^\d{6}$/.test(l.pincode)) add('location', 'Enter a valid 6-digit pincode')
+  if (l.lat == null) add('location', 'Drop a pin on the map')
+  if (draft.images.length < 1) add('photos', 'Add at least one photo')
+  if (draft.title.trim().length < 5) add('title', 'Give it a title (5+ characters)')
+  if (draft.description.trim().length < 10) add('description', 'Write a description (10+ characters)')
+  for (const [key, label] of pricingRows(categoryKey, draft.pricingModel)) {
+    if (OPTIONAL_PRICE_KEYS.includes(key)) continue
+    if (!draft.pricing[key]) add('pricing', `Set the ${label.toLowerCase()}`)
+  }
+  return missing
 }
 
 // Verification documents are deliberately NOT part of this wizard (removed

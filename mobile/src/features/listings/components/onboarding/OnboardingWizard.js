@@ -12,7 +12,7 @@ import {
   DescribeScreen, FieldsScreen, LocationScreen, FeaturesScreen, PhotosScreen,
   TitleScreen, DescriptionScreen, PricingScreen, ContactScreen, ReviewScreen,
 } from './WizardScreens'
-import { CATEGORIES, BUSINESS_GATED_TYPES, pricingRows, DESCRIBE, getScreens, phaseOf, deriveType } from '../../config/onboarding.js'
+import { CATEGORIES, BUSINESS_GATED_TYPES, DESCRIBE, getScreens, phaseOf, deriveType, missingRequirements } from '../../config/onboarding.js'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -87,27 +87,6 @@ function buildPayload(categoryKey, type, draft, amenityIds) {
   if (fields.genderPreference) payload.rules = { genderPreference: fields.genderPreference }
 
   return payload
-}
-
-function getBlockingError(screen, categoryKey, draft) {
-  if (screen.k === 'describe' && draft.fields[DESCRIBE[categoryKey].k] === undefined) return 'Make a selection to continue.'
-  if (screen.k === 'location') {
-    const l = draft.location
-    if (l.address.trim().length < 5) return 'Enter a full address.'
-    if (!l.city) return 'Select a city.'
-    if (!/^\d{6}$/.test(l.pincode)) return 'Enter a valid 6-digit pincode.'
-    if (l.lat == null) return 'Drop a pin on the map.'
-  }
-  if (screen.k === 'photos' && draft.images.length < 1) return 'Add at least one photo.'
-  if (screen.k === 'title' && draft.title.trim().length < 5) return 'Title needs at least 5 characters.'
-  if (screen.k === 'description' && draft.description.trim().length < 10) return 'Description needs at least 10 characters.'
-  if (screen.k === 'pricing') {
-    for (const [key] of pricingRows(categoryKey, draft.pricingModel)) {
-      if (['deposit', 'maintenance', 'cleaningFee', 'weekendRate'].includes(key)) continue
-      if (!draft.pricing[key]) return 'Fill in the required price fields.'
-    }
-  }
-  return null
 }
 
 function DoneScreen({ category, onListAnother, onDone }) {
@@ -278,15 +257,26 @@ export default function OnboardingWizard({ onDone }) {
   const doneCount = screens.slice(0, screenIdx).filter((s) => s.k !== 'phase').length
   const pct = Math.round((doneCount / totalScreens) * 100)
   const isLast = screenIdx === screens.length - 1
+  const missing = missingRequirements(categoryKey, draft)
+  const showFinishLater = !isPhase && !['describe', 'review'].includes(screen.k)
+    && missing.some((m) => m.screenK === screen.k)
 
   function next() {
-    if (!isPhase) {
-      const err = getBlockingError(screen, categoryKey, draft)
-      if (err) { setBlockError(err); return }
+    // The describe choice is the one mid-flow gate — screen branching and type
+    // derivation hang off it, and it's a single tap. Everything else surfaces
+    // at review via missingRequirements.
+    if (screen.k === 'describe' && draft.fields[DESCRIBE[categoryKey].k] === undefined) {
+      setBlockError('Make a selection to continue.')
+      return
     }
     setBlockError('')
     if (isLast) { publish(); return }
     setScreenIdx((i) => i + 1)
+  }
+
+  function jumpTo(screenK) {
+    const idx = screens.findIndex((s) => s.k === screenK)
+    if (idx >= 0) { setBlockError(''); setScreenIdx(idx) }
   }
 
   return (
@@ -316,14 +306,19 @@ export default function OnboardingWizard({ onDone }) {
           {screen.k === 'fields' && <FieldsScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
           {screen.k === 'location' && <LocationScreen draft={draft} setDraft={setDraft} />}
           {screen.k === 'features' && <FeaturesScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'photos' && <PhotosScreen draft={draft} setDraft={setDraft} />}
-          {screen.k === 'title' && <TitleScreen draft={draft} setDraft={setDraft} />}
-          {screen.k === 'description' && <DescriptionScreen draft={draft} setDraft={setDraft} />}
+          {screen.k === 'photos' && <PhotosScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
+          {screen.k === 'title' && <TitleScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
+          {screen.k === 'description' && <DescriptionScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
           {screen.k === 'pricing' && <PricingScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
           {screen.k === 'contact' && <ContactScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'review' && <ReviewScreen categoryKey={categoryKey} draft={draft} />}
+          {screen.k === 'review' && <ReviewScreen categoryKey={categoryKey} draft={draft} missing={missing} onJump={jumpTo} />}
 
           {!!blockError && <Text style={styles.blockError}>{blockError}</Text>}
+          {showFinishLater && (
+            <Text style={styles.finishLater}>
+              You can finish this later — we&apos;ll flag anything missing at review.
+            </Text>
+          )}
         </ScrollView>
 
         <View style={styles.flowFooter}>
@@ -332,7 +327,14 @@ export default function OnboardingWizard({ onDone }) {
           </Pressable>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
             {!isPhase && <Text style={styles.pctText}>{pct}%</Text>}
-            <Pressable style={[styles.nextButton, isPending && styles.disabled]} onPress={next} disabled={isPending} accessibilityRole="button" accessibilityState={{ disabled: isPending }} hitSlop={4}>
+            <Pressable
+              style={[styles.nextButton, (isPending || (isLast && missing.length > 0)) && styles.disabled]}
+              onPress={next}
+              disabled={isPending || (isLast && missing.length > 0)}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isPending || (isLast && missing.length > 0) }}
+              hitSlop={4}
+            >
               {isPending ? (
                 <ActivityIndicator color={colors.white} size="small" />
               ) : (
@@ -371,6 +373,7 @@ const styles = StyleSheet.create({
   phaseLabelActive: { color: colors.brand700, fontFamily: fonts.bodySemiBold },
   flowContent: { padding: spacing.lg, paddingBottom: spacing.xxl },
   blockError: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.danger, marginTop: spacing.md },
+  finishLater: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: spacing.md },
   flowFooter: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: spacing.lg, paddingVertical: spacing.md,

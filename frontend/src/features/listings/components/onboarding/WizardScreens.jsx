@@ -6,7 +6,7 @@ import ImageUploader from '../ImageUploader'
 import LocationPicker from '../LocationPicker'
 import FieldControl from './FieldControl'
 import AvailabilityCalendar from './AvailabilityCalendar'
-import { CATEGORIES, DESCRIBE, FIELDS, FEATURES, pricingRows, LEASE_CATEGORIES } from '../../config/onboarding.js'
+import { CATEGORIES, DESCRIBE, FIELDS, FEATURES, pricingRows, LEASE_CATEGORIES, TITLE_HINTS, DESC_PROMPTS, PHOTO_HINTS } from '../../config/onboarding.js'
 import { CITIES, CITY_NAMES, CITY_LIST_LABEL } from '@/config/cities'
 import { placesService } from '@services/places.service'
 
@@ -177,25 +177,28 @@ export function FeaturesScreen({ categoryKey, draft, setDraft }) {
   )
 }
 
-export function PhotosScreen({ draft, setDraft }) {
+export function PhotosScreen({ categoryKey, draft, setDraft }) {
   return (
     <div>
       <Head kicker="Shared · core" title="Add some photos" sub="Add at least 5. The first is your cover — lead with the best light." />
       <div className="max-w-lg">
+        <p className="text-xs text-slate-400 mb-3">{PHOTO_HINTS[categoryKey]}</p>
         <ImageUploader value={draft.images} onChange={(urls) => setDraft((d) => ({ ...d, images: urls }))} />
       </div>
     </div>
   )
 }
 
-export function TitleScreen({ draft, setDraft }) {
+export function TitleScreen({ categoryKey, draft, setDraft }) {
+  const hint = TITLE_HINTS[categoryKey]
   return (
     <div>
       <Head title="Now, give it a title" sub="Short titles work best. You can always change it later." />
+      <p className="text-xs text-slate-400 mb-2">e.g. &ldquo;{hint.example}&rdquo;</p>
       <input
         value={draft.title}
         onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value.slice(0, 100) }))}
-        placeholder="e.g. Sunlit 2BHK steps from the beach"
+        placeholder={hint.placeholder}
         className="w-full max-w-lg px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-slate-400"
       />
       <p className="text-xs text-slate-400 mt-2">{draft.title.length}/100 characters</p>
@@ -203,10 +206,15 @@ export function TitleScreen({ draft, setDraft }) {
   )
 }
 
-export function DescriptionScreen({ draft, setDraft }) {
+export function DescriptionScreen({ categoryKey, draft, setDraft }) {
   return (
     <div>
       <Head title="Create your description" sub="Tell renters what makes it special and what's nearby." />
+      <ul className="max-w-xl mb-3 space-y-1">
+        {DESC_PROMPTS[categoryKey].map((p) => (
+          <li key={p} className="text-xs text-slate-400">· {p}</li>
+        ))}
+      </ul>
       <textarea
         value={draft.description}
         onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
@@ -322,7 +330,7 @@ export function ContactScreen({ categoryKey, draft, setDraft }) {
   )
 }
 
-export function ReviewScreen({ categoryKey, draft }) {
+export function ReviewScreen({ categoryKey, draft, missing = [], onJump }) {
   const cat = CATEGORIES[categoryKey]
   const priceRow = pricingRows(categoryKey, draft.pricingModel)[0]
   const facts = [
@@ -336,6 +344,25 @@ export function ReviewScreen({ categoryKey, draft }) {
   return (
     <div>
       <Head kicker="Almost there" title="Review your listing" sub="Confirm the details. On publish it saves as DRAFT and moves to PENDING for verification." />
+      {missing.length > 0 && (
+        <div className="max-w-lg mb-5 p-4 rounded-2xl bg-amber-50 border border-amber-100">
+          <p className="text-xs font-bold text-amber-800 mb-2.5">
+            {missing.length} {missing.length === 1 ? 'thing' : 'things'} left before publish
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {missing.map((m, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onJump?.(m.screenK)}
+                className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-white border border-amber-200 text-amber-800 hover:border-amber-400 transition-colors"
+              >
+                {m.label} →
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="max-w-lg bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         <div className="flex items-center gap-4 p-5 border-b border-slate-100">
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${cat.tier === 'biz' ? 'bg-slate-900' : 'bg-brand-50'}`}>
