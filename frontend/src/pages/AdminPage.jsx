@@ -37,6 +37,7 @@ import RiskAlert        from '@components/common/RiskAlert'
 import TrustScoreWidget from '@features/trust/components/TrustScoreWidget'
 import ReviewsSection   from '@features/reviews/components/ReviewsSection'
 import PropertyStatusPill from '@components/common/PropertyStatusPill'
+import SpatialContextPanel from '@features/spatial/components/SpatialContextPanel'
 import UnifiedSidebar from '@components/layout/UnifiedSidebar'
 import AdminMonitorSection from '@features/admin/components/AdminMonitorSection'
 import VerificationsSection from '@features/admin/components/VerificationsSection'
@@ -1158,7 +1159,12 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-lg font-bold text-slate-900 leading-snug">{property.title}</p>
-                <p className="text-sm text-slate-500 mt-1">{property.address}, {property.city}</p>
+                <p className="text-sm text-slate-500 mt-1">
+                  {property.address}, {property.city}
+                  {property.state ? `, ${property.state}` : ''}
+                  {property.pincode ? ` — ${property.pincode}` : ''}
+                  {property.landmark ? <span className="text-slate-400"> · near {property.landmark}</span> : ''}
+                </p>
               </div>
               <div className="shrink-0 text-right">
                 <p className="text-xl font-bold text-brand-600">₹{priceValue.toLocaleString('en-IN')}<span className="text-xs font-medium text-slate-400">{priceUnit}</span></p>
@@ -1381,6 +1387,17 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
               </div>
             </AdminCard>
           )}
+
+          {/* Spatial intelligence — the same shared panel the public property
+              page renders, fed by the same spatialContext join on the admin
+              payload. The panel owns its own heading and its own empty/
+              pending/failed states, so it renders bare (no AdminCard shell).
+              No CommuteCalculator child here — that's a tenant tool with
+              mutation state, not moderation information. */}
+          <SpatialContextPanel
+            context={property.spatialContext}
+            coords={{ lat: property.lat, lng: property.lng }}
+          />
 
           {/* Location map */}
           {property.lat && property.lng && (
