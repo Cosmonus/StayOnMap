@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
 import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
-import { formatRent, imgUrl } from '@utils/format'
+import { formatPrice, imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -122,7 +122,7 @@ export default function MyListingsScreen({ navigation }) {
                 </View>
                 <View style={styles.cardBody}>
                   <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-                  <Text style={styles.cardRent}>{formatRent(Number(item.rent))}</Text>
+                  <Text style={styles.cardRent}>{formatPrice(item)}</Text>
                   <Text style={styles.cardCity} numberOfLines={1}>{item.city}{item.state ? `, ${item.state}` : ''}</Text>
                 </View>
               </Pressable>

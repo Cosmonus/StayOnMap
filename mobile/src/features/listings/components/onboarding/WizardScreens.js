@@ -7,7 +7,7 @@ import LocationPicker from '../LocationPicker'
 import FieldControl from './FieldControl'
 import AvailabilityCalendar from './AvailabilityCalendar'
 import Icon from '@components/common/Icon'
-import { CATEGORIES, DESCRIBE, FIELDS, FEATURES, PRICING, VERIFY } from '../../config/onboarding.js'
+import { CATEGORIES, DESCRIBE, FIELDS, FEATURES, pricingRows, LEASE_CATEGORIES, VERIFY } from '../../config/onboarding.js'
 import { CITIES, CITY_NAMES, CITY_LIST_LABEL } from '@config/cities'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -235,9 +235,15 @@ export function DescriptionScreen({ draft, setDraft }) {
 }
 
 export function PricingScreen({ categoryKey, draft, setDraft }) {
-  const rows = PRICING[categoryKey]
+  const isLease = draft.pricingModel === 'LEASE'
+  const rows = pricingRows(categoryKey, draft.pricingModel)
   const isStay = categoryKey === 'stay'
+  const canLease = LEASE_CATEGORIES.includes(categoryKey)
   function set(key, value) { setDraft((d) => ({ ...d, pricing: { ...d.pricing, [key]: value } })) }
+  // Switching modes clears the money fields: the rows differ between modes and
+  // a ₹28,000 monthly rent left behind in `rent` would silently become a
+  // ₹28,000 lease amount.
+  function setMode(pricingModel) { setDraft((d) => ({ ...d, pricingModel, pricing: {} })) }
   return (
     <View>
       <Head
@@ -245,6 +251,38 @@ export function PricingScreen({ categoryKey, draft, setDraft }) {
         title="Now, set your price"
         sub={isStay ? 'Your nightly rate plus fees — the calendar is unique to short-stay.' : 'Category-specific — land shows a sale price, PG a per-bed rate, commercial a lock-in.'}
       />
+      {canLease && (
+        <View style={styles.modeBlock}>
+          <Text style={styles.fieldLabel}>How are you offering it?</Text>
+          <View style={styles.modeRow}>
+            {[
+              { value: 'RENT', label: 'Monthly rent', hint: 'Tenant pays every month' },
+              { value: 'LEASE', label: 'Lease', hint: 'One lump sum, returned when they leave' },
+            ].map((m) => {
+              const active = (draft.pricingModel ?? 'RENT') === m.value
+              return (
+                <Pressable
+                  key={m.value}
+                  onPress={() => setMode(m.value)}
+                  style={[styles.modeCard, active && styles.modeCardActive]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Offer as ${m.label}`}
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text style={[styles.modeLabel, active && styles.modeLabelActive]}>{m.label}</Text>
+                  <Text style={styles.modeHint}>{m.hint}</Text>
+                </Pressable>
+              )
+            })}
+          </View>
+          {isLease && (
+            <Text style={styles.modeNote}>
+              You&apos;ll hold the lease amount for the full term and return it when the tenant
+              leaves. No monthly rent and no separate deposit.
+            </Text>
+          )}
+        </View>
+      )}
       <View style={{ gap: spacing.md }}>
         {rows.map(([key, label, ph]) => (
           <View key={key}>
@@ -358,7 +396,7 @@ export function VerifyScreen({ categoryKey, draft, setDraft }) {
 
 export function ReviewScreen({ categoryKey, draft }) {
   const cat = CATEGORIES[categoryKey]
-  const priceRow = PRICING[categoryKey][0]
+  const priceRow = pricingRows(categoryKey, draft.pricingModel)[0]
   const facts = [
     ['Type', cat.label],
     [DESCRIBE[categoryKey].q.replace(/\?$/, ''), draft.fields[DESCRIBE[categoryKey].k] ?? '—'],
@@ -414,6 +452,14 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.brand600, borderColor: colors.brand600 },
   chipText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate700 },
   chipTextActive: { color: colors.white },
+  modeBlock: { marginBottom: spacing.lg },
+  modeRow: { flexDirection: 'row', gap: spacing.sm },
+  modeCard: { flex: 1, minHeight: 44, justifyContent: 'center', padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate200, backgroundColor: colors.white },
+  modeCardActive: { borderColor: colors.slate800, backgroundColor: colors.slate50 },
+  modeLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate600 },
+  modeLabelActive: { fontFamily: fonts.bodySemiBold, color: colors.slate800 },
+  modeHint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 2 },
+  modeNote: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: spacing.sm, lineHeight: 18 },
   priceInputWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.md },
   priceSymbol: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate400, marginRight: 4 },
   priceInput: { flex: 1, paddingVertical: spacing.sm + 2, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800 },

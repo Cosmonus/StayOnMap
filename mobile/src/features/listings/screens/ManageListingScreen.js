@@ -3,7 +3,7 @@ import { View, Text, Image, FlatList, Pressable, ActivityIndicator, Alert, Style
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
-import { formatRent, formatDate, imgUrl } from '@utils/format'
+import { formatPrice, formatDate, imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
 import ContactRow, { buildContactStats } from '../components/ContactRow'
 import { colors } from '@theme/colors'
@@ -194,7 +194,7 @@ export default function ManageListingScreen({ navigation, route }) {
 
       <View style={styles.summary}>
         <Text style={styles.title} numberOfLines={2}>{property.title}</Text>
-        <Text style={styles.rent}>{formatRent(Number(property.rent))}</Text>
+        <Text style={styles.rent}>{formatPrice(property)}</Text>
         <Text style={styles.address} numberOfLines={1}>
           {[property.address, property.city].filter(Boolean).join(', ')}
         </Text>
