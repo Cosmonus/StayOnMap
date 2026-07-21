@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, StyleSheet, Share } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { leaseService } from '@services/lease.service'
@@ -58,6 +58,20 @@ function LeaseCard({ lease, currentUserId }) {
   })
 
   const months = Math.round((new Date(lease.endDate) - new Date(lease.startDate)) / (1000 * 60 * 60 * 24 * 30))
+
+  // The "I'm home" share (docs/points-and-sharing.md §4): area + city + month
+  // ONLY — no address, photo, listing link or owner name. Text share via the
+  // built-in Share API; an image card needs react-native-view-shot (a native
+  // dep this app deliberately avoids adding piecemeal).
+  async function shareHome() {
+    const area = lease.property?.landmark || lease.property?.city || ''
+    const city = lease.property?.city || ''
+    const month = new Date(lease.signedAt || lease.startDate).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+    const place = area && area !== city ? `${area}, ${city}` : city
+    try {
+      await Share.share({ message: `🏡 I'm home! ${place} · ${month}\nFound broker-free on StayOnMap — https://www.stayonmap.com` })
+    } catch { /* share sheet dismissed */ }
+  }
 
   return (
     <View style={styles.card}>
@@ -143,6 +157,11 @@ function LeaseCard({ lease, currentUserId }) {
                 <Text style={styles.rejectButtonText}>Reject</Text>
               </Pressable>
             </>
+          )}
+          {iAmTenant && lease.status === 'ACTIVE' && (
+            <Pressable style={styles.shareButton} onPress={shareHome} accessibilityRole="button" accessibilityLabel="Share that you found a home">
+              <Text style={styles.shareButtonText}>🏡 Share: I&apos;m home</Text>
+            </Pressable>
           )}
           {iAmOwner && lease.status === 'ACTIVE' && (
             <Pressable style={styles.rejectButton} onPress={() => setShowConfirm('terminate')} accessibilityRole="button" accessibilityLabel="Terminate lease">
@@ -271,6 +290,8 @@ const styles = StyleSheet.create({
   signButton: { flex: 1, minHeight: 44, flexDirection: 'row', gap: 5, backgroundColor: '#16A34A', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
   rejectButton: { flex: 1, minHeight: 44, flexDirection: 'row', gap: 5, borderWidth: 1, borderColor: '#FECACA', borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
   rejectButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.danger },
+  shareButton: { flex: 1, minHeight: 44, flexDirection: 'row', gap: 5, borderWidth: 1, borderColor: colors.brand200, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
+  shareButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
   empty: { alignItems: 'center', paddingVertical: spacing.xxl },
   emptyIcon: { width: 48, height: 48, borderRadius: radius.full, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700 },
