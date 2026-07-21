@@ -172,6 +172,7 @@ export default function LoginScreen() {
               email={email}
               setEmail={setEmail}
               onUsePassword={() => switchTab('login')}
+              onSignup={() => switchTab('signup')}
               styles={styles}
             />
           ) : tab === 'forgot' ? (
