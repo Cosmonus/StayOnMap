@@ -23,9 +23,16 @@ export function errorMiddleware(err, _req, res, _next) {
       ? (err.expose ? err.message : 'Internal server error')
       : err.message                      // 5xx in dev: show for debugging
 
+  // Same rule for the machine-readable code: an uncaught Prisma error carries
+  // err.code = 'P2025', which discloses the ORM to clients. Only `expose`
+  // (or dev, or a 4xx) lets a specific code through on a 5xx.
+  const code = status < 500 || !isProd || err.expose
+    ? (err.code || 'INTERNAL_ERROR')
+    : 'INTERNAL_ERROR'
+
   res.status(status).json({
     success: false,
-    error: err.code || 'INTERNAL_ERROR',
+    error: code,
     message,
     statusCode: status,
   })

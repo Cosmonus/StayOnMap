@@ -268,15 +268,17 @@ export async function getModerationQueue() {
 }
 
 export async function listActivityLogs({ userId, action, page = 1, limit = 50 }) {
+  const pageNum  = Math.max(1, parseInt(page, 10)  || 1)
+  const limitNum = Math.min(100, parseInt(limit, 10) || 50)
   const where = {}
   if (userId) where.userId = userId
   if (action) where.action = { contains: action, mode: 'insensitive' }
-  const skip = (page - 1) * limit
+  const skip = (pageNum - 1) * limitNum
   const [logs, total] = await Promise.all([
-    prisma.activityLog.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' }, include: { user: { select: { id: true, name: true, email: true } } } }),
+    prisma.activityLog.findMany({ where, skip, take: limitNum, orderBy: { createdAt: 'desc' }, include: { user: { select: { id: true, name: true, email: true } } } }),
     prisma.activityLog.count({ where }),
   ])
-  return { logs, total, page, limit }
+  return { logs, total, page: pageNum, limit: limitNum }
 }
 
 export async function listAmenities() {

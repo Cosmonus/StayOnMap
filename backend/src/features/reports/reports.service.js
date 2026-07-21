@@ -39,20 +39,22 @@ export async function submitReport(reporterId, propertyId, data) {
 }
 
 export async function adminListReports({ status, severity, category, page = 1, limit = 20 }) {
+  const pageNum  = Math.max(1, parseInt(page, 10)  || 1)
+  const limitNum = Math.min(100, parseInt(limit, 10) || 20)
   const where = {}
   if (status) where.status = status
   if (severity) where.severity = severity
   if (category) where.category = category
-  const skip = (page - 1) * limit
+  const skip = (pageNum - 1) * limitNum
   const [reports, total] = await Promise.all([
     prisma.propertyReport.findMany({
-      where, skip, take: limit,
+      where, skip, take: limitNum,
       orderBy: [{ severity: 'asc' }, { createdAt: 'desc' }],
       include: { property: { select: { id: true, title: true, city: true } }, moderationAction: true },
     }),
     prisma.propertyReport.count({ where }),
   ])
-  return { reports, total, page, limit }
+  return { reports, total, page: pageNum, limit: limitNum }
 }
 
 export async function getOwnerReports(ownerId, propertyId) {
