@@ -19,6 +19,7 @@
 import { prisma } from '../../lib/prisma.js'
 import { intelError } from '../../lib/intelLog.js'
 import { poisNear, cityCategoryCoverage } from './poiProvider.js'
+import { walkTable } from './routingProvider.js'
 
 // The two radii a filter actually asks about. 800 m is the widely-used
 // "10-15 minute walk"; 1600 m is the outer edge of where people walk at all.
@@ -121,10 +122,23 @@ export async function refreshCellProximity(geohash, cell, categories) {
           geohash,
           category,
           nearestM: hits.length ? Math.round(hits[0].distanceM) : null,
+          nearestWalkM: null, // filled below when the router answers
           count800M: hits.filter((h) => h.distanceM <= NEAR_M).length,
           count1600M: hits.length,
+          _nearest: hits.length ? { lat: hits[0].lat, lng: hits[0].lng } : null,
         }
       })
+
+    // Measured walking distance to each nearest POI — one batched /table call
+    // for the whole cell. Router absent/down → nearestWalkM stays null, which
+    // the column documents as "not measured", never zero. A routing failure
+    // must not fail the summary: walkTable already degrades to null.
+    const routable = rows.filter((r) => r._nearest)
+    if (routable.length) {
+      const walks = await walkTable({ lat: cell.lat, lng: cell.lng }, routable.map((r) => r._nearest))
+      if (walks) routable.forEach((r, i) => { r.nearestWalkM = walks[i]?.walkM ?? null })
+    }
+    for (const r of rows) delete r._nearest
 
     // Sequential upserts rather than createMany: this runs once per cell
     // materialisation over a handful of categories, and an upsert keeps a

@@ -2,25 +2,58 @@ import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { prisma } from '../../lib/prisma.js'
+import { redis } from '../../lib/redis.js'
 import { env } from '../../config/env.js'
 import { generateUserDisplayId } from '../../utils/idGenerator.js'
-import { sendEmail, canSend, passwordResetEmail, emailVerificationEmail, loginOtpEmail } from '../../services/email.service.js'
+import { sendEmail, canSend, passwordResetEmail, emailVerificationEmail, loginOtpEmail, passwordChangedEmail } from '../../services/email.service.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
+import { signUserToken, stripPasswordHash } from './tokens.js'
+import { issueSession, revokeAllSessions } from './session.service.js'
 
-function signUserToken(user) {
-  return jwt.sign(
-    { sub: user.id, email: user.email, role: user.role },
-    env.jwtSecret,
-    { expiresIn: env.jwtExpiresIn }
-  )
+export { stripPasswordHash } // users.service imports it from here
+
+// ── Failed-login lockout — per EMAIL, not per IP ────────────────────────────
+// The /auth router's strictLimiter is per-IP; a distributed guesser never trips
+// it. Redis-backed like the limiters, and like them a silent no-op without
+// REDIS_URL (dev runs without Redis by design — see docs/redis-and-scaling.md).
+const LOCKOUT_MAX_FAILS = 10
+const LOCKOUT_WINDOW_S = 15 * 60
+
+async function assertNotLockedOut(email) {
+  if (!redis) return
+  const fails = await redis.get(`login:fail:${email}`).catch(() => null)
+  if (Number(fails) >= LOCKOUT_MAX_FAILS) {
+    throw Object.assign(
+      new Error('Too many failed attempts. Try again in a few minutes, or reset your password.'),
+      { statusCode: 429 }
+    )
+  }
 }
 
-export function stripPasswordHash(user) {
-  const { passwordHash: _passwordHash, ...rest } = user
-  return rest
+async function recordFailedLogin(email) {
+  if (!redis) return
+  try {
+    const key = `login:fail:${email}`
+    const n = await redis.incr(key)
+    if (n === 1) await redis.expire(key, LOCKOUT_WINDOW_S)
+  } catch { /* fire-and-forget */ }
 }
 
-export async function registerUser({ name, email, password, city, role }) {
+function clearFailedLogins(email) {
+  if (redis) redis.del(`login:fail:${email}`).catch(() => {})
+}
+
+// ── Timing pad ──────────────────────────────────────────────────────────────
+// Without this, "email not registered" returns in microseconds while "wrong
+// password" takes a full bcrypt compare — a measurable account-existence
+// oracle. Unknown emails burn the same compare against a throwaway hash.
+let dummyHash = null
+async function padTiming(password) {
+  dummyHash ??= await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 12)
+  await bcrypt.compare(password, dummyHash)
+}
+
+export async function registerUser({ name, email, password, city, role }, ctx = {}) {
   // Cities outside SUPPORTED_CITIES never get a real account — captured on
   // the waitlist instead, so there's nothing for them to log into later.
   if (!SUPPORTED_CITIES.includes(city)) {
@@ -45,19 +78,34 @@ export async function registerUser({ name, email, password, city, role }) {
 
   sendVerificationEmailTo(user) // non-blocking — user can browse unverified
 
-  return { token: signUserToken(user), user: stripPasswordHash(user) }
+  const refreshToken = await issueSession(user.id, ctx)
+  return { token: signUserToken(user), refreshToken, user: stripPasswordHash(user) }
 }
 
-export async function loginUser(email, password) {
+export async function loginUser(email, password, ctx = {}) {
+  await assertNotLockedOut(email)
+
   const user = await prisma.user.findUnique({ where: { email } })
-  if (!user) throw Object.assign(new Error('Invalid email or password'), { statusCode: 401 })
+  // Unknown email AND social-only account (passwordHash null) take the same
+  // padded path — neither has a hash to compare, and neither may be
+  // distinguishable from "wrong password" by timing or message.
+  if (!user || !user.passwordHash) {
+    await padTiming(password)
+    await recordFailedLogin(email)
+    throw Object.assign(new Error('Invalid email or password'), { statusCode: 401 })
+  }
 
   const valid = await bcrypt.compare(password, user.passwordHash)
-  if (!valid) throw Object.assign(new Error('Invalid email or password'), { statusCode: 401 })
+  if (!valid) {
+    await recordFailedLogin(email)
+    throw Object.assign(new Error('Invalid email or password'), { statusCode: 401 })
+  }
 
   if (user.isBlocked) throw Object.assign(new Error('This account has been blocked'), { statusCode: 403 })
 
-  return { token: signUserToken(user), user: stripPasswordHash(user) }
+  clearFailedLogins(email)
+  const refreshToken = await issueSession(user.id, ctx)
+  return { token: signUserToken(user), refreshToken, user: stripPasswordHash(user) }
 }
 
 export async function getUserById(id) {
@@ -118,10 +166,17 @@ export async function resetPassword(rawToken, newPassword) {
   }
 
   const passwordHash = await bcrypt.hash(newPassword, 12)
-  await prisma.$transaction([
+  const [user] = await prisma.$transaction([
     prisma.user.update({ where: { id: resetToken.userId }, data: { passwordHash } }),
     prisma.passwordResetToken.update({ where: { id: resetToken.id }, data: { usedAt: new Date() } }),
   ])
+
+  // Whoever reset the password owns the account now — every other device's
+  // session dies with the old password. Also clears any login lockout: the
+  // reset IS the recovery path the lockout message points at.
+  await revokeAllSessions(user.id)
+  clearFailedLogins(user.email)
+  sendEmail({ to: user.email, ...passwordChangedEmail({ name: user.name }) }) // best-effort
 }
 
 // ── Email verification — non-blocking, sets User.isVerified ─────────────────
@@ -248,7 +303,7 @@ export async function requestLoginOtp(email) {
   }
 }
 
-export async function verifyLoginOtp(email, code) {
+export async function verifyLoginOtp(email, code, ctx = {}) {
   const invalid = () => Object.assign(new Error('Invalid or expired code'), { statusCode: 401 })
 
   const user = await prisma.user.findUnique({ where: { email } })
@@ -282,5 +337,6 @@ export async function verifyLoginOtp(email, code) {
     prisma.user.update({ where: { id: user.id }, data: { isVerified: true } }),
   ])
 
-  return { token: signUserToken(updated), user: stripPasswordHash(updated) }
+  const refreshToken = await issueSession(updated.id, ctx)
+  return { token: signUserToken(updated), refreshToken, user: stripPasswordHash(updated) }
 }

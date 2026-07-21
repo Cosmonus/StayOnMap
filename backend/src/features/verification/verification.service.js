@@ -50,8 +50,17 @@ export async function adminListVerifications({ status, page = 1, limit = 20 }) {
   // comparison upgrades the evidence on the table, never the decision: the
   // reviewer gets listing address, declared document address, and a
   // deterministic verdict side by side, and still reads the document.
+  // OwnershipVerification carries a raw ownerId (no relation) — one batched
+  // lookup names the owners for the admin list instead of showing cuids.
+  const owners = await prisma.user.findMany({
+    where: { id: { in: [...new Set(verifications.map((v) => v.ownerId))] } },
+    select: { id: true, name: true, email: true },
+  })
+  const ownerById = new Map(owners.map((o) => [o.id, o]))
+
   const withMatch = await Promise.all(verifications.map(async (v) => ({
     ...v,
+    owner: ownerById.get(v.ownerId) ?? null,
     addressMatch: await compareAddresses(v.property, v.documentAddress).catch(() => null),
   })))
   return { verifications: withMatch, total, page, limit }

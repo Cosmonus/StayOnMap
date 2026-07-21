@@ -6,10 +6,12 @@ import { userService } from '@services/user.service'
 import { subscribeToPush, unsubscribeFromPush, registerServiceWorker } from '@services/push.service'
 import { toast } from '@components/common/Toaster'
 import { authService } from '@services/auth.service'
+import LinkedAccountsCard from './LinkedAccountsCard'
+import DevicesCard from './DevicesCard'
 
 const ICONS = { user: User, camera: Camera, globe: Globe, eye: Eye, eyeOff: EyeOff, lock: Lock, bell: Bell, save: Save, shield: Shield, trash: Trash2 }
 
-function Card({ icon: IconComp, title, children, danger, className = '' }) {
+export function Card({ icon: IconComp, title, children, danger, className = '' }) {
   return (
     <div className={`rounded-2xl border p-5 ${danger ? 'bg-red-50 border-red-200' : 'bg-white border-slate-100'} ${className}`}>
       <div className="flex items-center gap-2.5 mb-4">
@@ -426,6 +428,10 @@ export default function SettingsPanel() {
               </button>
             </div>
           </Card>
+
+          <LinkedAccountsCard />
+
+          <DevicesCard />
 
           <Card icon={ICONS.trash} title="Danger Zone" danger>
             <div className="flex items-center justify-between">

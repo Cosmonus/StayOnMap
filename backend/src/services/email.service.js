@@ -88,6 +88,30 @@ export function passwordResetEmail({ name, link }) {
   }
 }
 
+export function passwordChangedEmail({ name }) {
+  const time = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })
+  return {
+    subject: 'Your StayOnMap password was changed',
+    html: `
+      <p>Hi ${name},</p>
+      <p>Your StayOnMap password was changed on <strong>${time} IST</strong>, and you've been signed out of all other devices.</p>
+      <p>If this was you, no action is needed.</p>
+      <p>If it wasn't, reset your password immediately from the login screen — the reset link goes only to this inbox.</p>
+    `,
+  }
+}
+
+export function accountLinkedEmail({ name, providerLabel }) {
+  return {
+    subject: `${providerLabel} was linked to your StayOnMap account`,
+    html: `
+      <p>Hi ${name},</p>
+      <p><strong>${providerLabel}</strong> can now be used to sign in to your StayOnMap account.</p>
+      <p>If you didn't link it, remove it under Settings → Linked accounts and reset your password.</p>
+    `,
+  }
+}
+
 export function verificationUpdateEmail({ ownerName, propertyTitle, status, adminNote }) {
   const statusLabel = status === 'VERIFIED' ? 'approved' : status === 'REJECTED' ? 'rejected' : 'updated'
   return {

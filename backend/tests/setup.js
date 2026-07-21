@@ -94,6 +94,11 @@ vi.mock('../src/config/env.js', () => ({
     smtpUser: null,
     smtpPass: null,
     spatialDailyApiBudget: 2000,
+    apiPublicUrl: 'http://localhost:4000',
+    // Google is the only social provider (product decision 2026-07-20).
+    oauth: {
+      google: { clientId: 'test-google-id', clientSecret: 'test-google-secret' },
+    },
   },
 }))
 
@@ -106,4 +111,6 @@ vi.mock('../src/services/email.service.js', () => ({
   passwordResetEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
   emailVerificationEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
   loginOtpEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
+  passwordChangedEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
+  accountLinkedEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
 }))

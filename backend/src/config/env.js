@@ -79,6 +79,10 @@ export const env = {
   // blanks a page and never runs up a surprise bill.
   // Enforced only when REDIS_URL is set (the counter is shared state).
   spatialDailyApiBudget: Number(process.env.SPATIAL_DAILY_API_BUDGET) || 2000,
+  // Self-hosted OSRM routing server (infra/routing/) — measured walking
+  // distances. Absent is a supported state: every consumer falls back to
+  // haversine, so this can never break a page, only improve it.
+  routingUrl: (process.env.ROUTING_URL || '').replace(/\/$/, '') || null,
   // data.gov.in — CPCB ground-station air quality. Free, registration only.
   // Absent is a supported state, not a misconfiguration: the environment module
   // declares `cpcb_station` as an input and leaves it absent, which holds its
@@ -86,4 +90,15 @@ export const env = {
   dataGovApiKey: process.env.DATA_GOV_API_KEY || null,
   // Error monitoring — entirely optional, lib/sentry.js no-ops without it
   sentryDsn:       process.env.SENTRY_DSN        || null,
+  // The backend's own public origin — OAuth providers redirect back to
+  // `${apiPublicUrl}/api/v1/auth/oauth/<provider>/callback`, so it must be the
+  // address a browser can reach, not an internal hostname.
+  apiPublicUrl: process.env.API_PUBLIC_URL || `http://localhost:${Number(process.env.PORT) || 4000}`,
+  // Social login — each provider activates only when BOTH its vars are set;
+  // unset providers simply don't appear in GET /auth/oauth/providers, so the
+  // UI never shows a dead button. Creating these apps is operator work:
+  // docs/auth-providers-setup.md.
+  oauth: {
+    google: { clientId: process.env.GOOGLE_OAUTH_CLIENT_ID || null, clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET || null },
+  },
 }

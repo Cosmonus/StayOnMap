@@ -4,6 +4,7 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import { colors } from '@theme/colors'
 import AuthStack from './AuthStack'
 import AppTabs from './AppTabs'
+import OAuthRedirectHandler from '@features/auth/components/OAuthRedirectHandler'
 import { navigationRef, flushPendingReference } from './navigationRef'
 
 // Deep links resolve against the renter tab set (AppTabs.js's RENTER_TABS) —
@@ -35,6 +36,10 @@ export default function RootNavigator() {
   return (
     <NavigationContainer ref={navigationRef} linking={linking} onReady={flushPendingReference}>
       {user ? <AppTabs /> : <AuthStack />}
+      {/* Social-login deep-link listener + city-completion sheet. Lives at the
+          root because the stayonmap://oauth-complete redirect can arrive
+          logged-out (sign-in) or logged-in (linking from Settings). */}
+      <OAuthRedirectHandler />
     </NavigationContainer>
   )
 }

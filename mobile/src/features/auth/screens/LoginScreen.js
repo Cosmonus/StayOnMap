@@ -6,6 +6,7 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import Icon from '@components/common/Icon'
 import Dropdown from '@components/common/Dropdown'
 import OtpLoginForm from '@features/auth/components/OtpLoginForm'
+import SocialLoginButtons from '@features/auth/components/SocialLoginButtons'
 import { CITY_NAMES } from '@config/cities'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -230,6 +231,8 @@ export default function LoginScreen() {
                 <Icon name="mail" size={16} color={colors.brand600} />
                 <Text style={styles.secondaryButtonText}>Email me a sign-in code</Text>
               </Pressable>
+
+              <SocialLoginButtons />
             </>
           ) : waitlisted ? (
             <View style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
@@ -288,6 +291,14 @@ export default function LoginScreen() {
               >
                 <Text style={styles.primaryButtonText}>{loading ? 'Creating account…' : 'Create account'}</Text>
               </Pressable>
+
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <SocialLoginButtons mode="signup" />
             </>
           )}
         </ScrollView>
