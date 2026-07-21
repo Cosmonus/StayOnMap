@@ -22,8 +22,12 @@ const ICONS = {
  * `mode` only changes the wording ("Sign in with" vs "Sign up with") — the
  * OAuth flow behind the button is identical either way: existing identity
  * logs in, new identity goes through the city step.
+ *
+ * `row` renders the buttons as flex items (icon + provider name only) for a
+ * caller that lays them out in a shared row — the login tab pairs Google
+ * with the sign-in-code button. The full wording stays in the aria-label.
  */
-export default function SocialLoginButtons({ mode = 'login' }) {
+export default function SocialLoginButtons({ mode = 'login', row = false }) {
   const { data: providers } = useQuery({
     queryKey: ['oauth-providers'],
     queryFn: () => authService.getOAuthProviders().then((r) => r.data),
@@ -37,6 +41,20 @@ export default function SocialLoginButtons({ mode = 'login' }) {
   // signup tab — a button that always errors is worse than no button.
   const usable = mode === 'signup' ? providers.filter((p) => p.canSignup !== false) : providers
   if (!usable.length) return null
+
+  if (row) {
+    return usable.map((p) => (
+      <a
+        key={p.key}
+        href={`${import.meta.env.VITE_API_BASE_URL}/auth/oauth/${p.key}`}
+        aria-label={`${verb} with ${p.label}`}
+        className="flex-1 min-w-[45%] py-3 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 flex items-center justify-center gap-2 no-underline"
+      >
+        {ICONS[p.key]}
+        {p.label}
+      </a>
+    ))
+  }
 
   return (
     <div className="space-y-2">
