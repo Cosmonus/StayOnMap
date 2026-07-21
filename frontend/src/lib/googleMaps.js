@@ -117,7 +117,7 @@ export async function resolvePlace(query, city) {
 
 // LatLngBounds → the flat sw/ne shape the backend's bounds params use.
 // Null when the geometry has no viewport (rare — a bare rooftop point).
-function viewportOf(geometry) {
+export function viewportOf(geometry) {
   const vp = geometry?.viewport
   if (!vp) return null
   const sw = vp.getSouthWest()
