@@ -1,5 +1,5 @@
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native'
-import { imgUrl, formatRent } from '@utils/format'
+import { imgUrl, formatPrice } from '@utils/format'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -40,7 +40,7 @@ export default function ChatPropertyCard({ property, onPress }) {
           </Text>
         )}
         <View style={styles.metaRow}>
-          {property.rent != null && <Text style={styles.rent}>{formatRent(Number(property.rent))}</Text>}
+          {property.rent != null && <Text style={styles.rent}>{formatPrice(property)}</Text>}
           {bhkLabel && <View style={styles.chip}><Text style={styles.chipText}>{bhkLabel}</Text></View>}
           {typeLabel && <View style={styles.chip}><Text style={styles.chipText}>{typeLabel}</Text></View>}
         </View>

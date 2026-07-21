@@ -13,7 +13,7 @@ import {
   DescribeScreen, FieldsScreen, LocationScreen, FeaturesScreen, PhotosScreen,
   TitleScreen, DescriptionScreen, PricingScreen, ContactScreen, VerifyScreen, ReviewScreen,
 } from './WizardScreens'
-import { CATEGORIES, BUSINESS_GATED_TYPES, PRICING, DESCRIBE, getScreens, phaseOf, deriveType } from '../../config/onboarding.js'
+import { CATEGORIES, BUSINESS_GATED_TYPES, pricingRows, DESCRIBE, getScreens, phaseOf, deriveType } from '../../config/onboarding.js'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -25,6 +25,10 @@ const EMPTY_DRAFT = {
   images: [],
   title: '',
   description: '',
+  // RENT unless the owner picks Lease on the pricing screen (only offered for
+  // LEASE_CATEGORIES). Lives beside `pricing` rather than inside it because
+  // everything in `pricing` is a money string; this is a mode.
+  pricingModel: 'RENT',
   pricing: {},
   appointmentWindowStart: '',
   appointmentWindowEnd: '',
@@ -48,6 +52,9 @@ function buildPayload(categoryKey, type, draft, amenityIds) {
 
   const isStay = categoryKey === 'stay'
   const primaryRent = isStay ? Number(pricing.nightlyRate || 0) : Number(pricing.rent || 0)
+  // On a lease, `rent` carries the lump sum and there is no second deposit
+  // (the backend rejects one). See PricingModel in schema.prisma.
+  const isLease = draft.pricingModel === 'LEASE'
 
   const payload = {
     title: draft.title.trim(),
@@ -63,8 +70,9 @@ function buildPayload(categoryKey, type, draft, amenityIds) {
     images: draft.images,
     amenityIds,
     ...typedFields,
+    pricingModel: draft.pricingModel,
     rent: primaryRent,
-    deposit: Number(pricing.deposit ?? 0),
+    deposit: isLease ? 0 : Number(pricing.deposit ?? 0),
     ...(pricing.maintenance !== undefined && pricing.maintenance !== '' && { maintenance: Number(pricing.maintenance) }),
     ...(isStay && {
       nightlyRate: primaryRent,
@@ -96,7 +104,7 @@ function getBlockingError(screen, categoryKey, draft) {
   if (screen.k === 'title' && draft.title.trim().length < 5) return 'Title needs at least 5 characters.'
   if (screen.k === 'description' && draft.description.trim().length < 10) return 'Description needs at least 10 characters.'
   if (screen.k === 'pricing') {
-    for (const [key] of PRICING[categoryKey]) {
+    for (const [key] of pricingRows(categoryKey, draft.pricingModel)) {
       if (['deposit', 'maintenance', 'cleaningFee', 'weekendRate'].includes(key)) continue
       if (!draft.pricing[key]) return 'Fill in the required price fields.'
     }

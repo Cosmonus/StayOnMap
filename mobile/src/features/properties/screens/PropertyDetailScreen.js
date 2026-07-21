@@ -103,7 +103,8 @@ export default function PropertyDetailScreen({ route, navigation }) {
 
   function handleShare() {
     if (!property) return
-    Share.share({ message: `${property.title} — ${formatCompact(Number(property.rent))}/mo in ${property.city}` })
+    const unit = property.pricingModel === 'LEASE' ? ' lease' : '/mo'
+    Share.share({ message: `${property.title} — ${formatCompact(Number(property.rent))}${unit} in ${property.city}` })
   }
 
   async function handleMessageOwner() {
@@ -204,7 +205,8 @@ export default function PropertyDetailScreen({ route, navigation }) {
           <AvailabilityBadge status={property.status} availableFrom={property.availableFrom} />
 
           <View style={styles.priceRow}>
-            <Text style={styles.price}>{formatCompact(Number(property.rent))}<Text style={styles.priceUnit}>/mo</Text></Text>
+            {/* On a LEASE listing `rent` is the refundable lump sum — never "/mo". */}
+            <Text style={styles.price}>{formatCompact(Number(property.rent))}<Text style={styles.priceUnit}>{property.pricingModel === 'LEASE' ? ' lease' : '/mo'}</Text></Text>
             {property.deposit > 0 && <Text style={styles.deposit}>{formatCompact(Number(property.deposit))} deposit</Text>}
           </View>
 

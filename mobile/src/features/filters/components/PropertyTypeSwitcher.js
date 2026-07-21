@@ -10,10 +10,11 @@ import { spacing, radius } from '@theme/spacing'
 
 const intersects = (a, b) => a.some((v) => b.includes(v))
 
-export default function PropertyTypeSwitcher({ selectedTypes, onChange }) {
+// `categories` is overridable so lease mode can narrow to LEASE_CATEGORIES.
+export default function PropertyTypeSwitcher({ selectedTypes, onChange, categories = TYPE_CATEGORIES }) {
   return (
     <View style={styles.grid}>
-      {TYPE_CATEGORIES.map((category) => {
+      {categories.map((category) => {
         const IconCmp = category.icon
         const active = intersects(selectedTypes, category.types)
         return (
