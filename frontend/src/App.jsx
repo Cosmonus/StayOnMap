@@ -2,6 +2,7 @@ import { useLocation } from 'react-router-dom'
 import AppRoutes from './routes'
 import Header from '@components/layout/Header'
 import Footer from '@components/layout/Footer'
+import ScrollToTop from '@components/common/ScrollToTop'
 import Toaster from '@components/common/Toaster'
 import ConfirmDialog from '@components/common/ConfirmDialog'
 import LoginModal from '@features/auth/components/LoginModal'
@@ -20,6 +21,7 @@ export default function App() {
 
   return (
     <>
+      <ScrollToTop />
       {showHeader && <Header />}
       <AppRoutes />
       {showFooter && <Footer />}
