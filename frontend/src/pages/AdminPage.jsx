@@ -1021,6 +1021,14 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
   const maintenance = Number(property.maintenance || 0)
   const owner = property.owner
 
+  // Price must read through the pricing model — admin sees BOTH modes, and a
+  // lakh-scale LEASE lump sum labelled "/mo" is exactly the misread that
+  // poisons a moderation decision. Stays are nightly.
+  const isLease = property.pricingModel === 'LEASE'
+  const isStay = property.type === 'SHORT_STAY'
+  const priceValue = isStay ? Number(property.nightlyRate ?? property.rent) : rent
+  const priceUnit = isLease ? ' lease' : isStay ? '/night' : '/mo'
+
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null
 
   const allUsers = aggregatePropertyUsers(property)
@@ -1119,14 +1127,19 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
                 <p className="text-sm text-slate-500 mt-1">{property.address}, {property.city}</p>
               </div>
               <div className="shrink-0 text-right">
-                <p className="text-xl font-bold text-brand-600">₹{rent.toLocaleString('en-IN')}<span className="text-xs font-medium text-slate-400">/mo</span></p>
+                <p className="text-xl font-bold text-brand-600">₹{priceValue.toLocaleString('en-IN')}<span className="text-xs font-medium text-slate-400">{priceUnit}</span></p>
                 <p className="text-xs text-slate-500 mt-0.5">Deposit: ₹{deposit.toLocaleString('en-IN')}</p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-1.5 mt-3">
-              {property.bhk && <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-lg border border-brand-100">🏠 {property.bhk} BHK</span>}
+              {isLease && <span className="px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg border border-amber-200">📜 LEASE listing</span>}
+              {property.bhk != null && property.bhk > 0 && <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-lg border border-brand-100">🏠 {property.bhk} BHK</span>}
               {property.sharing && <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-lg border border-brand-100">👥 {property.sharing}-Sharing</span>}
-              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-lg">🛋️ {property.furnished === 'FULLY' ? 'Furnished' : property.furnished === 'SEMI' ? 'Semi Furnished' : 'Unfurnished'}</span>
+              {property.type === 'LAND' && property.extent && <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-lg border border-brand-100">📐 {property.extent} {(property.extentUnit ?? '').toLowerCase()}</span>}
+              {property.type === 'COMMERCIAL' && property.carpetArea && <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-lg border border-brand-100">📐 {property.carpetArea} sq.ft carpet</span>}
+              {isStay && property.maxGuests && <span className="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-semibold rounded-lg border border-brand-100">👥 Up to {property.maxGuests} guests</span>}
+              {property.houseStyle && <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-lg">🏡 {property.houseStyle}</span>}
+              {property.type !== 'LAND' && <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-lg">🛋️ {property.furnished === 'FULLY' ? 'Furnished' : property.furnished === 'SEMI' ? 'Semi Furnished' : 'Unfurnished'}</span>}
               <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-lg">🏷️ {property.type?.replace(/_/g, ' ')}</span>
             </div>
           </div>
