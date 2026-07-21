@@ -46,5 +46,17 @@ export async function geocode(address) {
   }
   const result = data.results?.[0]
   if (!result) return null
-  return { lat: result.geometry.location.lat, lng: result.geometry.location.lng }
+  // viewport is the place's own extent — a city spans its whole municipality,
+  // a street its block. Additive: released mobile builds ignore it.
+  const vp = result.geometry.viewport
+  return {
+    lat: result.geometry.location.lat,
+    lng: result.geometry.location.lng,
+    ...(vp && {
+      viewport: {
+        swLat: vp.southwest.lat, swLng: vp.southwest.lng,
+        neLat: vp.northeast.lat, neLng: vp.northeast.lng,
+      },
+    }),
+  }
 }

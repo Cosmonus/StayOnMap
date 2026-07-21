@@ -79,6 +79,21 @@ export default function MapView({ onPinPress, onDeselect }) {
     fetchPinsNow(nextRegion)
   }
 
+  // Frame a place by its own extent (searching "Delhi" should show all of
+  // Delhi, not street level at its centre). Same store-update-then-animate
+  // mechanics as flyTo — the deltas just come from the viewport.
+  function flyToViewport(vp) {
+    const nextRegion = {
+      latitude: (vp.swLat + vp.neLat) / 2,
+      longitude: (vp.swLng + vp.neLng) / 2,
+      latitudeDelta: Math.max((vp.neLat - vp.swLat) * 1.2, 0.01),
+      longitudeDelta: Math.max((vp.neLng - vp.swLng) * 1.2, 0.01),
+    }
+    mapRef.current?.animateToRegion(nextRegion, 400)
+    setRegion(nextRegion)
+    fetchPinsNow(nextRegion)
+  }
+
   // Register the imperative flyTo closure once the native map is mounted —
   // same registration pattern as web's MapView (.claude/maps.md). Any page
   // can call useMapStore.getState().flyTo(...); if the native map isn't
@@ -131,7 +146,8 @@ export default function MapView({ onPinPress, onDeselect }) {
   // — no need for this effect to geocode independently.
   useEffect(() => {
     if (!mapReady || !area || !searchedPlace) return
-    flyTo(searchedPlace.lat, searchedPlace.lng, AREA_ZOOM)
+    if (searchedPlace.viewport) flyToViewport(searchedPlace.viewport)
+    else flyTo(searchedPlace.lat, searchedPlace.lng, AREA_ZOOM)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [area, searchedPlace, mapReady])
 

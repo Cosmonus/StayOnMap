@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { MapPin, Search, X, Clock } from 'lucide-react'
 import { useMapStore } from '@store/mapStore'
 import { CITIES } from '@/config/cities'
-import { googleMapsReady, resolvePlace } from '@lib/googleMaps'
+import { googleMapsReady, resolvePlace, viewportOf } from '@lib/googleMaps'
 
 function useAreaSuggestions(query, cityName) {
   const [suggestions, setSuggestions] = useState([])
@@ -130,11 +130,12 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
       if (status !== 'OK' || !place?.geometry?.location) return
       const lat = place.geometry.location.lat()
       const lng = place.geometry.location.lng()
+      const viewport = viewportOf(place.geometry)
       useMapStore.getState().clearSelection()
       if (onPlacePicked) {
-        onPlacePicked({ name: label, lat, lng })
+        onPlacePicked({ name: label, lat, lng, viewport })
       } else {
-        useMapStore.getState().flyTo?.({ center: [lng, lat], zoom: 16, duration: 800 })
+        useMapStore.getState().flyTo?.({ center: [lng, lat], zoom: 16, bounds: viewport ?? undefined, duration: 800 })
         useMapStore.getState().setSearchedPlace({ name: label, lat, lng })
       }
     })
@@ -161,7 +162,7 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
     if (onPlacePicked) {
       onPlacePicked(place)
     } else {
-      useMapStore.getState().flyTo?.({ center: [place.lng, place.lat], zoom: 16, duration: 800 })
+      useMapStore.getState().flyTo?.({ center: [place.lng, place.lat], zoom: 16, bounds: place.viewport ?? undefined, duration: 800 })
       useMapStore.getState().setSearchedPlace(place)
     }
   }
