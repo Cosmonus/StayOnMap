@@ -323,15 +323,19 @@ export default function LoginModal() {
                   <div className="flex-1 h-px bg-slate-200" />
                 </div>
 
-                <button
-                  type="button" onClick={() => switchTab('otp')}
-                  className="w-full py-3 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 flex items-center justify-center gap-2"
-                >
-                  <MailCheck size={16} strokeWidth={2} className="text-brand-600" />
-                  Email me a sign-in code
-                </button>
-
-                <SocialLoginButtons />
+                {/* Sign-in code + social providers share one row (wraps 2-up
+                    if more providers are configured later) */}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button" onClick={() => switchTab('otp')}
+                    aria-label="Email me a sign-in code"
+                    className="flex-1 min-w-[45%] py-3 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 flex items-center justify-center gap-2"
+                  >
+                    <MailCheck size={16} strokeWidth={2} className="text-brand-600" />
+                    Sign-in code
+                  </button>
+                  <SocialLoginButtons row />
+                </div>
 
                 <p className="text-sm text-center text-slate-400">
                   Don&apos;t have an account?{' '}

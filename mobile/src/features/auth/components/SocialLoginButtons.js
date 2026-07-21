@@ -15,8 +15,12 @@ import { spacing, radius } from '@theme/spacing'
  * logins, and the user's browser session means fewer password prompts):
  * open /auth/oauth/<provider>?platform=mobile → provider → backend callback →
  * stayonmap://oauth-complete#… deep link → OAuthRedirectHandler finishes up.
+ *
+ * `row` renders flex-item buttons (provider name only) for a caller that
+ * pairs them with the sign-in-code button in one row — the login tab does.
+ * The full wording stays in the accessibility label.
  */
-export default function SocialLoginButtons({ mode = 'login' }) {
+export default function SocialLoginButtons({ mode = 'login', row = false }) {
   const { data: providers } = useQuery({
     queryKey: ['oauth-providers'],
     queryFn: () => authService.getOAuthProviders().then((r) => r.data),
@@ -32,24 +36,24 @@ export default function SocialLoginButtons({ mode = 'login' }) {
   const usable = mode === 'signup' ? providers.filter((p) => p.canSignup !== false) : providers
   if (!usable.length) return null
 
-  return (
-    <View style={styles.wrap}>
-      {usable.map((p) => (
-        <Pressable
-          key={p.key}
-          style={styles.button}
-          onPress={() =>
-            Linking.openURL(`${process.env.EXPO_PUBLIC_API_BASE_URL}/auth/oauth/${p.key}?platform=mobile`).catch(() => {})
-          }
-          accessibilityRole="button"
-          accessibilityLabel={`${verb} with ${p.label}`}
-        >
-          <Icon name="link" size={15} color={colors.slate500} />
-          <Text style={styles.label}>{verb} with {p.label}</Text>
-        </Pressable>
-      ))}
-    </View>
-  )
+  const buttons = usable.map((p) => (
+    <Pressable
+      key={p.key}
+      style={[styles.button, row && styles.rowButton]}
+      onPress={() =>
+        Linking.openURL(`${process.env.EXPO_PUBLIC_API_BASE_URL}/auth/oauth/${p.key}?platform=mobile`).catch(() => {})
+      }
+      accessibilityRole="button"
+      accessibilityLabel={`${verb} with ${p.label}`}
+    >
+      <Icon name="link" size={15} color={colors.slate500} />
+      <Text style={styles.label}>{row ? p.label : `${verb} with ${p.label}`}</Text>
+    </Pressable>
+  ))
+
+  if (row) return buttons
+
+  return <View style={styles.wrap}>{buttons}</View>
 }
 
 const styles = StyleSheet.create({
@@ -59,5 +63,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate200,
     backgroundColor: colors.white,
   },
+  rowButton: { flexGrow: 1, flexBasis: '45%' },
   label: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate700 },
 })

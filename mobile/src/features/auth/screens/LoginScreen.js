@@ -224,16 +224,20 @@ export default function LoginScreen() {
                 <View style={styles.dividerLine} />
               </View>
 
-              <Pressable
-                style={styles.secondaryButton}
-                onPress={() => switchTab('otp')}
-                accessibilityRole="button"
-              >
-                <Icon name="mail" size={16} color={colors.brand600} />
-                <Text style={styles.secondaryButtonText}>Email me a sign-in code</Text>
-              </Pressable>
-
-              <SocialLoginButtons />
+              {/* Sign-in code + social providers share one row (wraps 2-up
+                  if more providers are configured later) */}
+              <View style={styles.altSignInRow}>
+                <Pressable
+                  style={[styles.secondaryButton, styles.altSignInButton]}
+                  onPress={() => switchTab('otp')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Email me a sign-in code"
+                >
+                  <Icon name="mail" size={16} color={colors.brand600} />
+                  <Text style={styles.secondaryButtonText}>Sign-in code</Text>
+                </Pressable>
+                <SocialLoginButtons row />
+              </View>
             </>
           ) : waitlisted ? (
             <View style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
@@ -345,6 +349,8 @@ const styles = StyleSheet.create({
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginVertical: spacing.md },
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.slate200 },
   dividerText: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
+  altSignInRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  altSignInButton: { flexGrow: 1, flexBasis: '45%' },
   secondaryButton: {
     flexDirection: 'row',
     gap: spacing.sm,
