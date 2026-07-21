@@ -112,7 +112,9 @@ export default function PropertiesPage() {
       <SEOMeta title={pageTitle} description={pageDesc} canonical={canonical('/properties')} />
 
       <main className="min-h-screen bg-white pt-[132px] md:pt-40 pb-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-0 lg:w-[80%]">
+        {/* Full width with the homepage's slim gutters — the old centered
+            80%/max-w cap read as dead space either side of the grid */}
+        <div className="w-full px-4 md:px-6">
           <div className="mb-6">
             <h1 className="font-display font-bold text-2xl sm:text-3xl text-slate-900 tracking-tight">
               All properties{locationLabel ? ` in ${locationLabel}` : ''}
