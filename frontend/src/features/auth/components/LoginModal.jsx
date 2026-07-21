@@ -7,6 +7,7 @@ import { CITY_LIST_LABEL, CITY_NAMES } from '@/config/cities'
 import { usePlatformStats } from '@hooks/usePlatformStats'
 import Select from '@components/common/Select'
 import OtpLoginForm from './OtpLoginForm'
+import SocialLoginButtons from './SocialLoginButtons'
 
 const QUOTES = [
   { text: 'The ache for home lives in all of us.', author: 'Maya Angelou' },
@@ -329,6 +330,8 @@ export default function LoginModal() {
                   Email me a sign-in code
                 </button>
 
+                <SocialLoginButtons />
+
                 <p className="text-sm text-center text-slate-400">
                   Don&apos;t have an account?{' '}
                   <button type="button" onClick={() => switchTab('signup')} className="font-semibold text-brand-600 hover:text-brand-700">
@@ -426,6 +429,14 @@ export default function LoginModal() {
                 >
                   {loading ? 'Creating account…' : 'Create account'}
                 </button>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-slate-200" />
+                  <span className="text-xs text-slate-400">or</span>
+                  <div className="flex-1 h-px bg-slate-200" />
+                </div>
+
+                <SocialLoginButtons mode="signup" />
 
                 <p className="text-xs text-center text-slate-400">
                   By signing up you agree to our{' '}

@@ -21,6 +21,7 @@ import MapRightPanel from '@features/map/components/MapRightPanel'
 import AppointmentManager from '@features/appointments/components/AppointmentManager'
 import LeaseManager from '@features/leases/components/LeaseManager'
 import SettingsPanel from '@features/settings/components/SettingsPanel'
+import PointsCard from '@features/points/components/PointsCard'
 
 // ── Section: Overview ──────────────────────────────────────────────────────
 function OverviewSection({ listings, isOwner, onListProperty }) {
@@ -52,6 +53,8 @@ function OverviewSection({ listings, isOwner, onListProperty }) {
           </div>
         ))}
       </div>
+
+      <PointsCard />
 
       <div>
         <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Quick actions</p>

@@ -35,8 +35,10 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false))
   }, [])
 
-  async function loginSuccess({ token, user: loggedInUser }) {
+  async function loginSuccess({ token, refreshToken, user: loggedInUser }) {
     await AsyncStorage.setItem('user_token', token)
+    // Older backend responses have no refreshToken — sessions are additive.
+    if (refreshToken) await AsyncStorage.setItem('user_refresh_token', refreshToken)
     setUser(loggedInUser)
     if (!hadUser.current) {
       connectSocket()
@@ -46,6 +48,13 @@ export function AuthProvider({ children }) {
   }
 
   async function signOut() {
+    // Revoke this device's session server-side — best-effort; the local
+    // tokens are gone either way.
+    const refreshToken = await AsyncStorage.getItem('user_refresh_token').catch(() => null)
+    if (refreshToken) {
+      authService.logout({ refreshToken }).catch(() => {})
+      await AsyncStorage.removeItem('user_refresh_token')
+    }
     await AsyncStorage.removeItem('user_token')
     setUser(null)
     hadUser.current = false

@@ -250,7 +250,7 @@ model Admin {
 
 model User {
   id            String    @id @default(cuid())
-  passwordHash  String
+  passwordHash  String? // null = social-login-only account (no password set yet)
   displayId     String?   @unique // Human-readable ID: SRI-1234567890123456
   email         String    @unique
   name          String
@@ -295,9 +295,113 @@ model User {
   passwordResetTokens PasswordResetToken[]
   emailOtps           EmailOtp[]
   pointsLedger        PointsLedger[]
+  socialAccounts      SocialAccount[]
+  authSessions        AuthSession[]
+
+  lastLoginAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Social login (OAuth) + refresh-token sessions
+// ─────────────────────────────────────────────────────────────────
+
+enum AuthProvider {
+  GOOGLE
+  FACEBOOK
+  LINKEDIN
+  TWITTER
+}
+
+// One row per linked provider identity. Several providers can point at ONE
+// User — that is the whole point (no duplicate accounts). Provider access/
+// refresh tokens are deliberately NOT stored: we never call a provider's API
+// after login, so keeping their credentials would be pure liability.
+model SocialAccount {
+  id             String       @id @default(cuid())
+  userId         String
+  provider       AuthProvider
+  providerUserId String // the provider's stable subject id, never the email
+  providerEmail  String?
+  avatarUrl      String?
+  linkedAt       DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@unique([userId, provider]) // one Google per account, not several
+}
+
+// One row per logged-in device. Holds the CURRENT refresh token (sha256 only —
+// the raw token exists only on the client) plus the immediately-previous one:
+// presenting a rotated-out token is how a stolen-then-replayed refresh token
+// reveals itself, and the response is to revoke the whole session.
+model AuthSession {
+  id            String    @id @default(cuid())
+  userId        String
+  tokenHash     String    @unique
+  prevTokenHash String?   @unique
+  userAgent     String?
+  deviceLabel   String? // "Chrome on Windows" — parsed once at login, not per read
+  ip            String?
+  createdAt     DateTime  @default(now())
+  lastUsedAt    DateTime  @default(now())
+  expiresAt     DateTime
+  revokedAt     DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Canonical places — entity resolution across POI datasets
+// ─────────────────────────────────────────────────────────────────
+
+// One row per REAL-WORLD place; PlaceSource holds each dataset's record of
+// it. Exists because the Overture bake-off (docs/overture-bakeoff-2026-07-20)
+// measured 10-64% mutual overlap with PoiIndex — two sources describing
+// overlapping-but-different realities, which is the condition
+// proximityIndex.js set for building this. PoiIndex remains the SERVING
+// table; Place is the conflation layer new sources merge into, and where the
+// future consistency factor gets its measured disagreement from.
+// Deliberately NO PlaceRelation table yet: CellPoiSummary already serves the
+// proximity filter, and columns are promoted when a consumer needs them.
+model Place {
+  id        String   @id @default(cuid())
+  name      String?
+  category  String // poiCategories.js vocabulary
+  lat       Decimal  @db.Decimal(10, 7)
+  lng       Decimal  @db.Decimal(10, 7)
+  city      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sources PlaceSource[]
+
+  @@index([city, category])
+  @@index([category, lat, lng]) // bbox prefilter, same pattern as PoiIndex
+}
+
+model PlaceSource {
+  id         String   @id @default(cuid())
+  placeId    String
+  source     String // 'osm' | 'overture' | a government list later
+  sourceKey  String // the source's own stable id (osmId, Overture GERS id)
+  name       String? // as THIS source spells it — the consistency factor's raw material
+  lat        Decimal? @db.Decimal(10, 7)
+  lng        Decimal? @db.Decimal(10, 7)
+  category   String?
+  confidence Decimal? @db.Decimal(4, 3) // source-asserted (Overture); null for OSM
+  ingestedAt DateTime @default(now())
+
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([source, sourceKey])
+  @@index([placeId])
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -1195,6 +1299,10 @@ model CellPoiSummary {
   // Null means "none of this category within the search radius" — distinct
   // from 0, and distinct from a missing row, which means "never computed".
   nearestM   Int?
+  // Network walking metres to that same nearest POI, from the self-hosted
+  // router (routingProvider.js). Null = router absent at compute time, or the
+  // POI didn't snap to the street network — "not measured", never 0.
+  nearestWalkM Int?
   count800M  Int @default(0)
   count1600M Int @default(0)
 
