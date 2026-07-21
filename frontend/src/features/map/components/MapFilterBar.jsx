@@ -21,7 +21,12 @@ export default function MapFilterBar() {
 
   async function handleSearch() {
     const query = area.trim()
-    if (!query) return
+    if (!query) {
+      // Emptying the box and searching = clearing the search. Without this
+      // there was no way to un-search an area on the grid page.
+      if (storedArea) setFilter('area', '')
+      return
+    }
     useMapStore.getState().clearSelection()
     setFilter('area', query)
 
