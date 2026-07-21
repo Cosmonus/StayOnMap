@@ -155,7 +155,9 @@ export async function getAdminPropertyById(id) {
     where: { id },
     include: {
       images: { select: { url: true, isPrimary: true, order: true }, orderBy: { order: 'asc' } },
-      owner: { select: { id: true, displayId: true, name: true, email: true, phone: true, avatarUrl: true, isVerified: true, isBusiness: true } },
+      // createdAt: the shared property-detail body (also rendered by the admin
+      // panel as of 2026-07-22) shows "Member since" on the owner card.
+      owner: { select: { id: true, displayId: true, name: true, email: true, phone: true, avatarUrl: true, isVerified: true, isBusiness: true, createdAt: true } },
       trustScore: true,
       riskScore: true,
       amenities: { select: { amenity: { select: { id: true, name: true } } } },
