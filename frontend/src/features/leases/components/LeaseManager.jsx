@@ -6,6 +6,7 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import { authService } from '@services/auth.service'
 import { toast } from '@components/common/Toaster'
 import Modal from '@components/common/Modal'
+import ShareHomeButton from './ShareHomeCard'
 import { formatCurrency } from '@utils/format'
 
 const STATUS_CFG = {
@@ -235,6 +236,7 @@ function LeaseCard({ lease, currentUserId }) {
               </button>
             </>
           )}
+          {iAmTenant && lease.status === 'ACTIVE' && <ShareHomeButton lease={lease} />}
           {iAmOwner && lease.status === 'ACTIVE' && (
             <button onClick={() => setShowConfirm('terminate')}
               className="py-2 px-4 text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-50 rounded-xl transition-colors">
