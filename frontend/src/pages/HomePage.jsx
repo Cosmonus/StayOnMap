@@ -58,7 +58,15 @@ function AppComingSoonCard() {
           </div>
         </div>
         <div className="flex-1 flex items-center gap-3 bg-[#111111] text-white rounded-xl px-4 py-3 cursor-default opacity-90">
-          <svg className="w-6 h-6 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12l-9.85 9.85c-.5-.24-.84-.76-.84-1.35zm13.81-5.38L6.05 21.34l8.49-8.49 2.27 2.27zm.91-.91L19.65 12l-1.93-2.21-2.27 2.27 2.27 2.15zM6.05 2.66l10.76 6.22-2.27 2.27-8.49-8.49z"/></svg>
+          {/* Real four-colour Play mark — the white monochrome triangle read
+              as a placeholder. Apple's stays white: their official badge IS
+              white-on-black, a coloured Apple mark would look counterfeit. */}
+          <svg className="w-6 h-6 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#FFD400" d="M17.6 7.6l3.3 1.85c1.2.7 1.2 4.4 0 5.1l-3.3 1.85L14.6 12l3-4.4z"/>
+            <path fill="#00E96C" d="M4.2 1.1c.5-.35 1.2-.4 1.8-.05l11.6 6.55-3 4.4L4.2 1.1z"/>
+            <path fill="#FF3A44" d="M4.2 22.9L14.6 12l3 4.4L6 22.95c-.6.35-1.3.3-1.8-.05z"/>
+            <path fill="#00C3FF" d="M3.5 2.7c0-.75.25-1.3.7-1.6L14.6 12 4.2 22.9c-.45-.3-.7-.85-.7-1.6V2.7z"/>
+          </svg>
           <div className="leading-tight">
             <p className="text-[10px] text-white/60">Get it on</p>
             <p className="text-sm font-semibold">Google Play</p>
