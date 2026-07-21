@@ -48,17 +48,23 @@ export const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   aiProvider: process.env.AI_PROVIDER || 'stub',
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || null,
-  // Mailer (lib/mailer.js) — three delivery paths, same interface.
+  // Mailer (lib/mailer.js) — four delivery paths, same interface.
   //   MAIL_PROVIDER=smtp  (default) → nodemailer to any SMTP endpoint. Works
   //     locally and on hosts that allow outbound SMTP.
-  //   MAIL_PROVIDER=resend          → Resend's REST API over HTTPS (plain
-  //     fetch, no SDK). The chosen production path — Railway below the Pro
+  //   MAIL_PROVIDER=zeptomail       → Zoho ZeptoMail's REST API over HTTPS
+  //     (plain fetch, no SDK). The chosen production path (decision
+  //     2026-07-21, superseding Resend the same day) — Railway below the Pro
   //     plan blocks outbound SMTP ports (25/465/587/2525) outright, so an
-  //     HTTPS API is the only way to send there.
-  //   MAIL_PROVIDER=brevo           → Brevo's REST API, same reason. Kept as
-  //     an alternative; the product decision (2026-07-21) is Resend.
+  //     HTTPS API is the only way to send there. Transactional-only by
+  //     Zoho's terms — never marketing mail, which this app doesn't send.
+  //   MAIL_PROVIDER=resend / brevo  → same shape, kept as alternatives.
   // Unset/unconfigured → email is a logged no-op (same as before).
   mailProvider: process.env.MAIL_PROVIDER || 'smtp',
+  // The send-mail token from ZeptoMail's Mail Agent (starts "Zoho-enczapikey"
+  // in their docs — store ONLY the key part, the header prefix is added in
+  // the mailer). API URL differs by data centre: .in accounts vs .com.
+  zeptomailToken: process.env.ZEPTOMAIL_TOKEN || null,
+  zeptomailApiUrl: process.env.ZEPTOMAIL_API_URL || 'https://api.zeptomail.in/v1.1/email',
   resendApiKey: process.env.RESEND_API_KEY || null,
   brevoApiKey: process.env.BREVO_API_KEY || null,
   mailFrom: process.env.MAIL_FROM || process.env.SMTP_USER || 'StayOnMap <noreply@stayonmap.com>',
