@@ -78,7 +78,7 @@ export default function PropertiesPage() {
       <SEOMeta title={pageTitle} description={pageDesc} canonical={canonical('/properties')} />
 
       <main className="min-h-screen bg-white pt-[132px] md:pt-40 pb-20">
-        <div className="w-[80%] mx-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-0 lg:w-[80%]">
           <div className="mb-6">
             <h1 className="font-display font-bold text-2xl sm:text-3xl text-slate-900 tracking-tight">
               All properties{locationLabel ? ` in ${locationLabel}` : ''}

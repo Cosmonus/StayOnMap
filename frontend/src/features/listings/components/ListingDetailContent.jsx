@@ -500,7 +500,7 @@ export default function ListingDetailContent({ propertyId, onBack }) {
     <div className="flex flex-col h-full overflow-hidden">
 
       {/* ── Top bar ──────────────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center gap-3 px-5 py-3 bg-white border-b border-slate-100">
+      <div className="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2 px-4 sm:px-5 py-3 bg-white border-b border-slate-100">
         <button onClick={onBack}
           className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors shrink-0">
           <ArrowLeft className="w-3.5 h-3.5" strokeWidth={2} />
@@ -509,7 +509,7 @@ export default function ListingDetailContent({ propertyId, onBack }) {
         <span className="text-slate-300 text-xs">/</span>
         <p className="text-sm font-semibold text-slate-800 truncate flex-1 min-w-0">{property.title}</p>
         <span className="shrink-0"><PropertyStatusPill status={status} size="sm" /></span>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex flex-wrap items-center gap-1.5">
           <Btn onClick={() => setEditOpen(true)} disabled={busy}>Edit</Btn>
           {(status === 'DRAFT' || status === 'REJECTED') && (
             <Btn onClick={() => publish()} disabled={busy} variant="primary">
@@ -526,8 +526,8 @@ export default function ListingDetailContent({ propertyId, onBack }) {
         </div>
       </div>
 
-      {/* ── 3-column body ────────────────────────────────────────── */}
-      <div className="flex-1 grid divide-x divide-slate-200 min-h-0 bg-white overflow-hidden" style={{ gridTemplateColumns: '5fr 3fr 4fr' }}>
+      {/* ── Body: stacked single-scroll on mobile, 3 columns from lg ── */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[5fr_3fr_4fr] divide-y lg:divide-y-0 lg:divide-x divide-slate-200 min-h-0 bg-white overflow-y-auto lg:overflow-hidden">
 
         {/* Col 1: Property details */}
         <div className="p-5 space-y-4 overflow-y-auto thin-scrollbar bg-slate-50 min-h-0">
