@@ -94,12 +94,14 @@ function MapHeroSection() {
   const { user } = useAuth()
 
   return (
-    <section className="w-full pt-[132px] md:pt-[166px] pb-4 md:pb-6 px-4 md:px-6 flex flex-col md:flex-row items-start gap-4 md:gap-6">
-      {/* Logged in: the map is the whole hero. Guests keep the marketing panel. */}
-      <MapPanel widthClass={user ? '' : 'md:w-[70%]'} />
+    <section className="w-full pt-[132px] md:pt-[166px] pb-4 md:pb-6 px-4 md:px-6 flex flex-col lg:flex-row items-start gap-4 md:gap-6">
+      {/* Logged in: the map is the whole hero. Guests keep the marketing panel.
+          The side-by-side split starts at lg, not md — at 768px a 30% panel is
+          ~230px and the metric grid inside it wraps badly; tablets stack. */}
+      <MapPanel widthClass={user ? '' : 'lg:w-[70%]'} />
 
       {!user && (
-        <div className="w-full md:w-[30%] py-8 md:py-10">
+        <div className="w-full lg:w-[30%] py-8 md:py-10">
           <p className="text-xs font-bold text-brand-600 uppercase tracking-widest mb-3">
             About StayOnMap
           </p>

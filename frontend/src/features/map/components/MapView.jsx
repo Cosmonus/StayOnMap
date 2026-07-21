@@ -55,7 +55,11 @@ export default function MapView({ contained = false }) {
         zoomControlOptions: {
           position: window.google.maps.ControlPosition.RIGHT_BOTTOM,
         },
-        gestureHandling: 'greedy',
+        // Contained (homepage hero): 'cooperative' so a one-finger swipe
+        // scrolls the PAGE, not the map — 'greedy' there traps mobile users
+        // inside a 60vh map with no way to scroll past it. Full-screen map
+        // surfaces keep 'greedy' (required for one-finger pan).
+        gestureHandling: contained ? 'cooperative' : 'greedy',
       })
 
       mapRef.current = map
@@ -78,7 +82,7 @@ export default function MapView({ contained = false }) {
       mapRef.current = null
       useMapStore.getState().setFlyTo(null)
     }
-  }, [])
+  }, [contained])
 
   // Fly to city
   useEffect(() => {
