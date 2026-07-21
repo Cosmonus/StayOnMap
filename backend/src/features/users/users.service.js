@@ -1,5 +1,14 @@
 import { prisma } from '../../lib/prisma.js'
 import { requestPasswordReset, stripPasswordHash } from '../auth/auth.service.js'
+import { awardPoints } from '../points/points.service.js'
+
+// Completeness per docs/points-and-sharing.md: name + avatar + city + phone.
+// Deliberately different from requireCompleteProfile's listing gate (which
+// excludes avatar and requires a verified email) — this one rewards a filled
+// profile, that one guards who may publish a listing.
+export function isProfileComplete(u) {
+  return Boolean(u?.name && u?.phone && u?.city && u?.avatarUrl)
+}
 
 export async function getUserById(id) {
   const user = await prisma.user.findUnique({ where: { id } })
@@ -27,6 +36,8 @@ export async function updateUser(id, data) {
     delete update.contactVisibility
   }
   const user = await prisma.user.update({ where: { id }, data: update })
+  // Fire-and-forget — idempotent via the ledger's unique (userId, action, '').
+  if (isProfileComplete(user)) awardPoints(id, 'PROFILE_COMPLETED').catch(() => {})
   return stripPasswordHash(user)
 }
 

@@ -137,8 +137,10 @@ describe('getPointsSummary', () => {
 
     expect(s.points).toBe(50)
     expect(s.level).toBe(1)
-    expect(s.available.map((a) => a.action)).toEqual(['PHONE_VERIFIED', 'PROFILE_COMPLETED'])
-    expect(s.available[0].points).toBe(POINTS.PHONE_VERIFIED)
+    // PHONE_VERIFIED is deliberately absent — no verification flow exists, so
+    // advertising it would be a to-do nobody can complete (2026-07-21).
+    expect(s.available.map((a) => a.action)).toEqual(['PROFILE_COMPLETED'])
+    expect(s.available[0].points).toBe(POINTS.PROFILE_COMPLETED)
   })
 
   it('reports zero cleanly for a brand-new user', async () => {
