@@ -10,6 +10,8 @@ const SEVERITIES = [
   { value: 'CRITICAL', label: 'Critical' },
 ]
 
+const MIN_CHARS = 20
+
 const CATEGORIES = [
   { value: 'FRAUD',                label: 'Fraud / Scam' },
   { value: 'FAKE_PHOTOS',          label: 'Fake Photos' },
@@ -77,6 +79,13 @@ export default function ReportButton({ propertyId }) {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
                 <textarea value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} rows={4} placeholder="Describe the issue in detail (min 20 characters)" className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+                {form.description.length < MIN_CHARS && (
+                  <p className="mt-1 text-xs text-amber-600">
+                    {form.description.length === 0
+                      ? `At least ${MIN_CHARS} characters required`
+                      : `${MIN_CHARS - form.description.length} more characters needed`}
+                  </p>
+                )}
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={form.isAnonymous} onChange={(e) => setForm(f => ({ ...f, isAnonymous: e.target.checked }))} className="rounded" />
@@ -87,7 +96,7 @@ export default function ReportButton({ propertyId }) {
             <div className="flex gap-3 mt-6">
               <button onClick={() => setOpen(false)} className="flex-1 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition-colors">Cancel</button>
               <button
-                disabled={!form.category || form.description.length < 20 || mutation.isPending}
+                disabled={!form.category || form.description.length < MIN_CHARS || mutation.isPending}
                 onClick={() => mutation.mutate(form)}
                 className="flex-1 py-2 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
