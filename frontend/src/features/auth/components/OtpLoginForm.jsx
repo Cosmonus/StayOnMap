@@ -25,7 +25,7 @@ function useCountdown(until) {
   return secondsUntil(until)
 }
 
-export default function OtpLoginForm({ email, setEmail, onUsePassword, onDone }) {
+export default function OtpLoginForm({ email, setEmail, onUsePassword, onSignup, onDone }) {
   const { loginSuccess } = useAuth()
   const [step, setStep]       = useState('email')
   const [code, setCode]       = useState('')
@@ -91,6 +91,16 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, onDone })
             Use my password instead
           </button>
         </p>
+
+        {/* Codes only go to registered emails — say so up front and point new
+            users at signup. Shown to everyone, so it reveals nothing about
+            whether any particular email has an account. */}
+        <p className="text-xs text-center text-slate-400 pt-1 border-t border-slate-100">
+          Sign-in codes only work for existing accounts.{' '}
+          <button type="button" onClick={onSignup} className="font-semibold text-brand-600 hover:text-brand-700">
+            New to StayOnMap? Sign up first
+          </button>
+        </p>
       </form>
     )
   }
@@ -105,6 +115,13 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, onDone })
             emails so this screen can't confirm whether an account exists. */}
         <p className="text-sm text-slate-400">
           If <span className="font-medium text-slate-600">{email}</span> has an account, a 6-digit code is on its way. It expires in 10 minutes.
+        </p>
+        <p className="text-xs text-slate-400">
+          No code after a minute? You may not have an account yet —{' '}
+          <button type="button" onClick={onSignup} className="font-semibold text-brand-600 hover:text-brand-700">
+            create one
+          </button>
+          , or check your spam folder.
         </p>
       </div>
 
