@@ -113,6 +113,13 @@ export default function ReportButton({ propertyId }) {
                   multiline
                   numberOfLines={4}
                 />
+                {form.description.trim().length < MIN_CHARS && (
+                  <Text style={styles.helperText}>
+                    {form.description.trim().length === 0
+                      ? `At least ${MIN_CHARS} characters required`
+                      : `${MIN_CHARS - form.description.trim().length} more characters needed`}
+                  </Text>
+                )}
 
                 <Pressable
                   style={styles.anonRow}
@@ -178,6 +185,7 @@ const styles = StyleSheet.create({
   checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1.5, borderColor: colors.slate200, alignItems: 'center', justifyContent: 'center' },
   checkboxChecked: { backgroundColor: colors.brand600, borderColor: colors.brand600 },
   anonText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate600 },
+  helperText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.warning700, marginTop: spacing.xs },
   errorText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.danger, marginTop: spacing.sm },
   actionRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg, marginBottom: spacing.md },
   cancelButton: { flex: 1, paddingVertical: spacing.sm + 4, borderRadius: radius.md, borderWidth: 1, borderColor: colors.slate200, alignItems: 'center' },
