@@ -39,7 +39,11 @@ fi
 echo "== 3. city extracts + merge =="
 # extracts.json must sit next to this script when you copy them to the box.
 if [ ! -f cities.osm.pbf ]; then
-  osmium extract --config "$(dirname "$0")/extracts.json" --overwrite india-latest.osm.pbf
+  # --strategy=simple streams instead of holding whole-India node/way ID sets
+  # in RAM across 9 outputs (the default complete_ways OOM-killed even a 16 GB
+  # CI runner). Ways truncate at the bbox rim — harmless: the boxes are drawn
+  # generously around each city, listings sit well inside.
+  osmium extract --strategy=simple --config "$(dirname "$0")/extracts.json" --overwrite india-latest.osm.pbf
   osmium merge /data/extracts/*.osm.pbf -o cities.osm.pbf --overwrite
 fi
 
