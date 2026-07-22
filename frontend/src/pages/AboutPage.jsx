@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Eye, CircleDollarSign, Settings, Home, MessageSquare, Calendar, FileText,
-  Receipt, Zap, ShieldCheck, MapPin, Globe, ArrowRight,
+  Zap, ShieldCheck, MapPin, Globe, ArrowRight,
 } from 'lucide-react'
 import { CITY_LIST_LABEL, CITIES } from '@/config/cities'
 import SEOMeta from '@components/common/SEOMeta'
@@ -49,22 +49,22 @@ function CountUp({ target, suffix = '', duration = 1800 }) {
 const TIMELINE = [
   { year: '2023', title: 'Two listings. Ten kilometres apart.', body: 'I was searching for a rental in Chennai. After hours on popular listing sites, I found just two properties — both 10km from where I actually needed to be. The rest? Hidden behind a paywall. Pay to see the address. Pay to get the phone number. Pay just to know if the house even exists.' },
   { year: '2024', title: 'The real problem isn\'t brokers. It\'s the practice.', body: 'Brokers aren\'t the villain. The practice is — demanding a month or two of hard-earned salary just to open a door or make a phone call. Meanwhile owners had no real way to communicate with tenants, track rent, or handle maintenance without going through someone else. Everyone was losing.' },
-  { year: '2025', title: 'A platform that works for both sides', body: 'StayOnMap gives owners the tools to manage their property end-to-end — list it, communicate with tenants, raise invoices, send rental agreements, and track monthly payments. Tenants get to see every listing, for free, no paywalls. We charge for the software. Not for access to a house.' },
+  { year: '2025', title: 'A platform that works for both sides', body: 'StayOnMap is live across nine cities today. Owners list any of six property types — flats, houses, plots, PGs, shops, short stays — and handle everything in-app: chat with tenants, manage visit appointments, offer and sign leases. Tenants see every listing, for free, no paywalls. Nobody pays for access to a house.' },
 ]
 
 const VALUES = [
-  { icon: Eye, title: 'We show every house. Free.', body: 'No "pay to reveal the address." No locked listings. Every property on StayOnMap is fully visible to any tenant — photos, location, rent, owner contact. If it\'s listed, you can see it.' },
+  { icon: Eye, title: 'We show every house. Free.', body: 'No "pay to reveal the address." No locked listings. Every property on StayOnMap is fully visible to any tenant — photos, exact location on the map, rent, the neighbourhood around it. And you reach the owner directly through in-app chat and visit requests.' },
   { icon: CircleDollarSign, title: 'We\'re not against brokers.', body: 'We\'re against the practice of charging months of rent for a phone call and a site visit. If a broker adds real value, they deserve fair pay. What they don\'t deserve is a month\'s salary for thirty minutes of work.' },
-  { icon: Settings, title: 'Owners deserve real tools.', body: 'A listing is just the beginning. StayOnMap gives owners invoicing, rental agreements, maintenance tracking, and monthly rent reminders — so the relationship with a tenant doesn\'t end the day they move in.' },
+  { icon: Settings, title: 'Owners deserve real tools.', body: 'A listing is just the beginning. StayOnMap gives owners a guided listing flow for six property types, appointment management, direct tenant chat, in-app lease offers and signing, and an optional ownership verification that earns a Verified badge.' },
 ]
 
 const FEATURES = [
-  { icon: Home, label: 'List your property', desc: 'Post once, visible to every genuine tenant searching in your area.' },
-  { icon: MessageSquare, label: 'Direct communication', desc: 'Owners and tenants talk directly — no go-between, no miscommunication.' },
-  { icon: Calendar, label: 'Track monthly rent', desc: 'Automated reminders, payment history, and receipts — all in one place.' },
-  { icon: FileText, label: 'Rental agreements', desc: 'Generate, sign and store rental agreements digitally. No printing, no notary queues.' },
-  { icon: Settings, label: 'Maintenance requests', desc: 'Tenants raise issues, owners track and resolve them — logged and timestamped.' },
-  { icon: Receipt, label: 'Invoicing', desc: 'Send professional rent invoices to tenants with one click. No spreadsheets.' },
+  { icon: Home, label: 'Six property types', desc: 'Flats, houses, plots, PGs, shops, and short stays — each with its own tailored listing flow, priced as monthly rent or a lump-sum lease.' },
+  { icon: MessageSquare, label: 'Direct chat', desc: 'Owners and tenants talk in real time, in-app — no go-between, no pay-to-unlock phone numbers.' },
+  { icon: Calendar, label: 'Visit appointments', desc: 'Request a visit in one tap. Owners accept, reject, or reschedule — both sides track it in their dashboard.' },
+  { icon: FileText, label: 'In-app leases', desc: 'Owners offer a lease, tenants sign or decline right on the platform — the agreement is recorded, start to finish.' },
+  { icon: ShieldCheck, label: 'Trust & risk scores', desc: 'Community reviews, verification badges, and severity-weighted reports — computed transparently for every listing, never set by hand.' },
+  { icon: MapPin, label: 'Neighbourhood intelligence', desc: 'Metro access, daily-life amenities, air quality and terrain around every listing — with the source of every fact shown.' },
 ]
 
 /* ================================================================ */
@@ -80,7 +80,7 @@ export default function AboutPage() {
     <div className="min-h-screen bg-white overflow-x-hidden">
       <SEOMeta
         title="About Us"
-        description="Learn how we're building India's first broker-free, map-first rental platform — making finding a home honest, transparent, and simple."
+        description="How StayOnMap works: a broker-free, map-first rental platform live in 9 Indian cities — six property types, direct owner chat, in-app visits and leases, zero commission."
         canonical={canonical('/about')}
       />
 
@@ -142,7 +142,7 @@ export default function AboutPage() {
               <p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-3">Our Mission</p>
               <h3 className="text-xl font-bold text-white mb-3 leading-snug">Make renting in India transparent, fair, and broker-free.</h3>
               <p className="text-sm text-slate-400 leading-relaxed">
-                Every tenant should see every listing — no paywalls, no locked phone numbers. Every owner should be able to manage their property without paying a middleman. We&apos;re building the tools to make that happen.
+                Every tenant should see every listing — no paywalls, no pay-per-contact. Every owner should be able to manage their property without paying a middleman. We&apos;re building the tools to make that happen.
               </p>
             </div>
           </Reveal>
@@ -231,7 +231,7 @@ export default function AboutPage() {
                 More than a listing site
               </h2>
               <p className="text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
-                Listings are free to browse. We charge for the software that makes owning and renting genuinely manageable — agreements, invoices, payments, maintenance — the stuff that actually matters after move-in day.
+                Listings are free to browse and free to post. The platform handles everything after you find each other — visits, chat, the lease itself — plus the trust signals and neighbourhood facts that help you choose well in the first place.
               </p>
             </div>
           </Reveal>

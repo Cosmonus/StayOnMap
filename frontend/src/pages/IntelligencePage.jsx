@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Shield, Trash2, Home, Droplet, Volume2, Wifi, SquareParking, Bus, Wrench,
-  User, ShieldCheck, Zap, ArrowRight,
+  User, ShieldCheck, Zap, ArrowRight, TrainFront, Store, Building2, Wind,
+  Mountain, MapPin,
 } from 'lucide-react'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
@@ -60,10 +61,25 @@ const SIGNALS = [
 ]
 
 const PIPELINE = [
-  { title: 'Signal in', body: 'A review is approved, a report is filed, or ownership is verified — each is a compounding signal, not a one-time rating.' },
-  { title: 'Score recomputes', body: 'The 12 weighted signals plus area, water and flood-risk data recompute the StayScore for that property, in real time.' },
-  { title: 'Agent checks for fraud', body: 'An AI agent reads the listing text, pricing, images and report history for the patterns a broker would spot by instinct — bait pricing, copied descriptions, deposit anomalies.' },
-  { title: 'Risk score reacts', body: 'Fraud signals feed the risk formula alongside report severity and verification level. Cross a threshold, and the listing auto-suspends — no admin has to notice first.' },
+  { title: 'Signal in', body: 'A review is approved, a report is upheld, or ownership is verified — each is a compounding signal, not a one-time rating.' },
+  { title: 'Score recomputes', body: 'The 12 weighted signals recompute the StayScore for that property the moment new evidence lands. Nothing is set by hand, and no property starts trusted.' },
+  { title: 'Fraud checks run', body: 'Deterministic heuristics scan for the patterns a careful broker would spot — duplicate addresses, listings clustered within metres of each other, reused images, rent far off the local benchmark, coordinates that don\'t match the claimed city. Each hit is recorded as a named fraud signal, not a hidden flag.' },
+  { title: 'Risk score reacts', body: 'Fraud signals feed the risk formula alongside report severity and verification level. Cross a threshold, and the listing auto-suspends — no admin has to notice first. A moderator still reviews every report either way.' },
+]
+
+const SPATIAL_MODULES = [
+  { icon: TrainFront, title: 'Mobility', desc: 'Real metro lines and stations, sourced from OpenStreetMap, for all 9 cities — how you actually get around from this address.' },
+  { icon: Store, title: 'Lifestyle', desc: 'Groceries, food, pharmacies, gyms — drawn from over a hundred thousand mapped places, counted around each listing.' },
+  { icon: Building2, title: 'Infrastructure', desc: 'Hospitals, schools, banks and civic services near the listing — what daily life depends on.' },
+  { icon: Wind, title: 'Environment', desc: 'Air quality for the cell the listing sits in — measured data, not a city-wide average dressed up as local.' },
+  { icon: Mountain, title: 'Terrain', desc: 'Elevation and how the plot sits relative to its surroundings — framed differently for a plot, a shop, or an upper-floor flat.' },
+  { icon: MapPin, title: 'Locality', desc: 'The actual ward, zone and municipality the listing falls in — from mapped administrative boundaries, not a guessed label.' },
+]
+
+const REFUSALS = [
+  { title: 'No flood-risk guesses', body: 'No honest, queryable flood data exists for India — inferring it from elevation would be a guess dressed as a fact. We\'d rather say nothing.' },
+  { title: 'No fake walk times', body: '"6 min walk" computed from a straight line is fiction when a rail line sits in between. Distances are shown as distances until routing can measure the real walk.' },
+  { title: 'No city-wide filler', body: 'We removed city-level climate data entirely — it was true, but identical for every listing in a city, so it couldn\'t help anyone choose. If a fact can\'t change a decision, it doesn\'t ship.' },
 ]
 
 const BADGES = [
@@ -81,7 +97,7 @@ export default function IntelligencePage() {
     <div className="min-h-screen bg-white overflow-x-hidden">
       <SEOMeta
         title="The Intelligence Behind StayOnMap"
-        description="StayOnMap runs on a live TrustScore engine and an AI fraud-detection agent, engineered by Cosmonus — trust computed from signals, not guesswork."
+        description="StayOnMap runs on a live TrustScore engine, deterministic fraud detection, and a provenance-tracked neighbourhood data layer — every score explainable, nothing set by hand."
         canonical={canonical('/intelligence')}
       />
 
@@ -99,9 +115,10 @@ export default function IntelligencePage() {
               <span className="text-brand-400">running in production.</span>
             </h1>
             <p className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
-              StayOnMap isn&apos;t a listing site with an algorithm bolted on. Every property carries a TrustScore computed from
-              12 compounding signals, and every report triggers an agent built to catch what a broker would only ever
-              catch by gut feeling. This is what Cosmonus means by engineering intelligence — not a slogan, a running system.
+              StayOnMap isn&apos;t a listing site with an algorithm bolted on. Every property carries a TrustScore computed
+              from 12 compounding signals, every report runs through deterministic fraud checks, and every neighbourhood
+              fact declares where it came from. No black boxes — every number here can be traced back to the evidence
+              behind it. This is what Cosmonus means by engineering intelligence: not a slogan, a running system.
             </p>
           </Reveal>
         </div>
@@ -146,7 +163,7 @@ export default function IntelligencePage() {
             <div className="text-center mb-14">
               <p className="text-xs font-bold text-brand-600 uppercase tracking-widest mb-3">How the loop runs</p>
               <h2 className="font-display font-bold text-3xl md:text-4xl text-slate-900 leading-tight">
-                An agent, not a checkbox
+                A live loop, not a checkbox
               </h2>
             </div>
           </Reveal>
@@ -196,8 +213,63 @@ export default function IntelligencePage() {
         </div>
       </section>
 
+      {/* ── SPATIAL INTELLIGENCE ── */}
+      <section className="bg-slate-50 border-y border-slate-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+          <Reveal>
+            <div className="text-center mb-14">
+              <p className="text-xs font-bold text-brand-600 uppercase tracking-widest mb-3">Spatial intelligence</p>
+              <h2 className="font-display font-bold text-3xl md:text-4xl text-slate-900 leading-tight mb-4">
+                The neighbourhood, described honestly
+              </h2>
+              <p className="text-sm text-slate-500 max-w-2xl mx-auto leading-relaxed">
+                Every listing carries facts about the ~150 metres around it — and every fact declares its provenance:
+                <span className="font-semibold text-slate-700"> measured</span>,
+                <span className="font-semibold text-slate-700"> derived</span>, or
+                <span className="font-semibold text-slate-700"> estimated</span> (with the method shown).
+                Confidence is computed from which data was actually available — never authored, never inflated.
+              </p>
+            </div>
+          </Reveal>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+            {SPATIAL_MODULES.map(({ icon: ModuleIcon, title, desc }, i) => (
+              <Reveal key={title} delay={i * 0.06}>
+                <div className="flex gap-4 p-6 rounded-2xl border border-slate-200 bg-white hover:shadow-md hover:border-slate-300 transition-all group h-full">
+                  <div className="shrink-0 w-11 h-11 rounded-xl bg-slate-100 group-hover:bg-[#111111] flex items-center justify-center transition-colors">
+                    <ModuleIcon className="w-5 h-5 text-slate-600 group-hover:text-white transition-colors" strokeWidth={1.8} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900 mb-1">{title}</p>
+                    <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+
+          <Reveal>
+            <div className="bg-[#111111] rounded-2xl p-8 md:p-10">
+              <p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-2">What we refuse to guess</p>
+              <p className="text-sm text-slate-400 leading-relaxed mb-8 max-w-2xl">
+                An honest data layer is defined as much by what it won&apos;t say as by what it will.
+                These are deliberate refusals, not gaps we haven&apos;t got to.
+              </p>
+              <div className="grid md:grid-cols-3 gap-6">
+                {REFUSALS.map(({ title, body }) => (
+                  <div key={title}>
+                    <h3 className="text-sm font-bold text-white mb-2">{title}</h3>
+                    <p className="text-xs text-slate-400 leading-relaxed">{body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ── CTA ── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-16 md:pb-24">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
         <Reveal>
           <div className="bg-[#111111] rounded-3xl px-8 md:px-16 py-14 md:py-20 text-center relative overflow-hidden">
             <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
