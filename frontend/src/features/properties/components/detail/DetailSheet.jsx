@@ -5,7 +5,6 @@ import SpatialContextPanel from '@features/spatial/components/SpatialContextPane
 import CommuteCalculator from '@features/areas/components/CommuteCalculator'
 import { Sheet, SheetSection, FactCell } from './SheetPrimitives'
 import { ordinal, formatFurnished, bhkLabelFor } from './detailUtils'
-import OwnerSection from './OwnerSection'
 import PropertyLocationMap from './PropertyLocationMap'
 
 // The hairline-divided listing sheet — every informational section of the
@@ -171,8 +170,9 @@ export default function DetailSheet({ property, variant, isOwner, directionsUrl 
         </SheetSection>
       )}
 
-      {/* Owner */}
-      <OwnerSection owner={property.owner} />
+      {/* "Posted by" owner card removed 2026-07-22 (operator decision) — the
+          owner's identity isn't shown on the public page; contact goes through
+          chat/appointments, and phone visibility is the owner's own setting. */}
 
       {/* Reviews */}
       <SheetSection id="reviews" title="Community reviews">
