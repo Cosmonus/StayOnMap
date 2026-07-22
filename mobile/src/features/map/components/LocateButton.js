@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as Location from 'expo-location'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
@@ -8,11 +9,15 @@ import { radius } from '@theme/spacing'
 
 const LOCATE_ZOOM = 15
 
+// Only ever set to 'granted' — a "Not now" is not persisted, so a declined
+// user sees our explainer dialog again on the next tap. (The OS remembers
+// its own prompt separately.)
+const LOCATION_CONSENT_KEY = 'sn_location_consent'
+
 export default function LocateButton({ onLocate, onPermissionGranted }) {
   const [locating, setLocating] = useState(false)
 
-  async function handlePress() {
-    if (locating) return
+  async function locate() {
     setLocating(true)
     try {
       const { status } = await Location.requestForegroundPermissionsAsync()
@@ -31,6 +36,31 @@ export default function LocateButton({ onLocate, onPermissionGranted }) {
     } finally {
       setLocating(false)
     }
+  }
+
+  // The OS permission prompt only ever fires AFTER the user accepts our
+  // explainer — never on the first cold tap.
+  async function handlePress() {
+    if (locating) return
+    const consent = await AsyncStorage.getItem(LOCATION_CONSENT_KEY).catch(() => null)
+    if (consent === 'granted') {
+      locate()
+      return
+    }
+    Alert.alert(
+      'Turn on location?',
+      'We use your location to show homes near you. Your location is never stored.',
+      [
+        { text: 'Not now', style: 'cancel' },
+        {
+          text: 'Allow',
+          onPress: async () => {
+            await AsyncStorage.setItem(LOCATION_CONSENT_KEY, 'granted').catch(() => {})
+            locate()
+          },
+        },
+      ]
+    )
   }
 
   return (

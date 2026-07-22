@@ -125,6 +125,21 @@ export async function getPropertyById(id, userId = null) {
     property.owner.ownerTrustScore = await prisma.ownerTrustScore.findUnique({ where: { ownerId: property.owner.id } }).catch(() => null)
   }
 
+  // Owner phone is opt-in, enforced HERE — a number the viewer shouldn't see
+  // must never leave the API (hiding it client-side is not privacy).
+  // contactVisibility: EVERYONE → any viewer; LOGGED_IN (the default) → only
+  // an authenticated viewer; NOBODY → never. The setting itself is not
+  // returned — only the phone, and only when allowed.
+  if (property.owner) {
+    const ownerPrivacy = await prisma.user.findUnique({
+      where: { id: property.owner.id },
+      select: { phone: true, contactVisibility: true },
+    })
+    const visibility = ownerPrivacy?.contactVisibility ?? 'LOGGED_IN'
+    const allowed = visibility === 'EVERYONE' || (visibility === 'LOGGED_IN' && !!userId)
+    if (allowed && ownerPrivacy?.phone) property.owner.phone = ownerPrivacy.phone
+  }
+
   property.rentBenchmark = await getRentBenchmark(property).catch(() => null)
 
   // Spatial intelligence for this listing's ~153m cell. A warm cell is one

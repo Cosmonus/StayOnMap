@@ -464,7 +464,12 @@ export default function ListingDetailContent({ propertyId, onBack }) {
   }
 
   async function handleDelete() {
-    const yes = await confirm({ title: 'Delete listing?', message: 'Permanently removes this listing and all its data.', confirmLabel: 'Delete', variant: 'danger' })
+    const yes = await confirm({
+      title: 'Delete listing?',
+      message: `“${property?.title ?? 'This listing'}” will be permanently deleted along with all its data. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    })
     if (!yes) return
     remove()
   }
