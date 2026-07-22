@@ -5,6 +5,7 @@ import { propertyService } from '@services/property.service'
 import { availabilityService } from '@services/availability.service'
 import { toast } from '@components/common/Toaster'
 import TypePicker, { BecomeHostIntro, BusinessGate } from './TypePicker'
+import ProfileGate from './ProfileGate'
 import PhaseInterstitial from './PhaseInterstitial'
 import {
   DescribeScreen, FieldsScreen, LocationScreen, FeaturesScreen, PhotosScreen,
@@ -152,6 +153,15 @@ export default function OnboardingWizard({ profile }) {
   function startNewListing() {
     setCategoryKey(null)
     setStage('picker')
+  }
+
+  // Front door for the same rule the backend enforces on POST /properties
+  // (requireCompleteProfile): an incomplete profile must not walk the whole
+  // wizard only to 403 at publish. Gates listing CREATION stages only —
+  // managing existing listings ('listings') stays open, matching the server.
+  const missingProfile = profile?.missingProfileFields ?? []
+  if (missingProfile.length > 0 && stage !== 'listings') {
+    return <ScreenShell><ProfileGate missing={missingProfile} /></ScreenShell>
   }
 
   if (stage === 'become-host') return <ScreenShell><BecomeHostIntro onDone={() => setStage('picker')} /></ScreenShell>

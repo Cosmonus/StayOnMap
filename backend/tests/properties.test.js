@@ -215,6 +215,65 @@ describe('getPropertyById', () => {
   })
 })
 
+// ─── getPropertyById — owner phone gated by contactVisibility ────────────────
+// The public payload must only carry the owner's phone when their
+// contactVisibility allows THIS viewer. The setting itself never ships.
+
+describe('getPropertyById — owner contact visibility', () => {
+  function mockOwnerPrivacy(privacy) {
+    prismaMock.property.findUnique.mockResolvedValue(makeProperty())
+    prismaMock.user.findUnique.mockResolvedValue(privacy)
+  }
+
+  it('ships the phone to a guest when visibility is EVERYONE', async () => {
+    mockOwnerPrivacy({ phone: '9876543210', contactVisibility: 'EVERYONE' })
+
+    const result = await getPropertyById('prop-1', null)
+
+    expect(result.owner.phone).toBe('9876543210')
+  })
+
+  it('withholds the phone from a guest when visibility is LOGGED_IN', async () => {
+    mockOwnerPrivacy({ phone: '9876543210', contactVisibility: 'LOGGED_IN' })
+
+    const result = await getPropertyById('prop-1', null)
+
+    expect(result.owner.phone).toBeUndefined()
+  })
+
+  it('ships the phone to a logged-in viewer when visibility is LOGGED_IN', async () => {
+    mockOwnerPrivacy({ phone: '9876543210', contactVisibility: 'LOGGED_IN' })
+
+    const result = await getPropertyById('prop-1', 'viewer-1')
+
+    expect(result.owner.phone).toBe('9876543210')
+  })
+
+  it('never ships the phone when visibility is NOBODY — even logged in', async () => {
+    mockOwnerPrivacy({ phone: '9876543210', contactVisibility: 'NOBODY' })
+
+    const result = await getPropertyById('prop-1', 'viewer-1')
+
+    expect(result.owner.phone).toBeUndefined()
+  })
+
+  it('ships nothing when the owner has no phone, whatever the visibility', async () => {
+    mockOwnerPrivacy({ phone: null, contactVisibility: 'EVERYONE' })
+
+    const result = await getPropertyById('prop-1', 'viewer-1')
+
+    expect(result.owner.phone).toBeUndefined()
+  })
+
+  it('never leaks the contactVisibility setting itself', async () => {
+    mockOwnerPrivacy({ phone: '9876543210', contactVisibility: 'EVERYONE' })
+
+    const result = await getPropertyById('prop-1', null)
+
+    expect(result.owner.contactVisibility).toBeUndefined()
+  })
+})
+
 // ─── getPropertyContacts ─────────────────────────────────────────────────────
 
 describe('getPropertyContacts', () => {

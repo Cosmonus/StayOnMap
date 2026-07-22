@@ -143,10 +143,14 @@ export default function ManageListingScreen({ navigation, route }) {
   }
 
   function confirmDelete() {
-    Alert.alert('Delete listing?', 'Permanently removes this listing and all its data.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => removeMutation.mutate() },
-    ])
+    Alert.alert(
+      'Delete listing?',
+      `“${property?.title ?? 'This listing'}” will be permanently deleted along with all its data. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => removeMutation.mutate() },
+      ]
+    )
   }
 
   if (isLoading) {
