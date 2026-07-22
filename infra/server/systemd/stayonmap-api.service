@@ -1,0 +1,39 @@
+# StayOnMap API — Node/Express + Socket.io backend.
+# Install: /etc/systemd/system/stayonmap-api.service  (setup-server.sh does this)
+#   systemctl daemon-reload && systemctl enable --now stayonmap-api
+# Logs:    journalctl -u stayonmap-api -f
+[Unit]
+Description=StayOnMap API (Express + Socket.io)
+Documentation=https://www.stayonmap.com
+# Postgres is local — wait for it. network-online so DNS/outbound (Upstash,
+# Supabase, Google, mail) is ready at first tick.
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=deploy
+Group=deploy
+WorkingDirectory=/srv/stayonmap/backend
+# Secrets + config. NODE_ENV set explicitly so `trust proxy` and prod behaviour
+# engage even if the file omits it.
+EnvironmentFile=/etc/stayonmap/api.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node src/index.js
+Restart=always
+RestartSec=3
+# A tight crash-loop (e.g. bad env) should surface, not hammer forever.
+StartLimitIntervalSec=60
+StartLimitBurst=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=stayonmap-api
+
+# ── Light hardening (safe for a plain Node app writing only within its dir) ──
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
