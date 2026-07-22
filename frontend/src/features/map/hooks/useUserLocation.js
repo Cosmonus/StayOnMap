@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { createHtmlMarker } from '@lib/googleMaps'
 import { useMapStore } from '@store/mapStore'
-import { useAuth } from '@features/auth/hooks/useAuth'
 
 // Dark ink dot — matches the app's #111111 accent (CTAs, active filter chips)
 // instead of Google's location blue, which would fight the color-filled
@@ -22,17 +21,17 @@ function makeLocationEl() {
   return el
 }
 
-// Shows a pulsing dark dot at the logged-in user's current position.
-// Guests never trigger the browser's location permission prompt.
+// Shows a pulsing dark dot at the user's current position — but ONLY after
+// they've accepted the "Turn on location?" explainer (the locate button in
+// MapControls). Nobody triggers the browser's permission prompt un-asked.
 export function useUserLocation(mapRef) {
-  const { user } = useAuth()
-  const isLoggedIn = !!user
+  const consent = useMapStore((s) => s.locationConsent)
   const mapReady = useMapStore((s) => s.flyTo !== null)
   const markerRef = useRef(null)
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !mapReady || !isLoggedIn || !navigator.geolocation) return
+    if (!map || !mapReady || !consent || !navigator.geolocation) return
 
     const watchId = navigator.geolocation.watchPosition(
       ({ coords }) => {
@@ -53,5 +52,5 @@ export function useUserLocation(mapRef) {
       markerRef.current?.remove()
       markerRef.current = null
     }
-  }, [mapRef, mapReady, isLoggedIn])
+  }, [mapRef, mapReady, consent])
 }

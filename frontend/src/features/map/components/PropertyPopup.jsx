@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Lock, X, Navigation, Phone, ArrowRight, ImageOff } from 'lucide-react'
 import { propertyService } from '@services/property.service'
-import { appointmentService } from '@services/appointment.service'
 import { useMapStore } from '@store/mapStore'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { formatPrice, formatCurrency, imgUrl } from '@utils/format'
@@ -33,13 +32,13 @@ function PriceRow({ label, value, accent = false }) {
   )
 }
 
-function LockedRow({ icon, label }) {
+function LockedRow({ icon, label, sub }) {
   return (
     <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 border border-dashed border-slate-200">
       <span className="text-slate-300">{icon}</span>
       <div className="flex-1 min-w-0">
         <p className="text-xs text-slate-400 font-medium">{label}</p>
-        <p className="text-[10px] text-slate-300 mt-0.5">Request a visit to unlock</p>
+        <p className="text-[10px] text-slate-300 mt-0.5">{sub}</p>
       </div>
       <Lock size={13} color="#cbd5e1" strokeWidth={2} />
     </div>
@@ -61,18 +60,7 @@ export default function PropertyPopup({ bare = false }) {
     staleTime: 60_000,
   })
 
-  const { data: myAppointments } = useQuery({
-    queryKey: ['appointments-mine'],
-    queryFn:  () => appointmentService.mine().then((r) => r.data),
-    enabled:  !!user && !!selectedPinId,
-    staleTime: 30_000,
-  })
-
   if (!selectedPinId) return null
-
-  const hasAccepted = myAppointments?.some(
-    (a) => a.propertyId === selectedPinId && a.status === 'ACCEPTED'
-  ) ?? false
 
   const directionsUrl = property?.lat && property?.lng
     ? `https://www.google.com/maps/dir/?api=1&destination=${property.lat},${property.lng}`
@@ -239,7 +227,10 @@ export default function PropertyPopup({ bare = false }) {
             </a>
           )}
 
-          {hasAccepted && property?.owner?.phone ? (
+          {/* The backend only ships owner.phone when the owner's
+              contactVisibility allows THIS viewer — presence here IS the
+              permission check, never assume or re-derive it client-side. */}
+          {property?.owner?.phone ? (
             <a
               href={`tel:${property.owner.phone}`}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition-colors no-underline"
@@ -252,6 +243,7 @@ export default function PropertyPopup({ bare = false }) {
             <LockedRow
               icon={<Phone size={15} strokeWidth={2} />}
               label="Owner contact"
+              sub={user ? 'Not shared by the owner — message them instead' : 'Sign in to view, if the owner shares it'}
             />
           )}
         </div>
