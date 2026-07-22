@@ -7,7 +7,25 @@ free-software fix — a self-hosted [OSRM](https://project-osrm.org/) instance
 serving **measured walking distances** over real street network for all 9
 supported cities. No per-call metering, no API key, no vendor.
 
-## Cost & sizing
+## Railway path (current choice, 2026-07-22)
+
+Operator decision: deploy on **Railway** in the existing `angelic-blessing`
+project instead of a Hetzner box — one platform, private networking to the
+backend (no public port, so the "firewall IS the auth" rule is satisfied by
+the private network itself), no second vendor account. Everything below this
+section (Hetzner sizing, `setup-osrm.sh`, `docker-compose.yml`) remains the
+documented VPS alternative.
+
+The Railway variant lives in **`railway/`** — a fully self-contained
+multi-stage `Dockerfile` (Geofabrik download → osmium clip with the SAME
+bboxes as `extracts.json`, inlined → foot-profile MLD graph → osrm-routed
+on :5000, IPv6-bound for Railway private networking), `railway.json`, and
+the operator runbook `railway/README-railway.md`. The backend then gets
+`ROUTING_URL=http://<service>.railway.internal:5000`. If `extracts.json`
+ever changes, mirror the bboxes into `railway/Dockerfile` — they must not
+drift.
+
+## Cost & sizing (Hetzner alternative)
 
 | Option | Spec | Price | Verdict |
 |---|---|---|---|
