@@ -108,7 +108,7 @@ export default function PropertiesPage() {
   const locationLabel = (area && (place?.name ?? area)) || filters.city || null
 
   // Pad the grid so the last row is never left lopsided — targets the widest
-  // breakpoint's column count (5, must match xl:grid-cols-5 below); narrower
+  // breakpoint's column count (5, must match 2xl:grid-cols-5 below); narrower
   // breakpoints may not land on a perfectly complete row, same tradeoff as
   // the homepage's featured strip. A sparse result pads to at least TWO full
   // rows so the page reads as a place with room to grow, not an empty hall.
@@ -167,11 +167,11 @@ export default function PropertiesPage() {
               Couldn&apos;t load properties. Please try again.
             </div>
           ) : isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-x-5 gap-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-5 gap-y-8">
               {Array.from({ length: 8 }).map((_, i) => <CardSkeleton key={i} />)}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-x-5 gap-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-5 gap-y-8">
               {properties.map((property) => (
                 <PropertyCard key={property.id} property={property} isSaved={property.isSaved} />
               ))}

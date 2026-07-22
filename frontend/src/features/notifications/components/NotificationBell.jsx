@@ -209,7 +209,7 @@ export default function NotificationBell({ onViewAll }) {
 
       {/* Dropdown panel */}
       {open && (
-        <div className="absolute right-0 top-full mt-2 z-50 w-[380px] bg-white rounded-2xl shadow-float border border-slate-200 overflow-hidden animate-scale-in">
+        <div className="absolute right-0 top-full mt-2 z-50 w-[380px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-float border border-slate-200 overflow-hidden animate-scale-in">
           {/* Header */}
           <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
             <h3 className="text-base font-bold text-slate-900">Notifications</h3>
