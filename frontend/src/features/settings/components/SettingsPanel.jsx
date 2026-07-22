@@ -6,6 +6,7 @@ import { userService } from '@services/user.service'
 import { subscribeToPush, unsubscribeFromPush, registerServiceWorker } from '@services/push.service'
 import { toast } from '@components/common/Toaster'
 import { authService } from '@services/auth.service'
+import { CITY_NAMES } from '@/config/cities'
 import LinkedAccountsCard from './LinkedAccountsCard'
 import DevicesCard from './DevicesCard'
 
@@ -128,6 +129,7 @@ export default function SettingsPanel() {
     setForm({
       name:              settings.name ?? '',
       phone:             settings.phone ?? '',
+      city:              settings.city ?? '',
       bio:               settings.bio ?? '',
       socialLinks:       settings.socialLinks ?? {},
       listingVisibility: settings.listingVisibility ?? 'PUBLIC',
@@ -277,9 +279,17 @@ export default function SettingsPanel() {
                 <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+91 98765 43210" className={INPUT} />
               </Field>
             </div>
-            <Field label="Email">
-              <input type="email" value={settings.email} disabled className="w-full px-3 py-2 border border-slate-100 rounded-lg text-sm bg-slate-100 text-slate-400 cursor-not-allowed" />
-            </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="City">
+                <select value={form.city} onChange={e => set('city', e.target.value)} className={INPUT}>
+                  <option value="">Select your city</option>
+                  {CITY_NAMES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Email">
+                <input type="email" value={settings.email} disabled className="w-full px-3 py-2 border border-slate-100 rounded-lg text-sm bg-slate-100 text-slate-400 cursor-not-allowed" />
+              </Field>
+            </div>
             <Field label="Bio">
               <textarea
                 value={form.bio}

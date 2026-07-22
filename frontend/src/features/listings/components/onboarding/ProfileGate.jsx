@@ -8,7 +8,7 @@ import { Check, UserRound, ArrowRight } from 'lucide-react'
 const REQUIRED = [
   { field: 'name',  label: 'Your name',      hint: 'Add it under Settings → Profile' },
   { field: 'phone', label: 'Phone number',   hint: 'Add it under Settings → Profile' },
-  { field: 'city',  label: 'City',           hint: 'Set when you signed up — contact support if it’s missing' },
+  { field: 'city',  label: 'City',           hint: 'Choose it under Settings → Profile' },
   { field: 'email', label: 'Verified email', hint: 'Tap Verify in Settings — check your inbox for the verification link, or sign in once with an emailed code' },
 ]
 
