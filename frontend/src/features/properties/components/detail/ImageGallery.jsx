@@ -55,6 +55,8 @@ export default function ImageGallery({ images, avail, onOpenLightbox }) {
               <img
                 src={img.url}
                 alt={i === 0 ? 'Property' : ''}
+                loading={i === 0 ? 'eager' : 'lazy'}
+                decoding="async"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
@@ -82,7 +84,7 @@ export default function ImageGallery({ images, avail, onOpenLightbox }) {
       <div className="md:hidden relative rounded-2xl overflow-hidden">
         <button onClick={() => onOpenLightbox(mobileIdx)} className="w-full">
           <div className="aspect-[4/3] bg-slate-100">
-            <img src={list[mobileIdx]?.url} alt="Property" className="w-full h-full object-cover" />
+            <img src={list[mobileIdx]?.url} alt="Property" decoding="async" className="w-full h-full object-cover" />
           </div>
         </button>
         <div className="absolute top-3 left-3">{availPill}</div>

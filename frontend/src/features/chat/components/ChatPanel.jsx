@@ -742,7 +742,7 @@ export default function ChatPanel() {
   if (isLoading) {
     return (
       <div className="flex h-full bg-white">
-        <div className="w-[340px] border-r border-slate-100 p-5 space-y-3">
+        <div className="w-full md:w-[340px] border-r border-slate-100 p-5 space-y-3">
           <div className="h-8 w-32 bg-slate-100 rounded-lg animate-pulse" />
           <div className="h-10 bg-slate-100 rounded-xl animate-pulse" />
           {[1, 2, 3, 4].map(i => <div key={i} className="h-16 bg-slate-100 rounded-xl animate-pulse" />)}
