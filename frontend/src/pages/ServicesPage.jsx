@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, Wrench, ShieldCheck, Truck, Plus, ArrowRight } from 'lucide-react'
+import { FileText, Wrench, ShieldCheck, Truck, Plus, ArrowRight, Sparkles, ChefHat, Baby, Car, HandHelping, Zap, Droplets, Package } from 'lucide-react'
 import SEOMeta from '@components/common/SEOMeta'
 import { toast } from '@components/common/Toaster'
 import { canonical } from '@lib/seo'
@@ -20,6 +20,46 @@ const SERVICES = [
     title: 'Tenant verification',
     body: 'Fast, privacy-first identity and background checks for owners.',
     icon: <ShieldCheck size={22} strokeWidth={1.7} />,
+  },
+  {
+    title: 'House maid',
+    body: 'Trusted, background-checked house help for daily or part-time work.',
+    icon: <Sparkles size={22} strokeWidth={1.7} />,
+  },
+  {
+    title: 'House cook',
+    body: 'Home cooks for daily meals or occasions — veg, non-veg, regional cuisines.',
+    icon: <ChefHat size={22} strokeWidth={1.7} />,
+  },
+  {
+    title: 'Baby sitting',
+    body: 'Verified, experienced sitters and nannies for hourly or full-day care.',
+    icon: <Baby size={22} strokeWidth={1.7} />,
+  },
+  {
+    title: 'Mechanics',
+    body: 'Two-wheeler and car mechanics who come to your parking spot.',
+    icon: <Car size={22} strokeWidth={1.7} />,
+  },
+  {
+    title: 'Helpers',
+    body: 'An extra pair of hands — shifting, lifting, errands and odd jobs.',
+    icon: <HandHelping size={22} strokeWidth={1.7} />,
+  },
+  {
+    title: 'Electricians',
+    body: 'Licensed electricians for fittings, faults and appliance installs.',
+    icon: <Zap size={22} strokeWidth={1.7} />,
+  },
+  {
+    title: 'Plumbers',
+    body: 'Leaks, blockages, geysers and bathroom fittings — fixed same day.',
+    icon: <Droplets size={22} strokeWidth={1.7} />,
+  },
+  {
+    title: 'Packers & movers',
+    body: 'Door-to-door shifting with careful packing and honest pricing.',
+    icon: <Package size={22} strokeWidth={1.7} />,
   },
 ]
 
