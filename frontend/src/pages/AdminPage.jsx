@@ -18,7 +18,6 @@ import SEOMeta from '@components/common/SEOMeta'
 import { AmenityIcon } from '@components/common/AmenityIcon'
 import { googleMapsReady, createHtmlMarker } from '@lib/googleMaps'
 import { CITIES } from '@/config/cities'
-import CityDropdown from '@features/search/components/CityDropdown'
 import AreaInput from '@features/search/components/AreaInput'
 import FilterButton from '@features/filters/components/FilterButton'
 import FilterSheet from '@features/filters/components/FilterSheet'
@@ -775,16 +774,12 @@ function AdminPropertiesMap() {
             (search pill + Filters button opening the sheet), so admins and
             users get one filter UI, not a sidebar fork.
 
-            City + Area are search context, not sheet rows — same split as the
-            user side's SEARCH_KEYS. City still travels as a query param; area
-            only geocodes and flies the map. The public search dropped its city
-            selector (2026-07-15), but admins have no other way to scope to a
-            city, so it stays in this bar. */}
+            Area is search context, not a sheet row — it only geocodes and
+            flies the map. The city dropdown was removed 2026-07-22 (operator
+            decision): admin search is location-only like the public map, and
+            typing an area is how you scope. */}
         <div className="absolute top-4 left-4 right-4 z-10 flex items-center gap-2.5 pointer-events-none">
           <div className="flex items-center gap-2.5 h-12 md:h-14 pl-2 pr-1.5 md:pr-2 bg-white rounded-full border border-slate-200 shadow-md pointer-events-auto min-w-0">
-            <div className="w-40 shrink-0">
-              <CityDropdown value={city} onChange={(val) => patchFilters({ city: val, area: '' })} />
-            </div>
             <div className="w-56 md:w-72 min-w-0">
               <AreaInput
                 value={area}
