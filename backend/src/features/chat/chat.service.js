@@ -16,20 +16,20 @@ export async function getOrCreateConversation(tenantId, propertyId, requesterId 
 
   const existing = await prisma.conversation.findUnique({
     where: { propertyId_tenantId: { propertyId, tenantId } },
-    include: conversationInclude(),
+    include: conversationInclude(requesterId),
   })
   if (existing) return existing
 
   return prisma.conversation.create({
     data: { propertyId, tenantId, ownerId: property.ownerId },
-    include: conversationInclude(),
+    include: conversationInclude(requesterId),
   })
 }
 
 export async function getUserConversations(userId) {
   return prisma.conversation.findMany({
     where: { OR: [{ tenantId: userId }, { ownerId: userId }] },
-    include: conversationInclude(),
+    include: conversationInclude(userId),
     orderBy: { lastMessageAt: 'desc' },
   })
 }
@@ -154,12 +154,15 @@ export async function getUnreadCount(userId) {
   })
 }
 
-function conversationInclude() {
+function conversationInclude(userId) {
   return {
     property: { select: { id: true, title: true, rent: true, pricingModel: true, city: true, bhk: true, type: true, address: true, images: { where: { isPrimary: true }, take: 1 } } },
     tenant:   { select: { id: true, name: true, email: true, avatarUrl: true } },
     owner:    { select: { id: true, name: true, email: true, avatarUrl: true } },
     messages: { orderBy: { createdAt: 'desc' }, take: 1 },
-    _count:   { select: { messages: { where: { isRead: false } } } },
+    // Unread = the OTHER person's unread messages, like getUnreadCount above.
+    // Without the senderId exclusion, sending a message badged the SENDER's
+    // own conversation row until the recipient read it.
+    _count:   { select: { messages: { where: { isRead: false, ...(userId ? { senderId: { not: userId } } : {}) } } } },
   }
 }
