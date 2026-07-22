@@ -1,0 +1,52 @@
+# Builds the OSRM routing-server image (infra/routing/railway/Dockerfile) and
+# pushes it to GHCR. Exists because Railway's builder refused the job twice at
+# the scheduling stage with no logs (2026-07-22) — and a CI-built image is the
+# better architecture anyway: the Railway service just pulls
+# ghcr.io/cosmonus/stayonmap-osrm:latest, and the quarterly OpenStreetMap
+# refresh is this workflow's cron instead of a manual rebuild.
+#
+# The image contains ONLY public OpenStreetMap data (ODbL) — no secrets, no
+# user data — so the GHCR package can safely be made public, which lets
+# Railway pull it without registry credentials.
+name: Build OSRM routing image
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Quarterly OSM refresh: 03:00 UTC on the 1st of Jan/Apr/Jul/Oct
+    - cron: '0 3 1 1,4,7,10 *'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    name: OSRM 9-city foot graph
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      # The graph build needs every GB the runner has — drop the preinstalled
+      # toolchains we don't use (~25GB reclaimed).
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: infra/routing/railway
+          push: true
+          tags: |
+            ghcr.io/cosmonus/stayonmap-osrm:latest
+            ghcr.io/cosmonus/stayonmap-osrm:${{ github.run_number }}
