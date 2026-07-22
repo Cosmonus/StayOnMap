@@ -80,7 +80,7 @@ RUN echo "cache-bust: ${CACHE_BUST}" \
  && mkdir -p /data/extracts \
  && wget --tries=5 --waitretry=30 --retry-connrefused --progress=dot:giga \
       -O /data/india-latest.osm.pbf "$PBF_URL" \
- && osmium extract --config /extracts.json --overwrite /data/india-latest.osm.pbf \
+ && osmium extract --strategy=simple --config /extracts.json --overwrite /data/india-latest.osm.pbf \
  && osmium merge /data/extracts/*.osm.pbf -o /data/cities.osm.pbf --overwrite \
  && rm -rf /data/india-latest.osm.pbf /data/extracts
 
