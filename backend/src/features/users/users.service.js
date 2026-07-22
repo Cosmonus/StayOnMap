@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma.js'
 import { requestPasswordReset, stripPasswordHash } from '../auth/auth.service.js'
 import { awardPoints } from '../points/points.service.js'
+import { SUPPORTED_CITIES } from '../../config/cities.js'
 
 // Completeness per docs/points-and-sharing.md: name + avatar + city + phone.
 // Deliberately different from requireCompleteProfile's listing gate (which
@@ -15,8 +16,13 @@ export async function getUserById(id) {
   return user && stripPasswordHash(user)
 }
 
+// `city` is editable here but only to a SUPPORTED_CITIES value — the same
+// gate signup applies. Users who signed up before city was required (or via
+// social login edge cases) can fill it in from Settings; anything else
+// (unsupported city, arbitrary text) is silently dropped, mirroring the
+// listingVisibility/contactVisibility invalid-value pattern below.
 const ALLOWED_FIELDS = [
-  'name', 'phone', 'avatarUrl', 'bio', 'socialLinks',
+  'name', 'phone', 'avatarUrl', 'bio', 'socialLinks', 'city',
   'listingVisibility', 'contactVisibility', 'showExactLocation',
   'emailNotifs', 'pushNotifs',
 ]
@@ -35,6 +41,9 @@ export async function updateUser(id, data) {
   if (update.contactVisibility && !VALID_CONTACT_VISIBILITY.includes(update.contactVisibility)) {
     delete update.contactVisibility
   }
+  if (update.city !== undefined && !SUPPORTED_CITIES.includes(update.city)) {
+    delete update.city
+  }
   const user = await prisma.user.update({ where: { id }, data: update })
   // Fire-and-forget — idempotent via the ledger's unique (userId, action, '').
   if (isProfileComplete(user)) awardPoints(id, 'PROFILE_COMPLETED').catch(() => {})
@@ -46,7 +55,7 @@ export async function getSettings(id) {
     where: { id },
     select: {
       displayId: true, name: true, phone: true, avatarUrl: true, bio: true,
-      socialLinks: true, email: true, role: true, isVerified: true,
+      socialLinks: true, email: true, role: true, isVerified: true, city: true,
       listingVisibility: true, contactVisibility: true, showExactLocation: true,
       emailNotifs: true, pushNotifs: true,
     },

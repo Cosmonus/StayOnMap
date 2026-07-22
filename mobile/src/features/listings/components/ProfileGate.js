@@ -11,7 +11,7 @@ import { spacing, radius } from '@theme/spacing'
 const REQUIRED = [
   { field: 'name',  label: 'Your name',      hint: 'Add it in Settings → Edit profile' },
   { field: 'phone', label: 'Phone number',   hint: 'Add it in Settings → Edit profile' },
-  { field: 'city',  label: 'City',           hint: 'Set when you signed up — contact support if it’s missing' },
+  { field: 'city',  label: 'City',           hint: 'Choose it in Settings → Edit profile' },
   { field: 'email', label: 'Verified email', hint: 'Tap Verify email in Settings — check your inbox for the verification link, or sign in once with an emailed code' },
 ]
 

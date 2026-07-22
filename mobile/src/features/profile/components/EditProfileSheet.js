@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import { Text, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { userService } from '@services/user.service'
 import { useResetOnOpen } from '@/hooks/useResetOnOpen'
+import { CITY_NAMES } from '@config/cities'
 import FormSheet from './FormSheet'
 import LabeledInput from './LabeledInput'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
-import { spacing } from '@theme/spacing'
+import { spacing, radius } from '@theme/spacing'
 
 const PHONE_RE = /^[6-9]\d{9}$/
 
@@ -23,6 +24,7 @@ export default function EditProfileSheet({ visible, onClose, settings }) {
   const qc = useQueryClient()
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [city, setCity] = useState('')
   const [bio, setBio] = useState('')
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
@@ -33,6 +35,7 @@ export default function EditProfileSheet({ visible, onClose, settings }) {
   useResetOnOpen(visible, () => {
     setName(settings?.name ?? '')
     setPhone(settings?.phone ?? '')
+    setCity(settings?.city ?? '')
     setBio(settings?.bio ?? '')
     setErrors({})
     setSubmitError('')
@@ -56,7 +59,8 @@ export default function EditProfileSheet({ visible, onClose, settings }) {
     setErrors(next)
     if (Object.keys(next).length) return
     setSubmitError('')
-    save({ name: name.trim(), phone: cleanPhone, bio: bio.trim() })
+    // city only travels when set — the backend drops any non-SUPPORTED value.
+    save({ name: name.trim(), phone: cleanPhone, bio: bio.trim(), ...(city ? { city } : {}) })
   }
 
   return (
@@ -70,6 +74,25 @@ export default function EditProfileSheet({ visible, onClose, settings }) {
         placeholder="98765 43210"
         keyboardType="phone-pad"
       />
+      <Text style={styles.cityLabel}>City</Text>
+      <View style={styles.cityRow}>
+        {CITY_NAMES.map((c) => {
+          const selected = city === c
+          return (
+            <Pressable
+              key={c}
+              style={[styles.cityChip, selected && styles.cityChipSelected]}
+              onPress={() => setCity(c)}
+              accessibilityRole="radio"
+              accessibilityLabel={c}
+              accessibilityState={{ selected }}
+            >
+              <Text style={[styles.cityChipText, selected && styles.cityChipTextSelected]}>{c}</Text>
+            </Pressable>
+          )
+        })}
+      </View>
+
       <LabeledInput
         label="Bio"
         value={bio}
@@ -84,5 +107,18 @@ export default function EditProfileSheet({ visible, onClose, settings }) {
 }
 
 const styles = StyleSheet.create({
+  cityLabel: {
+    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400,
+    textTransform: 'uppercase', letterSpacing: 0.5,
+    marginTop: spacing.md, marginBottom: spacing.sm,
+  },
+  cityRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  cityChip: {
+    minHeight: 40, justifyContent: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.full, backgroundColor: colors.white,
+  },
+  cityChipSelected: { borderColor: colors.brand600, backgroundColor: colors.brand50 },
+  cityChipText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate600 },
+  cityChipTextSelected: { fontFamily: fonts.bodySemiBold, color: colors.brand700 },
   submitError: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.danger, marginTop: spacing.sm },
 })
