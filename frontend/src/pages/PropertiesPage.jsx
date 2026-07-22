@@ -1,4 +1,5 @@
 ﻿import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Home } from 'lucide-react'
 import { propertyService } from '@services/property.service'
@@ -23,7 +24,18 @@ function CardSkeleton() {
   )
 }
 
-function EmptySlotCard() {
+function EmptySlotCard({ cta = false }) {
+  if (cta) {
+    return (
+      <Link
+        to="/list"
+        className="aspect-[4/3] rounded-2xl border border-dashed border-brand-300 bg-brand-50/40 flex flex-col items-center justify-center gap-2 text-center px-3 no-underline hover:border-brand-500 transition-colors"
+      >
+        <Home size={24} className="text-brand-600" strokeWidth={1.8} />
+        <p className="text-xs font-semibold text-brand-700 leading-snug">Own a place here?<br />List it free</p>
+      </Link>
+    )
+  }
   return (
     <div className="aspect-[4/3] rounded-2xl border border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-center px-3">
       <Home size={24} stroke="#cbd5e1" strokeWidth={1.8} />
@@ -96,9 +108,14 @@ export default function PropertiesPage() {
   const locationLabel = (area && (place?.name ?? area)) || filters.city || null
 
   // Pad the grid so the last row is never left lopsided — targets the widest
-  // breakpoint's column count (4); narrower breakpoints may not land on a
-  // perfectly complete row, same tradeoff as the homepage's featured strip.
-  const emptySlotCount = properties.length === 0 ? 4 : (4 - (properties.length % 4)) % 4
+  // breakpoint's column count (5, must match xl:grid-cols-5 below); narrower
+  // breakpoints may not land on a perfectly complete row, same tradeoff as
+  // the homepage's featured strip. A sparse result pads to at least TWO full
+  // rows so the page reads as a place with room to grow, not an empty hall.
+  const COLS = 5
+  const emptySlotCount = properties.length < COLS * 2
+    ? COLS * 2 - properties.length
+    : (COLS - (properties.length % COLS)) % COLS
 
   const pageTitle = locationLabel
     ? `Rental Properties in ${locationLabel}`
@@ -159,7 +176,7 @@ export default function PropertiesPage() {
                 <PropertyCard key={property.id} property={property} isSaved={property.isSaved} />
               ))}
               {Array.from({ length: emptySlotCount }).map((_, i) => (
-                <EmptySlotCard key={`empty-${i}`} />
+                <EmptySlotCard key={`empty-${i}`} cta={i === 0} />
               ))}
             </div>
           )}
