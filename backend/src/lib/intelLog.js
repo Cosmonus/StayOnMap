@@ -1,7 +1,7 @@
 // Structured single-line JSON logs for the intelligence layer (listing
-// evaluations, AI fraud/review scans). One event per line so Railway's log
-// search — or any future log drain — can filter on src:"intel" and see why
-// a decision was made without reading application code.
+// evaluations, AI fraud/review scans). One event per line so journald (or any
+// log drain) can filter on src:"intel" and see why a decision was made without
+// reading application code.
 const silent = process.env.NODE_ENV === 'test'
 
 export function intelLog(event, data = {}) {

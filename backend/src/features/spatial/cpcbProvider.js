@@ -164,7 +164,7 @@ export function parseLastUpdate(s) {
   if (Number(mm) < 1 || Number(mm) > 12 || Number(dd) < 1 || Number(dd) > 31) return null
   // +05:30 is not decoration. CPCB publishes in IST, and a date-TIME string
   // with no offset is parsed as LOCAL time per the ES spec — so on a UTC host
-  // (Railway) a 05:00 IST reading would be read as 05:00 UTC, i.e. 10:30 IST,
+  // a 05:00 IST reading would be read as 05:00 UTC, i.e. 10:30 IST,
   // five and a half hours in the future. A staleness check would then see a
   // fresh reading as having a negative age. Half-fixing the day-first bug and
   // leaving the zone off would have been the same class of error again.

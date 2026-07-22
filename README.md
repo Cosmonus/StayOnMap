@@ -19,7 +19,7 @@ A map-first rental platform for India where tenants discover homes visually and 
 | Frontend  | React 18 + Vite + Tailwind CSS           |
 | Mobile    | Expo SDK 57 + React Native (iOS/Android) |
 | Backend   | Node.js + Express.js + Prisma            |
-| Database  | PostgreSQL (Railway)                     |
+| Database  | PostgreSQL (self-hosted on the app VM)   |
 | Maps      | Google Maps JavaScript API (web), native map view (mobile) |
 | Image storage | Supabase Storage                    |
 | Auth      | Custom JWT (bcrypt + jsonwebtoken) — separate secrets for users and admins, see `.claude/auth.md` |
@@ -50,7 +50,7 @@ STAYONMAP/
 - npm 9+
 - A Supabase project (image storage only — auth does not use Supabase)
 - A Google Maps API key (Maps JavaScript API + Places + Geocoding + Elevation enabled)
-- A Railway Postgres database (or any Postgres instance for local dev)
+- A PostgreSQL instance (local for dev; production runs Postgres on the app VM)
 - For mobile: the Expo Go app on a physical device, or an Android/iOS emulator
 
 ### Backend
@@ -177,14 +177,16 @@ failures early instead of waiting on CI.
 
 | Service  | Platform          |
 |----------|--------------------|
-| Frontend | Railway            |
-| Backend  | Railway            |
-| Database | Railway Postgres   |
+| Frontend | Self-hosted VM (nginx static) on Google Cloud |
+| Backend  | Self-hosted VM (Node/systemd behind nginx) on Google Cloud |
+| Database | PostgreSQL on the same VM |
 | Mobile   | Expo / EAS (not yet published to app stores) |
 
-Auth is custom JWT (bcrypt + jsonwebtoken, no third-party auth service) and
-image storage is Supabase Storage — see `docs/deployment.md` for the full
-setup and environment checklist.
+Frontend, backend, Postgres, and OSRM routing all run on a single Ubuntu VM
+behind nginx (same-origin — the SPA calls `/api/v1` with no CORS). Redis
+(Upstash) and image storage (Supabase) stay external. The full provisioning
+and on-box install lives in `infra/server/` (`README-gcp.md` → `README-server.md`).
+Auth is custom JWT (bcrypt + jsonwebtoken, no third-party auth service).
 
 ---
 

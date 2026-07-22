@@ -1,7 +1,8 @@
 // Backfill missing Amenity rows — amenities only, nothing else.
 // Safe to run against production (idempotent upserts, no deletes); unlike
 // prisma/seed.js it needs no ADMIN_SEED_* env vars and creates no sample data.
-// Run: node scripts/seed-amenities.mjs   (from backend/, e.g. via `railway run`)
+// Run: node scripts/seed-amenities.mjs   (from backend/, with DATABASE_URL set
+// to the target DB — e.g. DATABASE_URL=... node scripts/seed-amenities.mjs)
 
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'

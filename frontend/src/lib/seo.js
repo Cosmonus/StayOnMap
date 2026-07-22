@@ -4,9 +4,9 @@
 export const BRAND = {
   name: 'StayOnMap',
   tagline: 'Rent with intelligence.',
-  // www is canonical: the apex's DNS (Squarespace) can't point at Railway
-  // (no ALIAS support) and its redirect drops paths — only www reliably
-  // serves the app. Keep every generated URL on www.
+  // www is canonical: the apex 301-redirects to www and drops the path/query
+  // in the process, so only www reliably serves the app. Keep every generated
+  // URL on www.
   domain: 'https://www.stayonmap.com',
   twitterHandle: '@StayOnMap',
 }

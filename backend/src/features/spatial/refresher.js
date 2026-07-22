@@ -6,11 +6,11 @@
 // be more moving parts than the problem has.
 //
 // So: an interval that claims the stalest cells under a Redis lock. If this
-// ever outgrows itself, Railway cron is a config change rather than a
-// refactor, and materialize() is already idempotent either way.
+// ever outgrows itself, a cron job or separate worker is a config change rather
+// than a refactor, and materialize() is already idempotent either way.
 //
 // Three properties that matter:
-//   - Multi-instance safe. The Redis lock means two Railway instances don't
+//   - Multi-instance safe. The Redis lock means two API instances don't
 //     both pay Google for the same cell. Without Redis it still runs, which is
 //     correct for single-process dev.
 //   - Budget-aware by construction. It refreshes a bounded number of cells per

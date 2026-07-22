@@ -10,13 +10,13 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://stayonmap-backend-production.up.railway.app/api/v1"
+        "EXPO_PUBLIC_API_BASE_URL": "https://www.stayonmap.com/api/v1"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://stayonmap-backend-production.up.railway.app/api/v1"
+        "EXPO_PUBLIC_API_BASE_URL": "https://www.stayonmap.com/api/v1"
       }
     }
   },

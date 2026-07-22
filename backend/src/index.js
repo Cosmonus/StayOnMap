@@ -22,8 +22,8 @@ const publicDir = path.join(__dirname, '../../public')
 // without this, one stray promise anywhere (a missed await, a third-party lib
 // edge case) takes the whole server down instead of just failing that one
 // operation. uncaughtException is intentionally left to crash — Node's own
-// guidance is that process state may be corrupted past that point, and the
-// hosting platform (Railway) restarts a crashed process automatically.
+// guidance is that process state may be corrupted past that point, and systemd
+// (Restart=always in stayonmap-api.service) restarts a crashed process automatically.
 process.on('unhandledRejection', (reason) => {
   console.error('[unhandledRejection]', reason)
 })
@@ -57,10 +57,10 @@ import { adminVerificationRouter } from './features/verification/verification.ro
 const app  = express()
 const PORT = process.env.PORT ?? 4000
 
-// Railway terminates TLS at its edge proxy — without this, req.ip is the
-// proxy's address for every request, so all users share one rate-limit
-// bucket (the 20-req/15-min auth limiter becomes platform-wide, failing
-// real signups/logins under normal traffic). Trust exactly one hop.
+// nginx terminates TLS and reverse-proxies to the API on localhost — without
+// this, req.ip is the proxy's address for every request, so all users share
+// one rate-limit bucket (the 20-req/15-min auth limiter becomes server-wide,
+// failing real signups/logins under normal traffic). Trust exactly one hop.
 if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1)
 
 app.use(compression())

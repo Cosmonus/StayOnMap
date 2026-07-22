@@ -110,7 +110,7 @@ export default function PrivacyPolicyPage() {
             function:</p>
           <ul className="list-disc pl-5 flex flex-col gap-1.5">
             <li><strong>Supabase</strong> &mdash; stores uploaded property images and verification documents</li>
-            <li><strong>Railway</strong> &mdash; hosts our application servers and database</li>
+            <li><strong>Google Cloud Platform</strong> &mdash; hosts our application servers and database</li>
             <li><strong>Google Maps Platform</strong> &mdash; powers map display, address search, and geocoding (search queries and coordinates are sent to Google to resolve locations)</li>
             <li><strong>Our email provider</strong> &mdash; delivers transactional emails (appointment updates, password resets, sign-in codes). Depending on configuration this is either an SMTP provider (currently Google, via Gmail) or <strong>Resend</strong>&rsquo;s transactional API. Your email address and the message content pass through whichever is active.</li>
             <li><strong>Expo</strong>, and through it <strong>Google (FCM)</strong> on Android or <strong>Apple (APNs)</strong> on iOS &mdash; deliver push notifications to your device. The notification&rsquo;s title and text pass through these services.</li>

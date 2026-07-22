@@ -43,9 +43,6 @@ want it locked, a secret path prefix on `ROUTING_URL` behind a tiny Caddy proxy
 Railway's backend has no single static egress IP, so a strict IP allowlist isn't
 reliable here.
 
-The abandoned Railway image kit is archived in **`railway/`** (Dockerfile +
-runbook) in case Railway's builder limits change — not the active path.
-
 ## Cost & sizing (Hetzner alternative)
 
 | Option | Spec | Price | Verdict |

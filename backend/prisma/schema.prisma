@@ -1115,8 +1115,8 @@ model AvailabilityBlock {
 // Koramangala share one set of metro stations. Keying by geohash-7 cell
 // (~153m) means the second listing in a cell costs nothing to describe.
 //
-// Persisted in Postgres rather than only Redis for three reasons: Railway's
-// Redis is evictable (losing it means re-billing Google for everything), a
+// Persisted in Postgres rather than only Redis for three reasons: the external
+// Redis (Upstash) is evictable (losing it means re-billing Google for everything), a
 // materialised table is a compounding asset that outlives any vendor, and the
 // moment a filter needs "good walkability" the data has to be queryable.
 // Redis stays in front as a short-TTL hot read cache.

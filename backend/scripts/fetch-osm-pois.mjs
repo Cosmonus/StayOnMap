@@ -105,8 +105,8 @@ async function writeRows(rows) {
   //
   // Deliberately NOT wrapped in prisma.$transaction. It used to be, in batches
   // of 500, and that made the script unable to seed a REMOTE database at all:
-  // Prisma caps a transaction at 5s, and 500 upserts over the Railway TCP
-  // proxy take longer than that from a laptop (observed: 7.07s → P2028). The
+  // Prisma caps a transaction at 5s, and 500 upserts over a remote database
+  // connection take longer than that from a laptop (observed: 7.07s → P2028). The
   // transaction bought nothing anyway — every upsert is independent and keyed
   // on osmId, so a half-finished run converges on re-run, and the stale-row
   // deletion is already gated on a fully-successful FETCH, so a partial write
