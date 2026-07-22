@@ -11,7 +11,7 @@ function ListingCard({ property, onViewDetails, onOfferLease }) {
     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
       <div className="relative aspect-video bg-slate-100">
         {images[0] ? (
-          <img src={images[0].url} alt="" className="w-full h-full object-cover" />
+          <img src={images[0].url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-slate-300">
             <ImageOff className="w-8 h-8" strokeWidth={1.5} />

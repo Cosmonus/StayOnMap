@@ -69,7 +69,7 @@ export default function Lightbox({ images, startIndex, onClose }) {
               onClick={(e) => { e.stopPropagation(); setIdx(i) }}
               className={`shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${i === idx ? 'border-white opacity-100 scale-105' : 'border-transparent opacity-50 hover:opacity-80'}`}
             >
-              <img src={imgUrl(img.url, 'card')} alt="" className="w-full h-full object-cover" />
+              <img src={imgUrl(img.url, 'card')} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
             </button>
           ))}
         </div>

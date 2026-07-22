@@ -918,7 +918,7 @@ function ReviewCard({ property, onSelect }) {
       {/* Thumbnail */}
       <div className="relative aspect-[16/10] bg-slate-100">
         {img ? (
-          <img src={img} alt="" className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" />
+          <img src={img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-slate-300">
             <Home className="w-10 h-10" />
@@ -1059,7 +1059,11 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
       </div>
 
       {/* 3-column body */}
-      <div className="flex-1 grid divide-x divide-slate-200 min-h-0 bg-white" style={{ gridTemplateColumns: '5fr 3fr 4fr' }}>
+      {/* Below lg the three columns stack and the page scrolls as one; at lg+
+          each column scrolls independently. Tailwind's arbitrary-value grid
+          form (not an inline style) so the base CAN stack — see ui-ux.md's
+          PR #57 lessons. */}
+      <div className="flex-1 grid grid-cols-1 divide-y overflow-y-auto lg:grid-cols-[5fr_3fr_4fr] lg:divide-y-0 lg:divide-x lg:overflow-visible divide-slate-200 min-h-0 bg-white">
 
         {/* ── Column 1: Property Details ──
             Operator decision (2026-07-22): this column renders the EXACT same

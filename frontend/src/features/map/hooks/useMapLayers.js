@@ -1,8 +1,20 @@
 import { useEffect, useRef } from 'react'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
-import metroData from '@/data/layers/metro-lines.json'
-import itData    from '@/data/layers/it-corridors.json'
+import itData from '@/data/layers/it-corridors.json'
+
+// metro-lines.json is ~1.1MB of GeoJSON and the metro layer is OFF by default
+// (MapControls toggle) — a static import put all of it in the MAIN bundle,
+// paid by every visitor on first paint. Loaded on demand instead, cached
+// module-level so toggling the layer off/on never re-fetches.
+let metroDataCache = null
+async function getMetroData() {
+  if (!metroDataCache) {
+    const mod = await import('@/data/layers/metro-lines.json')
+    metroDataCache = mod.default
+  }
+  return metroDataCache
+}
 
 const METRO_LINE_COLORS = { 1: '#7c3aed', 2: '#059669', 3: '#ca8a04' }
 const IT_CORRIDOR_COLORS = { major: '#2563eb', moderate: '#60a5fa' }
@@ -143,12 +155,6 @@ function filterByCity(geojson, city) {
   }
 }
 
-function reloadMetro(dataLayer, city) {
-  dataLayer.forEach((f) => dataLayer.remove(f))
-  dataLayer.addGeoJson(smoothLineStrings(filterByCity(metroData, city)))
-  dataLayer.setStyle(styleMetroFeature)
-}
-
 // ─── Hook ────────────────────────────────────────────────────────
 export function useMapLayers(mapRef) {
   const activeLayers    = useMapStore((s) => s.activeLayers)
@@ -159,6 +165,23 @@ export function useMapLayers(mapRef) {
   const layers     = useRef({ metro: null, itCorridorCircles: [], traffic: null })
   const tooltipEl  = useRef(null)
   const mouseMoveRef = useRef(null)
+  // Tracks what the metro Data layer currently holds; `seq` guards against a
+  // stale async load landing after a newer city/toggle change superseded it.
+  const metroState = useRef({ loaded: false, city: undefined, seq: 0 })
+
+  async function syncMetro(nextCity) {
+    const metro = layers.current.metro
+    if (!metro) return
+    if (metroState.current.loaded && metroState.current.city === nextCity) return
+    const seq = ++metroState.current.seq
+    const data = await getMetroData()
+    if (seq !== metroState.current.seq || !layers.current.metro) return
+    metro.forEach((f) => metro.remove(f))
+    metro.addGeoJson(smoothLineStrings(filterByCity(data, nextCity)))
+    metro.setStyle(styleMetroFeature)
+    metroState.current.loaded = true
+    metroState.current.city = nextCity
+  }
 
   // Create tooltip DOM element once
   useEffect(() => {
@@ -219,8 +242,9 @@ export function useMapLayers(mapRef) {
     layers.current.traffic = new window.google.maps.TrafficLayer()
 
     const initCity = useFilterStore.getState().filters.city
-    layers.current.metro.addGeoJson(smoothLineStrings(filterByCity(metroData, initCity)))
-    layers.current.metro.setStyle(styleMetroFeature)
+    // Metro data loads only when the layer is actually on — most sessions
+    // never toggle it and never pay the download.
+    if (useMapStore.getState().activeLayers.metro) syncMetro(initCity)
 
     rebuildItCorridorCircles(map, initCity)
 
@@ -243,7 +267,11 @@ export function useMapLayers(mapRef) {
     const { metro } = layers.current
     if (!map || !metro) return
 
-    reloadMetro(metro, city)
+    // Refilter metro only if its data is already loaded or the layer is on —
+    // otherwise the first toggle-on loads it fresh for the current city.
+    if (metroState.current.loaded || useMapStore.getState().activeLayers.metro) {
+      syncMetro(city)
+    }
     rebuildItCorridorCircles(map, city)
   }, [city]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -252,7 +280,10 @@ export function useMapLayers(mapRef) {
     const map = mapRef.current
     if (!map) return
     const { metro, itCorridorCircles, traffic } = layers.current
-    if (metro)   metro.setMap(activeLayers.metro ? map : null)
+    if (metro) {
+      if (activeLayers.metro) syncMetro(useFilterStore.getState().filters.city)
+      metro.setMap(activeLayers.metro ? map : null)
+    }
     if (traffic) traffic.setMap(activeLayers.traffic ? map : null)
     itCorridorCircles.forEach((c) => c.setMap(activeLayers.itCorridors ? map : null))
   }, [activeLayers, mapReady]) // eslint-disable-line react-hooks/exhaustive-deps
