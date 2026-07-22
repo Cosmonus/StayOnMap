@@ -7,6 +7,7 @@ import { subscribeToPush, unsubscribeFromPush, registerServiceWorker } from '@se
 import { toast } from '@components/common/Toaster'
 import { authService } from '@services/auth.service'
 import { CITY_NAMES } from '@/config/cities'
+import Select from '@components/common/Select'
 import LinkedAccountsCard from './LinkedAccountsCard'
 import DevicesCard from './DevicesCard'
 
@@ -281,10 +282,12 @@ export default function SettingsPanel() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="City">
-                <select value={form.city} onChange={e => set('city', e.target.value)} className={INPUT}>
-                  <option value="">Select your city</option>
-                  {CITY_NAMES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <Select
+                  value={form.city}
+                  onChange={(v) => set('city', v)}
+                  placeholder="Select your city"
+                  options={CITY_NAMES.map((c) => ({ value: c, label: c }))}
+                />
               </Field>
               <Field label="Email">
                 <input type="email" value={settings.email} disabled className="w-full px-3 py-2 border border-slate-100 rounded-lg text-sm bg-slate-100 text-slate-400 cursor-not-allowed" />
