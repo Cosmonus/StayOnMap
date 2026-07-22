@@ -125,3 +125,52 @@ jobs:
         env:
           EXPO_PUBLIC_API_BASE_URL: http://localhost:4000/api/v1
           EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: ci-placeholder
+
+  # Auto-deploy to the self-hosted VM after a merge to master, but ONLY once
+  # every build job is green. SSHes in as the deploy user and runs the same
+  # deploy.sh an operator would run by hand (pull → migrate → build → restart →
+  # nginx reload → /health). Replaces Railway's old push-to-deploy.
+  #
+  # Setup (one-time, done in GitHub + on the box) is in
+  # infra/server/README-server.md → "Continuous deployment (GitHub Actions)":
+  # the four secrets below, plus a forced-command deploy key on the box.
+  deploy:
+    name: Deploy to production VM
+    runs-on: ubuntu-latest
+    needs: [guard, backend, frontend, mobile]
+    # Only on a real push to master — never on a pull_request run (which also
+    # has the master base) and never from a fork.
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    # Serialize deploys so two quick merges can't build/restart on top of each
+    # other; queue, don't cancel — a half-finished release must complete.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - name: Run deploy.sh on the VM over SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          # Fail with a pointer, not a cryptic ssh error, if setup was skipped.
+          for v in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Secret $v is not set. See infra/server/README-server.md → 'Continuous deployment (GitHub Actions)'."
+              exit 1
+            fi
+          done
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY"     > ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+          # IdentitiesOnly: never fall back to an agent/other key.
+          # StrictHostKeyChecking=yes + pinned known_hosts: a spoofed host can't
+          # harvest the deploy key. The box's authorized_keys SHOULD force the
+          # command (see README); the explicit path here is the fallback.
+          ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+              -i ~/.ssh/deploy_key \
+              "${DEPLOY_USER}@${DEPLOY_HOST}" \
+              '/srv/stayonmap/infra/server/deploy.sh'
