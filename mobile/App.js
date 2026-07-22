@@ -6,8 +6,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { StatusBar } from 'expo-status-bar'
 import * as SplashScreen from 'expo-splash-screen'
 import * as Notifications from 'expo-notifications'
-import { useFonts, Sora_600SemiBold, Sora_700Bold } from '@expo-google-fonts/sora'
-import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter'
+import { useFonts } from 'expo-font'
 import { queryClient } from '@lib/queryClient'
 import { getSocket } from '@lib/socket'
 import { AuthProvider } from '@features/auth/context/AuthContext'
@@ -17,12 +16,15 @@ import { navigateToReference } from '@navigation/navigationRef'
 SplashScreen.preventAutoHideAsync().catch(() => {})
 
 export default function App() {
+  // require() the 5 weight files directly — importing from the package index
+  // made Metro bundle every weight in both families (~27 TTFs, several MB of
+  // APK for fonts nothing renders). Keys must match theme/typography.js.
   const [fontsLoaded] = useFonts({
-    Sora_600SemiBold,
-    Sora_700Bold,
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
+    Sora_600SemiBold: require('@expo-google-fonts/sora/600SemiBold/Sora_600SemiBold.ttf'),
+    Sora_700Bold: require('@expo-google-fonts/sora/700Bold/Sora_700Bold.ttf'),
+    Inter_400Regular: require('@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf'),
+    Inter_500Medium: require('@expo-google-fonts/inter/500Medium/Inter_500Medium.ttf'),
+    Inter_600SemiBold: require('@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf'),
   })
 
   useEffect(() => {
