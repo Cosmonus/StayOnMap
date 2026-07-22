@@ -272,3 +272,63 @@ export function deriveType(categoryKey, describeValue) {
   if (describeValue === 'Independent house') return 'INDEPENDENT_HOUSE'
   return 'HOUSE'
 }
+
+// Draft fields whose text-input values must reach the backend as numbers —
+// everything else stays a string (powerLoad, extentUnit, dimensions, enums).
+const NUMERIC_FIELD_KEYS = new Set([
+  'bhk', 'sharing', 'bathrooms', 'floor', 'totalFloors', 'area', 'extent', 'roadWidth',
+  'carpetArea', 'frontage', 'totalBeds', 'availableBeds', 'noticePeriodDays', 'maxGuests', 'beds',
+])
+
+// Draft → createPropertySchema payload. Pure function of its arguments,
+// shared by both platforms' wizards and the backend contract test
+// (backend/tests/wizard-sixtype-contract.test.js) — one copy, so the wizard
+// and the test can't drift apart.
+export function buildPayload(categoryKey, type, draft, amenityIds) {
+  const { fields, location, pricing } = draft
+  const typedFields = {}
+  for (const [key, value] of Object.entries(fields)) {
+    if (key === 'genderPreference' || value === undefined || value === '') continue
+    typedFields[key] = NUMERIC_FIELD_KEYS.has(key) ? Number(value) : value
+  }
+
+  const isStay = categoryKey === 'stay'
+  const primaryRent = isStay ? Number(pricing.nightlyRate || 0) : Number(pricing.rent || 0)
+  // On a lease, `rent` carries the lump sum and there is no second deposit
+  // (the backend rejects one). See PricingModel in schema.prisma.
+  const isLease = draft.pricingModel === 'LEASE'
+
+  const payload = {
+    title: draft.title.trim(),
+    description: draft.description.trim(),
+    type,
+    address: location.address.trim(),
+    city: location.city,
+    state: location.state,
+    pincode: location.pincode,
+    landmark: location.landmark?.trim() || undefined,
+    lat: location.lat,
+    lng: location.lng,
+    images: draft.images,
+    amenityIds,
+    ...typedFields,
+    pricingModel: draft.pricingModel,
+    rent: primaryRent,
+    deposit: isLease ? 0 : Number(pricing.deposit ?? 0),
+    ...(pricing.maintenance !== undefined && pricing.maintenance !== '' && { maintenance: Number(pricing.maintenance) }),
+    ...(isStay && {
+      nightlyRate: primaryRent,
+      cleaningFee: Number(pricing.cleaningFee || 0),
+      ...(pricing.weekendRate && { weekendRate: Number(pricing.weekendRate) }),
+      minNights: 1,
+      maxNights: 28,
+      instantBook: draft.instantBook,
+    }),
+    ...(draft.appointmentWindowStart && { appointmentWindowStart: draft.appointmentWindowStart }),
+    ...(draft.appointmentWindowEnd && { appointmentWindowEnd: draft.appointmentWindowEnd }),
+  }
+
+  if (fields.genderPreference) payload.rules = { genderPreference: fields.genderPreference }
+
+  return payload
+}
