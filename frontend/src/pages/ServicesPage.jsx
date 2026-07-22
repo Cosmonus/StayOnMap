@@ -103,7 +103,9 @@ export default function ServicesPage() {
       />
 
       <main className="min-h-screen bg-white pt-28 md:pt-32 pb-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+        {/* Full width with the homepage's slim gutters — same treatment as
+            PropertiesPage; the old max-w-7xl cap read as dead space either side */}
+        <div className="w-full px-4 md:px-6">
 
           {/* Hero */}
           <div className="text-center max-w-2xl mx-auto">
@@ -121,7 +123,7 @@ export default function ServicesPage() {
           </div>
 
           {/* Bento grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-14">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mt-14">
             {/* Feature card — spans both rows on desktop */}
             <div className="md:row-span-2 rounded-3xl bg-[#111111] text-white p-9 flex flex-col relative overflow-hidden min-h-[220px]">
               <div
