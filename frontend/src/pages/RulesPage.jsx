@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
+import { CITIES } from '@/config/cities'
 
 // ── Data ────────────────────────────────────────────────────────────
 const PERSONAS = [
@@ -18,19 +19,21 @@ const RULES = {
   owners: {
     summary: 'Be honest, be responsive, be fair. Your listing represents a home someone will live in.',
     dos: [
-      { text: 'List only properties you own or are legally authorized to rent out', icon: 'shield' },
+      { text: 'List only properties you own or are legally authorized to rent out — verify ownership to earn the Verified badge', icon: 'shield' },
+      { text: 'Complete your profile before listing — name, phone, city, and a verified email are required to host', icon: 'user' },
       { text: 'Upload real photos — at least 3 clear images of the actual property', icon: 'camera' },
-      { text: 'State the exact rent, deposit, and maintenance charges upfront', icon: 'currency' },
+      { text: 'State the exact rent — or lump-sum lease amount — deposit, and maintenance charges upfront', icon: 'currency' },
       { text: 'Respond to tenant inquiries within 48 hours', icon: 'clock' },
+      { text: 'Reply to reviews and reports on your listing — your response is shown alongside them', icon: 'chat' },
       { text: 'Mark your listing as rented as soon as it is taken', icon: 'check' },
       { text: 'Treat every inquiry with equal respect regardless of background', icon: 'heart' },
     ],
     donts: [
       { text: 'Don\'t post fake or placeholder listings to "test the market"', icon: 'alert' },
       { text: 'Don\'t bait-and-switch — the listed price is the final price', icon: 'currency' },
-      { text: 'Don\'t ask tenants to pay deposit or rent outside the platform', icon: 'shield' },
+      { text: 'Don\'t demand token money or any fee just to show the property', icon: 'shield' },
       { text: 'Don\'t discriminate based on religion, caste, gender, or marital status', icon: 'block' },
-      { text: 'Don\'t list the same property multiple times to game visibility', icon: 'copy' },
+      { text: 'Don\'t list the same property multiple times to game visibility — duplicates are detected and raise your risk score', icon: 'copy' },
       { text: 'Don\'t share tenant contact details with third parties', icon: 'lock' },
     ],
   },
@@ -39,18 +42,18 @@ const RULES = {
     dos: [
       { text: 'Inquire only if you have genuine interest in renting', icon: 'heart' },
       { text: 'Be honest about your occupation, family size, and move-in timeline', icon: 'user' },
-      { text: 'Show up on time for property visits — or cancel in advance', icon: 'clock' },
-      { text: 'Raise maintenance issues through the platform', icon: 'tool' },
-      { text: 'Report suspicious or misleading listings immediately', icon: 'flag' },
-      { text: 'Pay rent and deposits only through the platform for your own protection', icon: 'shield' },
+      { text: 'Book visits through in-app appointments — and show up on time, or cancel in advance', icon: 'clock' },
+      { text: 'Keep conversations in the in-app chat — it protects both sides if something goes wrong', icon: 'shield' },
+      { text: 'Report suspicious or misleading listings immediately — anonymously if you prefer', icon: 'flag' },
+      { text: 'Write an honest review after living somewhere — it\'s what the next renter relies on', icon: 'chat' },
     ],
     donts: [
       { text: 'Don\'t use the platform to window-shop with no intent to rent', icon: 'block' },
       { text: 'Don\'t ask owners to negotiate commission for third parties', icon: 'currency' },
-      { text: 'Don\'t share your Aadhaar, PAN, or bank details outside the platform', icon: 'lock' },
+      { text: 'Don\'t share identity documents or bank details with anyone — StayOnMap never asks for them', icon: 'lock' },
       { text: 'Don\'t ghost after a visit — a polite "not interested" goes a long way', icon: 'chat' },
       { text: 'Don\'t pressure owners into lowering prices through fake competing offers', icon: 'alert' },
-      { text: 'Don\'t misuse saved listings to scrape contact info', icon: 'shield' },
+      { text: 'Don\'t post fake reviews — for or against a property', icon: 'shield' },
     ],
   },
   brokers: {
@@ -66,7 +69,7 @@ const RULES = {
       { text: 'Don\'t demand commission from tenants — this platform is 100% free for tenants', icon: 'currency' },
       { text: 'Don\'t pose as a direct owner when you are acting as an intermediary', icon: 'alert' },
       { text: 'Don\'t use StayOnMap as a lead generation tool to funnel tenants elsewhere', icon: 'block' },
-      { text: 'Don\'t ask for cash, UPI transfers, or any payment outside the platform', icon: 'shield' },
+      { text: 'Don\'t ask tenants for cash, UPI transfers, or any payment in exchange for access to a listing', icon: 'shield' },
     ],
     warning: 'If a tenant files a complaint against you for demanding extra cash or unauthorized commission, your account will be permanently banned — no warnings, no appeals.',
     note: 'StayOnMap was built to remove the practice of demanding months of hard-earned rent as commission. Brokers who act in good faith as authorized property managers are welcome.',
@@ -144,7 +147,7 @@ export default function RulesPage() {
     <div className="min-h-screen bg-slate-50 overflow-x-hidden">
       <SEOMeta
         title="Community Rules"
-        description="How owners, tenants, and brokers are expected to behave on StayOnMap — honest listings, zero commission demands, real trust."
+        description="How owners, tenants, and property managers are expected to behave on StayOnMap — honest listings, moderated reports (anonymous welcome), zero commission demands."
         canonical={canonical('/rules')}
       />
       <div className="h-16" />
@@ -175,7 +178,7 @@ export default function RulesPage() {
             <div className="w-px h-10 bg-white/10" />
             <StatCard number="100%" label="Transparency" />
             <div className="w-px h-10 bg-white/10" />
-            <StatCard number="24hr" label="Response" />
+            <StatCard number={String(CITIES.length)} label="Cities live" />
           </div>
 
           {/* Tab switcher */}
@@ -256,6 +259,33 @@ export default function RulesPage() {
             items={rules.donts}
             type="dont"
           />
+        </div>
+
+        {/* How reports are handled */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 mb-10">
+          <div className="flex items-center gap-2.5 mb-5">
+            <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center">
+              <Flag size={18} color="#f4511e" strokeWidth={2} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">How reports are handled</h3>
+              <p className="text-[11px] text-slate-400">What actually happens after you hit &quot;report&quot;</p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-3">
+            {[
+              'Anyone can report a listing — no account needed. Categories cover fraud, fake photos, wrong pricing, unauthorized listings, safety concerns, broker spam, and more.',
+              'Every report is reviewed by a human moderator. Reports raise a listing\'s risk score weighted by severity, and dismissed reports stop counting.',
+              'You can report anonymously — but identified reports carry more weight: automatic suspension requires reports from identified accounts, so signing in makes your report count for more.',
+              'Severe reports can auto-suspend a listing while it\'s under review — no one has to notice first.',
+              'Owners see reports on their listings and can respond; the response is shown alongside the report.',
+            ].map((line) => (
+              <div key={line} className="flex items-start gap-3">
+                <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-brand-600 shrink-0" />
+                <p className="text-sm text-slate-600 leading-relaxed">{line}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Community pledge */}
