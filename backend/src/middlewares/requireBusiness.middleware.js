@@ -1,6 +1,8 @@
 import { prisma } from '../lib/prisma.js'
 
-const BUSINESS_GATED_TYPES = ['PG', 'COMMERCIAL', 'SHORT_STAY']
+// Exported so tests can assert the wizard's gated categories map onto
+// exactly this set (tests/wizard-sixtype-contract.test.js).
+export const BUSINESS_GATED_TYPES = ['PG', 'COMMERCIAL', 'SHORT_STAY']
 
 // Runs after validate(createPropertySchema), so req.body.type is already a
 // known-good enum value. Only gates listing creation — never touches
