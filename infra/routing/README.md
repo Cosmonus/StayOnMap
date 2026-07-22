@@ -7,23 +7,44 @@ free-software fix — a self-hosted [OSRM](https://project-osrm.org/) instance
 serving **measured walking distances** over real street network for all 9
 supported cities. No per-call metering, no API key, no vendor.
 
-## Railway path (current choice, 2026-07-22)
+## Hetzner path (CURRENT CHOICE, reverted 2026-07-22)
 
-Operator decision: deploy on **Railway** in the existing `angelic-blessing`
-project instead of a Hetzner box — one platform, private networking to the
-backend (no public port, so the "firewall IS the auth" rule is satisfied by
-the private network itself), no second vendor account. Everything below this
-section (Hetzner sizing, `setup-osrm.sh`, `docker-compose.yml`) remains the
-documented VPS alternative.
+**Railway was abandoned for the router.** Its Metal builder cannot build this
+image — it dies at "scheduling build" with zero log output, three times, before
+the Dockerfile even runs (the build needs a 1.5 GB download + multi-GB RAM for
+the graph, beyond what the shared builder grants). The prebuilt-image route
+(build on GitHub Actions → pull on Railway) also stalled on GHCR visibility.
 
-The Railway variant lives in **`railway/`** — a fully self-contained
-multi-stage `Dockerfile` (Geofabrik download → osmium clip with the SAME
-bboxes as `extracts.json`, inlined → foot-profile MLD graph → osrm-routed
-on :5000, IPv6-bound for Railway private networking), `railway.json`, and
-the operator runbook `railway/README-railway.md`. The backend then gets
-`ROUTING_URL=http://<service>.railway.internal:5000`. If `extracts.json`
-ever changes, mirror the bboxes into `railway/Dockerfile` — they must not
-drift.
+So the router runs on a **plain VPS** — the original design, and the one the box
+has the RAM for. Use `setup-osrm.sh` below: it builds the graph ON the box from
+scratch, no registry, no image, nothing to make public. Quick runbook:
+
+```bash
+# 1. Create a Hetzner CX32 (8 GB) — Ubuntu 24.04. Note its public IP.
+# 2. From THIS repo on your laptop, copy the kit up:
+scp -r infra/routing root@<box-ip>:/root/
+# 3. On the box:
+ssh root@<box-ip>
+bash /root/routing/setup-osrm.sh        # ~30-45 min: download, clip, build, serve
+# 4. Hetzner Cloud Firewall: allow inbound TCP :5000.
+# 5. Tell the session the box IP — it sets ROUTING_URL on the Railway backend.
+```
+
+The graph builds in one shot and osrm-routed serves on :5000, restart-always.
+`ROUTING_URL=http://<box-ip>:5000` is the only backend change; everything wired
+in the read path lights up with no deploy. Only the ROUTER moves off Railway —
+the backend API, Postgres, and frontend STAY on Railway.
+
+**Securing :5000** — OSRM has no auth. It computes routes over public OSM data,
+so there's no data to leak; the only risk is someone borrowing your routing CPU.
+Options, cheapest first: (a) leave :5000 open — low risk to start; (b) if you
+want it locked, a secret path prefix on `ROUTING_URL` behind a tiny Caddy proxy
+(ask the session — `routingProvider.js` appends fixed paths, so a prefix works).
+Railway's backend has no single static egress IP, so a strict IP allowlist isn't
+reliable here.
+
+The abandoned Railway image kit is archived in **`railway/`** (Dockerfile +
+runbook) in case Railway's builder limits change — not the active path.
 
 ## Cost & sizing (Hetzner alternative)
 
