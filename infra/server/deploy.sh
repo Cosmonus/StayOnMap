@@ -48,9 +48,12 @@ log "4. prisma generate"
 npx --yes "prisma@${PRISMA_VERSION}" generate
 
 # ── 5. Frontend build (same-origin API base) ────────────────────────────────
+# --include=dev is REQUIRED: api.env sets NODE_ENV=production (sourced above),
+# under which `npm ci` skips devDependencies — but Vite (the build tool) IS a
+# devDependency, so without this the build fails with "vite: not found".
 log "5. frontend build"
 cd "${FRONTEND_DIR}"
-npm ci
+npm ci --include=dev
 VITE_API_BASE_URL=/api/v1 \
 VITE_GOOGLE_MAPS_API_KEY="${VITE_GOOGLE_MAPS_API_KEY:-}" \
 VITE_SENTRY_DSN="${VITE_SENTRY_DSN:-}" \
