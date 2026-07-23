@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { chatService } from '@services/chat.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import { useUiStore } from '@store/uiStore'
 import { getSocket } from '@lib/socket'
 import { imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
@@ -28,13 +29,21 @@ function timeLabel(date) {
 
 export default function ConversationListScreen({ navigation }) {
   const { user } = useAuth()
+  const hostMode = useUiStore((s) => s.hostMode)
   const [onlineUsers, setOnlineUsers] = useState(new Set())
 
-  const { data: conversations = [], isLoading, isError, refetch } = useQuery({
+  const { data: allConversations = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['conversations'],
     queryFn: () => chatService.conversations().then((r) => r.data),
     refetchInterval: 15000,
   })
+
+  // The inbox follows the renter/host mode toggle: host mode shows threads
+  // where you're the owner (renters contacting you); renter mode shows threads
+  // where you're the tenant (you contacting owners). Mirrors the web ChatPanel.
+  const conversations = allConversations.filter((c) =>
+    hostMode ? c.ownerId === user?.id : c.tenantId === user?.id,
+  )
 
   useEffect(() => {
     const socket = getSocket()
@@ -68,8 +77,14 @@ export default function ConversationListScreen({ navigation }) {
         <View style={styles.emptyIcon}>
           <Icon name="messageCircle" size={26} color={colors.brand600} />
         </View>
-        <Text style={styles.emptyTitle}>No conversations yet</Text>
-        <Text style={styles.emptyBody}>Start a chat from a property&apos;s detail page.</Text>
+        <Text style={styles.emptyTitle}>
+          {hostMode ? 'No messages from renters yet' : 'No conversations yet'}
+        </Text>
+        <Text style={styles.emptyBody}>
+          {hostMode
+            ? 'When a renter messages you about one of your listings, it will appear here.'
+            : 'Start a chat from a property’s detail page.'}
+        </Text>
       </SafeAreaView>
     )
   }

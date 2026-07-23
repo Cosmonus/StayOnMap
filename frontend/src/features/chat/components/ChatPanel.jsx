@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -6,6 +6,7 @@ import {
   Paperclip, Send, SquarePen, ChevronLeft, Pencil, Trash2,
 } from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import { useUiStore } from '@store/uiStore'
 import { chatService } from '@services/chat.service'
 import { uploadService } from '@services/upload.service'
 import { getSocket, connectSocket } from '@lib/socket'
@@ -82,7 +83,7 @@ function SearchBar({ value, onChange }) {
 }
 
 // ── Left panel: conversation list ───────────────────────────────────────────
-function ConversationList({ conversations, activeId, onSelect, userId, search, onlineUsers }) {
+function ConversationList({ conversations, activeId, onSelect, userId, search, onlineUsers, hostMode }) {
   const filtered = search
     ? conversations.filter(c => {
         const other = c.tenantId === userId ? c.owner : c.tenant
@@ -97,8 +98,14 @@ function ConversationList({ conversations, activeId, onSelect, userId, search, o
         <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
           <MessageCircle className="w-7 h-7 text-slate-300" strokeWidth={1.5} />
         </div>
-        <p className="text-sm font-semibold text-slate-600">No conversations yet</p>
-        <p className="text-xs text-slate-400 mt-1 leading-relaxed">Start a chat by visiting a property and clicking &ldquo;Chat with owner&rdquo;</p>
+        <p className="text-sm font-semibold text-slate-600">
+          {hostMode ? 'No messages from renters yet' : 'No conversations yet'}
+        </p>
+        <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+          {hostMode
+            ? 'When a renter messages you about one of your listings, the conversation will appear here.'
+            : 'Start a chat by visiting a property and clicking “Chat with owner”'}
+        </p>
       </div>
     )
   }
@@ -709,6 +716,7 @@ function ChatWindow({ conversation, conversationId, userId }) {
 // ── Main ChatPanel ──────────────────────────────────────────────────────────
 export default function ChatPanel() {
   const { user } = useAuth()
+  const hostMode = useUiStore((s) => s.hostMode)
   const [activeConvo, setActiveConvo] = useState(null)
   const [search, setSearch] = useState('')
   const [onlineUsers, setOnlineUsers] = useState(new Set())
@@ -731,12 +739,28 @@ export default function ChatPanel() {
     refetchInterval: 15000,
   })
 
-  // Auto-select first conversation once loaded
-  useEffect(() => {
-    if (!activeConvo && conversations.length > 0) setActiveConvo(conversations[0].id)
-  }, [conversations, activeConvo])
+  // The inbox follows the renter/host mode toggle: in host mode you see
+  // threads where you're the owner (renters contacting you); in renter mode,
+  // threads where you're the tenant (you contacting owners). A user who is
+  // both flips modes to see the other side — same model as the rest of the app.
+  const visibleConversations = useMemo(
+    () => conversations.filter(c => (hostMode ? c.ownerId === user?.id : c.tenantId === user?.id)),
+    [conversations, hostMode, user?.id],
+  )
 
-  const activeConversation = conversations.find(c => c.id === activeConvo) ?? null
+  // Auto-select the first visible conversation; reset if the active one isn't
+  // in the current mode's list (e.g. right after flipping modes).
+  useEffect(() => {
+    if (visibleConversations.length === 0) {
+      if (activeConvo) setActiveConvo(null)
+      return
+    }
+    if (!activeConvo || !visibleConversations.some(c => c.id === activeConvo)) {
+      setActiveConvo(visibleConversations[0].id)
+    }
+  }, [visibleConversations, activeConvo])
+
+  const activeConversation = visibleConversations.find(c => c.id === activeConvo) ?? null
 
   if (isLoading) {
     return (
@@ -758,7 +782,7 @@ export default function ChatPanel() {
         {/* Header */}
         <div className="shrink-0 px-5 pt-5 pb-3 space-y-3">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-slate-900">Messages</h1>
+            <h1 className="text-xl font-bold text-slate-900">{hostMode ? 'Inbox' : 'Messages'}</h1>
             <div className="flex items-center gap-1">
               <button className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-500">
                 <SquarePen className="w-[18px] h-[18px]" strokeWidth={2} />
@@ -770,12 +794,13 @@ export default function ChatPanel() {
 
         {/* Conversation list */}
         <ConversationList
-          conversations={conversations}
+          conversations={visibleConversations}
           activeId={activeConvo}
           onSelect={setActiveConvo}
           userId={user?.id}
           search={search}
           onlineUsers={onlineUsers}
+          hostMode={hostMode}
         />
       </div>
 
