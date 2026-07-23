@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Calendar } from 'lucide-react'
 import { appointmentService } from '@services/appointment.service'
 import { toast } from '@components/common/Toaster'
+import { useUiStore } from '@store/uiStore'
 
 // ── Helpers ─────────────────────────────────────────────────────────
 const STATUS = {
@@ -50,13 +51,13 @@ const OWNER_FILTERS = [
 ]
 
 // ── Empty ───────────────────────────────────────────────────────────
-function EmptyState({ message }) {
+function EmptyState({ title = 'No appointments', message }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
         <Calendar size={20} strokeWidth={1.8} />
       </div>
-      <p className="text-sm font-semibold text-slate-700 mb-0.5">No appointments</p>
+      <p className="text-sm font-semibold text-slate-700 mb-0.5">{title}</p>
       <p className="text-xs text-slate-400 max-w-[240px]">{message}</p>
     </div>
   )
@@ -190,19 +191,26 @@ function TenantCard({ appt }) {
 }
 
 // ── Main ────────────────────────────────────────────────────────────
-export default function AppointmentManager({ isOwner = false }) {
-  const [tab, setTab] = useState(isOwner ? 'incoming' : 'my-requests')
+// The view follows the renter/host mode toggle, not the user's role:
+//  · host mode   → incoming requests for my properties (owner view)
+//  · renter mode → my own visit requests (tenant view)
+// A user who is both flips modes to see the other side, matching the rest
+// of the app's mode-based navigation. Only the relevant list is fetched.
+export default function AppointmentManager() {
+  const hostMode = useUiStore((s) => s.hostMode)
   const [filter, setFilter] = useState('all')
   const qc = useQueryClient()
 
   const { data: ownerAppts = [], isLoading: loadingOwner } = useQuery({
     queryKey: ['owner-appointments'],
     queryFn: () => appointmentService.owner().then(r => r.data),
+    enabled: hostMode,
   })
 
   const { data: myAppts = [], isLoading: loadingMine } = useQuery({
     queryKey: ['my-appointments'],
     queryFn: () => appointmentService.mine().then(r => r.data),
+    enabled: !hostMode,
   })
 
   const mutation = useMutation({
@@ -218,8 +226,7 @@ export default function AppointmentManager({ isOwner = false }) {
 
   const handleAction = (id, status, ownerNote) => mutation.mutate({ id, status, ownerNote })
 
-  const isLoading = loadingOwner || loadingMine
-  const pendingCount = ownerAppts.filter(a => a.status === 'PENDING').length
+  const isLoading = hostMode ? loadingOwner : loadingMine
   const filteredOwner = filter === 'all' ? ownerAppts : ownerAppts.filter(a => a.status === filter)
 
   if (isLoading) {
@@ -238,43 +245,13 @@ export default function AppointmentManager({ isOwner = false }) {
       {/* Header */}
       <div>
         <h1 className="text-xl font-bold text-slate-900">Appointments</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Manage incoming requests and track your visits</p>
+        <p className="text-sm text-slate-400 mt-0.5">
+          {hostMode ? 'Visit requests for your properties' : 'Visits you’ve requested'}
+        </p>
       </div>
 
-      {/* Tab toggle: Incoming vs My Requests (Incoming only visible for owners) */}
-      {isOwner && (
-        <div className="flex gap-1 bg-slate-100 rounded-lg p-1 w-fit">
-          <button
-            onClick={() => setTab('incoming')}
-            className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${
-              tab === 'incoming' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
-            }`}
-          >
-            Incoming
-            {pendingCount > 0 && (
-              <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-100 text-amber-700 text-[9px] font-bold">
-                {pendingCount}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setTab('my-requests')}
-            className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${
-              tab === 'my-requests' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
-            }`}
-          >
-            My Requests
-            {myAppts.length > 0 && (
-              <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-200 text-slate-600 text-[9px] font-bold">
-                {myAppts.length}
-              </span>
-            )}
-          </button>
-        </div>
-      )}
-
-      {/* ── Incoming tab (owner view) ──────────────────────────────── */}
-      {tab === 'incoming' && (
+      {/* ── Host mode: incoming requests (owner view) ──────────────── */}
+      {hostMode ? (
         <>
           <div className="flex gap-1">
             {OWNER_FILTERS.map(({ key, label }) => (
@@ -291,7 +268,12 @@ export default function AppointmentManager({ isOwner = false }) {
           </div>
 
           {filteredOwner.length === 0 ? (
-            <EmptyState message={filter === 'all' ? 'Tenant visit requests will appear here.' : `No ${filter.toLowerCase()} appointments.`} />
+            <EmptyState
+              title={filter === 'all' ? 'No visit requests yet' : 'No matching requests'}
+              message={filter === 'all'
+                ? 'When someone books a viewing of your listings, their request will appear here.'
+                : `You have no ${filter.toLowerCase()} requests.`}
+            />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {filteredOwner.map(appt => (
@@ -300,12 +282,13 @@ export default function AppointmentManager({ isOwner = false }) {
             </div>
           )}
         </>
-      )}
-
-      {/* ── My Requests tab (tenant view) ──────────────────────────── */}
-      {tab === 'my-requests' && (
+      ) : (
+        /* ── Renter mode: my own visit requests (tenant view) ─────── */
         myAppts.length === 0 ? (
-          <EmptyState message="Appointments you've requested will appear here." />
+          <EmptyState
+            title="No visits booked yet"
+            message="Book a viewing from any property and you'll be able to track it here."
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {myAppts.map(appt => (

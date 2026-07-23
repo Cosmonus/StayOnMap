@@ -532,7 +532,7 @@ export default function DashboardPage() {
           </div>
         )
       case 'appointments':
-        return <AppointmentManager isOwner={isOwner} />
+        return <AppointmentManager />
       case 'leases':
         return <LeaseManager />
       case 'calendar':
