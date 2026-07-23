@@ -1,4 +1,5 @@
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import Icon from '@components/common/Icon'
@@ -77,7 +78,7 @@ export default function PinPreviewCard({ propertyId, onPress }) {
       >
         <View style={styles.imageWrap}>
           {images[0]?.url ? (
-            <Image source={{ uri: imgUrl(images[0].url, 'card') }} style={styles.image} resizeMode="cover" />
+            <Image source={{ uri: imgUrl(images[0].url, 'card') }} style={styles.image} contentFit="cover" cachePolicy="memory-disk" transition={200} />
           ) : (
             <View style={[styles.image, styles.imageFallback]} />
           )}

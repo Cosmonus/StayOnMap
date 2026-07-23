@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { View, Text, TextInput, Image, Pressable, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, StyleSheet } from 'react-native'
+import { View, Text, TextInput, Pressable, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, StyleSheet } from 'react-native'
+import { Image } from 'expo-image'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as ImagePicker from 'expo-image-picker'
 import { chatService } from '@services/chat.service'
@@ -37,7 +39,7 @@ function displayName(user) {
 
 function SenderAvatar({ sender }) {
   if (sender?.avatarUrl) {
-    return <Image source={{ uri: imgUrl(sender.avatarUrl) }} style={styles.senderAvatar} />
+    return <Image source={{ uri: imgUrl(sender.avatarUrl) }} style={styles.senderAvatar} contentFit="cover" cachePolicy="memory-disk" transition={200} />
   }
   return (
     <View style={[styles.senderAvatar, styles.senderAvatarFallback]}>
@@ -49,6 +51,7 @@ function SenderAvatar({ sender }) {
 export default function ConversationScreen({ route, navigation }) {
   const { conversationId, other: otherParam, otherRole } = route.params
   const { user } = useAuth()
+  const insets = useSafeAreaInsets()
   const hostMode = useUiStore((s) => s.hostMode)
   const qc = useQueryClient()
   const [input, setInput] = useState('')
@@ -292,7 +295,11 @@ export default function ConversationScreen({ route, navigation }) {
   const resultCount = searchQuery.length > 0 ? listData.length : null
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
       {searchOpen && (
         <View style={styles.searchBar}>
           <Icon name="search" size={16} color={colors.slate400} />
@@ -344,7 +351,7 @@ export default function ConversationScreen({ route, navigation }) {
                     ) : (
                       <>
                         {item.attachmentUrl && (
-                          <Image source={{ uri: item.attachmentUrl }} style={styles.attachmentImage} resizeMode="cover" />
+                          <Image source={{ uri: item.attachmentUrl }} style={styles.attachmentImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
                         )}
                         {!!item.body && <Text style={[styles.bubbleText, isOwn && styles.bubbleTextOwn]}>{item.body}</Text>}
                       </>
@@ -387,7 +394,7 @@ export default function ConversationScreen({ route, navigation }) {
         </View>
       )}
 
-      <View style={styles.inputBar}>
+      <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
         <Pressable
           style={[styles.attachButton, busy && styles.disabled]}
           onPress={handleAttach}

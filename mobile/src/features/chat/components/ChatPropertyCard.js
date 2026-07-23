@@ -1,4 +1,5 @@
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { Image } from 'expo-image'
 import { imgUrl, formatPrice } from '@utils/format'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
@@ -25,7 +26,7 @@ export default function ChatPropertyCard({ property, onPress }) {
       accessibilityLabel={`View property: ${property.title}`}
     >
       {img ? (
-        <Image source={{ uri: imgUrl(img, 'card') }} style={styles.thumb} resizeMode="cover" />
+        <Image source={{ uri: imgUrl(img, 'card') }} style={styles.thumb} contentFit="cover" cachePolicy="memory-disk" transition={200} />
       ) : (
         <View style={[styles.thumb, styles.thumbFallback]}>
           <Icon name="home" size={22} color={colors.slate400} />

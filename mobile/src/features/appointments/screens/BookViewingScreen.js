@@ -12,13 +12,13 @@ export default function BookViewingScreen({ route, navigation }) {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
+        <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Go back">
+          <Icon name="chevronLeft" size={22} color={colors.slate800} />
+        </Pressable>
         <View style={styles.headerTitleRow}>
           <Icon name="calendar" size={18} color={colors.slate800} />
           <Text style={styles.headerTitle}>Book a viewing</Text>
         </View>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.closeButton} accessibilityRole="button" accessibilityLabel="Close">
-          <Icon name="close" size={18} color={colors.brand600} />
-        </Pressable>
       </View>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
@@ -37,12 +37,12 @@ export default function BookViewingScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
     paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
     borderBottomWidth: 1, borderBottomColor: colors.slate200,
   },
+  backButton: { padding: 4, marginLeft: -4 },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
-  closeButton: { padding: 4 },
   scroll: { padding: spacing.lg },
 })

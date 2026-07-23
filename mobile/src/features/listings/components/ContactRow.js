@@ -1,4 +1,5 @@
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { Image } from 'expo-image'
 import { imgUrl, formatDate } from '@utils/format'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -52,7 +53,7 @@ export default function ContactRow({ contact, canMarkTenant, onMarkTenant, disab
   return (
     <View style={styles.row}>
       {contact.avatarUrl ? (
-        <Image source={{ uri: imgUrl(contact.avatarUrl, 'card') }} style={styles.avatar} resizeMode="cover" />
+        <Image source={{ uri: imgUrl(contact.avatarUrl, 'card') }} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" transition={200} />
       ) : (
         <View style={[styles.avatar, styles.avatarFallback]}>
           <Text style={styles.avatarInitial}>{displayName.charAt(0).toUpperCase()}</Text>

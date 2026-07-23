@@ -1,10 +1,10 @@
-import { useState } from 'react'
-import { View, Text, Image, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions, Share } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useState, useRef } from 'react'
+import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions, Share, Animated } from 'react-native'
+import { Image } from 'expo-image'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
 import { chatService } from '@services/chat.service'
-import { authService } from '@services/auth.service'
 import { savedService } from '@services/saved.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
@@ -68,6 +68,16 @@ export default function PropertyDetailScreen({ route, navigation }) {
   const { propertyId } = route.params
   const [chatLoading, setChatLoading] = useState(false)
   const { user } = useAuth()
+  const insets = useSafeAreaInsets()
+  const scrollY = useRef(new Animated.Value(0)).current
+  // Fade a solid status-bar backing in as the body scrolls up under the status
+  // bar. Without it, with headerShown:false under Android edge-to-edge, the
+  // clock/battery icons sit directly on the content. 260 = hero gallery height.
+  const scrimOpacity = scrollY.interpolate({
+    inputRange: [260 - insets.top - 24, 260 - insets.top],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  })
   const hostMode = useUiStore((s) => s.hostMode)
   const qc = useQueryClient()
 
@@ -75,12 +85,6 @@ export default function PropertyDetailScreen({ route, navigation }) {
     queryKey: ['property', propertyId],
     queryFn: () => propertyService.getById(propertyId).then((r) => r.data),
     enabled: !!propertyId,
-  })
-
-  const { data: profile } = useQuery({
-    queryKey: ['me'],
-    queryFn: () => authService.getMe().then((r) => r.data),
-    enabled: !!user,
   })
 
   const { data: savedList } = useQuery({
@@ -147,7 +151,11 @@ export default function PropertyDetailScreen({ route, navigation }) {
 
   const bhkLabel = property.bhk === 0 ? 'Studio' : property.bhk ? `${property.bhk} BHK` : property.sharing ? `${property.sharing} Sharing` : null
   const amenities = property.amenities?.map((a) => a.amenity?.name).filter(Boolean) ?? []
-  const isOwner = !!profile && profile.id === property.ownerId
+  // Identity check off useAuth().user (loaded at app start), NOT the async
+  // ['me'] profile query — otherwise an owner briefly sees "Book a viewing" /
+  // "Message" on their own listing until that query resolves. An owner can't
+  // book or message themselves, so the footer must be hidden from the first frame.
+  const isOwner = !!user && user.id === property.ownerId
   // Prisma's Decimal(10,7) lat/lng serialize as strings over JSON — every
   // other map consumer in this app (PropertyPin, clustering.js) coerces with
   // unary + before using them numerically; react-native-maps crashes with a
@@ -157,13 +165,17 @@ export default function PropertyDetailScreen({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+      <Animated.ScrollView
+        contentContainerStyle={{ paddingBottom: 100 }}
+        scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+      >
         <View>
           <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={styles.gallery}>
             {(property.images?.length ? property.images : [null]).map((img, i) => (
               <View key={img?.id ?? i} style={styles.galleryImageWrap}>
                 {img ? (
-                  <Image source={{ uri: imgUrl(img.url, 'detail') }} style={styles.galleryImage} resizeMode="cover" />
+                  <Image source={{ uri: imgUrl(img.url, 'detail') }} style={styles.galleryImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
                 ) : (
                   <View style={[styles.galleryImage, styles.galleryFallback]} />
                 )}
@@ -307,7 +319,10 @@ export default function PropertyDetailScreen({ route, navigation }) {
             <ReportButton propertyId={propertyId} />
           </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
+
+      {/* Solid status-bar backing, fades in once content scrolls under it. */}
+      <Animated.View pointerEvents="none" style={[styles.statusScrim, { height: insets.top, opacity: scrimOpacity }]} />
 
       {!isOwner && (
         <SafeAreaView edges={['bottom']} style={styles.footer}>
@@ -340,6 +355,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white },
+  statusScrim: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: colors.white },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white },
   centerBack: { position: 'absolute', top: spacing.sm, left: spacing.md },
   emptyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400 },

@@ -4,14 +4,14 @@ import { created } from '../../utils/response.js'
 
 export async function uploadPropertyImage(req, res, next) {
   try {
-    const url = await service.uploadToSupabase(req.file, req.user.id)
+    const url = await service.uploadPropertyImageSet(req.file, req.user.id)
     created(res, { url })
   } catch (err) { next(err) }
 }
 
 export async function uploadAvatar(req, res, next) {
   try {
-    const url = await service.uploadToSupabase(req.file, req.user.id, 'avatars')
+    const url = await service.uploadSingle(req.file, req.user.id, 'avatars', 512, 80)
     await prisma.user.update({ where: { id: req.user.id }, data: { avatarUrl: url } })
     created(res, { url })
   } catch (err) { next(err) }
@@ -19,7 +19,7 @@ export async function uploadAvatar(req, res, next) {
 
 export async function uploadChatImage(req, res, next) {
   try {
-    const url = await service.uploadToSupabase(req.file, req.user.id, 'chat')
+    const url = await service.uploadSingle(req.file, req.user.id, 'chat', 1280, 78)
     created(res, { url })
   } catch (err) { next(err) }
 }

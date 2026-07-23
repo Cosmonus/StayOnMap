@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import {
-  View, Text, Image, Pressable, ScrollView, ActivityIndicator,
+  View, Text, Pressable, ScrollView, ActivityIndicator,
   Alert, Linking, StyleSheet,
 } from 'react-native'
+import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as ImagePicker from 'expo-image-picker'
@@ -146,7 +147,7 @@ export default function SettingsScreen({ navigation }) {
             accessibilityState={{ disabled: uploadingAvatar }}
           >
             {settings?.avatarUrl ? (
-              <Image source={{ uri: settings.avatarUrl }} style={styles.avatar} resizeMode="cover" />
+              <Image source={{ uri: settings.avatarUrl }} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" transition={200} />
             ) : (
               <View style={styles.avatarFallback}>
                 <Text style={styles.avatarInitial}>{(settings?.name || '?')[0].toUpperCase()}</Text>

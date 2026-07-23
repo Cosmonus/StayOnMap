@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { View, Text, Image, TextInput, Pressable, FlatList, Modal, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, Text, TextInput, Pressable, FlatList, Modal, ActivityIndicator, StyleSheet } from 'react-native'
+import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
@@ -111,7 +112,7 @@ function OwnerCard({ appt, onAction }) {
         <View style={styles.personRow}>
           <View style={styles.avatar}>
             {appt.tenant?.avatarUrl ? (
-              <Image source={{ uri: imgUrl(appt.tenant.avatarUrl) }} style={styles.avatarImg} />
+              <Image source={{ uri: imgUrl(appt.tenant.avatarUrl) }} style={styles.avatarImg} contentFit="cover" cachePolicy="memory-disk" transition={200} />
             ) : (
               <Text style={styles.avatarInitial}>{personName(appt.tenant)[0]?.toUpperCase()}</Text>
             )}
@@ -128,7 +129,7 @@ function OwnerCard({ appt, onAction }) {
       </View>
 
       <View style={styles.propertyRow}>
-        {thumb ? <Image source={{ uri: imgUrl(thumb) }} style={styles.propertyThumb} /> : <View style={styles.propertyThumb} />}
+        {thumb ? <Image source={{ uri: imgUrl(thumb) }} style={styles.propertyThumb} contentFit="cover" cachePolicy="memory-disk" transition={200} /> : <View style={styles.propertyThumb} />}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.propertyTitle} numberOfLines={1}>{appt.property?.title ?? 'Property'}</Text>
           <Text style={styles.propertySub}>{appt.property?.city}</Text>
@@ -184,7 +185,7 @@ function TenantCard({ appt }) {
   return (
     <View style={styles.card}>
       <View style={styles.propertyRow}>
-        {thumb ? <Image source={{ uri: imgUrl(thumb) }} style={styles.propertyThumb} /> : <View style={styles.propertyThumb} />}
+        {thumb ? <Image source={{ uri: imgUrl(thumb) }} style={styles.propertyThumb} contentFit="cover" cachePolicy="memory-disk" transition={200} /> : <View style={styles.propertyThumb} />}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.propertyTitle} numberOfLines={1}>{appt.property?.title ?? 'Property'}</Text>
           <Text style={styles.propertySub}>{appt.property?.city}</Text>
