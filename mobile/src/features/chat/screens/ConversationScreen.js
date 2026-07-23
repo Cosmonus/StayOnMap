@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { View, Text, TextInput, Image, Pressable, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, StyleSheet } from 'react-native'
+import { View, Text, TextInput, Pressable, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, StyleSheet } from 'react-native'
+import { Image } from 'expo-image'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as ImagePicker from 'expo-image-picker'
 import { chatService } from '@services/chat.service'
@@ -37,7 +38,7 @@ function displayName(user) {
 
 function SenderAvatar({ sender }) {
   if (sender?.avatarUrl) {
-    return <Image source={{ uri: imgUrl(sender.avatarUrl) }} style={styles.senderAvatar} />
+    return <Image source={{ uri: imgUrl(sender.avatarUrl) }} style={styles.senderAvatar} contentFit="cover" cachePolicy="memory-disk" transition={200} />
   }
   return (
     <View style={[styles.senderAvatar, styles.senderAvatarFallback]}>
@@ -292,7 +293,11 @@ export default function ConversationScreen({ route, navigation }) {
   const resultCount = searchQuery.length > 0 ? listData.length : null
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
       {searchOpen && (
         <View style={styles.searchBar}>
           <Icon name="search" size={16} color={colors.slate400} />
@@ -308,6 +313,15 @@ export default function ConversationScreen({ route, navigation }) {
           {resultCount !== null && (
             <Text style={styles.searchCount}>{resultCount} result{resultCount !== 1 ? 's' : ''}</Text>
           )}
+        </View>
+      )}
+
+      {/* Pinned so the user always knows which property this chat is about —
+          it used to be the inverted list's footer and scrolled out of view
+          once the thread grew past a screenful. */}
+      {property && (
+        <View style={styles.pinnedProperty}>
+          <ChatPropertyCard property={property} onPress={openProperty} pinned />
         </View>
       )}
 
@@ -344,7 +358,7 @@ export default function ConversationScreen({ route, navigation }) {
                     ) : (
                       <>
                         {item.attachmentUrl && (
-                          <Image source={{ uri: item.attachmentUrl }} style={styles.attachmentImage} resizeMode="cover" />
+                          <Image source={{ uri: item.attachmentUrl }} style={styles.attachmentImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
                         )}
                         {!!item.body && <Text style={[styles.bubbleText, isOwn && styles.bubbleTextOwn]}>{item.body}</Text>}
                       </>
@@ -366,10 +380,7 @@ export default function ConversationScreen({ route, navigation }) {
               <Text style={styles.typingText}>{otherRole ?? 'They'} typing…</Text>
             </View>
           ) : null}
-          ListFooterComponent={
-            // Inverted list: the footer renders at the visual top of the chat.
-            <ChatPropertyCard property={property} onPress={openProperty} />
-          }
+          ListFooterComponent={null}
           ListEmptyComponent={searchQuery.length > 0 ? (
             <View style={styles.noResults}>
               <Text style={styles.noResultsText}>No messages match &ldquo;{searchQuery}&rdquo;</Text>
@@ -423,6 +434,9 @@ export default function ConversationScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
+  pinnedProperty: {
+    backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.slate200,
+  },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   headerSearchButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   searchBar: {

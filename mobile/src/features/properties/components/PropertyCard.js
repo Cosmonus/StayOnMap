@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { Image } from 'expo-image'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { savedService } from '@services/saved.service'
@@ -43,7 +44,7 @@ export default function PropertyCard({ property, isSaved: initialSaved = false, 
     <Pressable style={styles.card} onPress={onPress} accessibilityRole="button" accessibilityLabel={`View ${property.title}`}>
       <View style={styles.imageWrap}>
         {cover ? (
-          <Image source={{ uri: cover }} style={styles.image} resizeMode="cover" />
+          <Image source={{ uri: cover }} style={styles.image} contentFit="cover" cachePolicy="memory-disk" transition={200} />
         ) : (
           <View style={[styles.image, styles.imageFallback]} />
         )}

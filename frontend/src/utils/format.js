@@ -1,11 +1,19 @@
 // Display formatting helpers
 
-// Append Supabase image transform params to resize images before download.
-// Use 'card' for thumbnails (PropertyCard, popups), 'detail' for full-size views.
+// Pick the right stored variant. Uploads generate a 480px "_thumb.webp" beside
+// the 1600px "_full.webp" (the canonical URL stored on the listing), so a card
+// list pulls tiny thumbs instead of full-res originals. Use 'card' for
+// thumbnails (PropertyCard, popups), 'detail' for full-size views.
+// NOTE: the previous "?width=&quality=" params were a no-op — Supabase's
+// public storage endpoint ignores them (resizing is a paid Pro feature on a
+// different endpoint). Variants are baked at upload time instead.
 export const imgUrl = (url, size = 'card') => {
   if (!url || url.startsWith('blob:') || url.startsWith('data:')) return url
-  const params = size === 'detail' ? 'width=1200&quality=80' : 'width=480&quality=65'
-  return url.includes('?') ? `${url}&${params}` : `${url}?${params}`
+  if (url.includes('_full.webp')) {
+    return size === 'detail' ? url : url.replace('_full.webp', '_thumb.webp')
+  }
+  // Legacy images (uploaded before variants existed) have no resized copy.
+  return url
 }
 
 const locale = typeof navigator !== 'undefined' ? navigator.language : 'en-IN'

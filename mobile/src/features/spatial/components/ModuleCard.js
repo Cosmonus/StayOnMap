@@ -1,7 +1,6 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { ChevronRight } from 'lucide-react-native'
 import { colors } from '@theme/colors'
-import { shadows } from '@theme/shadows'
 import { fonts } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 import { MODULE_META, BAND_LABEL } from '../meta'
@@ -84,11 +83,14 @@ export default function ModuleCard({ envelope, onOpen }) {
 }
 
 const styles = StyleSheet.create({
+  // No shadow: a light jade border is the affordance that says "tap me". Matches
+  // the Zero Brokerage banner exactly (borderWidth 1, brand200) for one consistent
+  // "interactive jade edge" across the app.
   card: {
-    backgroundColor: colors.white, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.slate100,
-    padding: spacing.md + 2, ...shadows.card,
+    backgroundColor: colors.white, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.brand200,
+    padding: spacing.md + 2,
   },
-  cardPressed: { borderColor: colors.brand200 },
+  cardPressed: { borderColor: colors.brand400, backgroundColor: colors.brand50 },
   eyebrow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   eyebrowText: {
     flex: 1, fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400,
@@ -101,12 +103,16 @@ const styles = StyleSheet.create({
   missingNote: { flex: 1, fontFamily: fonts.body, fontSize: 12, lineHeight: 16, color: colors.slate500 },
   facts: { marginTop: spacing.md, gap: spacing.sm },
   factRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  factLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 1 },
+  // flexShrink so a long label at a large font scale yields to the value
+  // instead of colliding with it; the value keeps flex:1 and wraps to 2 lines.
+  factLabel: { flexShrink: 1, fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 1 },
   factValue: { flex: 1, fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate700, textAlign: 'right', marginTop: 1 },
   footer: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm,
     borderTopWidth: 1, borderTopColor: colors.slate100, paddingTop: spacing.sm + 2, marginTop: spacing.md,
   },
-  band: { fontFamily: fonts.body, fontSize: 10 },
-  reportLink: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.brand600 },
+  // band takes the row's slack (flex:1) so a long confidence line wraps in place
+  // rather than shoving "Full report" off the edge; the link never shrinks.
+  band: { flex: 1, fontFamily: fonts.body, fontSize: 10 },
+  reportLink: { flexShrink: 0, fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.brand600 },
 })

@@ -1,9 +1,9 @@
+import sharp from 'sharp'
 import { supabase } from '../../lib/supabase.js'
 import { randomUUID } from 'crypto'
 
 // Magic-byte sniffing — the multer fileFilter only sees the CLIENT-declared
-// mimetype; the buffer is the truth. Extension and stored contentType derive
-// from what the bytes actually are, so a spoofed declaration can't park a
+// mimetype; the buffer is the truth. A spoofed declaration can't park a
 // non-image file on the public storage domain.
 export function sniffImageType(buffer) {
   if (!buffer || buffer.length < 12) return null
@@ -14,16 +14,23 @@ export function sniffImageType(buffer) {
   return null
 }
 
-export async function uploadToSupabase(file, userId, folder = 'properties') {
-  const sniffed = sniffImageType(file.buffer)
-  if (!sniffed) throw Object.assign(new Error('Unsupported image type'), { statusCode: 400 })
+// Re-encode to WebP at a capped width. `.rotate()` with no args bakes in the
+// EXIF orientation so portrait phone photos don't come out sideways once the
+// orientation tag is dropped. `withoutEnlargement` means a small image is never
+// upscaled (which would only add bytes). WebP at these qualities is ~1/8th the
+// size of the original JPEG a 12MP camera produces.
+async function toWebp(buffer, width, quality) {
+  return sharp(buffer)
+    .rotate()
+    .resize({ width, withoutEnlargement: true })
+    .webp({ quality })
+    .toBuffer()
+}
 
-  // randomUUID path prevents original filename exposure and path traversal
-  const path = `${folder}/${userId}/${randomUUID()}.${sniffed.ext}`
-
+async function putObject(path, buffer, contentType) {
   const { error } = await supabase.storage
     .from('StayOnMap')
-    .upload(path, file.buffer, { contentType: sniffed.mime })
+    .upload(path, buffer, { contentType })
 
   if (error) {
     console.error('Supabase storage error:', error)
@@ -32,4 +39,40 @@ export async function uploadToSupabase(file, userId, folder = 'properties') {
 
   const { data } = supabase.storage.from('StayOnMap').getPublicUrl(path)
   return data.publicUrl
+}
+
+// Property images are viewed in two very different places: a 3-across card list
+// (needs ~480px) and a full-screen gallery (needs ~1600px). We store BOTH as
+// WebP beside each other under a shared UUID base, and return the "_full" URL as
+// the canonical one saved on PropertyImage.url. `imgUrl()` on the clients swaps
+// "_full.webp" → "_thumb.webp" for cards — so a list of 20 photos pulls 20
+// ~40KB thumbs, not 20 full-res originals. (Supabase's own `?width=` transform
+// is a paid Pro-plan feature on a different endpoint and was silently a no-op,
+// which is why this is done at write time instead.)
+export async function uploadPropertyImageSet(file, userId) {
+  const sniffed = sniffImageType(file.buffer)
+  if (!sniffed) throw Object.assign(new Error('Unsupported image type'), { statusCode: 400 })
+
+  const base = `properties/${userId}/${randomUUID()}`
+  const [thumb, full] = await Promise.all([
+    toWebp(file.buffer, 480, 65),
+    toWebp(file.buffer, 1600, 80),
+  ])
+  const [, fullUrl] = await Promise.all([
+    putObject(`${base}_thumb.webp`, thumb, 'image/webp'),
+    putObject(`${base}_full.webp`, full, 'image/webp'),
+  ])
+  return fullUrl
+}
+
+// Avatars and chat images are shown at one size, so a single capped WebP is
+// enough — no thumb/full split. `imgUrl()` leaves these URLs untouched (no
+// "_full.webp" marker), which is correct: there's nothing smaller to point at.
+export async function uploadSingle(file, userId, folder, width, quality) {
+  const sniffed = sniffImageType(file.buffer)
+  if (!sniffed) throw Object.assign(new Error('Unsupported image type'), { statusCode: 400 })
+
+  const path = `${folder}/${userId}/${randomUUID()}.webp`
+  const buffer = await toWebp(file.buffer, width, quality)
+  return putObject(path, buffer, 'image/webp')
 }

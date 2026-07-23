@@ -1,10 +1,18 @@
 // Ported from frontend/src/utils/format.js — locale hardcoded to en-IN
 // (RN has no reliable navigator.language; this app is India-only anyway).
 
+// Pick the right stored variant. Uploads generate a 480px "_thumb.webp" beside
+// the 1600px "_full.webp" (the canonical URL stored on the listing), so a card
+// list pulls tiny thumbs instead of full-res originals. 'card' → thumb,
+// 'detail' → full. The old "?width=&quality=" params were a no-op against
+// Supabase's public storage endpoint; variants are baked at upload time now.
 export const imgUrl = (url, size = 'card') => {
   if (!url || url.startsWith('blob:') || url.startsWith('data:')) return url
-  const params = size === 'detail' ? 'width=1200&quality=80' : 'width=480&quality=65'
-  return url.includes('?') ? `${url}&${params}` : `${url}?${params}`
+  if (url.includes('_full.webp')) {
+    return size === 'detail' ? url : url.replace('_full.webp', '_thumb.webp')
+  }
+  // Legacy images (uploaded before variants existed) have no resized copy.
+  return url
 }
 
 const _currencyFmt = new Intl.NumberFormat('en-IN', {

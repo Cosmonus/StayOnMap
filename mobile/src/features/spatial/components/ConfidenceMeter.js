@@ -62,9 +62,11 @@ export default function ConfidenceMeter({ confidence }) {
 
 const styles = StyleSheet.create({
   wrap: { marginTop: spacing.md },
-  labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  band: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs },
-  pct: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  // band takes the slack and wraps; the percentage never shrinks or wraps, so a
+  // long band label at a large font scale can't push the number off the row.
+  band: { flex: 1, fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs },
+  pct: { flexShrink: 0, fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
   track: { height: 4, borderRadius: radius.full, backgroundColor: colors.slate100, marginTop: 6, overflow: 'hidden' },
   fill: { height: 4, borderRadius: radius.full, backgroundColor: colors.brand500 },
   basis: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 4 },

@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { View, Text, Image, FlatList, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native'
+import { View, Text, FlatList, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native'
+import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
@@ -185,7 +186,7 @@ export default function ManageListingScreen({ navigation, route }) {
     <View>
       <View style={styles.hero}>
         {primaryImage ? (
-          <Image source={{ uri: imgUrl(primaryImage.url, 'detail') }} style={styles.heroImage} resizeMode="cover" />
+          <Image source={{ uri: imgUrl(primaryImage.url, 'detail') }} style={styles.heroImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
         ) : (
           <View style={[styles.heroImage, styles.heroPlaceholder]}>
             <Icon name="image" size={28} color={colors.slate400} />

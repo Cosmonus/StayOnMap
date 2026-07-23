@@ -2,6 +2,7 @@ export default {
   expo: {
     name: 'StayOnMap',
     slug: 'stayonmap',
+    owner: 'cosmonus-stayonmap',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/icon.png',
@@ -97,7 +98,7 @@ export default {
         // Public project identifier, not a secret — EAS CLI requires this as a
         // literal for dynamic (.js) app configs; it won't write it in for you
         // the way it would for a static app.json.
-        projectId: '73936213-4d88-4224-a821-e6056cb8807c',
+        projectId: 'e2805a13-9fb1-43f4-b6e1-6ae28c070f18',
       },
     },
   },

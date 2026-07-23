@@ -1,4 +1,5 @@
-import { View, Text, Image, FlatList, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
+import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
@@ -117,7 +118,7 @@ export default function MyListingsScreen({ navigation }) {
                 accessibilityLabel={`Manage listing ${item.title}`}
               >
                 <View style={styles.cardImageWrap}>
-                  {item.images?.[0] ? <Image source={{ uri: imgUrl(item.images[0].url, 'card') }} style={styles.cardImage} resizeMode="cover" /> : <View style={styles.cardImage} />}
+                  {item.images?.[0] ? <Image source={{ uri: imgUrl(item.images[0].url, 'card') }} style={styles.cardImage} contentFit="cover" cachePolicy="memory-disk" transition={200} /> : <View style={styles.cardImage} />}
                   <View style={styles.statusPillWrap}><StatusPill status={item.status} /></View>
                 </View>
                 <View style={styles.cardBody}>

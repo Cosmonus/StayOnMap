@@ -1,4 +1,5 @@
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { Image } from 'expo-image'
 import { imgUrl, formatPrice } from '@utils/format'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
@@ -8,7 +9,7 @@ import { spacing, radius } from '@theme/spacing'
 // Compact property context card pinned at the visual top of a conversation —
 // mirrors web ChatPanel's ChatPropertyCard (image / title / rent / chips,
 // links to the property detail page).
-export default function ChatPropertyCard({ property, onPress }) {
+export default function ChatPropertyCard({ property, onPress, pinned }) {
   if (!property) return null
 
   const img = property.images?.[0]?.url
@@ -19,13 +20,13 @@ export default function ChatPropertyCard({ property, onPress }) {
 
   return (
     <Pressable
-      style={styles.card}
+      style={[styles.card, pinned && styles.cardPinned]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`View property: ${property.title}`}
     >
       {img ? (
-        <Image source={{ uri: imgUrl(img, 'card') }} style={styles.thumb} resizeMode="cover" />
+        <Image source={{ uri: imgUrl(img, 'card') }} style={styles.thumb} contentFit="cover" cachePolicy="memory-disk" transition={200} />
       ) : (
         <View style={[styles.thumb, styles.thumbFallback]}>
           <Icon name="home" size={22} color={colors.slate400} />
@@ -57,6 +58,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate100,
     borderRadius: radius.lg, padding: spacing.sm, marginBottom: spacing.md,
   },
+  // Pinned full-width header: no floating-card border/radius, keep comfortable
+  // horizontal padding so content isn't flush to the screen edge.
+  cardPinned: { marginBottom: 0, borderWidth: 0, borderRadius: 0, paddingHorizontal: spacing.md },
   thumb: { width: 56, height: 56, borderRadius: radius.md, backgroundColor: colors.slate100 },
   thumbFallback: { alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, minWidth: 0 },

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { View, Text, Image, FlatList, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
+import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { chatService } from '@services/chat.service'
@@ -55,7 +56,7 @@ export default function ConversationListScreen({ navigation }) {
 
   if (isError) {
     return (
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <ErrorState title="Couldn't load conversations" onRetry={refetch} />
       </SafeAreaView>
     )
@@ -74,7 +75,7 @@ export default function ConversationListScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <FlatList
         data={conversations}
         keyExtractor={(c) => c.id}
@@ -94,7 +95,7 @@ export default function ConversationListScreen({ navigation }) {
             >
               <View>
                 {other?.avatarUrl ? (
-                  <Image source={{ uri: imgUrl(other?.avatarUrl) }} style={styles.avatar} />
+                  <Image source={{ uri: imgUrl(other?.avatarUrl) }} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" transition={200} />
                 ) : (
                   <View style={[styles.avatar, styles.avatarFallback]}>
                     <Text style={styles.avatarInitial}>{displayName(other)[0]?.toUpperCase()}</Text>
