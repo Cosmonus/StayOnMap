@@ -29,7 +29,7 @@ process.on('unhandledRejection', (reason) => {
 })
 
 import { errorMiddleware } from './middlewares/error.middleware.js'
-import { defaultLimiter, strictLimiter, uploadLimiter, adminLimiter } from './middlewares/rateLimit.middleware.js'
+import { defaultLimiter, uploadLimiter, adminLimiter } from './middlewares/rateLimit.middleware.js'
 
 import authRoutes        from './features/auth/auth.routes.js'
 import propertyRoutes    from './features/properties/properties.routes.js'
@@ -75,7 +75,7 @@ app.use(defaultLimiter)
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 
 // User-facing routes
-app.use('/api/v1/auth',          strictLimiter, authRoutes)
+app.use('/api/v1/auth',          authRoutes)
 app.use('/api/v1/properties',    propertyRoutes)
 app.use('/api/v1/users',         userRoutes)
 app.use('/api/v1/uploads',       uploadLimiter, uploadRoutes)

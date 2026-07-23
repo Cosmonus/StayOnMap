@@ -15,9 +15,17 @@ export function AuthProvider({ children }) {
 
     authService.getMe()
       .then((res) => setUser(res.data))
-      .catch(() => {
-        localStorage.removeItem('user_token')
-        useUiStore.getState().setHostMode(false)
+      .catch((err) => {
+        // Only a genuine auth failure clears the session. A transient error —
+        // a 429 (rate limit), a 5xx, or a network blip — must NOT log the user
+        // out: dropping the token here on a 429 from /auth/me was exactly how a
+        // rate-limited page load ejected a signed-in user. The axios
+        // interceptor already handles 401 refresh; leave the token in place for
+        // anything else and let the next check recover.
+        if (err?.statusCode === 401 || err?.statusCode === 403) {
+          localStorage.removeItem('user_token')
+          useUiStore.getState().setHostMode(false)
+        }
       })
       .finally(() => setLoading(false))
   }, [])
