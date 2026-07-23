@@ -83,7 +83,6 @@ export default function ConversationListScreen({ navigation }) {
           const otherRole = c.tenantId === user?.id ? 'Owner' : 'Tenant'
           const lastMsg = c.messages?.[0]
           const unread = c._count?.messages ?? 0
-          const propertyImg = c.property?.images?.[0]?.url
           const isOnline = onlineUsers.has(other?.id)
 
           return (
@@ -94,8 +93,8 @@ export default function ConversationListScreen({ navigation }) {
               accessibilityLabel={`Conversation with ${displayName(other)} about ${c.property?.title ?? 'a property'}${unread > 0 ? `, ${unread} unread` : ''}`}
             >
               <View>
-                {other?.avatarUrl || propertyImg ? (
-                  <Image source={{ uri: imgUrl(other?.avatarUrl ?? propertyImg) }} style={styles.avatar} />
+                {other?.avatarUrl ? (
+                  <Image source={{ uri: imgUrl(other?.avatarUrl) }} style={styles.avatar} />
                 ) : (
                   <View style={[styles.avatar, styles.avatarFallback]}>
                     <Text style={styles.avatarInitial}>{displayName(other)[0]?.toUpperCase()}</Text>
