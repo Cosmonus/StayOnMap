@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
 import { chatService } from '@services/chat.service'
 import { useUiStore } from '@store/uiStore'
@@ -31,6 +31,7 @@ function formatSlot(t) {
 
 export default function AppointmentForm({ propertyId, windowStart, windowEnd, onSuccess }) {
   const navigation = useNavigation()
+  const queryClient = useQueryClient()
   const hostMode = useUiStore((s) => s.hostMode)
   const [form, setForm] = useState({ requestedDate: '', requestedTime: '', message: '', contactNumber: '' })
   const [submitted, setSubmitted] = useState(false)
@@ -48,6 +49,8 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
     },
     onSuccess: () => {
       setSubmitted(true)
+      // So the property page's footer flips to "Visit requested" on return.
+      queryClient.invalidateQueries({ queryKey: ['my-appointments'] })
       onSuccess?.()
     },
   })

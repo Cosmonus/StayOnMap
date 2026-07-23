@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions, Share, Animated } from 'react-native'
 import { Image } from 'expo-image'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
 import { chatService } from '@services/chat.service'
 import { savedService } from '@services/saved.service'
+import { appointmentService } from '@services/appointment.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
 import TrustBadge from '@components/common/TrustBadge'
@@ -31,6 +32,14 @@ import { spacing, radius } from '@theme/spacing'
 
 const FURNISHED_LABEL = { FULLY: 'Fully furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
 const SCREEN_WIDTH = Dimensions.get('window').width
+
+// An existing visit request replaces the "Request a visit" button with a status
+// pill — mirrors web's AppointmentSection. Only PENDING/ACCEPTED show a pill; a
+// rejected/cancelled/reschedule state falls back to letting them request again.
+const APPT_STATUS = {
+  PENDING:  { label: 'Visit requested', icon: 'clock',       bg: colors.warning50, fg: colors.warning700, iconColor: colors.warning700 },
+  ACCEPTED: { label: 'Visit confirmed', icon: 'checkCircle', bg: colors.brand50,   fg: colors.brand700,  iconColor: colors.brand600 },
+}
 
 function formatType(type) {
   if (!type) return null
@@ -69,7 +78,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
   const [chatLoading, setChatLoading] = useState(false)
   const { user } = useAuth()
   const insets = useSafeAreaInsets()
-  const scrollY = useRef(new Animated.Value(0)).current
+  const scrollY = useMemo(() => new Animated.Value(0), [])
   // Fade a solid status-bar backing in as the body scrolls up under the status
   // bar. Without it, with headerShown:false under Android edge-to-edge, the
   // clock/battery icons sit directly on the content. 260 = hero gallery height.
@@ -91,6 +100,12 @@ export default function PropertyDetailScreen({ route, navigation }) {
     queryKey: ['saved'],
     queryFn: () => savedService.getMySaved().then((r) => r.data),
     enabled: !!user,
+  })
+  const { data: myAppointments = [] } = useQuery({
+    queryKey: ['my-appointments'],
+    queryFn: () => appointmentService.mine().then((r) => r.data),
+    enabled: !!user,
+    staleTime: 60 * 1000,
   })
   const isSaved = savedList?.some((s) => s.propertyId === propertyId) ?? false
 
@@ -156,6 +171,10 @@ export default function PropertyDetailScreen({ route, navigation }) {
   // "Message" on their own listing until that query resolves. An owner can't
   // book or message themselves, so the footer must be hidden from the first frame.
   const isOwner = !!user && user.id === property.ownerId
+  const existingAppt = myAppointments
+    .filter((a) => a.propertyId === propertyId)
+    .sort((a, b) => new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0))[0]
+  const apptStatus = existingAppt ? APPT_STATUS[existingAppt.status] : null
   // Prisma's Decimal(10,7) lat/lng serialize as strings over JSON — every
   // other map consumer in this app (PropertyPin, clustering.js) coerces with
   // unary + before using them numerically; react-native-maps crashes with a
@@ -336,17 +355,24 @@ export default function PropertyDetailScreen({ route, navigation }) {
               </>
             )}
           </Pressable>
-          <Pressable
-            style={styles.bookButton}
-            onPress={() => navigation.navigate('BookViewing', {
-              propertyId,
-              windowStart: property.appointmentWindowStart,
-              windowEnd: property.appointmentWindowEnd,
-            })}
-          >
-            <Icon name="calendar" size={16} color={colors.white} />
-            <Text style={styles.bookButtonText}>Book a viewing</Text>
-          </Pressable>
+          {apptStatus ? (
+            <View style={[styles.apptStatus, { backgroundColor: apptStatus.bg }]}>
+              <Icon name={apptStatus.icon} size={16} color={apptStatus.iconColor} />
+              <Text style={[styles.apptStatusText, { color: apptStatus.fg }]}>{apptStatus.label}</Text>
+            </View>
+          ) : (
+            <Pressable
+              style={styles.bookButton}
+              onPress={() => navigation.navigate('BookViewing', {
+                propertyId,
+                windowStart: property.appointmentWindowStart,
+                windowEnd: property.appointmentWindowEnd,
+              })}
+            >
+              <Icon name="calendar" size={16} color={colors.white} />
+              <Text style={styles.bookButtonText}>Request a visit</Text>
+            </Pressable>
+          )}
         </SafeAreaView>
       )}
     </View>
@@ -400,4 +426,6 @@ const styles = StyleSheet.create({
   messageButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand700 },
   bookButton: { flex: 2, minHeight: 44, flexDirection: 'row', gap: 6, backgroundColor: colors.brand600, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.sm + 4 },
   bookButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
+  apptStatus: { flex: 2, minHeight: 44, flexDirection: 'row', gap: 6, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.sm + 4 },
+  apptStatusText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm },
 })
