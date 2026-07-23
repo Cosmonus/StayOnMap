@@ -53,9 +53,9 @@ export const env = {
   //     locally and on hosts that allow outbound SMTP.
   //   MAIL_PROVIDER=zeptomail       → Zoho ZeptoMail's REST API over HTTPS
   //     (plain fetch, no SDK). The chosen production path (decision
-  //     2026-07-21, superseding Resend the same day) — Railway below the Pro
-  //     plan blocks outbound SMTP ports (25/465/587/2525) outright, so an
-  //     HTTPS API is the only way to send there. Transactional-only by
+  //     2026-07-21, superseding Resend the same day) — the previous host
+  //     blocked outbound SMTP ports (25/465/587/2525) outright, so an HTTPS API
+  //     was the only way to send; kept as the default. Transactional-only by
   //     Zoho's terms — never marketing mail, which this app doesn't send.
   //   MAIL_PROVIDER=resend / brevo  → same shape, kept as alternatives.
   // Unset/unconfigured → email is a logged no-op (same as before).

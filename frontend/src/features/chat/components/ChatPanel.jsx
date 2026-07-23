@@ -119,7 +119,6 @@ function ConversationList({ conversations, activeId, onSelect, userId, search, o
         const lastMsg = c.messages?.[0]
         const isActive = c.id === activeId
         const unread = c._count?.messages ?? 0
-        const propertyImg = c.property?.images?.[0]?.url
         const isOnline = onlineUsers.has(other?.id)
 
         return (
@@ -133,7 +132,7 @@ function ConversationList({ conversations, activeId, onSelect, userId, search, o
             }`}
           >
             <div className="relative">
-              <Avatar name={displayName(other)} url={other.avatarUrl ?? propertyImg} size={44} />
+              <Avatar name={displayName(other)} url={other.avatarUrl} size={44} />
               {isOnline && (
                 <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full" />
               )}

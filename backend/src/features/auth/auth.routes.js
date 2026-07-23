@@ -1,25 +1,33 @@
 import { Router } from 'express'
 import { authMiddleware } from '../../middlewares/auth.middleware.js'
 import { validate } from '../../middlewares/validate.middleware.js'
+import { strictLimiter } from '../../middlewares/rateLimit.middleware.js'
 import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, verifyEmailSchema, updateRoleSchema, requestOtpSchema, verifyOtpSchema, refreshSchema, logoutSchema, oauthCompleteSchema } from './auth.validation.js'
 import * as controller from './auth.controller.js'
 
 const router = Router()
 
-router.post('/register',        validate(registerSchema),       controller.register)
-router.post('/login',           validate(loginSchema),          controller.login)
-router.post('/forgot-password', validate(forgotPasswordSchema), controller.forgotPassword)
-router.post('/reset-password',  validate(resetPasswordSchema),  controller.resetPassword)
+// strictLimiter (20 req/15min per IP) is applied PER-ROUTE, on the password /
+// account-guessing and email-sending surfaces only — NOT on the whole router.
+// It used to blanket-cover /auth (index.js), which meant the automated,
+// legitimate calls (/me on every page load, /refresh on token rotation) shared
+// the tiny 20-req anti-brute-force bucket; a burst drained it and then real
+// logins 429'd — and a 429 on /me logged the user out. Those endpoints now ride
+// the global defaultLimiter (600/15min) instead.
+router.post('/register',        strictLimiter, validate(registerSchema),       controller.register)
+router.post('/login',           strictLimiter, validate(loginSchema),          controller.login)
+router.post('/forgot-password', strictLimiter, validate(forgotPasswordSchema), controller.forgotPassword)
+router.post('/reset-password',  strictLimiter, validate(resetPasswordSchema),  controller.resetPassword)
 router.post('/verify-email',    validate(verifyEmailSchema),    controller.verifyEmail)
 
-// Passwordless login. The whole /auth router already carries strictLimiter
-// (20 req/15min per IP, see index.js); the per-EMAIL cooldown and daily cap
-// live in the service, because an IP limit alone doesn't stop a distributed
-// caller from draining the shared SMTP quota.
-router.post('/otp/request', validate(requestOtpSchema), controller.requestOtp)
-router.post('/otp/verify',  validate(verifyOtpSchema),  controller.verifyOtp)
+// Passwordless login. strictLimiter here is per-IP; the per-EMAIL cooldown and
+// daily cap live in the service, because an IP limit alone doesn't stop a
+// distributed caller from draining the shared SMTP quota.
+router.post('/otp/request', strictLimiter, validate(requestOtpSchema), controller.requestOtp)
+router.post('/otp/verify',  strictLimiter, validate(verifyOtpSchema),  controller.verifyOtp)
 
-router.post('/send-verification', authMiddleware, controller.sendVerification)
+// Sends an email → keep it on the tight bucket to protect the mail quota.
+router.post('/send-verification', strictLimiter, authMiddleware, controller.sendVerification)
 
 router.get('/me', authMiddleware, controller.getMe)
 router.patch('/role', authMiddleware, validate(updateRoleSchema), controller.updateRole)

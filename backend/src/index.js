@@ -22,14 +22,14 @@ const publicDir = path.join(__dirname, '../../public')
 // without this, one stray promise anywhere (a missed await, a third-party lib
 // edge case) takes the whole server down instead of just failing that one
 // operation. uncaughtException is intentionally left to crash — Node's own
-// guidance is that process state may be corrupted past that point, and the
-// hosting platform (Railway) restarts a crashed process automatically.
+// guidance is that process state may be corrupted past that point, and systemd
+// (Restart=always in stayonmap-api.service) restarts a crashed process automatically.
 process.on('unhandledRejection', (reason) => {
   console.error('[unhandledRejection]', reason)
 })
 
 import { errorMiddleware } from './middlewares/error.middleware.js'
-import { defaultLimiter, strictLimiter, uploadLimiter, adminLimiter } from './middlewares/rateLimit.middleware.js'
+import { defaultLimiter, uploadLimiter, adminLimiter } from './middlewares/rateLimit.middleware.js'
 
 import authRoutes        from './features/auth/auth.routes.js'
 import propertyRoutes    from './features/properties/properties.routes.js'
@@ -57,10 +57,10 @@ import { adminVerificationRouter } from './features/verification/verification.ro
 const app  = express()
 const PORT = process.env.PORT ?? 4000
 
-// Railway terminates TLS at its edge proxy — without this, req.ip is the
-// proxy's address for every request, so all users share one rate-limit
-// bucket (the 20-req/15-min auth limiter becomes platform-wide, failing
-// real signups/logins under normal traffic). Trust exactly one hop.
+// nginx terminates TLS and reverse-proxies to the API on localhost — without
+// this, req.ip is the proxy's address for every request, so all users share
+// one rate-limit bucket (the 20-req/15-min auth limiter becomes server-wide,
+// failing real signups/logins under normal traffic). Trust exactly one hop.
 if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1)
 
 app.use(compression())
@@ -75,7 +75,7 @@ app.use(defaultLimiter)
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 
 // User-facing routes
-app.use('/api/v1/auth',          strictLimiter, authRoutes)
+app.use('/api/v1/auth',          authRoutes)
 app.use('/api/v1/properties',    propertyRoutes)
 app.use('/api/v1/users',         userRoutes)
 app.use('/api/v1/uploads',       uploadLimiter, uploadRoutes)

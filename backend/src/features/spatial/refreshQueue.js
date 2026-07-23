@@ -9,7 +9,7 @@
 //   way to ask "what has this thing been doing", because it left no trace.
 //
 // pg-boss turns the schedule into rows in the database that already exists. No
-// Redis requirement, no second Railway service, no new infrastructure: it
+// Redis requirement, no second service, no new infrastructure: it
 // creates its own `pgboss` schema and polls it. What that buys, concretely:
 //
 //   - Durability. A deploy mid-tick leaves the job row; it runs after boot.
@@ -21,7 +21,7 @@
 //     approximating. The lock stays for the setInterval fallback path below.
 //
 // Deliberately NOT a separate worker service. The audit recommends one and it
-// is right at scale, but a second always-on Railway service costs money to run
+// is right at scale, but a second always-on service costs money to run
 // a job that currently has zero cells to refresh. In-process gets the
 // durability and the visibility, which is where the value is today. Splitting
 // later is a config change: the handler is already a pure function of the DB.

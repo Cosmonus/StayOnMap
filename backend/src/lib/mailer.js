@@ -8,10 +8,11 @@
 //                         path (2026-07-21 decision).
 //   resend / brevo      — same shape, kept as alternatives.
 //
-// Why the HTTPS paths exist: Railway blocks outbound SMTP ports
-// (25/465/587/2525) on every plan below Pro, so SMTP there fails no matter how
-// it's configured — an HTTPS API is the only way to send. Nothing else in the
-// app knows or cares which path is active.
+// Why the HTTPS paths exist: the previous host (Railway) blocked outbound SMTP
+// ports (25/465/587/2525), so SMTP failed there no matter how it was configured
+// and an HTTPS API was the only way to send. The self-hosted VM allows SMTP, but
+// ZeptoMail's HTTPS path stays the production default (avoids re-verifying sender
+// DNS). Nothing else in the app knows or cares which path is active.
 //
 // A daily send counter (Redis when available, in-memory otherwise) enforces the
 // provider's quota, and the last CRITICAL_RESERVE sends of each day are held
