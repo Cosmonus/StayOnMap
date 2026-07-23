@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, TextInput, Pressable, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, StyleSheet } from 'react-native'
 import { Image } from 'expo-image'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as ImagePicker from 'expo-image-picker'
 import { chatService } from '@services/chat.service'
@@ -51,7 +50,6 @@ function SenderAvatar({ sender }) {
 export default function ConversationScreen({ route, navigation }) {
   const { conversationId, other: otherParam, otherRole } = route.params
   const { user } = useAuth()
-  const insets = useSafeAreaInsets()
   const hostMode = useUiStore((s) => s.hostMode)
   const qc = useQueryClient()
   const [input, setInput] = useState('')
@@ -318,6 +316,15 @@ export default function ConversationScreen({ route, navigation }) {
         </View>
       )}
 
+      {/* Pinned so the user always knows which property this chat is about —
+          it used to be the inverted list's footer and scrolled out of view
+          once the thread grew past a screenful. */}
+      {property && (
+        <View style={styles.pinnedProperty}>
+          <ChatPropertyCard property={property} onPress={openProperty} pinned />
+        </View>
+      )}
+
       {isLoading ? (
         <View style={styles.center}><ActivityIndicator color={colors.brand600} /></View>
       ) : isError ? (
@@ -373,10 +380,7 @@ export default function ConversationScreen({ route, navigation }) {
               <Text style={styles.typingText}>{otherRole ?? 'They'} typing…</Text>
             </View>
           ) : null}
-          ListFooterComponent={
-            // Inverted list: the footer renders at the visual top of the chat.
-            <ChatPropertyCard property={property} onPress={openProperty} />
-          }
+          ListFooterComponent={null}
           ListEmptyComponent={searchQuery.length > 0 ? (
             <View style={styles.noResults}>
               <Text style={styles.noResultsText}>No messages match &ldquo;{searchQuery}&rdquo;</Text>
@@ -394,7 +398,7 @@ export default function ConversationScreen({ route, navigation }) {
         </View>
       )}
 
-      <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+      <View style={styles.inputBar}>
         <Pressable
           style={[styles.attachButton, busy && styles.disabled]}
           onPress={handleAttach}
@@ -430,6 +434,9 @@ export default function ConversationScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
+  pinnedProperty: {
+    backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.slate200,
+  },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   headerSearchButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   searchBar: {
