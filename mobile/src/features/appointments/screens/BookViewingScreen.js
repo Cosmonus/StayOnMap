@@ -17,7 +17,7 @@ export default function BookViewingScreen({ route, navigation }) {
         </Pressable>
         <View style={styles.headerTitleRow}>
           <Icon name="calendar" size={18} color={colors.slate800} />
-          <Text style={styles.headerTitle}>Book a viewing</Text>
+          <Text style={styles.headerTitle}>Request a visit</Text>
         </View>
       </View>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
