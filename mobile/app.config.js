@@ -52,8 +52,12 @@ export default {
       [
         'expo-splash-screen',
         {
+          // A square, padded green "S" — NOT the old wide wordmark, which
+          // Android 12+ masks into a circle and clips at the sides. imageWidth
+          // was 500 (wider than the screen); 288 sizes the mark to sit inside
+          // the circular splash with room to spare.
           image: './assets/splash-icon.png',
-          imageWidth: 500,
+          imageWidth: 288,
           backgroundColor: '#edfaf7',
         },
       ],

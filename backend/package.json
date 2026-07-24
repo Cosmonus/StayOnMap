@@ -10,6 +10,8 @@
     "lint": "eslint src",
     "build": "cd ../frontend && npm install && npm run build && cp -r dist ../backend/public",
     "metro": "node scripts/metro-engine.mjs",
+    "seed:test": "node scripts/seed-test-accounts.mjs",
+    "seed:test:clean": "node scripts/cleanup-test-accounts.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -51,6 +53,9 @@
     "prisma": "^7.8.0",
     "supertest": "^7.2.2",
     "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "find-my-way": "^9.7.0"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

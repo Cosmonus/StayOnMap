@@ -100,3 +100,9 @@ graphify-out/
 backend/data/metro-raw/
 backend/data/metro-candidates/
 backend/data/metro-compare/
+
+# design-sync (claude.ai/design) — local-only, never pushed
+.design-sync/
+.ds-sync/
+ds-bundle/
+frontend/.ds-styles.css
