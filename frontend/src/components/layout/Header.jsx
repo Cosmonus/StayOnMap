@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Map as MapIcon, Home, ConciergeBell, Menu, User } from 'lucide-react'
@@ -79,7 +80,16 @@ function DropdownMenu({ trigger, triggerClassName, items }) {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          {/* Portal the backdrop to <body>: the <header> uses a CSS transform
+              (its hide-on-scroll animation), which makes it the containing
+              block for fixed descendants — so a nested `fixed inset-0` is
+              trapped inside the ~64px header bar and never covers the map.
+              Portaled to body it truly spans the viewport, so a click anywhere
+              (map included) closes the menu. */}
+          {createPortal(
+            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />,
+            document.body,
+          )}
           <div className="absolute right-0 top-full mt-2 z-40 w-56 bg-white rounded-xl shadow-panel border border-slate-200 py-2">
             {items.map((item) =>
               item.divider ? (
