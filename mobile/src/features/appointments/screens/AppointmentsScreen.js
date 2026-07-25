@@ -268,7 +268,10 @@ export default function AppointmentsScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScreenHeader title={`Appointments${isIncoming && pendingCount > 0 ? ` (${pendingCount})` : ''}`} />
+      <ScreenHeader
+        title={`Appointments${isIncoming && pendingCount > 0 ? ` (${pendingCount})` : ''}`}
+        right={isIncoming ? <FilterDropdown value={filter} options={OWNER_FILTERS} onChange={setFilter} /> : null}
+      />
 
       {isLoading ? (
         <View style={styles.center}><ActivityIndicator color={colors.brand600} /></View>
@@ -279,11 +282,6 @@ export default function AppointmentsScreen({ navigation, route }) {
           data={filteredOwner}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
-          ListHeaderComponent={
-            <View style={styles.filterRow}>
-              <FilterDropdown value={filter} options={OWNER_FILTERS} onChange={setFilter} />
-            </View>
-          }
           ListEmptyComponent={<EmptyState message="Tenant visit requests will appear here." />}
           renderItem={({ item }) => (
             <OwnerCard appt={item} onAction={(id, status, ownerNote) => mutation.mutate({ id, status, ownerNote })} onOpenProperty={openProperty} />
@@ -306,7 +304,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: spacing.lg, gap: spacing.md },
-  filterRow: { marginBottom: spacing.md, alignItems: 'flex-start' },
   filterTrigger: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
     borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md,
