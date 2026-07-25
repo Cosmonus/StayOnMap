@@ -44,7 +44,7 @@ export default function HostDashboardScreen({ navigation }) {
   ]
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Outside the ScrollView so it stays put while the page scrolls — the
           same fixed app bar the renter home has, so switching modes doesn't
           feel like a different app. */}

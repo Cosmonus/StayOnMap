@@ -83,14 +83,14 @@ export default function VerificationScreen({ route }) {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.center} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.center} edges={['bottom']}>
         <ActivityIndicator color={colors.brand600} size="large" />
       </SafeAreaView>
     )
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* This screen is PUSHED but had no back button at all — its header was
           an icon and the words 'Get Verified'. Hardware back worked; nothing
           on screen said so. ScreenHeader shows one whenever canGoBack(). */}

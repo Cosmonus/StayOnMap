@@ -61,7 +61,7 @@ export default function ConversationListScreen({ navigation }) {
   // vanish on empty/error — and why the loading and empty states sat in a
   // centred container the header must not be inside.
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScreenHeader title={hostMode ? 'Inbox' : 'Messages'} />
 
       {isLoading ? (

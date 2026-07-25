@@ -1,4 +1,5 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
 import Icon from './Icon'
 import Logo from './Logo'
@@ -25,10 +26,16 @@ import { spacing } from '@theme/spacing'
 // mode's Dashboard reads as the same product rather than a different screen.
 export default function ScreenHeader({ title, subtitle, right = null, back, logo = false, elevated = false }) {
   const navigation = useNavigation()
+  const insets = useSafeAreaInsets()
   const showBack = back ?? navigation.canGoBack()
 
+  // The header absorbs the status-bar inset itself, so its background runs
+  // behind the clock and battery as one bar. Letting the screen's SafeAreaView
+  // take the top edge instead painted that strip in the PAGE colour and left a
+  // visible two-tone split above a white header. Screens using this component
+  // must therefore NOT include 'top' in their SafeAreaView edges.
   return (
-    <View style={[styles.header, elevated && styles.elevated]}>
+    <View style={[styles.header, elevated && styles.elevated, { paddingTop: insets.top + spacing.md }]}>
       <View style={styles.left}>
         {showBack && (
           <Pressable

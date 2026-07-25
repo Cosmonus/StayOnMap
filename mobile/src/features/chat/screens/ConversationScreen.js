@@ -13,7 +13,6 @@ import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
 import ReadReceipt from '../components/ReadReceipt'
 import ChatPropertyCard from '../components/ChatPropertyCard'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -284,10 +283,9 @@ export default function ConversationScreen({ route, navigation }) {
   const resultCount = searchQuery.length > 0 ? listData.length : null
 
   return (
-    // The native header used to supply the top inset; without it the title
-    // would sit under the status bar. edges omits 'bottom' because
-    // KeyboardAvoidingView owns that edge for the message input.
-    <SafeAreaView style={styles.container} edges={['top']}>
+    // No SafeAreaView wrapper: ScreenHeader absorbs the top inset itself so its
+    // background runs behind the status bar as one bar, and the message input
+    // owns the bottom edge via KeyboardAvoidingView.
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -442,7 +440,6 @@ export default function ConversationScreen({ route, navigation }) {
         </Pressable>
       </View>
     </KeyboardAvoidingView>
-    </SafeAreaView>
   )
 }
 

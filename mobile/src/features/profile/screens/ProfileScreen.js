@@ -31,7 +31,7 @@ export default function ProfileScreen({ navigation }) {
   })
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScreenHeader title="Profile" />
       <View style={styles.card}>
         {profile?.avatarUrl ? (

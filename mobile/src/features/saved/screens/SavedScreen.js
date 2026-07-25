@@ -21,7 +21,7 @@ export default function SavedScreen({ navigation }) {
   })
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScreenHeader title="Saved" />
       {isLoading ? (
         <View style={styles.center}>
