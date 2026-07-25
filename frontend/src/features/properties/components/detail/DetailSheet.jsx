@@ -58,53 +58,6 @@ export default function DetailSheet({ property, variant, isOwner, directionsUrl 
         </SheetSection>
       )}
 
-      {/* ORDER IS THE PRODUCT DECISION, not an accident. .claude/ui-ux.md's
-          Design Philosophy ranks Nearby / Safety / Trust / Travel time /
-          Locality intelligence ABOVE long textual descriptions, and this
-          block used to sit below the description, the amenity grid and the
-          house rules — so on mobile, where most of our users are, you
-          scrolled past all three to reach the neighbourhood facts that
-          actually answer "should I live here". Do not move it back under
-          "About this home". */}
-      {/* Spatial intelligence — one mount, always here. The panel owns
-          its own heading, so this section deliberately has none.
-          The hand-authored "Neighbourhood intelligence" card that used
-          to sit alongside the commute calculator is gone: computed
-          cells and a human's estimate of an area are two different
-          claims, and showing them as sibling cards made the weaker one
-          look like the stronger one. The spatial modules are the single
-          source for area facts now. */}
-      <SheetSection>
-        <SpatialContextPanel
-          context={property.spatialContext}
-          coords={{ lat: property.lat, lng: property.lng }}
-        >
-          {/* CommuteCalculator is a tenant tool with mutation state — public
-              variant only, and never mounted twice (see .claude/ui-ux.md). */}
-          {variant === 'public' && <CommuteCalculator lat={property.lat} lng={property.lng} />}
-        </SpatialContextPanel>
-      </SheetSection>
-
-      {/* Location */}
-      {property.lat && property.lng && (
-        <SheetSection
-          title="Location"
-          action={
-            <a
-              href={directionsUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-xs font-bold text-white no-underline transition-colors hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1"
-            >
-              <Navigation className="h-3.5 w-3.5" strokeWidth={2.5} />
-              Directions
-            </a>
-          }
-        >
-          <PropertyLocationMap lat={property.lat} lng={property.lng} />
-        </SheetSection>
-      )}
-
       {/* About */}
       {property.description && (
         <SheetSection id="overview" title="About this home">
@@ -175,6 +128,52 @@ export default function DetailSheet({ property, variant, isOwner, directionsUrl 
               )}
             </div>
           )}
+        </SheetSection>
+      )}
+
+      {/* Order: the listing's OWN facts first (description, amenities, rules),
+          then the neighbourhood. Operator decision 2026-07-25, overriding the
+          earlier spatial-first ordering: amenities and house rules are
+          structured facts rather than the "long textual descriptions"
+          .claude/ui-ux.md's priority list deprioritises, and splitting the
+          three apart to hoist the panel read worse than keeping them together.
+          What this DOES preserve is that spatial still sits above reviews. */}
+      {/* Spatial intelligence — one mount, always here. The panel owns
+          its own heading, so this section deliberately has none.
+          The hand-authored "Neighbourhood intelligence" card that used
+          to sit alongside the commute calculator is gone: computed
+          cells and a human's estimate of an area are two different
+          claims, and showing them as sibling cards made the weaker one
+          look like the stronger one. The spatial modules are the single
+          source for area facts now. */}
+      <SheetSection>
+        <SpatialContextPanel
+          context={property.spatialContext}
+          coords={{ lat: property.lat, lng: property.lng }}
+        >
+          {/* CommuteCalculator is a tenant tool with mutation state — public
+              variant only, and never mounted twice (see .claude/ui-ux.md). */}
+          {variant === 'public' && <CommuteCalculator lat={property.lat} lng={property.lng} />}
+        </SpatialContextPanel>
+      </SheetSection>
+
+      {/* Location */}
+      {property.lat && property.lng && (
+        <SheetSection
+          title="Location"
+          action={
+            <a
+              href={directionsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-xs font-bold text-white no-underline transition-colors hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1"
+            >
+              <Navigation className="h-3.5 w-3.5" strokeWidth={2.5} />
+              Directions
+            </a>
+          }
+        >
+          <PropertyLocationMap lat={property.lat} lng={property.lng} />
         </SheetSection>
       )}
 
