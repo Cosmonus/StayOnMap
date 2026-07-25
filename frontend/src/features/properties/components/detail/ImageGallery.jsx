@@ -82,7 +82,7 @@ export default function ImageGallery({ images, avail, onOpenLightbox }) {
 
       {/* Mobile: Carousel */}
       <div className="md:hidden relative rounded-2xl overflow-hidden">
-        <button onClick={() => onOpenLightbox(mobileIdx)} className="w-full">
+        <button onClick={() => onOpenLightbox(mobileIdx)} aria-label="Open photo gallery" className="w-full">
           <div className="aspect-[4/3] bg-slate-100">
             <img src={list[mobileIdx]?.url} alt="Property" decoding="async" className="w-full h-full object-cover" />
           </div>
@@ -92,12 +92,14 @@ export default function ImageGallery({ images, avail, onOpenLightbox }) {
           <>
             <button
               onClick={() => setMobileIdx(i => (i - 1 + list.length) % list.length)}
+              aria-label="Previous photo"
               className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center"
             >
               <ChevronLeft className="w-4 h-4 text-white" strokeWidth={2.5} />
             </button>
             <button
               onClick={() => setMobileIdx(i => (i + 1) % list.length)}
+              aria-label="Next photo"
               className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center"
             >
               <ChevronRight className="w-4 h-4 text-white" strokeWidth={2.5} />

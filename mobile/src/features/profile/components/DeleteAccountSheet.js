@@ -43,7 +43,7 @@ export default function DeleteAccountSheet({ visible, onClose }) {
         value={typed}
         onChangeText={setTyped}
         placeholder="DELETE"
-        placeholderTextColor={colors.slate400}
+        placeholderTextColor={colors.slate500}
         autoCapitalize="characters"
         autoCorrect={false}
         accessibilityLabel="Type DELETE to confirm account deletion"

@@ -87,10 +87,20 @@ export default function BottomSheet({ children, initialSnap = 0 }) {
           <button
             key={i}
             onClick={() => setSnapIdx(i)}
-            className={`rounded-full transition-all duration-200 ${
-              i === snapIdx ? 'w-4 h-1.5 bg-brand-500' : 'w-1.5 h-1.5 bg-slate-200'
-            }`}
-          />
+            aria-label={`Sheet position ${i + 1} of ${SNAPS.length}`}
+            aria-current={i === snapIdx}
+            // The dot stays 6px; the BUTTON is 24x24 so it meets the minimum
+            // target size (WCAG 2.5.8). Sizing the button to the dot made these
+            // 6px targets.
+            className="w-6 h-6 flex items-center justify-center"
+          >
+            <span
+              aria-hidden="true"
+              className={`rounded-full transition-all duration-200 ${
+                i === snapIdx ? 'w-4 h-1.5 bg-brand-500' : 'w-1.5 h-1.5 bg-slate-200'
+              }`}
+            />
+          </button>
         ))}
       </div>
 

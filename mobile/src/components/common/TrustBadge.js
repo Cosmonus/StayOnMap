@@ -11,7 +11,7 @@ const BADGE_CONFIG = {
   COMMUNITY_TRUSTED:     { label: 'Community Trusted',    bg: colors.brand100, text: colors.brand800, dot: colors.brand400 },
   HIGHLY_RECOMMENDED:    { label: 'Highly Recommended',   bg: colors.success50, text: '#15803D', dot: colors.success },
   VERIFIED_NEIGHBORHOOD: { label: 'Verified Neighborhood', bg: '#EFF6FF', text: '#1D4ED8', dot: '#3B82F6' },
-  LOW_COMPLAINT:         { label: 'Low Complaint',        bg: colors.slate100, text: colors.slate600, dot: colors.slate400 },
+  LOW_COMPLAINT:         { label: 'Low Complaint',        bg: colors.slate100, text: colors.slate600, dot: colors.slate500 },
   UNDER_REVIEW:          { label: 'Under Review',         bg: colors.warning50, text: '#B45309', dot: colors.warning },
   SUSPICIOUS:            { label: 'Suspicious',           bg: colors.danger50, text: '#991B1B', dot: colors.danger },
   NEEDS_ATTENTION:       { label: 'Needs Attention',      bg: colors.danger50, text: '#DC2626', dot: '#F87171' },

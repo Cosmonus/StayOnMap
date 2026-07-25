@@ -36,7 +36,7 @@ export default function PropertyDetailsSection({ property }) {
       <View style={styles.card}>
         {rows.map((r, i) => (
           <View key={r.label} style={[styles.row, i === rows.length - 1 && styles.rowLast]}>
-            <Icon name={r.icon} size={14} color={colors.slate400} />
+            <Icon name={r.icon} size={14} color={colors.slate500} />
             <Text style={styles.rowLabel}>{r.label}</Text>
             <Text style={styles.rowValue}>{r.value}</Text>
           </View>

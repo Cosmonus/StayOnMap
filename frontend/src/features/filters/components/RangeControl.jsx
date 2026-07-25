@@ -10,8 +10,8 @@ function NumberInput({ value, placeholder, unit, onChange }) {
   const suffix = unit && unit !== '₹' ? unit : null
   return (
     <div className="relative flex-1">
-      {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">{prefix}</span>}
-      {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">{suffix}</span>}
+      {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">{prefix}</span>}
+      {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 pointer-events-none">{suffix}</span>}
       <input
         type="number"
         min="0"
@@ -19,7 +19,7 @@ function NumberInput({ value, placeholder, unit, onChange }) {
         value={value ?? ''}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
-        className={`w-full h-10 ${prefix ? 'pl-8' : 'pl-3'} ${suffix ? 'pr-12' : 'pr-3'} rounded-xl border border-slate-200 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500`}
+        className={`w-full h-10 ${prefix ? 'pl-8' : 'pl-3'} ${suffix ? 'pr-12' : 'pr-3'} rounded-xl border border-slate-200 text-sm text-slate-700 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500`}
       />
     </div>
   )

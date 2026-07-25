@@ -27,8 +27,8 @@ export default function HouseRulesSection({ rules }) {
           const allowed = !!rules[key]
           return (
             <View key={key} style={[styles.ruleCard, allowed ? styles.ruleAllowed : styles.ruleDenied]}>
-              <Text style={[styles.ruleLabel, { color: allowed ? colors.slate800 : colors.slate400 }]}>{label}</Text>
-              <View style={[styles.ruleDot, { backgroundColor: allowed ? colors.brand600 : colors.slate400 }]}>
+              <Text style={[styles.ruleLabel, { color: allowed ? colors.slate800 : colors.slate500 }]}>{label}</Text>
+              <View style={[styles.ruleDot, { backgroundColor: allowed ? colors.brand600 : colors.slate500 }]}>
                 <Icon name={allowed ? 'check' : 'close'} size={10} color={colors.white} />
               </View>
             </View>

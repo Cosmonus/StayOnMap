@@ -116,7 +116,7 @@ function RuleSection({ title, subtitle, items, type }) {
         </div>
         <div>
           <h3 className="text-sm font-bold text-slate-800">{title}</h3>
-          <p className="text-[11px] text-slate-400">{subtitle}</p>
+          <p className="text-[11px] text-slate-500">{subtitle}</p>
         </div>
       </div>
       <div className="flex flex-col gap-4">
@@ -132,7 +132,7 @@ function StatCard({ number, label }) {
   return (
     <div className="text-center">
       <p className="text-2xl sm:text-3xl font-bold text-white">{number}</p>
-      <p className="text-[11px] text-slate-400 mt-1 uppercase tracking-wider font-medium">{label}</p>
+      <p className="text-[11px] text-slate-500 mt-1 uppercase tracking-wider font-medium">{label}</p>
     </div>
   )
 }
@@ -168,7 +168,7 @@ export default function RulesPage() {
             Fair rules. Real homes.<br />
             <span className="text-brand-400">Zero brokerage.</span>
           </h1>
-          <p className="text-slate-400 text-sm leading-relaxed max-w-lg mx-auto">
+          <p className="text-slate-500 text-sm leading-relaxed max-w-lg mx-auto">
             These guidelines protect everyone on StayOnMap — owners, tenants, and every listing on the platform.
           </p>
 
@@ -211,7 +211,7 @@ export default function RulesPage() {
           </div>
           <div>
             <h2 className="font-display font-bold text-lg text-slate-900">Rules for {persona.label}</h2>
-            <p className="text-sm text-slate-400">{persona.tagline}</p>
+            <p className="text-sm text-slate-500">{persona.tagline}</p>
           </div>
         </div>
 
@@ -221,7 +221,7 @@ export default function RulesPage() {
             <Info size={14} color="#f4511e" strokeWidth={2} />
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">In short</p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">In short</p>
             <p className="text-sm text-slate-600 leading-relaxed">{rules.summary}</p>
           </div>
         </div>
@@ -269,7 +269,7 @@ export default function RulesPage() {
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-800">How reports are handled</h3>
-              <p className="text-[11px] text-slate-400">What actually happens after you hit &quot;report&quot;</p>
+              <p className="text-[11px] text-slate-500">What actually happens after you hit &quot;report&quot;</p>
             </div>
           </div>
           <div className="flex flex-col gap-3">
@@ -297,7 +297,7 @@ export default function RulesPage() {
             <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-2xl shrink-0">🤝</div>
             <div className="flex-1">
               <h3 className="font-display font-bold text-base text-white mb-1">The StayOnMap Pledge</h3>
-              <p className="text-sm text-slate-400 leading-relaxed">
+              <p className="text-sm text-slate-500 leading-relaxed">
                 By using StayOnMap you agree to act with honesty, fairness, and respect. Violations lead to listing removal and account bans.
               </p>
             </div>

@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center',
   },
   rent: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, marginTop: spacing.xs },
-  rentUnit: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400 },
+  rentUnit: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   title: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.slate700, marginTop: 1 },
-  spec: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400, marginTop: 1 },
+  spec: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 1 },
 })

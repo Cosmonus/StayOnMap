@@ -130,7 +130,7 @@
 
   /* Data label (muted uppercase metadata) */
   .text-label {
-    @apply text-xs font-medium text-slate-400 uppercase tracking-wider;
+    @apply text-xs font-medium text-slate-500 uppercase tracking-wider;
   }
 
   /* Badge text — minimum readable size */

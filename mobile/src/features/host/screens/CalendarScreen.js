@@ -12,7 +12,7 @@ import { spacing, radius } from '@theme/spacing'
 import { formatRent } from '@utils/format'
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-const DOT_COLOR = { appointment: '#FBBF24', 'lease-start': '#4ADE80', 'lease-end': colors.slate400 }
+const DOT_COLOR = { appointment: '#FBBF24', 'lease-start': '#4ADE80', 'lease-end': colors.slate500 }
 const EVENT_TYPE_LABEL = { appointment: 'Visit request', 'lease-start': 'Lease starts', 'lease-end': 'Lease ends' }
 
 function daysInMonth(year, month) {
@@ -195,11 +195,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
   title: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  subtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2, marginBottom: spacing.lg },
+  subtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2, marginBottom: spacing.lg },
   monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
   monthLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
   weekRow: { flexDirection: 'row' },
-  weekday: { width: CELL_WIDTH, textAlign: 'center', fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate400, paddingVertical: spacing.xs },
+  weekday: { width: CELL_WIDTH, textAlign: 'center', fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate500, paddingVertical: spacing.xs },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: CELL_WIDTH, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
   dayNumber: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate700 },
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   handle: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: colors.slate200, marginTop: spacing.sm + 2 },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.md - 2 },
   sheetHeading: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800, flexShrink: 1, marginRight: spacing.sm },
-  emptyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, textAlign: 'center', paddingVertical: spacing.xl },
+  emptyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, textAlign: 'center', paddingVertical: spacing.xl },
   sheetList: { marginBottom: spacing.sm },
   bookingRow: {
     flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,
@@ -226,5 +226,5 @@ const styles = StyleSheet.create({
   bookingDot: { width: 8, height: 8, borderRadius: 4, marginTop: 5 },
   bookingInfo: { flex: 1, minWidth: 0 },
   bookingLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
-  bookingDetail: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
+  bookingDetail: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
 })

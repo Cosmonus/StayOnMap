@@ -14,7 +14,7 @@ export default function Divider({
     return (
       <div className={`flex items-center gap-3 ${className}`} role="separator">
         <div className="h-px flex-1 bg-slate-200" />
-        <span className="text-xs font-medium text-slate-400 uppercase">{label}</span>
+        <span className="text-xs font-medium text-slate-500 uppercase">{label}</span>
         <div className="h-px flex-1 bg-slate-200" />
       </div>
     )

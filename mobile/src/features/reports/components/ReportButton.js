@@ -68,7 +68,7 @@ export default function ReportButton({ propertyId }) {
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.headerRow}>
                   <Text style={styles.title}>Report this listing</Text>
-                  <Pressable onPress={close} hitSlop={14} accessibilityRole="button" accessibilityLabel="Close report form"><Icon name="close" size={18} color={colors.slate400} /></Pressable>
+                  <Pressable onPress={close} hitSlop={14} accessibilityRole="button" accessibilityLabel="Close report form"><Icon name="close" size={18} color={colors.slate500} /></Pressable>
                 </View>
 
                 <Text style={styles.label}>Category</Text>
@@ -109,7 +109,7 @@ export default function ReportButton({ propertyId }) {
                   value={form.description}
                   onChangeText={(v) => setForm((f) => ({ ...f, description: v }))}
                   placeholder="Describe the issue in detail (min 20 characters)"
-                  placeholderTextColor={colors.slate400}
+                  placeholderTextColor={colors.slate500}
                   multiline
                   numberOfLines={4}
                 />
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   successBox: { alignItems: 'center', paddingVertical: spacing.xl },
   successIcon: { width: 48, height: 48, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   successTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.lg, color: colors.slate800 },
-  successBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: spacing.xs, textAlign: 'center' },
+  successBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: spacing.xs, textAlign: 'center' },
   closeButton: { marginTop: spacing.lg, backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm + 4 },
   closeButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
 })

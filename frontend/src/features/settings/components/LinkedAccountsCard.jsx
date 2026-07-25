@@ -51,7 +51,7 @@ export default function LinkedAccountsCard() {
         <div className="flex items-center justify-between pb-3 border-b border-slate-50">
           <div>
             <p className="text-sm font-medium text-slate-800">Email &amp; password</p>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500">
               {data?.hasPassword ? 'A password is set on this account' : 'No password — use "Reset" above to set one'}
             </p>
           </div>
@@ -67,7 +67,7 @@ export default function LinkedAccountsCard() {
             <div key={key} className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-800">{PROVIDER_LABELS[enumName] ?? label}</p>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-500">
                   {account ? (account.providerEmail ?? 'Connected') : 'Not connected'}
                 </p>
               </div>

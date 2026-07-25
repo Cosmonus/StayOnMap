@@ -150,7 +150,7 @@ export default function AppTabs() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.brand600,
-        tabBarInactiveTintColor: colors.slate400,
+        tabBarInactiveTintColor: colors.slate500,
         tabBarLabelStyle: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs },
         tabBarStyle: { borderTopColor: colors.slate200 },
       }}

@@ -76,7 +76,7 @@ export default function MapPreview() {
       {/* Total badge */}
       <div className="absolute bottom-3 right-3 md:bottom-5 md:right-5 z-10 pointer-events-none">
         <div className="bg-[#111111] text-white rounded-xl px-4 py-2.5 shadow-lg flex flex-wrap items-center gap-x-4 gap-y-1 max-w-[calc(100vw-1.5rem)]">
-          <span className="text-xs text-slate-400 font-medium">Total across all cities</span>
+          <span className="text-xs text-slate-500 font-medium">Total across all cities</span>
           <span className="text-sm font-bold text-brand-400">{totalActive} rentals</span>
         </div>
       </div>

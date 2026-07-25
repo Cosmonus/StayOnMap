@@ -14,7 +14,7 @@ export function availabilityTag(property) {
   if (status === 'PENDING')
     return { label: 'Awaiting Approval', dot: 'bg-amber-400', text: 'text-amber-600', bg: 'bg-amber-50' }
   if (status === 'DRAFT')
-    return { label: 'Draft', dot: 'bg-slate-300', text: 'text-slate-400', bg: 'bg-slate-50' }
+    return { label: 'Draft', dot: 'bg-slate-300', text: 'text-slate-500', bg: 'bg-slate-50' }
   if (availableFrom) {
     const d = new Date(availableFrom)
     if (d > new Date())
@@ -52,7 +52,7 @@ export function bhkLabelFor(property) {
 export function rentBenchmarkLabel(rent, benchmark) {
   if (!benchmark) return null
   const diff = Math.round(((rent - benchmark.avgRent) / benchmark.avgRent) * 100)
-  if (diff === 0) return { text: 'Right at the average for similar homes nearby', className: 'text-slate-400' }
+  if (diff === 0) return { text: 'Right at the average for similar homes nearby', className: 'text-slate-500' }
   const below = diff < 0
   return {
     text: `${Math.abs(diff)}% ${below ? 'below' : 'above'} the average for similar homes nearby`,

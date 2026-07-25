@@ -26,6 +26,13 @@ const AREA_ZOOM = 15
 // hide business POI clutter (shops, restaurants) and transit icons — our
 // PropertyPin/ClusterMarker markers carry the listing info. Only applies
 // under PROVIDER_GOOGLE (has no effect on Apple Maps).
+//
+// Every map in this app also sets userInterfaceStyle="light". Leaving it off
+// is NOT neutral: react-native-maps defaults the prop to 'system', which it
+// passes to Google's MapColorScheme.FOLLOW_SYSTEM — so a device in dark mode
+// rendered a dark map under our light-surface UI and light-styled pins.
+// app.config.js's userInterfaceStyle: 'light' does not cover this (see
+// mobile/AGENTS.md §11 — expo-system-ui isn't installed).
 const MAP_STYLE = [
   { featureType: 'poi', stylers: [{ visibility: 'off' }] },
   { featureType: 'transit', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
@@ -197,6 +204,7 @@ export default function MapView({ onPinPress, onDeselect }) {
         showsMyLocationButton={false}
         showsTraffic={activeLayers.traffic}
         customMapStyle={MAP_STYLE}
+        userInterfaceStyle="light"
       >
         {activeLayers.metro && <MetroLines network={metroNetwork} zoom={zoom} bounds={bounds} />}
 

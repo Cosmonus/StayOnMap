@@ -21,7 +21,7 @@ export default function SupportScreen({ navigation }) {
 
       <View style={styles.body}>
         <View style={styles.icon}>
-          <Icon name="info" size={24} color={colors.slate400} />
+          <Icon name="info" size={24} color={colors.slate500} />
         </View>
         <Text style={styles.title}>Help &amp; Support</Text>
         <Text style={styles.subtitle}>Get help with listings, appointments, and anything else.</Text>
@@ -40,5 +40,5 @@ const styles = StyleSheet.create({
   body: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
   icon: { width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
   title: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800, marginBottom: spacing.xs },
-  subtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, textAlign: 'center', maxWidth: 260 },
+  subtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, textAlign: 'center', maxWidth: 260 },
 })

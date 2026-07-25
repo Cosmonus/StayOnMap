@@ -24,7 +24,7 @@ export default function CommuteCalculator({ lat, lng }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 p-5">
       <h3 className="text-sm font-bold text-slate-800">Commute calculator</h3>
-      <p className="text-[11px] text-slate-400 mt-0.5 mb-3">See live travel time from here to work, college, or anywhere else</p>
+      <p className="text-[11px] text-slate-500 mt-0.5 mb-3">See live travel time from here to work, college, or anywhere else</p>
 
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
@@ -53,14 +53,14 @@ export default function CommuteCalculator({ lat, lng }) {
               <span className="text-lg font-bold text-brand-600">
                 {mutation.data.durationInTrafficText ?? mutation.data.durationText}
               </span>
-              {mutation.data.distanceText && <span className="text-xs text-slate-400">{mutation.data.distanceText}</span>}
+              {mutation.data.distanceText && <span className="text-xs text-slate-500">{mutation.data.distanceText}</span>}
             </div>
             {mutation.data.durationInTrafficText && mutation.data.durationInTrafficText !== mutation.data.durationText && (
-              <p className="text-[10px] text-slate-400">Free-flow: {mutation.data.durationText}</p>
+              <p className="text-[11px] text-slate-500">Free-flow: {mutation.data.durationText}</p>
             )}
           </div>
         ) : (
-          <p className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-400">
+          <p className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
             Couldn&apos;t find that place — try a more specific address.
           </p>
         )

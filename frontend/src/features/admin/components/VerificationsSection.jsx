@@ -9,7 +9,7 @@ const MATCH_STYLE = {
   match: 'bg-green-50 text-green-700',
   partial: 'bg-slate-100 text-slate-600',
   mismatch: 'bg-amber-50 text-amber-800',
-  not_comparable: 'bg-slate-50 text-slate-400',
+  not_comparable: 'bg-slate-50 text-slate-500',
 }
 
 // The address comparison is the reviewer's context, not their verdict —
@@ -21,8 +21,8 @@ function AddressMatch({ v }) {
   const m = v.addressMatch
   return (
     <div className="mt-2 text-xs space-y-1 bg-slate-50 rounded-lg p-2.5">
-      <p><span className="text-slate-400">Listing:</span> <span className="text-slate-700">{v.property?.address}{v.property?.pincode ? `, ${v.property.pincode}` : ''}</span></p>
-      <p><span className="text-slate-400">Document:</span> <span className="text-slate-700">{v.documentAddress}</span></p>
+      <p><span className="text-slate-500">Listing:</span> <span className="text-slate-700">{v.property?.address}{v.property?.pincode ? `, ${v.property.pincode}` : ''}</span></p>
+      <p><span className="text-slate-500">Document:</span> <span className="text-slate-700">{v.documentAddress}</span></p>
       {m && (
         <p className="flex items-center gap-2 flex-wrap">
           <span className={`px-2 py-0.5 rounded-full font-semibold ${MATCH_STYLE[m.verdict] ?? MATCH_STYLE.not_comparable}`}>
@@ -61,7 +61,7 @@ export default function VerificationsSection() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Ownership Verifications</h1>
-        <p className="text-sm text-slate-400 mt-0.5">
+        <p className="text-sm text-slate-500 mt-0.5">
           Read the documents against the listing — the address comparison is context, the decision is yours.
         </p>
       </div>
@@ -81,7 +81,7 @@ export default function VerificationsSection() {
       {isLoading ? (
         <div className="h-40 bg-slate-100 animate-pulse rounded-2xl" />
       ) : rows.length === 0 ? (
-        <div className="text-center py-12 bg-white border border-slate-100 rounded-2xl text-sm text-slate-400">
+        <div className="text-center py-12 bg-white border border-slate-100 rounded-2xl text-sm text-slate-500">
           No {status.toLowerCase().replace('_', ' ')} verifications.
         </div>
       ) : (
@@ -91,7 +91,7 @@ export default function VerificationsSection() {
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-800 truncate">{v.property?.title ?? v.propertyId}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     Owner: {v.owner?.name ?? v.ownerId}{v.owner?.email ? ` · ${v.owner.email}` : ''}
                   </p>
                 </div>

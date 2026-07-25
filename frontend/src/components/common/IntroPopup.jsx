@@ -44,6 +44,7 @@ export default function IntroPopup() {
         {/* Close */}
         <button
           onClick={dismiss}
+          aria-label="Dismiss"
           className="absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
         >
           <X size={12} color="white" strokeWidth={2.5} />
@@ -86,7 +87,7 @@ export default function IntroPopup() {
         </div>
 
         {/* Legal */}
-        <p className="text-[10px] text-center mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>
+        <p className="text-[11px] text-center mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>
           By continuing you agree to our{' '}
           <Link to="/rules" onClick={dismiss} className="underline" style={{ color: 'rgba(255,255,255,0.4)' }}>Community Rules</Link>
           {' '}and{' '}

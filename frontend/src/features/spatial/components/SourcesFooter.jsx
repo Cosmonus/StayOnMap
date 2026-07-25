@@ -8,7 +8,7 @@ export default function SourcesFooter({ sources, computedAt }) {
 
   return (
     <details className="mt-2 group">
-      <summary className="text-[10px] text-slate-400 cursor-pointer list-none hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500 rounded">
+      <summary className="text-[11px] text-slate-500 cursor-pointer list-none hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500 rounded">
         Sources &amp; freshness
         <span aria-hidden="true" className="ml-1 group-open:hidden">▸</span>
         <span aria-hidden="true" className="ml-1 hidden group-open:inline">▾</span>
@@ -16,14 +16,14 @@ export default function SourcesFooter({ sources, computedAt }) {
 
       <div className="mt-1.5 space-y-0.5">
         {sources?.map((s) => (
-          <p key={s.name} className="text-[10px] text-slate-400">
+          <p key={s.name} className="text-[11px] text-slate-500">
             {s.name}
             {s.license && <span className="text-slate-300"> · {s.license}</span>}
             {s.fetchedAt && <span className="text-slate-300"> · {s.fetchedAt}</span>}
           </p>
         ))}
         {computedAt && (
-          <p className="text-[10px] text-slate-400">
+          <p className="text-[11px] text-slate-500">
             Calculated {new Date(computedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
         )}

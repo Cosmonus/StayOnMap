@@ -50,7 +50,7 @@ export default function VerifyEmailPage() {
               <MailCheck size={28} strokeWidth={1.8} />
             </div>
             <p className="text-base font-bold text-slate-900 mb-1">Email verified</p>
-            <p className="text-sm text-slate-400 mb-6">Your account is now marked as verified.</p>
+            <p className="text-sm text-slate-500 mb-6">Your account is now marked as verified.</p>
             <Link
               to="/"
               className="inline-block px-6 py-2.5 bg-[#111111] text-white text-sm font-semibold rounded-xl hover:bg-[#2a2a2a] no-underline"
@@ -66,7 +66,7 @@ export default function VerifyEmailPage() {
               <MailX size={28} strokeWidth={1.8} />
             </div>
             <p className="text-base font-bold text-slate-900 mb-1">Verification failed</p>
-            <p className="text-sm text-slate-400 mb-6">
+            <p className="text-sm text-slate-500 mb-6">
               {error} You can request a new link from Settings.
             </p>
             <Link

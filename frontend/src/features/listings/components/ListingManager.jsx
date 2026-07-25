@@ -26,7 +26,7 @@ function ListingCard({ property, onViewDetails, onOfferLease }) {
         <p className="text-sm font-semibold text-slate-800 line-clamp-1">{property.title}</p>
         <p className="text-base font-bold text-brand-600">{formatPrice(property)}</p>
         {property.city && (
-          <p className="text-xs text-slate-400 flex items-center gap-1">
+          <p className="text-xs text-slate-500 flex items-center gap-1">
             <MapPin className="w-3 h-3 shrink-0" strokeWidth={1.8} />
             {property.city}{property.state ? `, ${property.state}` : ''}
           </p>
@@ -75,7 +75,7 @@ export default function ListingManager({ onAdd, onViewDetails, onOfferLease }) {
         className="w-full text-center py-16 border-2 border-dashed border-slate-200 rounded-2xl hover:border-slate-300 hover:bg-slate-50 transition-colors"
       >
         <p className="text-sm font-medium text-slate-500">No listings yet</p>
-        <p className="text-xs text-slate-400 mt-1">Click to add your first listing</p>
+        <p className="text-xs text-slate-500 mt-1">Click to add your first listing</p>
       </button>
     )
   }

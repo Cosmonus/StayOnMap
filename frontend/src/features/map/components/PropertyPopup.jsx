@@ -37,8 +37,8 @@ function LockedRow({ icon, label, sub }) {
     <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 border border-dashed border-slate-200">
       <span className="text-slate-300">{icon}</span>
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-slate-400 font-medium">{label}</p>
-        <p className="text-[10px] text-slate-300 mt-0.5">{sub}</p>
+        <p className="text-xs text-slate-500 font-medium">{label}</p>
+        <p className="text-[11px] text-slate-300 mt-0.5">{sub}</p>
       </div>
       <Lock size={13} color="#cbd5e1" strokeWidth={2} />
     </div>
@@ -134,14 +134,15 @@ export default function PropertyPopup({ bare = false }) {
             </h3>
           )}
           {property?.address && (
-            <p className="text-[11px] text-slate-400 mt-0.5 leading-tight line-clamp-1">
+            <p className="text-[11px] text-slate-500 mt-0.5 leading-tight line-clamp-1">
               {property.address}{property.city ? `, ${property.city}` : ''}
             </p>
           )}
         </div>
         <button
           onClick={clearSelection}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
+          aria-label="Close preview"
+          className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
         >
           <X size={14} strokeWidth={2.2} />
         </button>
@@ -172,7 +173,7 @@ export default function PropertyPopup({ bare = false }) {
               const Icon = factIcon(h.key)
               return (
                 <span key={h.key} className="flex items-center gap-1.5 rounded-full bg-slate-50 border border-slate-100 px-2.5 py-1 text-[11px] text-slate-600">
-                  <Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" strokeWidth={2} aria-hidden="true" />
+                  <Icon className="h-3.5 w-3.5 shrink-0 text-slate-500" strokeWidth={2} aria-hidden="true" />
                   {h.label} <span className="font-bold text-slate-800">{h.distance}</span>
                 </span>
               )

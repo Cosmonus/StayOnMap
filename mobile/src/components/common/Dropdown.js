@@ -44,7 +44,7 @@ export default function Dropdown({ label, value, values, multiple = false, optio
         <Text style={[styles.triggerText, !selectedLabels.length && styles.placeholder]} numberOfLines={1}>
           {displayText}
         </Text>
-        <Icon name="chevronDown" size={16} color={colors.slate400} />
+        <Icon name="chevronDown" size={16} color={colors.slate500} />
       </Pressable>
 
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
@@ -58,7 +58,7 @@ export default function Dropdown({ label, value, values, multiple = false, optio
                 accessibilityRole="button"
                 accessibilityLabel={`Close ${label ?? placeholder} picker`}
               >
-                <Icon name="close" size={18} color={colors.slate400} />
+                <Icon name="close" size={18} color={colors.slate500} />
               </Pressable>
             </View>
             <FlatList
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4, backgroundColor: colors.white,
   },
   triggerText: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.base, color: colors.slate800 },
-  placeholder: { color: colors.slate400 },
+  placeholder: { color: colors.slate500 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, maxHeight: '70%', ...shadows.sheet },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.slate100 },

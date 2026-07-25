@@ -140,7 +140,7 @@ export default function NotificationsScreen({ navigation }) {
           ListEmptyComponent={isLoading ? null : (
             <View style={styles.empty}>
               <View style={styles.emptyIcon}>
-                <Icon name="bell" size={24} color={colors.slate400} />
+                <Icon name="bell" size={24} color={colors.slate500} />
               </View>
               <Text style={styles.emptyTitle}>No notifications</Text>
               <Text style={styles.emptyBody}>Appointment updates and messages will show up here.</Text>
@@ -181,12 +181,12 @@ const styles = StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2 },
+  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2 },
   markAllButton: { backgroundColor: colors.brand50, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   markAllButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand600 },
   list: { padding: spacing.lg, paddingTop: spacing.xs },
   sectionHeader: {
-    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400,
+    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500,
     textTransform: 'uppercase', letterSpacing: 0.8,
     paddingTop: spacing.md, paddingBottom: spacing.sm, paddingHorizontal: spacing.xs,
   },
@@ -198,10 +198,10 @@ const styles = StyleSheet.create({
   unreadDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.brand500 },
   title: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate700, flexShrink: 1 },
   titleUnread: { fontFamily: fonts.bodySemiBold, color: colors.slate900 },
-  time: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
+  time: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   body: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: spacing.xs, lineHeight: 20 },
   empty: { alignItems: 'center', paddingVertical: spacing.xxl },
   emptyIcon: { width: 52, height: 52, borderRadius: radius.full, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate700 },
-  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: spacing.xs, textAlign: 'center', maxWidth: 260 },
+  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: spacing.xs, textAlign: 'center', maxWidth: 260 },
 })

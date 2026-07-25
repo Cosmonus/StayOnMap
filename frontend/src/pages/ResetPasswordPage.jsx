@@ -47,7 +47,7 @@ export default function ResetPasswordPage() {
         {!token ? (
           <div className="text-center py-8">
             <p className="text-sm font-semibold text-slate-800">Invalid reset link</p>
-            <p className="text-sm text-slate-400 mt-2">
+            <p className="text-sm text-slate-500 mt-2">
               This link is missing or malformed.{' '}
               <Link to="/" className="text-brand-600 hover:underline">Go back home</Link>
               {' '}and request a new one.
@@ -56,7 +56,7 @@ export default function ResetPasswordPage() {
         ) : (
           <>
             <h1 className="text-xl font-bold text-slate-900 mb-1">Set new password</h1>
-            <p className="text-sm text-slate-400 mb-6">Choose a strong password for your account.</p>
+            <p className="text-sm text-slate-500 mb-6">Choose a strong password for your account.</p>
 
             {error && (
               <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-100">
@@ -74,12 +74,12 @@ export default function ResetPasswordPage() {
                     onChange={e => setPassword(e.target.value)}
                     placeholder="Min. 8 characters"
                     required
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-slate-50 placeholder:text-slate-400"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-slate-50 placeholder:text-slate-500"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPw(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600"
                     tabIndex={-1}
                   >
                     {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -95,7 +95,7 @@ export default function ResetPasswordPage() {
                   onChange={e => setConfirm(e.target.value)}
                   placeholder="Re-enter password"
                   required
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-slate-50 placeholder:text-slate-400"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-slate-50 placeholder:text-slate-500"
                 />
               </div>
 

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AppState } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
@@ -12,6 +12,7 @@ import { getSocket } from '@lib/socket'
 import { AuthProvider } from '@features/auth/context/AuthContext'
 import RootNavigator from '@navigation/RootNavigator'
 import { navigateToReference } from '@navigation/navigationRef'
+import BrandSplash from '@components/common/BrandSplash'
 
 SplashScreen.preventAutoHideAsync().catch(() => {})
 
@@ -26,6 +27,13 @@ export default function App() {
     Inter_500Medium: require('@expo-google-fonts/inter/500Medium/Inter_500Medium.ttf'),
     Inter_600SemiBold: require('@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf'),
   })
+
+  // The native splash hands off to BrandSplash, which carries the wordmark the
+  // Android 12+ circular icon mask cannot fit. Hide only once the fonts are in
+  // — BrandSplash renders the wordmark in Sora, and hiding earlier would show
+  // it in the system font for a frame.
+  const [brandingDone, setBrandingDone] = useState(false)
+  const finishBranding = useCallback(() => setBrandingDone(true), [])
 
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync().catch(() => {})
@@ -65,6 +73,7 @@ export default function App() {
             <RootNavigator />
           </AuthProvider>
         </QueryClientProvider>
+        {!brandingDone && <BrandSplash onDone={finishBranding} />}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   )

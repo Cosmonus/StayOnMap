@@ -107,7 +107,7 @@ export default function PinPreviewCard({ propertyId, onPress }) {
 
           {highlights.length > 0 && (
             <View style={styles.highlightRow}>
-              <Icon name="mapPin" size={12} color={colors.slate400} />
+              <Icon name="mapPin" size={12} color={colors.slate500} />
               <Text style={styles.highlightText} numberOfLines={1}>
                 {highlights.map((h) => `${h.label} ${h.distance}`).join('  ·  ')}
               </Text>
@@ -149,10 +149,10 @@ const styles = StyleSheet.create({
   body: { padding: spacing.md, gap: 3 },
   priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   price: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800, flexShrink: 1 },
-  priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   title: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate700 },
-  meta: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  meta: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   highlightRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
   highlightText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.slate600, flexShrink: 1 },
   cta: {

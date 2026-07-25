@@ -17,7 +17,7 @@ const STATUS = {
   ACCEPTED: { bg: colors.success50, text: '#15803D', dot: '#4ADE80', label: 'Accepted' },
   REJECTED: { bg: colors.danger50, text: '#DC2626', dot: '#F87171', label: 'Rejected' },
   RESCHEDULED: { bg: colors.brand50, text: colors.brand700, dot: colors.brand500, label: 'Rescheduled' },
-  CANCELLED: { bg: colors.slate50, text: colors.slate600, dot: colors.slate400, label: 'Cancelled' },
+  CANCELLED: { bg: colors.slate50, text: colors.slate600, dot: colors.slate500, label: 'Cancelled' },
 }
 
 const OWNER_FILTERS = [
@@ -62,7 +62,7 @@ function FilterDropdown({ value, options, onChange }) {
             <View style={styles.dropdownSheetHeader}>
               <Text style={styles.dropdownSheetTitle}>Filter by status</Text>
               <Pressable onPress={() => setOpen(false)} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close filter options">
-                <Icon name="close" size={18} color={colors.slate400} />
+                <Icon name="close" size={18} color={colors.slate500} />
               </Pressable>
             </View>
             <FlatList
@@ -120,7 +120,7 @@ function OwnerCard({ appt, onAction }) {
           <View style={{ flexShrink: 1 }}>
             <Text style={styles.personName} numberOfLines={1}>{personName(appt.tenant)}</Text>
             <View style={styles.personSubRow}>
-              <Icon name="phone" size={10} color={colors.slate400} />
+              <Icon name="phone" size={10} color={colors.slate500} />
               <Text style={styles.personSub}>{appt.contactNumber}</Text>
             </View>
           </View>
@@ -161,7 +161,7 @@ function OwnerCard({ appt, onAction }) {
           <TextInput
             style={styles.rejectInput}
             placeholder="Reason (optional)"
-            placeholderTextColor={colors.slate400}
+            placeholderTextColor={colors.slate500}
             value={note}
             onChangeText={setNote}
             multiline
@@ -206,7 +206,7 @@ function EmptyState({ message }) {
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIcon}>
-        <Icon name="calendar" size={22} color={colors.slate400} />
+        <Icon name="calendar" size={22} color={colors.slate500} />
       </View>
       <Text style={styles.emptyTitle}>No appointments</Text>
       <Text style={styles.emptyBody}>{message}</Text>
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
   headerTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2 },
+  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: spacing.lg, gap: spacing.md },
   filterRow: { marginBottom: spacing.md, alignItems: 'flex-start' },
@@ -339,18 +339,18 @@ const styles = StyleSheet.create({
   avatarInitial: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
   personName: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
   personSubRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  personSub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
+  personSub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.full },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontFamily: fonts.bodySemiBold, fontSize: 11 },
   propertyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.slate50, borderRadius: radius.md, padding: spacing.sm, marginBottom: spacing.sm },
   propertyThumb: { width: 36, height: 36, borderRadius: radius.sm, backgroundColor: colors.slate200 },
   propertyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
-  propertySub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
+  propertySub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   dateText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
   dateRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.sm },
   note: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginBottom: spacing.sm, lineHeight: 18 },
-  noteLabel: { fontFamily: fonts.bodyMedium, color: colors.slate400 },
+  noteLabel: { fontFamily: fonts.bodyMedium, color: colors.slate500 },
   replyNote: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#2563EB', marginBottom: spacing.sm, lineHeight: 18 },
   replyNoteLabel: { fontFamily: fonts.bodyMedium, color: '#60A5FA' },
   actionRow: { flexDirection: 'row', gap: spacing.sm },
@@ -365,5 +365,5 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: spacing.xxl },
   emptyIcon: { width: 48, height: 48, borderRadius: radius.full, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700 },
-  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2, textAlign: 'center', maxWidth: 240 },
+  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2, textAlign: 'center', maxWidth: 240 },
 })

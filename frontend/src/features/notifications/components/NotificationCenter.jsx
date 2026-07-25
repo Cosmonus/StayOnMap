@@ -94,7 +94,7 @@ export default function NotificationCenter() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Notifications</h1>
-          <p className="text-sm text-slate-400 mt-0.5">
+          <p className="text-sm text-slate-500 mt-0.5">
             {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}` : 'All caught up'}
           </p>
         </div>
@@ -116,14 +116,14 @@ export default function NotificationCenter() {
             <Bell className="w-7 h-7 text-slate-300" strokeWidth={1.5} />
           </div>
           <h2 className="text-lg font-bold text-slate-700 mb-1">No notifications</h2>
-          <p className="text-sm text-slate-400 max-w-xs">When someone shows interest in your property, books or cancels an appointment, you&apos;ll see it here.</p>
+          <p className="text-sm text-slate-500 max-w-xs">When someone shows interest in your property, books or cancels an appointment, you&apos;ll see it here.</p>
         </div>
       ) : (
         <div className="space-y-0">
           {grouped.map((entry, i) =>
             entry.type === 'header' ? (
               <div key={`h-${i}`} className="px-1 pt-5 pb-2 first:pt-0">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{entry.label}</p>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{entry.label}</p>
               </div>
             ) : (
               <NotificationRow key={entry.data.id} n={entry.data} onMark={markOne} />
@@ -158,7 +158,7 @@ function NotificationRow({ n, onMark }) {
             {!n.isRead && <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-500 mr-1.5 -translate-y-px" />}
             {n.title}
           </p>
-          <span className="text-[11px] text-slate-400 shrink-0 mt-0.5 whitespace-nowrap">{timeAgo(n.createdAt)}</span>
+          <span className="text-[11px] text-slate-500 shrink-0 mt-0.5 whitespace-nowrap">{timeAgo(n.createdAt)}</span>
         </div>
         <p className="text-sm text-slate-500 mt-1 leading-relaxed">{n.body}</p>
       </div>

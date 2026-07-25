@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
   },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate700 },
   body: {
-    fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400,
+    fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500,
     marginTop: spacing.xs, textAlign: 'center', maxWidth: 260,
   },
   retryButton: {

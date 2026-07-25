@@ -67,7 +67,7 @@ export default function AreaInsightCard({ slug, onClose }) {
             accessibilityLabel="Close area insights"
             accessibilityRole="button"
           >
-            <Icon name="close" size={18} color={colors.slate400} />
+            <Icon name="close" size={18} color={colors.slate500} />
           </Pressable>
         </View>
 
@@ -114,9 +114,9 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm },
   headerText: { flex: 1, minWidth: 0 },
   name: { fontFamily: fonts.displayBold, fontSize: fontSizes.base, color: colors.slate800 },
-  fullName: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  fullName: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   rent: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand700, marginTop: 4 },
-  rentUnit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  rentUnit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   metrics: { marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.slate100, gap: 6 },
   metricRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   metricLabel: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
@@ -127,5 +127,5 @@ const styles = StyleSheet.create({
   },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: spacing.sm },
   tag: { backgroundColor: colors.brand50, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 3 },
-  tagText: { fontFamily: fonts.bodyMedium, fontSize: 10, color: colors.brand700 },
+  tagText: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.brand700 },
 })

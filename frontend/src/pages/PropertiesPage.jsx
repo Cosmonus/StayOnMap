@@ -39,7 +39,7 @@ function EmptySlotCard({ cta = false }) {
   return (
     <div className="aspect-[4/3] rounded-2xl border border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-center px-3">
       <Home size={24} stroke="#cbd5e1" strokeWidth={1.8} />
-      <p className="text-xs text-slate-400 leading-snug">More rentals<br />coming soon</p>
+      <p className="text-xs text-slate-500 leading-snug">More rentals<br />coming soon</p>
     </div>
   )
 }
@@ -163,7 +163,7 @@ export default function PropertiesPage() {
           </div>
 
           {isError ? (
-            <div className="py-24 text-center text-slate-400">
+            <div className="py-24 text-center text-slate-500">
               Couldn&apos;t load properties. Please try again.
             </div>
           ) : isLoading ? (
