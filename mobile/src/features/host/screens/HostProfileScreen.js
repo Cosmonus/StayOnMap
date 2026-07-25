@@ -24,7 +24,7 @@ export default function HostProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScreenHeader title="Profile" subtitle="Host account" />
+      <ScreenHeader title="Profile" />
 
       {/* The screen's padding moved off the container and onto this wrapper so
           ScreenHeader spans the full width like every other screen's header,

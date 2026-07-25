@@ -268,11 +268,7 @@ export default function AppointmentsScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScreenHeader
-        icon="calendar"
-        title={`Appointments${isIncoming && pendingCount > 0 ? ` (${pendingCount})` : ''}`}
-        subtitle={isIncoming ? 'Visit requests for your properties' : 'Visits you’ve requested'}
-      />
+      <ScreenHeader title={`Appointments${isIncoming && pendingCount > 0 ? ` (${pendingCount})` : ''}`} />
 
       {isLoading ? (
         <View style={styles.center}><ActivityIndicator color={colors.brand600} /></View>

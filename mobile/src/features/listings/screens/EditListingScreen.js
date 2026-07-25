@@ -236,7 +236,7 @@ export default function EditListingScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScreenHeader title="Edit listing" subtitle={property?.title} />
+      <ScreenHeader title="Edit listing" />
 
       {isLoading ? (
         <View style={styles.center}>

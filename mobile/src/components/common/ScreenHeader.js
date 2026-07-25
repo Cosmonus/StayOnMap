@@ -23,9 +23,13 @@ import { spacing } from '@theme/spacing'
 // for two screens; making white the single treatment removed both that prop and
 // a `surface` override, since there is now nothing to vary.
 //
+// A heading and nothing else: no glyph beside the title, no subheading. Both
+// were tried and removed — the icon competed with the word next to it, and a
+// second line of grey text turned a header into a paragraph.
+//
 // `logo` swaps the title for the wordmark (the two home screens). `back` shows
 // whenever the screen's own stack has something underneath.
-export default function ScreenHeader({ title, subtitle, right = null, back, icon, logo = false }) {
+export default function ScreenHeader({ title, right = null, back, logo = false }) {
   const navigation = useNavigation()
   const insets = useSafeAreaInsets()
 
@@ -59,16 +63,9 @@ export default function ScreenHeader({ title, subtitle, right = null, back, icon
         {logo ? (
           <Logo />
         ) : (
-          <>
-            {/* Several screens paired their title with a glyph (calendar for
-                appointments, document for leases). Decorative — the title says
-                the same thing — so it's hidden from screen readers. */}
-            {!!icon && <Icon name={icon} size={20} color={colors.slate800} accessibilityElementsHidden />}
-            <View style={styles.titleWrap}>
-              <Text style={styles.title} numberOfLines={1}>{title}</Text>
-              {!!subtitle && <Text style={styles.subtitle} numberOfLines={2}>{subtitle}</Text>}
-            </View>
-          </>
+          <View style={styles.titleWrap}>
+            <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          </View>
         )}
       </View>
       {right}
@@ -88,5 +85,4 @@ const styles = StyleSheet.create({
   left: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1, minWidth: 0 },
   titleWrap: { flex: 1, minWidth: 0 },
   title: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  subtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2 },
 })

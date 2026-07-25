@@ -197,7 +197,7 @@ export default function LeasesScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScreenHeader icon="document" title="Leases" subtitle="Manage rental agreements" />
+      <ScreenHeader title="Leases" />
 
       {isLoading ? (
         <View style={styles.center}><ActivityIndicator color={colors.brand600} /></View>

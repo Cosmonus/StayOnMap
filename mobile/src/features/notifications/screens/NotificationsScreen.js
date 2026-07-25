@@ -96,9 +96,7 @@ export default function NotificationsScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScreenHeader
-        icon="bell"
         title="Notifications"
-        subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
         right={unreadCount > 0 ? (
           <Pressable
             style={styles.markAllButton}
