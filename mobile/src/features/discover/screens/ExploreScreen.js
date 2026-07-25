@@ -14,6 +14,7 @@ import Icon from '@components/common/Icon'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
 import { countActiveFilters } from '@config/filters'
+import NotificationBell from '@components/common/NotificationBell'
 import { colors } from '@theme/colors'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
@@ -82,6 +83,7 @@ export default function ExploreScreen({ navigation }) {
             >
               <Icon name="search" size={16} color={colors.slate700} />
             </Pressable>
+            <NotificationBell />
             <Pressable
               style={styles.filterButton}
               onPress={() => setFiltersOpen(true)}

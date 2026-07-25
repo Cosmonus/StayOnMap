@@ -1,4 +1,7 @@
 import { useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { chatService } from '@services/chat.service'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import Icon from '@components/common/Icon'
@@ -72,6 +75,10 @@ const ProfileStack = makeStack([
   { name: 'Leases', component: LeasesScreen, options: { headerShown: false } },
   { name: 'Settings', component: SettingsScreen, options: { headerShown: false } },
   { name: 'Support', component: SupportScreen, options: { headerShown: false } },
+  // Appointments and leases are ABOUT a property, so the property has to be
+  // reachable from them — without this a push to PropertyDetail bubbles to the
+  // tab navigator, finds no such tab, and silently does nothing.
+  ...BOOKING_SCREENS,
 ])
 
 // ── Host mode — new stacks ──────────────────────────────────────────────
@@ -82,6 +89,7 @@ const DashboardStack = makeStack([
 
 const HostAppointmentsStack = makeStack([
   { name: 'AppointmentsHome', component: AppointmentsScreen, options: { headerShown: false }, initialParams: { initialTab: 'incoming' } },
+  ...BOOKING_SCREENS,
 ])
 
 const HostProfileStack = makeStack([
@@ -120,8 +128,28 @@ const HOST_TABS = [
   ['HostProfile', HostProfileStack, 'profile', 'Profile'],
 ]
 
+// React Navigation's default bar is ~49dp. 56 buys the top padding below
+// without squeezing the icon and label, keeping each tab's touch target well
+// over the 48dp Android minimum (mobile/AGENTS.md §6).
+const TAB_BAR_HEIGHT = 56
+const TAB_BAR_TOP_PAD = 6
+
+// The Chat/Inbox tab in both sets. `chatService.unreadCount()` (GET /chat/unread)
+// already existed on the client and the server and had NO caller — the count was
+// only ever visible per-conversation, once you were already inside the list.
+const CHAT_TABS = new Set(['Chat', 'Inbox'])
+
 export default function AppTabs() {
+  const insets = useSafeAreaInsets()
   const hostMode = useUiStore((s) => s.hostMode)
+  // Same key ConversationListScreen invalidates on a new socket message, so the
+  // badge clears as soon as a thread is read rather than on the next poll.
+  const { data: chatUnread = 0 } = useQuery({
+    queryKey: ['chat', 'unread'],
+    queryFn: () => chatService.unreadCount().then((r) => r.data?.count ?? 0),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  })
   const hostEntryTab = useUiStore((s) => s.hostEntryTab)
   const setHostEntryTab = useUiStore((s) => s.setHostEntryTab)
 
@@ -152,7 +180,19 @@ export default function AppTabs() {
         tabBarActiveTintColor: colors.brand600,
         tabBarInactiveTintColor: colors.slate500,
         tabBarLabelStyle: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs },
-        tabBarStyle: { borderTopColor: colors.slate200 },
+        // Icons sat flush against the top border. The height is set explicitly
+        // because React Navigation otherwise computes it and `paddingTop` would
+        // just compress the icon/label into the same space rather than adding
+        // room. The bottom inset is applied by hand for the same reason — with
+        // an explicit height the navigator stops adding it for us, and on a
+        // gesture-nav device the bar would sit under the home indicator
+        // (mobile/AGENTS.md §3).
+        tabBarStyle: {
+          borderTopColor: colors.slate200,
+          height: TAB_BAR_HEIGHT + insets.bottom,
+          paddingTop: TAB_BAR_TOP_PAD,
+          paddingBottom: insets.bottom,
+        },
       }}
     >
       {TABS.map(([name, Component, iconName, label]) => (
@@ -163,6 +203,8 @@ export default function AppTabs() {
           options={{
             tabBarLabel: label ?? name,
             tabBarIcon: ({ color, size }) => <Icon name={iconName} color={color} size={size} />,
+            tabBarBadge: CHAT_TABS.has(name) && chatUnread > 0 ? (chatUnread > 99 ? '99+' : chatUnread) : undefined,
+            tabBarBadgeStyle: { backgroundColor: colors.danger, fontFamily: fonts.bodySemiBold, fontSize: 11 },
           }}
         />
       ))}
