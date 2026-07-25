@@ -287,24 +287,6 @@ export default function PropertyDetailScreen({ route, navigation }) {
             )}
           </View>
 
-          {/* ORDER IS THE PRODUCT DECISION, not an accident. .claude/ui-ux.md's
-              Design Philosophy ranks Nearby / Safety / Trust / Travel time /
-              Locality intelligence ABOVE long textual descriptions. This block
-              used to sit 7th — below the description, details, pricing,
-              brokerage and house rules — so the neighbourhood facts that
-              answer "should I live here" were the last thing a mobile user
-              reached. Web's DetailSheet.jsx was reordered the same way and for
-              the same reason. Do not move it back below "About this home". */}
-          <LocationMapCard lat={lat} lng={lng} />
-          {/* The spatial layer supersedes AreaIntelligenceSection and
-              PropertyAreaInsightCard (2026-07-19, matching web) — context
-              arrives joined on the property payload, already filtered to this
-              listing's property type. CommuteCalculator survives inside the
-              same titled group. */}
-          <SpatialContextPanel context={property.spatialContext} coords={{ lat, lng }}>
-            <CommuteCalculator lat={lat} lng={lng} />
-          </SpatialContextPanel>
-
           {!!property.description && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>About this home</Text>
@@ -330,6 +312,23 @@ export default function PropertyDetailScreen({ route, navigation }) {
               </View>
             </View>
           )}
+
+          {/* Order: the listing's OWN facts first (description, details,
+              pricing, rules, amenities), then the neighbourhood. Operator
+              decision 2026-07-25, overriding the earlier spatial-first
+              ordering — amenities and house rules are structured facts, not
+              the "long textual descriptions" .claude/ui-ux.md's priority list
+              deprioritises. Web's DetailSheet.jsx has the same order. Amenities
+              moved ABOVE this block too; it used to sit below the panel. */}
+          <LocationMapCard lat={lat} lng={lng} />
+          {/* The spatial layer supersedes AreaIntelligenceSection and
+              PropertyAreaInsightCard (2026-07-19, matching web) — context
+              arrives joined on the property payload, already filtered to this
+              listing's property type. CommuteCalculator survives inside the
+              same titled group. */}
+          <SpatialContextPanel context={property.spatialContext} coords={{ lat, lng }}>
+            <CommuteCalculator lat={lat} lng={lng} />
+          </SpatialContextPanel>
 
           <OwnerCard owner={property.owner} />
 
