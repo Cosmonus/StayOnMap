@@ -84,7 +84,7 @@ export default function ProfileScreen({ navigation }) {
         accessibilityRole="button"
         accessibilityLabel="Sign out"
       >
-        <Icon name="logout" size={16} color={colors.danger} />
+        <Icon name="logout" size={16} color={colors.white} />
         <Text style={styles.signOutText}>Sign out</Text>
       </Pressable>
     </SafeAreaView>
@@ -133,11 +133,10 @@ const styles = StyleSheet.create({
   signOutButton: {
     flexDirection: 'row', gap: 6, justifyContent: 'center',
     marginTop: 'auto',
-    borderWidth: 1,
-    borderColor: colors.slate200,
+    backgroundColor: colors.danger600,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
     alignItems: 'center',
   },
-  signOutText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.danger },
+  signOutText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.white },
 })

@@ -35,6 +35,10 @@ export const colors = {
   black: '#0A0A0A',
 
   danger: '#EF4444',
+  // Filled destructive surfaces. `danger` above is 3.76:1 behind white
+  // text — below the 4.5:1 minimum — so it stays an accent on a light
+  // background and this carries white. Same reason warning700 exists.
+  danger600: '#dc2626',
   danger50: '#fef2f2',
   warning: '#F59E0B',
   warning50: '#fffbeb',
