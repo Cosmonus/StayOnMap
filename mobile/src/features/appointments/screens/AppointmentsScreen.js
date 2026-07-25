@@ -100,7 +100,7 @@ function StatusPill({ status }) {
   )
 }
 
-function OwnerCard({ appt, onAction }) {
+function OwnerCard({ appt, onAction, onOpenProperty }) {
   const [rejecting, setRejecting] = useState(false)
   const [note, setNote] = useState('')
   const isPending = appt.status === 'PENDING'
@@ -128,7 +128,13 @@ function OwnerCard({ appt, onAction }) {
         <StatusPill status={appt.status} />
       </View>
 
-      <View style={styles.propertyRow}>
+      <Pressable
+        style={styles.propertyRow}
+        onPress={() => appt.property?.id && onOpenProperty?.(appt.property.id)}
+        disabled={!appt.property?.id}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${appt.property?.title ?? 'property'}`}
+      >
         {thumb ? <Image source={{ uri: imgUrl(thumb) }} style={styles.propertyThumb} contentFit="cover" cachePolicy="memory-disk" transition={200} /> : <View style={styles.propertyThumb} />}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.propertyTitle} numberOfLines={1}>{appt.property?.title ?? 'Property'}</Text>
@@ -138,7 +144,7 @@ function OwnerCard({ appt, onAction }) {
           <Text style={styles.dateText}>{shortDate(appt.requestedDate)}</Text>
           <Text style={styles.propertySub}>{appt.requestedTime}</Text>
         </View>
-      </View>
+      </Pressable>
 
       {!!appt.message && <Text style={styles.note}><Text style={styles.noteLabel}>Note: </Text>{appt.message}</Text>}
       {!!appt.ownerNote && <Text style={styles.replyNote}><Text style={styles.replyNoteLabel}>Your reply: </Text>{appt.ownerNote}</Text>}
@@ -180,18 +186,24 @@ function OwnerCard({ appt, onAction }) {
   )
 }
 
-function TenantCard({ appt }) {
+function TenantCard({ appt, onOpenProperty }) {
   const thumb = appt.property?.images?.[0]?.url
   return (
     <View style={styles.card}>
-      <View style={styles.propertyRow}>
+      <Pressable
+        style={styles.propertyRow}
+        onPress={() => appt.property?.id && onOpenProperty?.(appt.property.id)}
+        disabled={!appt.property?.id}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${appt.property?.title ?? 'property'}`}
+      >
         {thumb ? <Image source={{ uri: imgUrl(thumb) }} style={styles.propertyThumb} contentFit="cover" cachePolicy="memory-disk" transition={200} /> : <View style={styles.propertyThumb} />}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.propertyTitle} numberOfLines={1}>{appt.property?.title ?? 'Property'}</Text>
           <Text style={styles.propertySub}>{appt.property?.city}</Text>
         </View>
         <StatusPill status={appt.status} />
-      </View>
+      </Pressable>
       <View style={styles.dateRow}>
         <Text style={styles.dateText}>{shortDate(appt.requestedDate)}</Text>
         <Text style={styles.dateText}>{appt.requestedTime}</Text>
@@ -215,6 +227,10 @@ function EmptyState({ message }) {
 }
 
 export default function AppointmentsScreen({ navigation, route }) {
+  // A plain push, no tab named: BOOKING_SCREENS is spread into ProfileStack
+  // (renter) and HostAppointmentsStack (host) precisely so this resolves inside
+  // whichever stack the screen was pushed onto, keeping the user in their tab.
+  const openProperty = (propertyId) => navigation.navigate('PropertyDetail', { propertyId })
   const qc = useQueryClient()
 
   // Fixed by which nav stack registered this screen, not a user-facing
@@ -291,7 +307,7 @@ export default function AppointmentsScreen({ navigation, route }) {
           }
           ListEmptyComponent={<EmptyState message="Tenant visit requests will appear here." />}
           renderItem={({ item }) => (
-            <OwnerCard appt={item} onAction={(id, status, ownerNote) => mutation.mutate({ id, status, ownerNote })} />
+            <OwnerCard appt={item} onAction={(id, status, ownerNote) => mutation.mutate({ id, status, ownerNote })} onOpenProperty={openProperty} />
           )}
         />
       ) : (
@@ -300,7 +316,7 @@ export default function AppointmentsScreen({ navigation, route }) {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           ListEmptyComponent={<EmptyState message="Appointments you've requested will appear here." />}
-          renderItem={({ item }) => <TenantCard appt={item} />}
+          renderItem={({ item }) => <TenantCard appt={item} onOpenProperty={openProperty} />}
         />
       )}
     </SafeAreaView>

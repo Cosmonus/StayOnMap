@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { notificationService } from '@services/notification.service'
 import { getSocket } from '@lib/socket'
+import { navigateToReference, canNavigateToReference } from '@navigation/navigationRef'
 import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
 import { colors } from '@theme/colors'
@@ -149,10 +150,21 @@ export default function NotificationsScreen({ navigation }) {
           renderItem={({ item: n }) => (
             <Pressable
               style={[styles.row, !n.isRead && styles.rowUnread]}
-              onPress={() => { if (!n.isRead) markOne(n.id) }}
+              // Tapping used to only mark the row read, which made every
+              // notification a dead end — you were told an appointment changed
+              // and then had to go find it yourself. Now it also opens the thing
+              // it is about, when there is something to open.
+              onPress={() => {
+                if (!n.isRead) markOne(n.id)
+                if (canNavigateToReference(n)) navigateToReference(n)
+              }}
               accessibilityRole="button"
               accessibilityLabel={`${n.isRead ? '' : 'Unread. '}${n.title}. ${n.body}`}
-              accessibilityHint={n.isRead ? undefined : 'Marks this notification as read'}
+              accessibilityHint={
+                canNavigateToReference(n)
+                  ? 'Opens the related item'
+                  : n.isRead ? undefined : 'Marks this notification as read'
+              }
             >
               <View style={styles.rowIcon}>
                 <Icon name={TYPE_ICON[n.type] ?? 'bell'} size={16} color={colors.brand600} />

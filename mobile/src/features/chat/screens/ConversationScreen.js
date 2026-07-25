@@ -113,6 +113,9 @@ export default function ConversationScreen({ route, navigation }) {
     onSuccess: (res) => {
       qc.setQueryData(['chat-messages', conversationId], (old = []) => [...old, res.data])
       qc.invalidateQueries({ queryKey: ['conversations'] })
+      // Keeps the Chat/Inbox tab badge honest: opening a thread marks it
+      // read server-side, so the unread count must be refetched too.
+      qc.invalidateQueries({ queryKey: ['chat', 'unread'] })
     },
     onError: () => Alert.alert('Message not sent', 'Check your connection and try again.'),
   })
@@ -164,6 +167,9 @@ export default function ConversationScreen({ route, navigation }) {
       qc.setQueryData(['chat-messages', conversationId], (old = []) =>
         old.map((m) => (m.senderId === user?.id ? { ...m, isRead: true } : m)))
       qc.invalidateQueries({ queryKey: ['conversations'] })
+      // Keeps the Chat/Inbox tab badge honest: opening a thread marks it
+      // read server-side, so the unread count must be refetched too.
+      qc.invalidateQueries({ queryKey: ['chat', 'unread'] })
     }
 
     function onMessageEdited(msg) {
