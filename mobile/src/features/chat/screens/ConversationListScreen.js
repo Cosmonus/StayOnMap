@@ -62,7 +62,10 @@ export default function ConversationListScreen({ navigation }) {
   // centred container the header must not be inside.
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScreenHeader title={hostMode ? 'Inbox' : 'Messages'} />
+      {/* Must match the TAB label for this stack in AppTabs — 'Chat' for
+          renters, 'Inbox' for hosts. Titling it "Messages" for renters read as
+          a different screen from the tab that opened it. */}
+      <ScreenHeader title={hostMode ? 'Inbox' : 'Chat'} />
 
       {isLoading ? (
         <View style={styles.stateWrap}>

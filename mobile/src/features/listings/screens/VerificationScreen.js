@@ -94,7 +94,7 @@ export default function VerificationScreen({ route }) {
       {/* This screen is PUSHED but had no back button at all — its header was
           an icon and the words 'Get Verified'. Hardware back worked; nothing
           on screen said so. ScreenHeader shows one whenever canGoBack(). */}
-      <ScreenHeader title="Get Verified" surface={colors.white} />
+      <ScreenHeader title="Get Verified" />
 
       <ScrollView contentContainerStyle={styles.scroll}>
 

@@ -18,16 +18,14 @@ import { spacing } from '@theme/spacing'
 // the existing MyListings/Notifications headers so adopting this changes
 // nothing visually.
 //
-// `back` defaults to showing whenever the screen can actually go back, so a
-// pushed screen gets an affordance without opting in and a tab root doesn't
-// get a dead arrow.
-// `logo` swaps the title for the wordmark and `elevated` gives the white,
-// shadowed bar — together they reproduce the renter home's app bar, so host
-// mode's Dashboard reads as the same product rather than a different screen.
-export default function ScreenHeader({
-  title, subtitle, right = null, back, icon,
-  logo = false, elevated = false, surface = colors.slate50,
-}) {
+// EVERY header is the same white, shadowed bar — the one the renter home
+// already had. It was slate50-on-slate50 (invisible) with an `elevated` opt-in
+// for two screens; making white the single treatment removed both that prop and
+// a `surface` override, since there is now nothing to vary.
+//
+// `logo` swaps the title for the wordmark (the two home screens). `back` shows
+// whenever the screen's own stack has something underneath.
+export default function ScreenHeader({ title, subtitle, right = null, back, icon, logo = false }) {
   const navigation = useNavigation()
   const insets = useSafeAreaInsets()
 
@@ -46,17 +44,7 @@ export default function ScreenHeader({
   // visible two-tone split above a white header. Screens using this component
   // must therefore NOT include 'top' in their SafeAreaView edges.
   return (
-    <View
-      style={[
-        styles.header,
-        // An explicit background, so the strip behind the status bar is painted
-        // by the HEADER rather than relying on whatever the screen's container
-        // happens to be. Defaults to the app's page surface; every screen but
-        // VerificationScreen (white) sits on slate50.
-        { backgroundColor: surface, paddingTop: insets.top + spacing.md },
-        elevated && styles.elevated,
-      ]}
-    >
+    <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
       <View style={styles.left}>
         {showBack && (
           <Pressable
@@ -93,10 +81,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm,
     gap: spacing.sm,
+    // White + shadows.md is ExploreScreen's app bar, now the app-wide default.
+    backgroundColor: colors.white,
+    ...shadows.md,
   },
-  // Matches ExploreScreen's app bar (white + shadows.md) so the renter home and
-  // the host dashboard read as one product.
-  elevated: { backgroundColor: colors.white, ...shadows.md },
   left: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1, minWidth: 0 },
   titleWrap: { flex: 1, minWidth: 0 },
   title: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },

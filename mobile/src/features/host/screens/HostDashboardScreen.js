@@ -48,7 +48,7 @@ export default function HostDashboardScreen({ navigation }) {
       {/* Outside the ScrollView so it stays put while the page scrolls — the
           same fixed app bar the renter home has, so switching modes doesn't
           feel like a different app. */}
-      <ScreenHeader logo elevated right={<NotificationBell />} />
+      <ScreenHeader logo right={<NotificationBell />} />
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Dashboard</Text>
