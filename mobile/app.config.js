@@ -23,6 +23,17 @@ export default {
     },
     android: {
       package: 'com.stayonmap.app',
+      // Android Auto Backup would otherwise copy ALL of AsyncStorage to the
+      // user's Google Drive and restore it onto a new device — including
+      // `user_token` and the 30-day rotating `refreshToken`.
+      //
+      // That backup can never produce a working login anyway: session.service.js
+      // treats a rotated-out refresh token as a stolen-token replay and revokes
+      // the whole session, so a restored token trips theft detection. Backup
+      // therefore buys nothing for auth and puts credentials in a cloud blob.
+      // Everything else the app shows is re-fetched from the API, so the only
+      // thing a user loses on device transfer is having to sign in again.
+      allowBackup: false,
       // "Display over other apps" — a sensitive permission Play surfaces on the
       // store listing, and one a rental app has no business requesting. It is
       // not ours: Expo's prebuild template puts it in the MAIN manifest, so it
