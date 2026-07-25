@@ -81,9 +81,14 @@ export default function MyListingsScreen({ navigation }) {
       <ScreenHeader
         title="My listings"
         right={
-          <Pressable style={styles.addButton} onPress={() => navigation.navigate('AddListing')} accessibilityRole="button">
-            <Icon name="plus" size={14} color={colors.white} />
-            <Text style={styles.addButtonText}>Add Properties</Text>
+          <Pressable
+            style={styles.addLink}
+            onPress={() => navigation.navigate('AddListing')}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Add a property"
+          >
+            <Text style={styles.addLinkText}>Add property</Text>
           </Pressable>
         }
       />
@@ -162,8 +167,14 @@ const styles = StyleSheet.create({
   errorTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
   retryButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, minHeight: 40, justifyContent: 'center' },
   retryText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
-  addButton: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  addButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
+  // A text link, not a filled button — the page's own cards are the primary
+  // surface. Vertical padding + hitSlop keep the target past 44dp even though
+  // the text is small.
+  addLink: { paddingVertical: spacing.sm, paddingLeft: spacing.sm },
+  // brand700, not brand600: brand600 is 4.36:1 on white, under the 4.5:1
+  // minimum for text. It was fine as a button FILL behind white; as the text
+  // colour itself it is not.
+  addLinkText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand700 },
   list: { padding: spacing.lg, gap: spacing.md },
   card: { flex: 1, backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, overflow: 'hidden', marginBottom: spacing.md },
   cardImageWrap: { aspectRatio: 16 / 10, backgroundColor: colors.slate100 },
