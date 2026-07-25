@@ -33,66 +33,72 @@ export default function ProfileScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScreenHeader title="Profile" />
-      <View style={styles.card}>
-        {profile?.avatarUrl ? (
-          <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} resizeMode="cover" />
-        ) : (
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{(profile?.name || user?.email || '?')[0].toUpperCase()}</Text>
-          </View>
-        )}
-        {isLoading ? (
-          <ActivityIndicator color={colors.brand600} style={{ marginTop: spacing.sm }} />
-        ) : isError ? (
-          <>
-            <Text style={styles.errorText}>Could not load your profile.</Text>
-            <Pressable
-              style={styles.retryButton}
-              onPress={() => refetch()}
-              accessibilityRole="button"
-              accessibilityLabel="Retry loading profile"
-            >
-              <Text style={styles.retryText}>Retry</Text>
-            </Pressable>
-          </>
-        ) : (
-          <>
-            <Text style={styles.name}>{profile?.name || 'StayOnMap user'}</Text>
-            <Text style={styles.email}>{user?.email}</Text>
-            <View style={styles.roleBadge}>
-              <Icon name={profile?.role === 'OWNER' ? 'home' : 'key'} size={11} color={colors.brand700} />
-              <Text style={styles.roleBadgeText}>{profile?.role ?? 'TENANT'}</Text>
+
+      {/* Screen padding lives here, not on the container, so ScreenHeader spans
+          the full width. Same fix as HostProfileScreen. */}
+      <View style={styles.body}>
+        <View style={styles.card}>
+          {profile?.avatarUrl ? (
+            <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} resizeMode="cover" />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{(profile?.name || user?.email || '?')[0].toUpperCase()}</Text>
             </View>
-          </>
-        )}
-      </View>
+          )}
+          {isLoading ? (
+            <ActivityIndicator color={colors.brand600} style={{ marginTop: spacing.sm }} />
+          ) : isError ? (
+            <>
+              <Text style={styles.errorText}>Could not load your profile.</Text>
+              <Pressable
+                style={styles.retryButton}
+                onPress={() => refetch()}
+                accessibilityRole="button"
+                accessibilityLabel="Retry loading profile"
+              >
+                <Text style={styles.retryText}>Retry</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Text style={styles.name}>{profile?.name || 'StayOnMap user'}</Text>
+              <Text style={styles.email}>{user?.email}</Text>
+              <View style={styles.roleBadge}>
+                <Icon name={profile?.role === 'OWNER' ? 'home' : 'key'} size={11} color={colors.brand700} />
+                <Text style={styles.roleBadgeText}>{profile?.role ?? 'TENANT'}</Text>
+              </View>
+            </>
+          )}
+        </View>
 
-      <View style={styles.menu}>
-        {MENU_ITEMS.map(([route, icon, label]) => (
-          <MenuItem key={route} icon={icon} label={label} onPress={() => navigation.navigate(route)} />
-        ))}
-        <MenuItem
-          icon="home"
-          label="Switch to host"
-          onPress={() => setHostMode(true)}
-        />
-      </View>
+        <View style={styles.menu}>
+          {MENU_ITEMS.map(([route, icon, label]) => (
+            <MenuItem key={route} icon={icon} label={label} onPress={() => navigation.navigate(route)} />
+          ))}
+          <MenuItem
+            icon="home"
+            label="Switch to host"
+            onPress={() => setHostMode(true)}
+          />
+        </View>
 
-      <Pressable
-        style={styles.signOutButton}
-        onPress={signOut}
-        accessibilityRole="button"
-        accessibilityLabel="Sign out"
-      >
-        <Icon name="logout" size={16} color={colors.white} />
-        <Text style={styles.signOutText}>Sign out</Text>
-      </Pressable>
+        <Pressable
+          style={styles.signOutButton}
+          onPress={signOut}
+          accessibilityRole="button"
+          accessibilityLabel="Sign out"
+        >
+          <Icon name="logout" size={16} color={colors.white} />
+          <Text style={styles.signOutText}>Sign out</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.slate50, padding: spacing.lg },
+  container: { flex: 1, backgroundColor: colors.slate50 },
+  body: { flex: 1, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
   card: { alignItems: 'center', paddingVertical: spacing.xl },
   avatar: {
     width: 72,
