@@ -19,6 +19,7 @@ import LinkedAccountsSheet from '@features/profile/components/LinkedAccountsShee
 import DevicesSheet from '@features/profile/components/DevicesSheet'
 import PointsCard from '@features/points/components/PointsCard'
 import Icon from '@components/common/Icon'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -95,7 +96,7 @@ export default function SettingsScreen({ navigation }) {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.center} edges={['top']}>
+      <SafeAreaView style={styles.center} edges={['bottom']}>
         <ActivityIndicator color={colors.brand600} />
       </SafeAreaView>
     )
@@ -103,7 +104,7 @@ export default function SettingsScreen({ navigation }) {
 
   if (isError) {
     return (
-      <SafeAreaView style={styles.center} edges={['top']}>
+      <SafeAreaView style={styles.center} edges={['bottom']}>
         <Icon name="alertTriangle" size={28} color={colors.slate500} />
         <Text style={styles.errorText}>Could not load your settings.</Text>
         <Pressable
@@ -121,19 +122,8 @@ export default function SettingsScreen({ navigation }) {
   const isOwner = settings?.role === 'OWNER'
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.headerRow}>
-        <Pressable
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Icon name="chevronLeft" size={22} color={colors.slate800} />
-        </Pressable>
-        <Text style={styles.heading}>Settings</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <ScreenHeader title="Settings" />
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {/* Profile card */}
@@ -286,13 +276,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg, marginTop: spacing.sm,
   },
   retryText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.white },
-  headerRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
-  },
-  backButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  headerSpacer: { width: 48 },
-  heading: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
   profileCard: {

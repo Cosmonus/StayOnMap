@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { notificationService } from '@services/notification.service'
 import { getSocket } from '@lib/socket'
 import { navigateToReference, canNavigateToReference } from '@navigation/navigationRef'
+import ScreenHeader from '@components/common/ScreenHeader'
 import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
 import { colors } from '@theme/colors'
@@ -93,26 +94,12 @@ export default function NotificationsScreen({ navigation }) {
   }, [notifications])
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Pressable
-            onPress={() => navigation.goBack()}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Icon name="chevronLeft" size={20} color={colors.slate800} />
-          </Pressable>
-          <View style={styles.headerTitleRow}>
-            <Icon name="bell" size={20} color={colors.slate800} />
-            <View>
-              <Text style={styles.headerTitle}>Notifications</Text>
-              <Text style={styles.headerSub}>{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}</Text>
-            </View>
-          </View>
-        </View>
-        {unreadCount > 0 && (
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <ScreenHeader
+        icon="bell"
+        title="Notifications"
+        subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+        right={unreadCount > 0 ? (
           <Pressable
             style={styles.markAllButton}
             onPress={() => markAll()}
@@ -122,8 +109,8 @@ export default function NotificationsScreen({ navigation }) {
           >
             <Text style={styles.markAllButtonText}>Mark all read</Text>
           </Pressable>
-        )}
-      </View>
+        ) : null}
+      />
 
       {isError ? (
         <ErrorState title="Couldn't load notifications" onRetry={refetch} />
@@ -189,11 +176,6 @@ export default function NotificationsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2 },
   markAllButton: { backgroundColor: colors.brand50, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   markAllButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand600 },
   list: { padding: spacing.lg, paddingTop: spacing.xs },

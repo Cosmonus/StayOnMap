@@ -7,6 +7,7 @@ import { propertyService } from '@services/property.service'
 import { formatPrice, formatDate, imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
 import ContactRow, { buildContactStats } from '../components/ContactRow'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -156,7 +157,7 @@ export default function ManageListingScreen({ navigation, route }) {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.center} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.center} edges={['bottom']}>
         <ActivityIndicator color={colors.brand600} size="large" />
       </SafeAreaView>
     )
@@ -164,7 +165,7 @@ export default function ManageListingScreen({ navigation, route }) {
 
   if (isError || !property) {
     return (
-      <SafeAreaView style={styles.center} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.center} edges={['bottom']}>
         <Text style={styles.errorTitle}>Couldn&apos;t load this listing</Text>
         <Pressable style={styles.retryButton} onPress={() => refetch()} accessibilityRole="button" accessibilityLabel="Retry loading listing">
           <Text style={styles.retryText}>Retry</Text>
@@ -307,14 +308,11 @@ export default function ManageListingScreen({ navigation, route }) {
   )
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.headerBar}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={12} accessibilityRole="button" accessibilityLabel="Go back">
-          <Icon name="chevronLeft" size={22} color={colors.slate800} />
-        </Pressable>
-        <Text style={styles.headerBarTitle}>Manage listing</Text>
-        {busy ? <ActivityIndicator size="small" color={colors.brand600} /> : <View style={styles.headerSpacer} />}
-      </View>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <ScreenHeader
+        title="Manage listing"
+        right={busy ? <ActivityIndicator size="small" color={colors.brand600} /> : null}
+      />
       <FlatList
         data={contactStats}
         keyExtractor={(item) => item.id}
@@ -337,9 +335,6 @@ export default function ManageListingScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.slate50, gap: spacing.md, padding: spacing.xl },
-  headerBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, minHeight: 48 },
-  headerBarTitle: { flex: 1, fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
-  headerSpacer: { width: 20 },
   list: { paddingBottom: spacing.xxl },
   hero: { marginHorizontal: spacing.lg, borderRadius: radius.lg, overflow: 'hidden', aspectRatio: 16 / 9, backgroundColor: colors.slate100 },
   heroImage: { width: '100%', height: '100%' },

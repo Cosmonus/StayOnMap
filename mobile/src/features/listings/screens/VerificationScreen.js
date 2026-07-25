@@ -292,8 +292,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: spacing.lg, gap: spacing.md },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
   boxTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
   propertyBox: { backgroundColor: colors.slate50, borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.slate100 },
   propertyBoxLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },

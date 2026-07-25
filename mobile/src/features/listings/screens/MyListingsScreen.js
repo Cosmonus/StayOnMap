@@ -7,6 +7,7 @@ import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { formatPrice, imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -69,21 +70,23 @@ export default function MyListingsScreen({ navigation }) {
 
   if (!isOwner) {
     return (
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <BecomeOwnerPrompt />
       </SafeAreaView>
     )
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My listings</Text>
-        <Pressable style={styles.addButton} onPress={() => navigation.navigate('AddListing')}>
-          <Icon name="plus" size={14} color={colors.white} />
-          <Text style={styles.addButtonText}>Add Properties</Text>
-        </Pressable>
-      </View>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <ScreenHeader
+        title="My listings"
+        right={
+          <Pressable style={styles.addButton} onPress={() => navigation.navigate('AddListing')} accessibilityRole="button">
+            <Icon name="plus" size={14} color={colors.white} />
+            <Text style={styles.addButtonText}>Add Properties</Text>
+          </Pressable>
+        }
+      />
 
       {isLoading ? (
         <View style={styles.center}><ActivityIndicator color={colors.brand600} /></View>
@@ -159,8 +162,6 @@ const styles = StyleSheet.create({
   errorTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
   retryButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, minHeight: 40, justifyContent: 'center' },
   retryText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
   addButton: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   addButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   list: { padding: spacing.lg, gap: spacing.md },

@@ -7,6 +7,7 @@ import { appointmentService } from '@services/appointment.service'
 import { imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
@@ -266,30 +267,12 @@ export default function AppointmentsScreen({ navigation, route }) {
   const refetch = isIncoming ? refetchOwner : refetchMine
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <View style={styles.headerTopRow}>
-          {navigation.canGoBack() && (
-            <Pressable
-              onPress={() => navigation.goBack()}
-              hitSlop={12}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <Icon name="chevronLeft" size={20} color={colors.slate800} />
-            </Pressable>
-          )}
-          <View style={styles.headerTitleRow}>
-            <Icon name="calendar" size={20} color={colors.slate800} />
-            <Text style={styles.headerTitle}>
-              Appointments{isIncoming && pendingCount > 0 ? ` (${pendingCount})` : ''}
-            </Text>
-          </View>
-        </View>
-        <Text style={styles.headerSub}>
-          {isIncoming ? 'Visit requests for your properties' : 'Visits you’ve requested'}
-        </Text>
-      </View>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <ScreenHeader
+        icon="calendar"
+        title={`Appointments${isIncoming && pendingCount > 0 ? ` (${pendingCount})` : ''}`}
+        subtitle={isIncoming ? 'Visit requests for your properties' : 'Visits you’ve requested'}
+      />
 
       {isLoading ? (
         <View style={styles.center}><ActivityIndicator color={colors.brand600} /></View>
@@ -325,11 +308,6 @@ export default function AppointmentsScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
-  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
-  headerTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: spacing.lg, gap: spacing.md },
   filterRow: { marginBottom: spacing.md, alignItems: 'flex-start' },

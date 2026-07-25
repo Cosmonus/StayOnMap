@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
-import Icon from '@components/common/Icon'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -235,16 +235,8 @@ export default function EditListingScreen({ navigation, route }) {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.headerBar}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={12} accessibilityRole="button" accessibilityLabel="Go back">
-          <Icon name="chevronLeft" size={22} color={colors.slate800} />
-        </Pressable>
-        <View style={styles.headerText}>
-          <Text style={styles.headerTitle}>Edit listing</Text>
-          {property?.title ? <Text style={styles.headerSub} numberOfLines={1}>{property.title}</Text> : null}
-        </View>
-      </View>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <ScreenHeader title="Edit listing" subtitle={property?.title} />
 
       {isLoading ? (
         <View style={styles.center}>
@@ -270,10 +262,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl },
-  headerBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, minHeight: 48 },
-  headerText: { flex: 1, minWidth: 0 },
-  headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
-  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.md },
   field: { gap: spacing.xs },
   fieldLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate700 },

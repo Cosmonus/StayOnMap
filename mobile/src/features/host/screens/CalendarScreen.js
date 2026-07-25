@@ -195,8 +195,6 @@ const CELL_WIDTH = `${100 / 7}%`
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
-  title: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  subtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2, marginBottom: spacing.lg },
   monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
   monthLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
   weekRow: { flexDirection: 'row' },

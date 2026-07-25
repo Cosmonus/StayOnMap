@@ -24,7 +24,7 @@ import { spacing } from '@theme/spacing'
 // `logo` swaps the title for the wordmark and `elevated` gives the white,
 // shadowed bar — together they reproduce the renter home's app bar, so host
 // mode's Dashboard reads as the same product rather than a different screen.
-export default function ScreenHeader({ title, subtitle, right = null, back, logo = false, elevated = false }) {
+export default function ScreenHeader({ title, subtitle, right = null, back, icon, logo = false, elevated = false }) {
   const navigation = useNavigation()
   const insets = useSafeAreaInsets()
   const showBack = back ?? navigation.canGoBack()
@@ -50,10 +50,16 @@ export default function ScreenHeader({ title, subtitle, right = null, back, logo
         {logo ? (
           <Logo />
         ) : (
-          <View style={styles.titleWrap}>
-            <Text style={styles.title} numberOfLines={1}>{title}</Text>
-            {!!subtitle && <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>}
-          </View>
+          <>
+            {/* Several screens paired their title with a glyph (calendar for
+                appointments, document for leases). Decorative — the title says
+                the same thing — so it's hidden from screen readers. */}
+            {!!icon && <Icon name={icon} size={20} color={colors.slate800} accessibilityElementsHidden />}
+            <View style={styles.titleWrap}>
+              <Text style={styles.title} numberOfLines={1}>{title}</Text>
+              {!!subtitle && <Text style={styles.subtitle} numberOfLines={2}>{subtitle}</Text>}
+            </View>
+          </>
         )}
       </View>
       {right}

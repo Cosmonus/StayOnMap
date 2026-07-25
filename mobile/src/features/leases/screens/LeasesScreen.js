@@ -8,6 +8,7 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import { formatCurrency } from '@utils/format'
 import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
@@ -195,24 +196,8 @@ export default function LeasesScreen({ navigation }) {
   const asTenant = data?.asTenant ?? []
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <View style={styles.headerTopRow}>
-          <Pressable
-            onPress={() => navigation.goBack()}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Icon name="chevronLeft" size={20} color={colors.slate800} />
-          </Pressable>
-          <View style={styles.headerTitleRow}>
-            <Icon name="document" size={20} color={colors.slate800} />
-            <Text style={styles.headerTitle}>Leases</Text>
-          </View>
-        </View>
-        <Text style={styles.headerSub}>Manage rental agreements</Text>
-      </View>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <ScreenHeader icon="document" title="Leases" subtitle="Manage rental agreements" />
 
       {isLoading ? (
         <View style={styles.center}><ActivityIndicator color={colors.brand600} /></View>
@@ -256,11 +241,6 @@ export default function LeasesScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
-  headerTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2 },
   scroll: { padding: spacing.lg, paddingTop: spacing.xs },
   sectionLabel: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500, textTransform: 'uppercase', letterSpacing: 0.5 },
   card: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, padding: spacing.md, marginBottom: spacing.sm, gap: spacing.sm },
