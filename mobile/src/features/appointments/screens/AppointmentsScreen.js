@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { View, Text, TextInput, Pressable, FlatList, Modal, ActivityIndicator, StyleSheet, Linking } from 'react-native'
-import { Image } from 'expo-image'
+import { View, Text, TextInput, Pressable, FlatList, SectionList, Modal, ActivityIndicator, StyleSheet, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
-import { imgUrl } from '@utils/format'
+
 import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
 import ScreenHeader from '@components/common/ScreenHeader'
@@ -27,10 +26,6 @@ const OWNER_FILTERS = [
   ['ACCEPTED', 'Accepted'],
   ['REJECTED', 'Rejected'],
 ]
-
-function shortDate(iso) {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
-}
 
 function personName(u) {
   if (u?.name?.trim()) return u.name
@@ -101,6 +96,44 @@ function StatusPill({ status }) {
   )
 }
 
+// Agenda grouping. A flat list gave every request equal weight and no sense of
+// time — the owner's real question is "what is happening today", not "what
+// arrived most recently". Upcoming days ascending (soonest first), then past
+// days descending underneath, because a past visit is history you scroll back
+// through rather than something you act on.
+const DAY_MS = 86400000
+
+function dayKey(date) {
+  const d = new Date(date)
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+}
+
+function dayLabel(key) {
+  const today = dayKey(new Date())
+  if (key === today) return 'Today'
+  if (key === today + DAY_MS) return 'Tomorrow'
+  if (key === today - DAY_MS) return 'Yesterday'
+  return new Date(key).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+function toSections(appointments) {
+  const byDay = new Map()
+  for (const a of appointments) {
+    const key = dayKey(a.requestedDate)
+    if (!byDay.has(key)) byDay.set(key, [])
+    byDay.get(key).push(a)
+  }
+  const today = dayKey(new Date())
+  const keys = [...byDay.keys()]
+  const upcoming = keys.filter((k) => k >= today).sort((a, b) => a - b)
+  const past = keys.filter((k) => k < today).sort((a, b) => b - a)
+  return [...upcoming, ...past].map((key) => ({
+    title: dayLabel(key),
+    past: key < today,
+    data: byDay.get(key).sort((a, b) => String(a.requestedTime).localeCompare(String(b.requestedTime))),
+  }))
+}
+
 // Someone's words, not the app's. Attribution first, then the text in a tinted
 // block — inline "Note: …" in the same grey as everything else gave no clue
 // whether the words were the renter's, the owner's or a system message.
@@ -116,35 +149,38 @@ function NoteBlock({ from, text, tone = 'neutral' }) {
 
 function OwnerCard({ appt, onAction, onOpenProperty }) {
   const [rejecting, setRejecting] = useState(false)
+  const [showNote, setShowNote] = useState(false)
   const [note, setNote] = useState('')
   const isPending = appt.status === 'PENDING'
-  const thumb = appt.property?.images?.[0]?.url
+  const hasNote = !!appt.message || !!appt.ownerNote
 
   return (
     <View style={styles.card}>
-      {/* The SLOT is the headline. An owner triaging requests decides on when
-          and who; the date used to sit in the corner of the property row, below
-          everything, in the same 11px grey as the city. */}
-      <View style={styles.whenRow}>
-        <View style={styles.whenText}>
-          <Text style={styles.whenDate}>{shortDate(appt.requestedDate)}</Text>
-          <Text style={styles.whenTime}>{appt.requestedTime}</Text>
-        </View>
-        <StatusPill status={appt.status} />
-      </View>
+      {/* Time leads the row; the day is already the section header, so
+          repeating the date on every card was noise. */}
+      <View style={styles.agendaRow}>
+        <Text style={styles.agendaTime}>{appt.requestedTime}</Text>
+        <View style={styles.agendaBody}>
+          <View style={styles.agendaTop}>
+            <Text style={styles.personName} numberOfLines={1}>{personName(appt.tenant)}</Text>
+            <StatusPill status={appt.status} />
+          </View>
 
-      <View style={styles.personRow}>
-        <View style={styles.avatar}>
-          {appt.tenant?.avatarUrl ? (
-            <Image source={{ uri: imgUrl(appt.tenant.avatarUrl) }} style={styles.avatarImg} contentFit="cover" cachePolicy="memory-disk" transition={200} />
-          ) : (
-            <Text style={styles.avatarInitial}>{personName(appt.tenant)[0]?.toUpperCase()}</Text>
-          )}
-        </View>
-        <View style={{ flexShrink: 1 }}>
-          <Text style={styles.personName} numberOfLines={1}>{personName(appt.tenant)}</Text>
           <Pressable
-            style={styles.personSubRow}
+            style={styles.agendaProperty}
+            onPress={() => appt.property?.id && onOpenProperty?.(appt.property.id)}
+            disabled={!appt.property?.id}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${appt.property?.title ?? 'property'}`}
+          >
+            <Text style={styles.agendaPropertyText} numberOfLines={1}>
+              {appt.property?.title ?? 'Property'}{appt.property?.city ? ` · ${appt.property.city}` : ''}
+            </Text>
+            <Icon name="chevronRight" size={14} color={colors.slate400} />
+          </Pressable>
+
+          <Pressable
+            style={styles.agendaPhone}
             onPress={() => appt.contactNumber && Linking.openURL(`tel:${appt.contactNumber}`)}
             disabled={!appt.contactNumber}
             hitSlop={8}
@@ -157,23 +193,26 @@ function OwnerCard({ appt, onAction, onOpenProperty }) {
         </View>
       </View>
 
-      <Pressable
-        style={styles.propertyRow}
-        onPress={() => appt.property?.id && onOpenProperty?.(appt.property.id)}
-        disabled={!appt.property?.id}
-        accessibilityRole="button"
-        accessibilityLabel={`Open ${appt.property?.title ?? 'property'}`}
-      >
-        {thumb ? <Image source={{ uri: imgUrl(thumb) }} style={styles.propertyThumb} contentFit="cover" cachePolicy="memory-disk" transition={200} /> : <View style={styles.propertyThumb} />}
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.propertyTitle} numberOfLines={1}>{appt.property?.title ?? 'Property'}</Text>
-          <Text style={styles.propertySub} numberOfLines={1}>{appt.property?.city}</Text>
-        </View>
-        <Icon name="chevronRight" size={16} color={colors.slate400} />
-      </Pressable>
-
-      <NoteBlock from={`${personName(appt.tenant)} wrote`} text={appt.message} />
-      <NoteBlock from="You replied" text={appt.ownerNote} tone="reply" />
+      {/* Notes are behind a tap: most rows have none, and a wall of free text
+          on every card is what made the list unreadable. */}
+      {hasNote && (
+        <Pressable
+          style={styles.noteToggle}
+          onPress={() => setShowNote((v) => !v)}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showNote }}
+        >
+          <Text style={styles.noteToggleText}>{showNote ? 'Hide notes' : 'View notes'}</Text>
+          <Icon name={showNote ? 'chevronUp' : 'chevronDown'} size={14} color={colors.brand700} />
+        </Pressable>
+      )}
+      {showNote && (
+        <>
+          <NoteBlock from={`${personName(appt.tenant)} wrote`} text={appt.message} />
+          <NoteBlock from="You replied" text={appt.ownerNote} tone="reply" />
+        </>
+      )}
 
       {isPending && !rejecting && (
         <View style={styles.actionRow}>
@@ -213,33 +252,49 @@ function OwnerCard({ appt, onAction, onOpenProperty }) {
 }
 
 function TenantCard({ appt, onOpenProperty }) {
-  const thumb = appt.property?.images?.[0]?.url
+  const [showNote, setShowNote] = useState(false)
+  const hasNote = !!appt.message || !!appt.ownerNote
+
   return (
     <View style={styles.card}>
-      <View style={styles.whenRow}>
-        <View style={styles.whenText}>
-          <Text style={styles.whenDate}>{shortDate(appt.requestedDate)}</Text>
-          <Text style={styles.whenTime}>{appt.requestedTime}</Text>
+      <View style={styles.agendaRow}>
+        <Text style={styles.agendaTime}>{appt.requestedTime}</Text>
+        <View style={styles.agendaBody}>
+          <View style={styles.agendaTop}>
+            <Text style={styles.personName} numberOfLines={1}>{appt.property?.title ?? 'Property'}</Text>
+            <StatusPill status={appt.status} />
+          </View>
+          <Pressable
+            style={styles.agendaProperty}
+            onPress={() => appt.property?.id && onOpenProperty?.(appt.property.id)}
+            disabled={!appt.property?.id}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${appt.property?.title ?? 'property'}`}
+          >
+            <Text style={styles.agendaPropertyText} numberOfLines={1}>{appt.property?.city}</Text>
+            <Icon name="chevronRight" size={14} color={colors.slate400} />
+          </Pressable>
         </View>
-        <StatusPill status={appt.status} />
       </View>
 
-      <Pressable
-        style={styles.propertyRow}
-        onPress={() => appt.property?.id && onOpenProperty?.(appt.property.id)}
-        disabled={!appt.property?.id}
-        accessibilityRole="button"
-        accessibilityLabel={`Open ${appt.property?.title ?? 'property'}`}
-      >
-        {thumb ? <Image source={{ uri: imgUrl(thumb) }} style={styles.propertyThumb} contentFit="cover" cachePolicy="memory-disk" transition={200} /> : <View style={styles.propertyThumb} />}
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.propertyTitle} numberOfLines={1}>{appt.property?.title ?? 'Property'}</Text>
-          <Text style={styles.propertySub} numberOfLines={1}>{appt.property?.city}</Text>
-        </View>
-        <Icon name="chevronRight" size={16} color={colors.slate400} />
-      </Pressable>
-      <NoteBlock from="You wrote" text={appt.message} />
-      <NoteBlock from="Owner replied" text={appt.ownerNote} tone="reply" />
+      {hasNote && (
+        <Pressable
+          style={styles.noteToggle}
+          onPress={() => setShowNote((v) => !v)}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showNote }}
+        >
+          <Text style={styles.noteToggleText}>{showNote ? 'Hide notes' : 'View notes'}</Text>
+          <Icon name={showNote ? 'chevronUp' : 'chevronDown'} size={14} color={colors.brand700} />
+        </Pressable>
+      )}
+      {showNote && (
+        <>
+          <NoteBlock from="You wrote" text={appt.message} />
+          <NoteBlock from="Owner replied" text={appt.ownerNote} tone="reply" />
+        </>
+      )}
     </View>
   )
 }
@@ -307,20 +362,28 @@ export default function AppointmentsScreen({ navigation, route }) {
       ) : isError ? (
         <ErrorState title="Couldn't load appointments" onRetry={refetch} />
       ) : isIncoming ? (
-        <FlatList
-          data={filteredOwner}
+        <SectionList
+          sections={toSections(filteredOwner)}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          stickySectionHeadersEnabled={false}
+          renderSectionHeader={({ section }) => (
+            <Text style={[styles.sectionHeader, section.past && styles.sectionHeaderPast]}>{section.title}</Text>
+          )}
           ListEmptyComponent={<EmptyState message="Tenant visit requests will appear here." />}
           renderItem={({ item }) => (
             <OwnerCard appt={item} onAction={(id, status, ownerNote) => mutation.mutate({ id, status, ownerNote })} onOpenProperty={openProperty} />
           )}
         />
       ) : (
-        <FlatList
-          data={myAppts}
+        <SectionList
+          sections={toSections(myAppts)}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          stickySectionHeadersEnabled={false}
+          renderSectionHeader={({ section }) => (
+            <Text style={[styles.sectionHeader, section.past && styles.sectionHeaderPast]}>{section.title}</Text>
+          )}
           ListEmptyComponent={<EmptyState message="Appointments you've requested will appear here." />}
           renderItem={({ item }) => <TenantCard appt={item} onOpenProperty={openProperty} />}
         />
@@ -358,26 +421,27 @@ const styles = StyleSheet.create({
   },
   noteFromReply: { color: colors.brand700 },
   noteText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate700, lineHeight: 18 },
-  whenRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginBottom: spacing.sm },
-  whenText: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm, flexShrink: 1 },
-  whenDate: { fontFamily: fonts.displayBold, fontSize: fontSizes.base, color: colors.slate800 },
-  whenTime: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand700 },
-  card: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, padding: spacing.md, marginBottom: spacing.sm },
-  personRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },
-  avatar: { width: 32, height: 32, borderRadius: radius.full, backgroundColor: colors.slate800, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  avatarImg: { width: '100%', height: '100%' },
-  avatarInitial: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
-  personName: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
-  personSubRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  personSub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
+  sectionHeader: {
+    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate600,
+    textTransform: 'uppercase', letterSpacing: 0.5,
+    marginTop: spacing.md, marginBottom: spacing.xs,
+  },
+  sectionHeaderPast: { color: colors.slate500 },
+  agendaRow: { flexDirection: 'row', gap: spacing.md },
+  agendaTime: { fontFamily: fonts.displayBold, fontSize: fontSizes.sm, color: colors.slate800, width: 68 },
+  agendaBody: { flex: 1, minWidth: 0, gap: 4 },
+  agendaTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  personName: { flex: 1, minWidth: 0, fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
+  agendaProperty: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  agendaPropertyText: { flex: 1, minWidth: 0, fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate600 },
+  agendaPhone: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingVertical: 2 },
   personPhone: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.brand700 },
+  noteToggle: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingVertical: spacing.xs, marginTop: spacing.xs },
+  noteToggleText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
+  card: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, padding: spacing.md, marginBottom: spacing.sm },
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.full },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontFamily: fonts.bodySemiBold, fontSize: 11 },
-  propertyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.slate50, borderRadius: radius.md, padding: spacing.sm, marginBottom: spacing.sm },
-  propertyThumb: { width: 36, height: 36, borderRadius: radius.sm, backgroundColor: colors.slate200 },
-  propertyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
-  propertySub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   actionRow: { flexDirection: 'row', gap: spacing.sm },
   acceptButton: { flex: 1, minHeight: 44, flexDirection: 'row', gap: 5, backgroundColor: colors.black, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
   acceptButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
