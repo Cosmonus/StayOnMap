@@ -1,6 +1,6 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation, useNavigationState } from '@react-navigation/native'
 import Icon from './Icon'
 import Logo from './Logo'
 import { colors } from '@theme/colors'
@@ -24,10 +24,21 @@ import { spacing } from '@theme/spacing'
 // `logo` swaps the title for the wordmark and `elevated` gives the white,
 // shadowed bar — together they reproduce the renter home's app bar, so host
 // mode's Dashboard reads as the same product rather than a different screen.
-export default function ScreenHeader({ title, subtitle, right = null, back, icon, logo = false, elevated = false }) {
+export default function ScreenHeader({
+  title, subtitle, right = null, back, icon,
+  logo = false, elevated = false, surface = colors.slate50,
+}) {
   const navigation = useNavigation()
   const insets = useSafeAreaInsets()
-  const showBack = back ?? navigation.canGoBack()
+
+  // The index of the NEAREST navigator — this screen's own stack. Anything
+  // above 0 means there is a screen underneath to go back to.
+  //
+  // NOT navigation.canGoBack(): that walks up to parent navigators too, so once
+  // the tab navigator had any history it returned true on EVERY screen and put
+  // a back arrow on all five tab roots — where there is nothing to go back to.
+  const stackIndex = useNavigationState((state) => state.index)
+  const showBack = back ?? stackIndex > 0
 
   // The header absorbs the status-bar inset itself, so its background runs
   // behind the clock and battery as one bar. Letting the screen's SafeAreaView
@@ -35,7 +46,17 @@ export default function ScreenHeader({ title, subtitle, right = null, back, icon
   // visible two-tone split above a white header. Screens using this component
   // must therefore NOT include 'top' in their SafeAreaView edges.
   return (
-    <View style={[styles.header, elevated && styles.elevated, { paddingTop: insets.top + spacing.md }]}>
+    <View
+      style={[
+        styles.header,
+        // An explicit background, so the strip behind the status bar is painted
+        // by the HEADER rather than relying on whatever the screen's container
+        // happens to be. Defaults to the app's page surface; every screen but
+        // VerificationScreen (white) sits on slate50.
+        { backgroundColor: surface, paddingTop: insets.top + spacing.md },
+        elevated && styles.elevated,
+      ]}
+    >
       <View style={styles.left}>
         {showBack && (
           <Pressable
