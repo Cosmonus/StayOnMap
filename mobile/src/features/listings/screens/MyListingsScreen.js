@@ -7,30 +7,18 @@ import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { formatPrice, imgUrl } from '@utils/format'
 import { specLabel } from '@utils/propertySpec'
+import { statusOf } from '../listingStatus'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-// Colour plus, more importantly, what the status MEANS for the owner. A pill
-// reading "DRAFT" tells you the enum value; "Not published yet" tells you why
-// nobody can see it. OCCUPIED used to be in this map and is not a
-// PropertyStatus — the enum is DRAFT|ACTIVE|INACTIVE|PENDING|SUSPENDED|REJECTED.
 // Mirrors MAX_LISTINGS_PER_OWNER in backend properties.service.js.
 const MAX_ACTIVE = 3
 
-const STATUS = {
-  DRAFT:     { bg: colors.slate100,  text: colors.slate600, label: 'Draft',     meaning: 'Not published yet' },
-  PENDING:   { bg: colors.warning50, text: colors.warning700, label: 'In review', meaning: 'Waiting on moderation' },
-  ACTIVE:    { bg: colors.success50, text: '#15803D',       label: 'Live',      meaning: 'Visible to renters' },
-  INACTIVE:  { bg: colors.slate100,  text: colors.slate600, label: 'Paused',    meaning: 'Hidden from search' },
-  SUSPENDED: { bg: colors.danger50,  text: colors.danger600, label: 'Suspended', meaning: 'Removed by moderation' },
-  REJECTED:  { bg: colors.danger50,  text: colors.danger600, label: 'Rejected',  meaning: 'Needs changes before it can go live' },
-}
-
 function StatusPill({ status }) {
-  const s = STATUS[status] ?? STATUS.DRAFT
+  const s = statusOf(status)
   return (
     <View style={[styles.statusPill, { backgroundColor: s.bg }]}>
       <Text style={[styles.statusPillText, { color: s.text }]}>{s.label}</Text>
@@ -48,7 +36,7 @@ function StatusPill({ status }) {
 // ManageListingScreen already offers both, plus Edit and Preview, at a proper
 // size. The whole row is now one tap target to that screen.
 function ListingRow({ item, onPress }) {
-  const s = STATUS[item.status] ?? STATUS.DRAFT
+  const s = statusOf(item.status)
   const spec = specLabel(item)
   const requests = item._count?.appointments ?? 0
   const thumb = item.images?.[0]?.url

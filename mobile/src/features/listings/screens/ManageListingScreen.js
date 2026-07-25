@@ -8,25 +8,17 @@ import { formatPrice, formatDate, imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
 import ContactRow, { buildContactStats } from '../components/ContactRow'
 import ScreenHeader from '@components/common/ScreenHeader'
+import { specLabel } from '@utils/propertySpec'
+import { statusOf } from '../listingStatus'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-const STATUS_COLORS = {
-  DRAFT: { bg: colors.slate100, text: colors.slate600 },
-  ACTIVE: { bg: colors.success50, text: '#15803D' },
-  INACTIVE: { bg: colors.slate100, text: colors.slate500 },
-  PENDING: { bg: colors.warning50, text: '#B45309' },
-  OCCUPIED: { bg: '#EEF2FF', text: '#4338CA' },
-  SUSPENDED: { bg: colors.danger50, text: '#DC2626' },
-  REJECTED: { bg: colors.danger50, text: '#DC2626' },
-}
-
 function StatusPill({ status }) {
-  const c = STATUS_COLORS[status] ?? STATUS_COLORS.DRAFT
+  const s = statusOf(status)
   return (
-    <View style={[styles.statusPill, { backgroundColor: c.bg }]}>
-      <Text style={[styles.statusPillText, { color: c.text }]}>{status}</Text>
+    <View style={[styles.statusPill, { backgroundColor: s.bg }]}>
+      <Text style={[styles.statusPillText, { color: s.text }]}>{s.label}</Text>
     </View>
   )
 }
@@ -179,31 +171,38 @@ export default function ManageListingScreen({ navigation, route }) {
 
   const { status } = property
   const primaryImage = property.images?.find((i) => i.isPrimary) ?? property.images?.[0]
+  const spec = specLabel(property)
 
   // Status-gated actions — mirrors the backend's real transition rules:
   // publish: DRAFT|REJECTED → PENDING; toggle: ACTIVE ↔ INACTIVE;
   // markTenant: ACTIVE → OCCUPIED (via contact rows); vacate: OCCUPIED → ACTIVE.
   const header = (
     <View>
-      <View style={styles.hero}>
-        {primaryImage ? (
-          <Image source={{ uri: imgUrl(primaryImage.url, 'detail') }} style={styles.heroImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
-        ) : (
-          <View style={[styles.heroImage, styles.heroPlaceholder]}>
-            <Icon name="image" size={28} color={colors.slate500} />
+      <View style={styles.heroCard}>
+        <View style={styles.hero}>
+          {primaryImage ? (
+            <Image source={{ uri: imgUrl(primaryImage.url, 'detail') }} style={styles.heroImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
+          ) : (
+            <View style={[styles.heroImage, styles.heroPlaceholder]}>
+              <Icon name="image" size={28} color={colors.slate500} />
+            </View>
+          )}
+          <View style={styles.statusPillWrap}>
+            <StatusPill status={status} />
           </View>
-        )}
-        <View style={styles.statusPillWrap}>
-          <StatusPill status={status} />
         </View>
-      </View>
 
-      <View style={styles.summary}>
-        <Text style={styles.title} numberOfLines={2}>{property.title}</Text>
-        <Text style={styles.rent}>{formatPrice(property)}</Text>
-        <Text style={styles.address} numberOfLines={1}>
-          {[property.address, property.city].filter(Boolean).join(', ')}
-        </Text>
+        <View style={styles.summary}>
+          <Text style={styles.title} numberOfLines={2}>{property.title}</Text>
+          <Text style={styles.rent} numberOfLines={1}>
+            {formatPrice(property)}{spec ? ` · ${spec}` : ''}
+          </Text>
+          <Text style={styles.address} numberOfLines={1}>
+            {[property.address, property.city].filter(Boolean).join(', ')}
+          </Text>
+          {/* What the status MEANS, next to the pill that names it. */}
+          <Text style={styles.statusMeaning}>{statusOf(status).meaning}</Text>
+        </View>
       </View>
 
       {status === 'OCCUPIED' && property.currentTenant && (
@@ -335,14 +334,22 @@ export default function ManageListingScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.slate50, gap: spacing.md, padding: spacing.xl },
-  list: { paddingBottom: spacing.xxl },
-  hero: { marginHorizontal: spacing.lg, borderRadius: radius.lg, overflow: 'hidden', aspectRatio: 16 / 9, backgroundColor: colors.slate100 },
+  // paddingTop was missing entirely — the hero photo butted straight against
+  // the header with no breathing room. That was the reported bug.
+  list: { paddingTop: spacing.lg, paddingBottom: spacing.xxl },
+  heroCard: {
+    marginHorizontal: spacing.lg, backgroundColor: colors.white,
+    borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100,
+    overflow: 'hidden',
+  },
+  hero: { aspectRatio: 16 / 9, backgroundColor: colors.slate100 },
   heroImage: { width: '100%', height: '100%' },
   heroPlaceholder: { alignItems: 'center', justifyContent: 'center' },
   statusPillWrap: { position: 'absolute', top: spacing.sm, left: spacing.sm },
   statusPill: { borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3 },
   statusPillText: { fontFamily: fonts.bodySemiBold, fontSize: 11 },
-  summary: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  summary: { padding: spacing.md, gap: 2 },
+  statusMeaning: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 4 },
   title: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
   rent: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.brand600, marginTop: 2 },
   address: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
