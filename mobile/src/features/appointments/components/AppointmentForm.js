@@ -153,7 +153,7 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
         value={form.contactNumber}
         onChangeText={(v) => setForm((f) => ({ ...f, contactNumber: v }))}
         placeholder="10-digit mobile number"
-        placeholderTextColor={colors.slate400}
+        placeholderTextColor={colors.slate500}
         keyboardType="phone-pad"
         maxLength={10}
       />
@@ -164,7 +164,7 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
         value={form.message}
         onChangeText={(v) => setForm((f) => ({ ...f, message: v }))}
         placeholder="Anything the owner should know..."
-        placeholderTextColor={colors.slate400}
+        placeholderTextColor={colors.slate500}
         multiline
         numberOfLines={3}
       />
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.brand600, borderColor: colors.brand600 },
   chipText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate600 },
   chipTextActive: { color: colors.white },
-  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 2 },
+  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 2 },
   input: {
     borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md,
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4,

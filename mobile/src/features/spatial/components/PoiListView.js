@@ -111,12 +111,12 @@ export default function PoiListView({ moduleKey, lat, lng }) {
           {data?.available && (
             <>
               <View style={styles.searchWrap}>
-                <Search size={14} color={colors.slate400} />
+                <Search size={14} color={colors.slate500} />
                 <TextInput
                   value={query}
                   onChangeText={setQuery}
                   placeholder={`Search ${categoryLabel.toLowerCase()}…`}
-                  placeholderTextColor={colors.slate400}
+                  placeholderTextColor={colors.slate500}
                   accessibilityLabel={`Search nearby ${categoryLabel}`}
                   style={styles.searchInput}
                   autoCorrect={false}
@@ -153,7 +153,7 @@ export default function PoiListView({ moduleKey, lat, lng }) {
                         </Text>
                         {!!p.openingHours && (
                           <View style={styles.hoursRow}>
-                            <Clock size={10} color={colors.slate400} />
+                            <Clock size={10} color={colors.slate500} />
                             {/* Only when the backend read the hours with
                                 confidence. Absent means unknown — never shown
                                 as closed. */}
@@ -232,12 +232,12 @@ const styles = StyleSheet.create({
   poiRowLast: { borderBottomWidth: 0 },
   poiBody: { flex: 1, minWidth: 0 },
   poiName: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.slate800 },
-  poiBrand: { fontFamily: fonts.body, color: colors.slate400 },
+  poiBrand: { fontFamily: fonts.body, color: colors.slate500 },
   poiMeta: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 2 },
   hoursRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  hours: { flex: 1, fontFamily: fonts.body, fontSize: 10, color: colors.slate400 },
+  hours: { flex: 1, fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   openBadge: {
-    fontFamily: fonts.bodySemiBold, fontSize: 9, paddingHorizontal: 4,
+    fontFamily: fonts.bodySemiBold, fontSize: 11, paddingHorizontal: 4,
     paddingVertical: 1, borderRadius: radius.sm, overflow: 'hidden',
   },
   openNow: { backgroundColor: colors.brand50, color: colors.brand700 },
@@ -246,5 +246,5 @@ const styles = StyleSheet.create({
     width: 34, height: 34, borderRadius: radius.md, backgroundColor: colors.slate50,
     alignItems: 'center', justifyContent: 'center',
   },
-  footnote: { fontFamily: fonts.body, fontSize: 10, lineHeight: 14, color: colors.slate400, marginTop: 6 },
+  footnote: { fontFamily: fonts.body, fontSize: 11, lineHeight: 14, color: colors.slate500, marginTop: 6 },
 })

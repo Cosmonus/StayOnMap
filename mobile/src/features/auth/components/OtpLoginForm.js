@@ -68,13 +68,13 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, onSignup,
       <>
         <Text style={s.label}>Email address</Text>
         <View style={s.inputWrap}>
-          <Icon name="mail" size={16} color={colors.slate400} />
+          <Icon name="mail" size={16} color={colors.slate500} />
           <TextInput
             style={s.input}
             value={email}
             onChangeText={setEmail}
             placeholder="you@example.com"
-            placeholderTextColor={colors.slate400}
+            placeholderTextColor={colors.slate500}
             keyboardType="email-address"
             autoCapitalize="none"
             accessibilityLabel="Email address"
@@ -179,7 +179,7 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, onSignup,
           accessibilityRole="button"
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <Text style={[s.linkText, { color: colors.slate400 }]}>← Change email</Text>
+          <Text style={[s.linkText, { color: colors.slate500 }]}>← Change email</Text>
         </Pressable>
         <Pressable
           onPress={send}
@@ -221,7 +221,7 @@ const local = StyleSheet.create({
   nudgeText: {
     fontFamily: fonts.body,
     fontSize: fontSizes.xs,
-    color: colors.slate400,
+    color: colors.slate500,
     textAlign: 'center',
   },
 })

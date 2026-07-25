@@ -41,7 +41,7 @@ const HOST_NAV_TABS = [
 function Badge({ count }) {
   if (!count) return null
   return (
-    <span className="min-w-[16px] h-4 px-1 flex items-center justify-center text-[10px] font-bold rounded-full bg-red-500 text-white">
+    <span className="min-w-[16px] h-4 px-1 flex items-center justify-center text-[11px] font-bold rounded-full bg-red-500 text-white">
       {count > 9 ? '9+' : count}
     </span>
   )
@@ -137,7 +137,7 @@ function NavTabs({ tabs }) {
             active ? 'text-slate-900 font-semibold' : 'text-slate-500 font-medium hover:text-slate-900'
           }`}
         >
-          {icon && <span className={active ? 'text-brand-600' : 'text-slate-400'}>{icon}</span>}
+          {icon && <span className={active ? 'text-brand-600' : 'text-slate-500'}>{icon}</span>}
           {label}
           <Badge count={badge} />
           {active && <span className="absolute -bottom-0.5 left-3 right-3 h-0.5 rounded-full bg-slate-900" />}

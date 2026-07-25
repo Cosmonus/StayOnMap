@@ -118,7 +118,7 @@ export default function TypePicker({ onPick, onBack }) {
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${biz ? 'bg-slate-900' : 'bg-brand-50'}`}>
                   <Home size={22} color={biz ? '#fff' : '#0284c7'} strokeWidth={1.7} />
                 </div>
-                <span className={`text-[10px] font-bold tracking-wide px-2 py-1 rounded-full ${biz ? 'bg-slate-900 text-white' : 'bg-brand-50 text-brand-700'}`}>
+                <span className={`text-[11px] font-bold tracking-wide px-2 py-1 rounded-full ${biz ? 'bg-slate-900 text-white' : 'bg-brand-50 text-brand-700'}`}>
                   {biz ? 'BUSINESS' : 'FREE'}
                 </span>
               </div>

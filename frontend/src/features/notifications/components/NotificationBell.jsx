@@ -124,7 +124,7 @@ function NotificationCard({ n, onMark }) {
             {!n.isRead && <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-500 mr-1.5 -translate-y-px" />}
             {n.title}
           </p>
-          <span className="text-[11px] text-slate-400 shrink-0 mt-0.5">{timeAgo(n.createdAt)}</span>
+          <span className="text-[11px] text-slate-500 shrink-0 mt-0.5">{timeAgo(n.createdAt)}</span>
         </div>
         <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2">{n.body}</p>
       </div>
@@ -201,7 +201,7 @@ export default function NotificationBell({ onViewAll }) {
       >
         <Bell className="w-[18px] h-[18px] text-slate-600" strokeWidth={1.8} />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold text-white bg-red-500 rounded-full">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[11px] font-bold text-white bg-red-500 rounded-full">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -229,16 +229,16 @@ export default function NotificationBell({ onViewAll }) {
             {recent.length === 0 ? (
               <div className="px-5 py-12 text-center">
                 <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
-                  <Bell className="w-5 h-5 text-slate-400" strokeWidth={1.8} />
+                  <Bell className="w-5 h-5 text-slate-500" strokeWidth={1.8} />
                 </div>
                 <p className="text-sm font-medium text-slate-500">No notifications yet</p>
-                <p className="text-xs text-slate-400 mt-1">When someone shows interest or updates an appointment, you&apos;ll see it here.</p>
+                <p className="text-xs text-slate-500 mt-1">When someone shows interest or updates an appointment, you&apos;ll see it here.</p>
               </div>
             ) : (
               grouped.map((entry, i) =>
                 entry.type === 'header' ? (
                   <div key={`h-${i}`} className="px-5 py-2 bg-slate-50/80 border-b border-slate-100">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{entry.label}</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{entry.label}</p>
                   </div>
                 ) : (
                   <div key={entry.data.id} className="border-b border-slate-50 last:border-b-0">

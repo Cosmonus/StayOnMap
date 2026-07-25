@@ -60,7 +60,7 @@ export default function ReportButton({ propertyId }) {
           <>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-slate-800">Report this listing</h2>
-              <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+              <button onClick={() => setOpen(false)} className="text-slate-500 hover:text-slate-600 text-xl leading-none">&times;</button>
             </div>
             <div className="space-y-4">
               <Select

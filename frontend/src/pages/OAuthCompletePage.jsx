@@ -78,7 +78,7 @@ export default function OAuthCompletePage() {
               <MapPin size={24} color="#059669" strokeWidth={2} />
             </div>
             <p className="text-sm font-semibold text-slate-800">You&apos;re on the waitlist</p>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-500">
               StayOnMap is currently live in {CITY_LIST_LABEL}. We&apos;ll email you as soon as we launch near you.
             </p>
             <button onClick={() => navigate('/')} className="w-full py-3 rounded-xl text-sm font-bold text-white bg-brand-600 hover:bg-brand-700">
@@ -91,7 +91,7 @@ export default function OAuthCompletePage() {
               <h1 className="text-lg font-bold text-slate-800">
                 Almost there{result.name ? `, ${result.name.split(' ')[0]}` : ''}
               </h1>
-              <p className="text-sm text-slate-400 mt-1">One last thing — which city are you in?</p>
+              <p className="text-sm text-slate-500 mt-1">One last thing — which city are you in?</p>
             </div>
             <div>
               <Select
@@ -111,7 +111,7 @@ export default function OAuthCompletePage() {
                   onChange={(e) => setOtherCity(e.target.value)}
                   placeholder="Which city are you in?"
                   required
-                  className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 transition-all bg-slate-50 placeholder:text-slate-400"
+                  className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 transition-all bg-slate-50 placeholder:text-slate-500"
                 />
               )}
             </div>

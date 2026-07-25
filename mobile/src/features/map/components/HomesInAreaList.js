@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
   countBadge: { minWidth: 18, height: 18, borderRadius: 9, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  countText: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.slate500 },
+  countText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500 },
   row: { flexDirection: 'row', gap: spacing.sm },
   skeletonCard: { flex: 1 },
   skeletonImage: { aspectRatio: 4 / 3, borderRadius: radius.md, backgroundColor: colors.slate100 },

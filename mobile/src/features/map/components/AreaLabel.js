@@ -13,7 +13,7 @@ function dominantColor(area) {
   if (area.itScore >= 8) return colors.brand600
   if (area.metroScore >= 8) return '#7c3aed'
   if (area.safetyScore >= 9) return colors.success
-  return colors.slate400
+  return colors.slate500
 }
 
 export default function AreaLabel({ area, onPress }) {

@@ -63,10 +63,10 @@ export default function PropertyDetailBody({ property, variant = 'public' }) {
       <div className="mb-2.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs font-bold">
         {bhkLabel && <span className="text-brand-600">{bhkLabel}</span>}
         {property.furnished && (
-          <span className="font-semibold text-slate-400">· {formatFurnished(property.furnished)}</span>
+          <span className="font-semibold text-slate-500">· {formatFurnished(property.furnished)}</span>
         )}
         {property.type && (
-          <span className="font-semibold text-slate-400">· {formatType(property.type)}</span>
+          <span className="font-semibold text-slate-500">· {formatType(property.type)}</span>
         )}
         {property.trustScore?.badge && (
           <span className="ml-1"><TrustBadge badge={property.trustScore.badge} size="sm" /></span>
@@ -80,7 +80,7 @@ export default function PropertyDetailBody({ property, variant = 'public' }) {
         <p className="text-sm leading-snug">
           {property.address}, {property.city}, {property.state}
           {property.pincode ? ` — ${property.pincode}` : ''}
-          {property.landmark ? <span className="text-slate-400"> · near {property.landmark}</span> : ''}
+          {property.landmark ? <span className="text-slate-500"> · near {property.landmark}</span> : ''}
         </p>
       </div>
 
@@ -88,7 +88,7 @@ export default function PropertyDetailBody({ property, variant = 'public' }) {
         <button
           onClick={() => { navigator.clipboard.writeText(property.displayId) }}
           title="Click to copy ID"
-          className="mt-2.5 inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-500 transition-colors hover:bg-slate-200"
+          className="mt-2.5 inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-500 transition-colors hover:bg-slate-200"
         >
           {property.displayId}
           <Copy size={10} strokeWidth={2.5} />
@@ -190,7 +190,7 @@ export default function PropertyDetailBody({ property, variant = 'public' }) {
 
             {/* Report */}
             <div className="flex items-center justify-between py-3">
-              <p className="text-xs text-slate-400">Something wrong with this listing?</p>
+              <p className="text-xs text-slate-500">Something wrong with this listing?</p>
               <ReportButton propertyId={property.id} />
             </div>
           </div>

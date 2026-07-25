@@ -19,7 +19,7 @@ export default function Tooltip({
       {children}
       <span
         role="tooltip"
-        className={`absolute ${positions[position]} pointer-events-none z-50 whitespace-nowrap rounded-md bg-[#1c1c1c] px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100`}
+        className={`absolute ${positions[position]} pointer-events-none z-50 whitespace-nowrap rounded-lg bg-[#1c1c1c] px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100`}
       >
         {text}
       </span>

@@ -70,10 +70,10 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
   emptyIcon: { width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
   emptyTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800, marginBottom: spacing.xs },
-  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, textAlign: 'center', maxWidth: 260, marginBottom: spacing.lg },
+  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, textAlign: 'center', maxWidth: 260, marginBottom: spacing.lg },
   exploreButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 44, backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm + 4 },
   exploreButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   list: { padding: spacing.md },
-  count: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate400, marginBottom: spacing.sm, marginLeft: spacing.xs },
+  count: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate500, marginBottom: spacing.sm, marginLeft: spacing.xs },
   cardWrap: { marginBottom: spacing.md },
 })

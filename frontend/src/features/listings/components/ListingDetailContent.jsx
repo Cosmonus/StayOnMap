@@ -34,7 +34,7 @@ const TYPE_EMOJI = { APARTMENT: '🏢', HOUSE: '🏠', VILLA: '🏡', PG: '🏘�
 const GENDER_LABEL    = { ANY: 'Any Gender', MALE: 'Male Only', FEMALE: 'Female Only', FAMILY: 'Families Only' }
 
 function SectionLabel({ children }) {
-  return <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{children}</p>
+  return <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">{children}</p>
 }
 
 function OwnerCard({ title, children }) {
@@ -122,9 +122,9 @@ function TenantList({ contacts, selectedTenantId, onSelect }) {
         {userStats.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full py-16 text-center px-4">
             <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
-              <Users className="w-5 h-5 text-slate-400" strokeWidth={1.8} />
+              <Users className="w-5 h-5 text-slate-500" strokeWidth={1.8} />
             </div>
-            <p className="text-sm font-semibold text-slate-400">No contacts yet</p>
+            <p className="text-sm font-semibold text-slate-500">No contacts yet</p>
             <p className="text-xs text-slate-300 mt-1">People who reach out will appear here</p>
           </div>
         ) : (
@@ -153,22 +153,22 @@ function TenantList({ contacts, selectedTenantId, onSelect }) {
                     />
                   </div>
                   <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-100 text-[11px] font-semibold text-blue-700">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50 border border-blue-100 text-[11px] font-semibold text-blue-700">
                       <Calendar className="w-3 h-3" strokeWidth={1.8} />
                       {u.appointmentCount} appt{u.appointmentCount !== 1 ? 's' : ''}
                     </span>
                     {u.visitedCount > 0 && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-50 border border-green-100 text-[11px] font-semibold text-green-700">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-green-50 border border-green-100 text-[11px] font-semibold text-green-700">
                         <Check className="w-3 h-3" strokeWidth={1.8} /> visited
                       </span>
                     )}
                     {u.hasConversation && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 border border-purple-100 text-[11px] font-semibold text-purple-700">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-50 border border-purple-100 text-[11px] font-semibold text-purple-700">
                         <MessageCircle className="w-3 h-3" strokeWidth={1.8} /> chatted
                       </span>
                     )}
                     {u.savedAt && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 border border-rose-100 text-[11px] font-semibold text-rose-600">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 border border-rose-100 text-[11px] font-semibold text-rose-600">
                         <Heart className="w-3 h-3" strokeWidth={1.8} /> saved
                       </span>
                     )}
@@ -212,8 +212,8 @@ function TenantDetail({ tenant, contacts, ownerId, onAction, acting }) {
           <Avatar name={tenant.name} email={tenant.email} avatarUrl={tenant.avatarUrl} size="lg" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold text-slate-900 truncate">{tenant.name || 'Unknown'}</p>
-            {tenant.email && <p className="text-xs text-slate-400 truncate mt-0.5">{tenant.email}</p>}
-            {tenant.phone && <p className="text-xs text-slate-400 mt-0.5">+91 {tenant.phone}</p>}
+            {tenant.email && <p className="text-xs text-slate-500 truncate mt-0.5">{tenant.email}</p>}
+            {tenant.phone && <p className="text-xs text-slate-500 mt-0.5">+91 {tenant.phone}</p>}
           </div>
         </div>
       </div>
@@ -233,17 +233,17 @@ function TenantDetail({ tenant, contacts, ownerId, onAction, acting }) {
                   <div key={appt.id} className="p-3.5 rounded-xl border border-slate-100 space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" strokeWidth={1.8} />
+                        <Calendar className="w-3.5 h-3.5 text-slate-500" strokeWidth={1.8} />
                         <span className="text-sm font-medium text-slate-700">
                           {fmtDate(appt.requestedDate)}
-                          {appt.requestedTime && <span className="text-slate-400 font-normal"> at {appt.requestedTime}</span>}
+                          {appt.requestedTime && <span className="text-slate-500 font-normal"> at {appt.requestedTime}</span>}
                         </span>
                       </div>
-                      <span className={`shrink-0 px-2 py-0.5 rounded-md text-[11px] font-semibold ${st.bg} ${st.text}`}>{st.label}</span>
+                      <span className={`shrink-0 px-2 py-0.5 rounded-lg text-[11px] font-semibold ${st.bg} ${st.text}`}>{st.label}</span>
                     </div>
                     {appt.contactNumber && (
                       <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                        <Phone className="w-3 h-3 text-slate-400 shrink-0" strokeWidth={1.8} />
+                        <Phone className="w-3 h-3 text-slate-500 shrink-0" strokeWidth={1.8} />
                         {appt.contactNumber}
                       </div>
                     )}
@@ -294,7 +294,7 @@ function TenantDetail({ tenant, contacts, ownerId, onAction, acting }) {
                       <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 shadow-sm ${isOwner ? 'bg-brand-600 text-white' : 'bg-white border border-slate-200 text-slate-800'}`}>
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`text-xs font-semibold ${isOwner ? 'text-white/80' : 'text-slate-500'}`}>{senderLabel}</span>
-                          <span className={`text-[10px] ${isOwner ? 'text-white/50' : 'text-slate-400'}`}>
+                          <span className={`text-[11px] ${isOwner ? 'text-white/50' : 'text-slate-500'}`}>
                             {new Date(m.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
@@ -507,7 +507,7 @@ export default function ListingDetailContent({ propertyId, onBack }) {
       {/* ── Top bar ──────────────────────────────────────────────── */}
       <div className="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2 px-4 sm:px-5 py-3 bg-white border-b border-slate-100">
         <button onClick={onBack}
-          className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors shrink-0">
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors shrink-0">
           <ArrowLeft className="w-3.5 h-3.5" strokeWidth={2} />
           Listings
         </button>
@@ -544,10 +544,12 @@ export default function ListingDetailContent({ propertyId, onBack }) {
                 {images.length > 1 && (
                   <>
                     <button onClick={() => setImgIdx(i => (i - 1 + images.length) % images.length)}
+                      aria-label="Previous image"
                       className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 hover:bg-white shadow flex items-center justify-center">
                       <ChevronLeft size={14} color="#334155" strokeWidth={2.5} />
                     </button>
                     <button onClick={() => setImgIdx(i => (i + 1) % images.length)}
+                      aria-label="Next image"
                       className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 hover:bg-white shadow flex items-center justify-center">
                       <ChevronRight size={14} color="#334155" strokeWidth={2.5} />
                     </button>
@@ -569,7 +571,7 @@ export default function ListingDetailContent({ propertyId, onBack }) {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-lg font-bold text-slate-900 leading-snug">{property.title}</p>
-                {property.displayId && <p className="text-[10px] font-mono text-slate-400 tracking-widest mt-0.5">{property.displayId}</p>}
+                {property.displayId && <p className="text-[11px] font-mono text-slate-500 tracking-widest mt-0.5">{property.displayId}</p>}
                 {(property.address || property.city) && (
                   <p className="text-sm text-slate-500 mt-1">
                     {[property.address, property.city].filter(Boolean).join(', ')}
@@ -656,7 +658,7 @@ export default function ListingDetailContent({ propertyId, onBack }) {
                     const name = a.amenity?.name ?? a.amenityId
                     return (
                       <div key={name} className="flex items-center gap-2.5 px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                        <span className="text-slate-400 shrink-0"><AmenityIcon name={name} size={16} /></span>
+                        <span className="text-slate-500 shrink-0"><AmenityIcon name={name} size={16} /></span>
                         <span className="text-sm font-medium text-slate-700 truncate min-w-0">{name}</span>
                       </div>
                     )
@@ -691,7 +693,7 @@ export default function ListingDetailContent({ propertyId, onBack }) {
                 ].map(r => (
                   <div key={r.label} className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border ${r.allowed ? 'bg-emerald-50 border-emerald-100' : 'bg-slate-50 border-slate-100'}`}>
                     <r.Icon size={15} color={r.allowed ? '#059669' : '#94a3b8'} strokeWidth={1.9} className="shrink-0" />
-                    <span className={`text-sm font-medium flex-1 ${r.allowed ? 'text-slate-800' : 'text-slate-400'}`}>{r.label}</span>
+                    <span className={`text-sm font-medium flex-1 ${r.allowed ? 'text-slate-800' : 'text-slate-500'}`}>{r.label}</span>
                     <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${r.allowed ? 'bg-emerald-500' : 'bg-slate-300'}`}>
                       {r.allowed ? <Check size={10} color="white" strokeWidth={3} /> : <X size={10} color="white" strokeWidth={3} />}
                     </div>
@@ -744,7 +746,7 @@ export default function ListingDetailContent({ propertyId, onBack }) {
             <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">
               People who contacted ({allUsers.length})
             </h3>
-            <button onClick={() => refetchContacts()} className="text-[10px] text-brand-600 hover:text-brand-800 font-semibold shrink-0">Refresh</button>
+            <button onClick={() => refetchContacts()} className="text-[11px] text-brand-600 hover:text-brand-800 font-semibold shrink-0">Refresh</button>
           </div>
           {contactsError && (
             <div className="px-4 py-2 text-[11px] text-red-500 bg-red-50 border-b border-red-100">
@@ -768,7 +770,7 @@ export default function ListingDetailContent({ propertyId, onBack }) {
               <button
                 onClick={handleMarkTenant}
                 disabled={busy}
-                className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg transition-colors disabled:opacity-50 shrink-0"
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-lg transition-colors disabled:opacity-50 shrink-0"
               >
                 <Home size={11} strokeWidth={2.2} />
                 Mark as Tenant

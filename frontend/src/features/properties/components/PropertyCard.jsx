@@ -89,7 +89,7 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
         {availableNow && (
           <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500 shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-            <span className="text-[10px] font-bold text-white leading-none">Available Now</span>
+            <span className="text-[11px] font-bold text-white leading-none">Available Now</span>
           </div>
         )}
 
@@ -110,7 +110,7 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
         {/* Image counter pill — bottom right */}
         {totalImages > 1 && (
           <div className="absolute bottom-3 right-3 px-2 py-1 rounded-full bg-black/40 backdrop-blur-sm">
-            <span className="text-[10px] font-semibold text-white leading-none">{imgIdx + 1}/{totalImages}</span>
+            <span className="text-[11px] font-semibold text-white leading-none">{imgIdx + 1}/{totalImages}</span>
           </div>
         )}
 
@@ -121,8 +121,17 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
               <button
                 key={i}
                 onClick={(e) => { e.stopPropagation(); setImgIdx(i) }}
-                className={`w-1.5 h-1.5 rounded-full transition-colors ${i === imgIdx ? 'bg-white' : 'bg-white/40'}`}
-              />
+                aria-label={`Show image ${i + 1} of ${totalImages}`}
+                aria-current={i === imgIdx}
+                // 6px dot, 24x24 target (WCAG 2.5.8) — sizing the button to the
+                // dot itself made these 6px tap targets.
+                className="w-6 h-6 flex items-center justify-center"
+              >
+                <span
+                  aria-hidden="true"
+                  className={`w-1.5 h-1.5 rounded-full transition-colors ${i === imgIdx ? 'bg-white' : 'bg-white/40'}`}
+                />
+              </button>
             ))}
           </div>
         )}
@@ -134,10 +143,10 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
         <div className="flex items-baseline justify-between gap-2 mb-1">
           <p className="text-xl font-bold text-slate-900 font-mono leading-none">
             {formatCompact(Number(property.rent))}
-            <span className="text-xs font-normal text-slate-400 ml-1">/mo</span>
+            <span className="text-xs font-normal text-slate-500 ml-1">/mo</span>
           </p>
           {property.deposit > 0 && (
-            <p className="text-xs text-slate-400 shrink-0">
+            <p className="text-xs text-slate-500 shrink-0">
               {formatCompact(Number(property.deposit))} dep.
             </p>
           )}
@@ -155,12 +164,12 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
 
         {/* Location + posted age — pinned to bottom */}
         <div className="flex items-center justify-between gap-2 mt-auto pt-1">
-          <p className="text-xs text-slate-400 flex items-center gap-1 min-w-0">
+          <p className="text-xs text-slate-500 flex items-center gap-1 min-w-0">
             <MapPin size={9} fill="currentColor" stroke="none" className="shrink-0" />
             <span className="truncate">{property.city}</span>
           </p>
           {postedAge && (
-            <span className="text-[10px] text-slate-300 shrink-0">{postedAge}</span>
+            <span className="text-[11px] text-slate-300 shrink-0">{postedAge}</span>
           )}
         </div>
       </div>

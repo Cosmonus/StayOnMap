@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontFamily: fonts.displayBold, fontSize: fontSizes.xxl, color: colors.brand700 },
   name: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  email: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: spacing.xs },
+  email: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: spacing.xs },
   roleBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     marginTop: spacing.sm,

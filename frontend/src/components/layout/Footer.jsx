@@ -66,7 +66,7 @@ export default function Footer() {
                 Stay<span className="text-brand-500">OnMap</span>
               </span>
             </Link>
-            <p className="text-sm text-slate-400 leading-relaxed mb-6 max-w-xs">
+            <p className="text-sm text-slate-500 leading-relaxed mb-6 max-w-xs">
               Owner-direct rentals in {CITY_LIST_LABEL}. No broker. No commission. Just a home and the person who owns it.
             </p>
 
@@ -79,7 +79,7 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="w-9 h-9 rounded-lg bg-white/5 hover:bg-brand-600 flex items-center justify-center text-slate-400 hover:text-white transition-colors duration-150"
+                  className="w-9 h-9 rounded-lg bg-white/5 hover:bg-brand-600 flex items-center justify-center text-slate-500 hover:text-white transition-colors duration-150"
                 >
                   {icon}
                 </a>
@@ -96,7 +96,7 @@ export default function Footer() {
                   <li key={label}>
                     <Link
                       to={to}
-                      className="text-sm text-slate-400 hover:text-white transition-colors duration-150 no-underline"
+                      className="text-sm text-slate-500 hover:text-white transition-colors duration-150 no-underline"
                     >
                       {label}
                     </Link>
@@ -131,7 +131,7 @@ export default function Footer() {
             href="https://www.srigokulkrishnan.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-slate-400 hover:text-white transition-colors duration-150 no-underline"
+            className="text-slate-500 hover:text-white transition-colors duration-150 no-underline"
           >
             Sri Gokul Krishnan
           </a>

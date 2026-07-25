@@ -24,6 +24,7 @@ export default function Lightbox({ images, startIndex, onClose }) {
       {/* Close */}
       <button
         onClick={onClose}
+        aria-label="Close gallery"
         className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
       >
         <X className="w-5 h-5 text-white" strokeWidth={2} />
@@ -47,12 +48,14 @@ export default function Lightbox({ images, startIndex, onClose }) {
         <>
           <button
             onClick={(e) => { e.stopPropagation(); setIdx(i => (i - 1 + len) % len) }}
+            aria-label="Previous photo"
             className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
           >
             <ChevronLeft className="w-5 h-5 text-white" strokeWidth={2.5} />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); setIdx(i => (i + 1) % len) }}
+            aria-label="Next photo"
             className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
           >
             <ChevronRight className="w-5 h-5 text-white" strokeWidth={2.5} />
@@ -67,6 +70,7 @@ export default function Lightbox({ images, startIndex, onClose }) {
             <button
               key={img.id ?? i}
               onClick={(e) => { e.stopPropagation(); setIdx(i) }}
+              aria-label={`Go to photo ${i + 1}`}
               className={`shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${i === idx ? 'border-white opacity-100 scale-105' : 'border-transparent opacity-50 hover:opacity-80'}`}
             >
               <img src={imgUrl(img.url, 'card')} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />

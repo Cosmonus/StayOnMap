@@ -56,7 +56,7 @@ function SectionHeading({ title, description }) {
   return (
     <div className="mb-3">
       <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{title}</p>
-      {description && <p className="text-xs text-slate-400 mt-0.5">{description}</p>}
+      {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
     </div>
   )
 }
@@ -120,7 +120,7 @@ function SystemHealthSection({ data }) {
                 <span className={`mt-0.5 w-2.5 h-2.5 rounded-full shrink-0 ${ok ? 'bg-green-500' : 'bg-red-500'}`} />
               </div>
               <p className={`text-xs font-medium mb-2 ${ok ? 'text-green-700' : 'text-red-600'}`}>{label}</p>
-              <p className="text-xs text-slate-400 leading-relaxed">{cfg.purpose}</p>
+              <p className="text-xs text-slate-500 leading-relaxed">{cfg.purpose}</p>
             </Card>
           )
         })}
@@ -188,7 +188,7 @@ function ActionQueueSection({ pending }) {
               <p className={`text-3xl font-bold mb-2 ${urgent ? 'text-amber-700' : none ? 'text-slate-300' : 'text-slate-800'}`}>
                 {item.count}
               </p>
-              <p className="text-xs text-slate-400 leading-relaxed mb-3">{item.description}</p>
+              <p className="text-xs text-slate-500 leading-relaxed mb-3">{item.description}</p>
               {item.count > 0 && (
                 <button
                   onClick={() => setSearchParams({ tab: item.tab })}
@@ -284,21 +284,21 @@ function UsersCard({ userByRole, blockedUsers }) {
         <div className="flex justify-between items-center">
           <div>
             <p className="text-sm font-medium text-slate-700">Tenants</p>
-            <p className="text-xs text-slate-400">Browse, save, book appointments</p>
+            <p className="text-xs text-slate-500">Browse, save, book appointments</p>
           </div>
           <span className="text-2xl font-bold text-slate-800">{tenant}</span>
         </div>
         <div className="flex justify-between items-center">
           <div>
             <p className="text-sm font-medium text-slate-700">Owners</p>
-            <p className="text-xs text-slate-400">List properties · {ownerPct}% of all users</p>
+            <p className="text-xs text-slate-500">List properties · {ownerPct}% of all users</p>
           </div>
           <span className="text-2xl font-bold text-slate-800">{owner}</span>
         </div>
         <div className="flex justify-between items-center pt-2 border-t border-slate-100">
           <div>
             <p className="text-sm font-medium text-slate-500">Blocked accounts</p>
-            <p className="text-xs text-slate-400">Cannot log in or list properties</p>
+            <p className="text-xs text-slate-500">Cannot log in or list properties</p>
           </div>
           <span className={`text-2xl font-bold ${(blockedUsers ?? 0) > 0 ? 'text-red-600' : 'text-slate-300'}`}>
             {blockedUsers ?? 0}
@@ -320,7 +320,7 @@ function AppointmentsCard({ appointmentByStatus }) {
     { s: 'ACCEPTED',    label: 'Owner confirmed the visit',  color: 'text-green-700'  },
     { s: 'RESCHEDULED', label: 'Owner proposed a new time',  color: 'text-blue-600'   },
     { s: 'REJECTED',    label: 'Owner declined',             color: 'text-red-500'    },
-    { s: 'CANCELLED',   label: 'Tenant cancelled',           color: 'text-slate-400'  },
+    { s: 'CANCELLED',   label: 'Tenant cancelled',           color: 'text-slate-500'  },
   ]
 
   return (
@@ -334,7 +334,7 @@ function AppointmentsCard({ appointmentByStatus }) {
           <div key={s} className="flex items-center justify-between gap-2">
             <div>
               <p className="text-xs font-medium text-slate-700">{s.charAt(0) + s.slice(1).toLowerCase()}</p>
-              <p className="text-[11px] text-slate-400">{label}</p>
+              <p className="text-[11px] text-slate-500">{label}</p>
             </div>
             <span className={`text-xl font-bold shrink-0 ${color}`}>{counts[s] ?? 0}</span>
           </div>
@@ -357,7 +357,7 @@ function RecentActivitySection({ activity }) {
           description="Every action taken inside the admin panel is recorded here for accountability."
         />
         <Card>
-          <p className="text-sm text-slate-400 py-4 text-center">No activity logged yet.</p>
+          <p className="text-sm text-slate-500 py-4 text-center">No activity logged yet.</p>
         </Card>
       </div>
     )
@@ -377,14 +377,14 @@ function RecentActivitySection({ activity }) {
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-slate-700">
                   <span className="font-medium">{log.admin?.name ?? 'System'}</span>
-                  <span className="text-slate-400"> · </span>
+                  <span className="text-slate-500"> · </span>
                   <span className="text-slate-600">{humanizeAction(log.action)}</span>
                 </p>
                 {log.entity && (
-                  <p className="text-xs text-slate-400 mt-0.5">{log.entity}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{log.entity}</p>
                 )}
               </div>
-              <span className="text-xs text-slate-400 shrink-0 whitespace-nowrap">
+              <span className="text-xs text-slate-500 shrink-0 whitespace-nowrap">
                 {timeAgo(log.createdAt)}
               </span>
             </li>
@@ -434,7 +434,7 @@ export default function AdminMonitorSection() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Platform Operations</h1>
-          <p className="text-sm text-slate-400 mt-0.5">
+          <p className="text-sm text-slate-500 mt-0.5">
             {secondsSince !== null
               ? `Live snapshot · refreshes every 30s · last updated ${secondsSince}s ago`
               : 'Loading…'}

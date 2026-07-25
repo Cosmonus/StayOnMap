@@ -20,7 +20,7 @@ export function SheetSection({ id, title, badge, subtitle, action, children }) {
                 <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-bold text-brand-700">{badge}</span>
               )}
             </div>
-            {subtitle && <p className="mt-0.5 text-xs text-slate-400">{subtitle}</p>}
+            {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
           </div>
           {action && <div className="shrink-0">{action}</div>}
         </div>
@@ -34,7 +34,7 @@ export function FactCell({ label, value }) {
   if (!value) return null
   return (
     <div>
-      <p className="text-[11px] font-medium text-slate-400">{label}</p>
+      <p className="text-[11px] font-medium text-slate-500">{label}</p>
       <p className="mt-0.5 text-sm font-bold text-slate-900">{value}</p>
     </div>
   )

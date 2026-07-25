@@ -45,10 +45,10 @@ export default function InterestedPeoplePanel({ propertyId }) {
     return (
       <div className="text-center py-8">
         <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
-          <Users className="w-5 h-5 text-slate-400" />
+          <Users className="w-5 h-5 text-slate-500" />
         </div>
         <p className="text-sm font-medium text-slate-600">No interest yet</p>
-        <p className="text-xs text-slate-400 mt-1">People who request visits will appear here.</p>
+        <p className="text-xs text-slate-500 mt-1">People who request visits will appear here.</p>
       </div>
     )
   }
@@ -83,7 +83,7 @@ export default function InterestedPeoplePanel({ propertyId }) {
                 <p className="text-sm font-semibold text-slate-800 truncate">{displayName}</p>
                 <div className={`inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.5 rounded-full ${st.bg}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
-                  <span className={`text-[10px] font-semibold ${st.text}`}>{st.label}</span>
+                  <span className={`text-[11px] font-semibold ${st.text}`}>{st.label}</span>
                 </div>
               </button>
 
@@ -135,14 +135,14 @@ export default function InterestedPeoplePanel({ propertyId }) {
                 {/* Message */}
                 {apt.message && (
                   <div className="bg-slate-50 rounded-xl px-3 py-2.5">
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Message</p>
+                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Message</p>
                     <p className="text-sm text-slate-600 leading-relaxed">{apt.message}</p>
                   </div>
                 )}
 
                 {/* Email */}
                 {tenant.email && (
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
                     <Mail className="w-3.5 h-3.5" strokeWidth={1.8} />
                     <span>{tenant.email}</span>
                   </div>

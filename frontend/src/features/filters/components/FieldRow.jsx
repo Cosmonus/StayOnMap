@@ -5,7 +5,7 @@ export default function FieldRow({ label, type = 'number', unit, placeholder, va
     <div className="flex items-center justify-between gap-4">
       <span className="text-sm font-medium text-slate-700">{label}</span>
       <div className="relative w-40 shrink-0">
-        {unit && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">{unit}</span>}
+        {unit && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">{unit}</span>}
         <input
           type={type}
           min={isNumber ? '0' : undefined}
@@ -16,7 +16,7 @@ export default function FieldRow({ label, type = 'number', unit, placeholder, va
             if (!isNumber) return onChange(e.target.value)
             onChange(e.target.value === '' ? null : Number(e.target.value))
           }}
-          className={`w-full h-10 ${unit ? 'pl-8' : 'pl-3'} pr-3 rounded-xl border border-slate-200 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500`}
+          className={`w-full h-10 ${unit ? 'pl-8' : 'pl-3'} pr-3 rounded-xl border border-slate-200 text-sm text-slate-700 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500`}
         />
       </div>
     </div>

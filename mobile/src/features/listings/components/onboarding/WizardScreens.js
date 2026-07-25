@@ -111,7 +111,7 @@ function PincodeTruth({ pincode, city }) {
 const pincodeStyles = StyleSheet.create({
   // warning700, the same amber every other data caveat in the app uses.
   warn: { fontFamily: fonts.body, fontSize: 11, color: colors.warning700, marginTop: 4 },
-  truth: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 4 },
+  truth: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 4 },
 })
 
 export function LocationScreen({ draft, setDraft }) {
@@ -123,7 +123,7 @@ export function LocationScreen({ draft, setDraft }) {
       <View style={{ gap: spacing.md }}>
         <View>
           <Text style={styles.fieldLabel}>Full address</Text>
-          <TextInput style={styles.input} value={loc.address} onChangeText={(v) => set('address', v)} placeholder="Door no, street, area" placeholderTextColor={colors.slate400} />
+          <TextInput style={styles.input} value={loc.address} onChangeText={(v) => set('address', v)} placeholder="Door no, street, area" placeholderTextColor={colors.slate500} />
         </View>
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
           <View style={{ flex: 1 }}>
@@ -142,7 +142,7 @@ export function LocationScreen({ draft, setDraft }) {
               value={loc.pincode}
               onChangeText={(v) => set('pincode', v.replace(/\D/g, '').slice(0, 6))}
               placeholder="600028"
-              placeholderTextColor={colors.slate400}
+              placeholderTextColor={colors.slate500}
               keyboardType="numeric"
               maxLength={6}
             />
@@ -151,7 +151,7 @@ export function LocationScreen({ draft, setDraft }) {
         </View>
         <View>
           <Text style={styles.fieldLabel}>Landmark (optional)</Text>
-          <TextInput style={styles.input} value={loc.landmark} onChangeText={(v) => set('landmark', v)} placeholder="Near bus stop" placeholderTextColor={colors.slate400} />
+          <TextInput style={styles.input} value={loc.landmark} onChangeText={(v) => set('landmark', v)} placeholder="Near bus stop" placeholderTextColor={colors.slate500} />
         </View>
         <View>
           <Text style={styles.fieldLabel}>Drop the pin</Text>
@@ -213,7 +213,7 @@ export function TitleScreen({ categoryKey, draft, setDraft }) {
         value={draft.title}
         onChangeText={(v) => setDraft((d) => ({ ...d, title: v.slice(0, 100) }))}
         placeholder={hint.placeholder}
-        placeholderTextColor={colors.slate400}
+        placeholderTextColor={colors.slate500}
       />
       <Text style={styles.charCount}>{draft.title.length}/100 characters</Text>
     </View>
@@ -236,7 +236,7 @@ export function DescriptionScreen({ categoryKey, draft, setDraft }) {
         multiline
         numberOfLines={5}
         placeholder="Describe the space, the light, the neighbourhood…"
-        placeholderTextColor={colors.slate400}
+        placeholderTextColor={colors.slate500}
       />
     </View>
   )
@@ -302,7 +302,7 @@ export function PricingScreen({ categoryKey, draft, setDraft }) {
                 value={draft.pricing[key] ?? ''}
                 onChangeText={(v) => set(key, v.replace(/\D/g, ''))}
                 placeholder={ph}
-                placeholderTextColor={colors.slate400}
+                placeholderTextColor={colors.slate500}
                 keyboardType="numeric"
               />
             </View>
@@ -342,7 +342,7 @@ export function ContactScreen({ categoryKey, draft, setDraft }) {
               value={draft.appointmentWindowStart}
               onChangeText={(v) => setDraft((d) => ({ ...d, appointmentWindowStart: v }))}
               placeholder="09:00"
-              placeholderTextColor={colors.slate400}
+              placeholderTextColor={colors.slate500}
             />
           </View>
           <View style={{ flex: 1 }}>
@@ -352,7 +352,7 @@ export function ContactScreen({ categoryKey, draft, setDraft }) {
               value={draft.appointmentWindowEnd}
               onChangeText={(v) => setDraft((d) => ({ ...d, appointmentWindowEnd: v }))}
               placeholder="20:00"
-              placeholderTextColor={colors.slate400}
+              placeholderTextColor={colors.slate500}
             />
           </View>
         </View>
@@ -428,14 +428,14 @@ const styles = StyleSheet.create({
   optionCard: { padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate200, backgroundColor: colors.white },
   optionCardActive: { borderColor: colors.brand600, backgroundColor: colors.brand50 },
   optionLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
-  optionHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
+  optionHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
   fieldLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.slate500, marginBottom: spacing.xs },
   input: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800 },
   textarea: { minHeight: 110, textAlignVertical: 'top' },
-  charCount: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: spacing.xs },
-  helperHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginBottom: spacing.sm, lineHeight: 18 },
+  charCount: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: spacing.xs },
+  helperHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginBottom: spacing.sm, lineHeight: 18 },
   promptList: { marginBottom: spacing.sm, gap: 4 },
-  promptLine: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, lineHeight: 18 },
+  promptLine: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, lineHeight: 18 },
   missingBlock: { backgroundColor: colors.warning50, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.md, gap: spacing.sm },
   missingTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.warning700 },
   missingChip: {
@@ -455,22 +455,22 @@ const styles = StyleSheet.create({
   modeCardActive: { borderColor: colors.slate800, backgroundColor: colors.slate50 },
   modeLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate600 },
   modeLabelActive: { fontFamily: fonts.bodySemiBold, color: colors.slate800 },
-  modeHint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 2 },
+  modeHint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 2 },
   modeNote: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: spacing.sm, lineHeight: 18 },
   priceInputWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.md },
-  priceSymbol: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate400, marginRight: 4 },
+  priceSymbol: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate500, marginRight: 4 },
   priceInput: { flex: 1, paddingVertical: spacing.sm + 2, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800 },
   instantBookRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, backgroundColor: colors.slate50, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100 },
   instantBookTitle: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate800 },
-  instantBookBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
+  instantBookBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
   reviewCard: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.lg, overflow: 'hidden' },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.slate100 },
   reviewIcon: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center' },
   reviewIconBiz: { backgroundColor: colors.slate800 },
   reviewTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
-  reviewSub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
+  reviewSub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
   draftBadge: { backgroundColor: colors.warning50, borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 4 },
-  draftBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: '#B45309', textTransform: 'uppercase' },
+  draftBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: '#B45309', textTransform: 'uppercase' },
   factRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2 },
   factRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.slate50 },
   factLabel: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },

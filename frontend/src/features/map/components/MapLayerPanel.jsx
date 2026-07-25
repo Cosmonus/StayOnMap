@@ -57,7 +57,7 @@ export default function MapLayerPanel() {
                 <p className={`text-sm font-medium leading-tight ${on ? 'text-slate-800' : 'text-slate-500'}`}>
                   {layer.label}
                 </p>
-                <p className="text-[11px] text-slate-400 leading-tight mt-0.5">{layer.sub}</p>
+                <p className="text-[11px] text-slate-500 leading-tight mt-0.5">{layer.sub}</p>
               </div>
               {/* Toggle pill */}
               <div

@@ -34,7 +34,7 @@ export default function ModuleCard({ envelope, onOpen }) {
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
       <View style={styles.eyebrow}>
-        {ModuleIcon && <ModuleIcon size={16} color={colors.slate400} strokeWidth={2} />}
+        {ModuleIcon && <ModuleIcon size={16} color={colors.slate500} strokeWidth={2} />}
         <Text style={styles.eyebrowText}>{meta.title}</Text>
         <ChevronRight size={16} color={colors.slate300} strokeWidth={2.5} />
       </View>
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   cardPressed: { borderColor: colors.brand400, backgroundColor: colors.brand50 },
   eyebrow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   eyebrowText: {
-    flex: 1, fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400,
+    flex: 1, fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500,
     textTransform: 'uppercase', letterSpacing: 1,
   },
   answer: { fontFamily: fonts.bodySemiBold, fontSize: 15, lineHeight: 20, color: colors.slate900, marginTop: spacing.sm + 2 },
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   factRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   // flexShrink so a long label at a large font scale yields to the value
   // instead of colliding with it; the value keeps flex:1 and wraps to 2 lines.
-  factLabel: { flexShrink: 1, fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 1 },
+  factLabel: { flexShrink: 1, fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 1 },
   factValue: { flex: 1, fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate700, textAlign: 'right', marginTop: 1 },
   footer: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm,
@@ -113,6 +113,6 @@ const styles = StyleSheet.create({
   },
   // band takes the row's slack (flex:1) so a long confidence line wraps in place
   // rather than shoving "Full report" off the edge; the link never shrinks.
-  band: { flex: 1, fontFamily: fonts.body, fontSize: 10 },
+  band: { flex: 1, fontFamily: fonts.body, fontSize: 11 },
   reportLink: { flexShrink: 0, fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.brand600 },
 })

@@ -16,7 +16,7 @@ function NumberInput({ value, placeholder, unit, onChange }) {
         keyboardType="number-pad"
         value={value === null || value === undefined ? '' : String(value)}
         placeholder={placeholder}
-        placeholderTextColor={colors.slate400}
+        placeholderTextColor={colors.slate500}
         onChangeText={(t) => {
           const n = Number(t.replace(/[^\d]/g, ''))
           onChange(t === '' || !Number.isFinite(n) ? null : n)
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.sm + 2,
   },
   input: { flex: 1, paddingVertical: 9, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate700 },
-  prefix: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginRight: 4 },
-  suffix: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginLeft: 4 },
+  prefix: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginRight: 4 },
+  suffix: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginLeft: 4 },
   dash: { color: colors.slate200 },
 })

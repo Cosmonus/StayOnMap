@@ -181,7 +181,7 @@ export default function VerificationScreen({ route }) {
                 value={docAddress}
                 onChangeText={setDocAddress}
                 placeholder="Exactly as it appears on the tax bill / deed"
-                placeholderTextColor={colors.slate400}
+                placeholderTextColor={colors.slate500}
                 maxLength={300}
                 multiline
               />
@@ -253,7 +253,7 @@ export default function VerificationScreen({ route }) {
             <TextInput
               style={[styles.input, urlError && styles.inputError]}
               placeholder="https://drive.google.com/..."
-              placeholderTextColor={colors.slate400}
+              placeholderTextColor={colors.slate500}
               value={docUrl}
               onChangeText={(v) => { setDocUrl(v); setUrlError('') }}
               autoCapitalize="none"
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
   boxTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
   propertyBox: { backgroundColor: colors.slate50, borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.slate100 },
-  propertyBoxLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
+  propertyBoxLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   propertyBoxTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, marginTop: 2 },
   statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700 },
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   rejectedBox: { backgroundColor: colors.danger50, borderWidth: 1, borderColor: '#FECACA', borderRadius: radius.md, padding: spacing.md },
   rejectedTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: '#B91C1C' },
   rejectedBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: '#DC2626', marginTop: 2 },
-  label: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.slate500, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: spacing.xs },
+  label: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: spacing.xs },
   docRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate100, borderRadius: radius.sm },
   docType: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700, flexShrink: 0 },
   docUrl: { fontFamily: fonts.body, fontSize: 11, color: colors.brand600, flex: 1 },
@@ -318,14 +318,14 @@ const styles = StyleSheet.create({
   addDocForm: { borderTopWidth: 1, borderTopColor: colors.slate100, paddingTop: spacing.md, gap: spacing.sm },
   fieldLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginBottom: 4 },
   addressInput: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800, minHeight: 44, textAlignVertical: 'top' },
-  fieldHint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 4 },
+  fieldHint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 4 },
   // The address-comparison notes. Amber only for the pincode contradiction —
   // the one accusation the comparison is allowed to make.
   matchWarnBox: { backgroundColor: colors.warning50, borderWidth: 1, borderColor: '#FDE68A', borderRadius: radius.md, padding: spacing.md },
   matchWarnTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.warning700 },
   matchWarnText: { fontFamily: fonts.body, fontSize: 11, color: colors.warning700, marginTop: 2 },
-  matchNote: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
-  addDocHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  matchNote: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
+  addDocHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.md, borderWidth: 1, borderColor: colors.slate200 },
   chipActive: { backgroundColor: colors.brand600, borderColor: colors.brand600 },
