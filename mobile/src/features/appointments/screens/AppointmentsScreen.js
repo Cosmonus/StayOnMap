@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, TextInput, Pressable, FlatList, Modal, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, Text, TextInput, Pressable, FlatList, Modal, ActivityIndicator, StyleSheet, Linking } from 'react-native'
 import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -101,6 +101,19 @@ function StatusPill({ status }) {
   )
 }
 
+// Someone's words, not the app's. Attribution first, then the text in a tinted
+// block — inline "Note: …" in the same grey as everything else gave no clue
+// whether the words were the renter's, the owner's or a system message.
+function NoteBlock({ from, text, tone = 'neutral' }) {
+  if (!text) return null
+  return (
+    <View style={[styles.noteBlock, tone === 'reply' && styles.noteBlockReply]}>
+      <Text style={[styles.noteFrom, tone === 'reply' && styles.noteFromReply]}>{from}</Text>
+      <Text style={styles.noteText}>{text}</Text>
+    </View>
+  )
+}
+
 function OwnerCard({ appt, onAction, onOpenProperty }) {
   const [rejecting, setRejecting] = useState(false)
   const [note, setNote] = useState('')
@@ -130,10 +143,17 @@ function OwnerCard({ appt, onAction, onOpenProperty }) {
         </View>
         <View style={{ flexShrink: 1 }}>
           <Text style={styles.personName} numberOfLines={1}>{personName(appt.tenant)}</Text>
-          <View style={styles.personSubRow}>
-            <Icon name="phone" size={10} color={colors.slate500} />
-            <Text style={styles.personSub}>{appt.contactNumber}</Text>
-          </View>
+          <Pressable
+            style={styles.personSubRow}
+            onPress={() => appt.contactNumber && Linking.openURL(`tel:${appt.contactNumber}`)}
+            disabled={!appt.contactNumber}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={`Call ${personName(appt.tenant)} on ${appt.contactNumber}`}
+          >
+            <Icon name="phone" size={12} color={colors.brand700} />
+            <Text style={styles.personPhone}>{appt.contactNumber}</Text>
+          </Pressable>
         </View>
       </View>
 
@@ -152,8 +172,8 @@ function OwnerCard({ appt, onAction, onOpenProperty }) {
         <Icon name="chevronRight" size={16} color={colors.slate400} />
       </Pressable>
 
-      {!!appt.message && <Text style={styles.note}><Text style={styles.noteLabel}>Note: </Text>{appt.message}</Text>}
-      {!!appt.ownerNote && <Text style={styles.replyNote}><Text style={styles.replyNoteLabel}>Your reply: </Text>{appt.ownerNote}</Text>}
+      <NoteBlock from={`${personName(appt.tenant)} wrote`} text={appt.message} />
+      <NoteBlock from="You replied" text={appt.ownerNote} tone="reply" />
 
       {isPending && !rejecting && (
         <View style={styles.actionRow}>
@@ -162,7 +182,7 @@ function OwnerCard({ appt, onAction, onOpenProperty }) {
             <Text style={styles.acceptButtonText}>Accept</Text>
           </Pressable>
           <Pressable style={styles.rejectButton} onPress={() => setRejecting(true)} accessibilityRole="button" accessibilityLabel="Reject appointment">
-            <Icon name="close" size={14} color="#DC2626" />
+            <Icon name="close" size={14} color={colors.danger600} />
             <Text style={styles.rejectButtonText}>Reject</Text>
           </Pressable>
         </View>
@@ -218,8 +238,8 @@ function TenantCard({ appt, onOpenProperty }) {
         </View>
         <Icon name="chevronRight" size={16} color={colors.slate400} />
       </Pressable>
-      {!!appt.message && <Text style={styles.note}><Text style={styles.noteLabel}>Your note: </Text>{appt.message}</Text>}
-      {!!appt.ownerNote && <Text style={styles.replyNote}><Text style={styles.replyNoteLabel}>Owner reply: </Text>{appt.ownerNote}</Text>}
+      <NoteBlock from="You wrote" text={appt.message} />
+      <NoteBlock from="Owner replied" text={appt.ownerNote} tone="reply" />
     </View>
   )
 }
@@ -327,6 +347,17 @@ const styles = StyleSheet.create({
   dropdownOptionText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate700 },
   dropdownOptionTextActive: { color: colors.brand700, fontFamily: fonts.bodySemiBold },
   dropdownSeparator: { height: 1, backgroundColor: colors.slate100, marginHorizontal: spacing.lg },
+  noteBlock: {
+    backgroundColor: colors.slate50, borderRadius: radius.md,
+    padding: spacing.sm, marginBottom: spacing.sm, gap: 2,
+  },
+  noteBlockReply: { backgroundColor: colors.brand50 },
+  noteFrom: {
+    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500,
+    textTransform: 'uppercase', letterSpacing: 0.4,
+  },
+  noteFromReply: { color: colors.brand700 },
+  noteText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate700, lineHeight: 18 },
   whenRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginBottom: spacing.sm },
   whenText: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm, flexShrink: 1 },
   whenDate: { fontFamily: fonts.displayBold, fontSize: fontSizes.base, color: colors.slate800 },
@@ -339,6 +370,7 @@ const styles = StyleSheet.create({
   personName: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
   personSubRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   personSub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
+  personPhone: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.brand700 },
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.full },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontFamily: fonts.bodySemiBold, fontSize: 11 },
@@ -346,19 +378,15 @@ const styles = StyleSheet.create({
   propertyThumb: { width: 36, height: 36, borderRadius: radius.sm, backgroundColor: colors.slate200 },
   propertyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
   propertySub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
-  note: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginBottom: spacing.sm, lineHeight: 18 },
-  noteLabel: { fontFamily: fonts.bodyMedium, color: colors.slate500 },
-  replyNote: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#2563EB', marginBottom: spacing.sm, lineHeight: 18 },
-  replyNoteLabel: { fontFamily: fonts.bodyMedium, color: '#60A5FA' },
   actionRow: { flexDirection: 'row', gap: spacing.sm },
   acceptButton: { flex: 1, minHeight: 44, flexDirection: 'row', gap: 5, backgroundColor: colors.black, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
   acceptButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
   rejectButton: { flex: 1, minHeight: 44, flexDirection: 'row', gap: 5, backgroundColor: colors.danger50, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
-  rejectButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: '#DC2626' },
+  rejectButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.danger600 },
   rejectInput: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, padding: spacing.sm, fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate800, minHeight: 48, textAlignVertical: 'top' },
   cancelButton: { flex: 1, minHeight: 44, backgroundColor: colors.slate100, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
   cancelButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate600 },
-  confirmRejectButton: { flex: 1, minHeight: 44, backgroundColor: colors.danger, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
+  confirmRejectButton: { flex: 1, minHeight: 44, backgroundColor: colors.danger600, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center', justifyContent: 'center' },
   empty: { alignItems: 'center', paddingVertical: spacing.xxl },
   emptyIcon: { width: 48, height: 48, borderRadius: radius.full, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700 },
