@@ -6,6 +6,7 @@ import { authService } from '@services/auth.service'
 import { useUiStore } from '@store/uiStore'
 import MenuItem from '@features/profile/components/MenuItem'
 import Icon from '@components/common/Icon'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -22,42 +23,50 @@ export default function HostProfileScreen({ navigation }) {
   })
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.card}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{(profile?.name || user?.email || '?')[0].toUpperCase()}</Text>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <ScreenHeader title="Profile" subtitle="Host account" />
+
+      {/* The screen's padding moved off the container and onto this wrapper so
+          ScreenHeader spans the full width like every other screen's header,
+          instead of being double-indented by the container's own padding. */}
+      <View style={styles.body}>
+        <View style={styles.card}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{(profile?.name || user?.email || '?')[0].toUpperCase()}</Text>
+          </View>
+          {isLoading ? (
+            <ActivityIndicator color={colors.brand600} style={{ marginTop: spacing.sm }} />
+          ) : (
+            <>
+              <Text style={styles.name}>{profile?.name || 'StayOnMap host'}</Text>
+              <Text style={styles.email}>{user?.email}</Text>
+              <View style={styles.roleBadge}>
+                <Icon name="home" size={11} color={colors.brand700} />
+                <Text style={styles.roleBadgeText}>HOST</Text>
+              </View>
+            </>
+          )}
         </View>
-        {isLoading ? (
-          <ActivityIndicator color={colors.brand600} style={{ marginTop: spacing.sm }} />
-        ) : (
-          <>
-            <Text style={styles.name}>{profile?.name || 'StayOnMap host'}</Text>
-            <Text style={styles.email}>{user?.email}</Text>
-            <View style={styles.roleBadge}>
-              <Icon name="home" size={11} color={colors.brand700} />
-              <Text style={styles.roleBadgeText}>HOST</Text>
-            </View>
-          </>
-        )}
-      </View>
 
-      <View style={styles.menu}>
-        <MenuItem icon="bell" label="Notifications" onPress={() => navigation.navigate('Notifications')} />
-        <MenuItem icon="settings" label="Settings" onPress={() => navigation.navigate('Settings')} />
-        <MenuItem icon="info" label="Support" onPress={() => navigation.navigate('Support')} />
-        <MenuItem icon="map" label="Switch to renter" onPress={() => setHostMode(false)} />
-      </View>
+        <View style={styles.menu}>
+          <MenuItem icon="bell" label="Notifications" onPress={() => navigation.navigate('Notifications')} />
+          <MenuItem icon="settings" label="Settings" onPress={() => navigation.navigate('Settings')} />
+          <MenuItem icon="info" label="Support" onPress={() => navigation.navigate('Support')} />
+          <MenuItem icon="map" label="Switch to renter" onPress={() => setHostMode(false)} />
+        </View>
 
-      <Pressable style={styles.signOutButton} onPress={signOut} accessibilityRole="button">
-        <Icon name="logout" size={16} color={colors.danger} />
-        <Text style={styles.signOutText}>Sign out</Text>
-      </Pressable>
+        <Pressable style={styles.signOutButton} onPress={signOut} accessibilityRole="button">
+          <Icon name="logout" size={16} color={colors.danger} />
+          <Text style={styles.signOutText}>Sign out</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.slate50, padding: spacing.lg },
+  container: { flex: 1, backgroundColor: colors.slate50 },
+  body: { flex: 1, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
   card: { alignItems: 'center', paddingVertical: spacing.xl },
   avatar: {
     width: 72,
