@@ -109,24 +109,32 @@ function OwnerCard({ appt, onAction, onOpenProperty }) {
 
   return (
     <View style={styles.card}>
-      <View style={styles.cardHeaderRow}>
-        <View style={styles.personRow}>
-          <View style={styles.avatar}>
-            {appt.tenant?.avatarUrl ? (
-              <Image source={{ uri: imgUrl(appt.tenant.avatarUrl) }} style={styles.avatarImg} contentFit="cover" cachePolicy="memory-disk" transition={200} />
-            ) : (
-              <Text style={styles.avatarInitial}>{personName(appt.tenant)[0]?.toUpperCase()}</Text>
-            )}
-          </View>
-          <View style={{ flexShrink: 1 }}>
-            <Text style={styles.personName} numberOfLines={1}>{personName(appt.tenant)}</Text>
-            <View style={styles.personSubRow}>
-              <Icon name="phone" size={10} color={colors.slate500} />
-              <Text style={styles.personSub}>{appt.contactNumber}</Text>
-            </View>
-          </View>
+      {/* The SLOT is the headline. An owner triaging requests decides on when
+          and who; the date used to sit in the corner of the property row, below
+          everything, in the same 11px grey as the city. */}
+      <View style={styles.whenRow}>
+        <View style={styles.whenText}>
+          <Text style={styles.whenDate}>{shortDate(appt.requestedDate)}</Text>
+          <Text style={styles.whenTime}>{appt.requestedTime}</Text>
         </View>
         <StatusPill status={appt.status} />
+      </View>
+
+      <View style={styles.personRow}>
+        <View style={styles.avatar}>
+          {appt.tenant?.avatarUrl ? (
+            <Image source={{ uri: imgUrl(appt.tenant.avatarUrl) }} style={styles.avatarImg} contentFit="cover" cachePolicy="memory-disk" transition={200} />
+          ) : (
+            <Text style={styles.avatarInitial}>{personName(appt.tenant)[0]?.toUpperCase()}</Text>
+          )}
+        </View>
+        <View style={{ flexShrink: 1 }}>
+          <Text style={styles.personName} numberOfLines={1}>{personName(appt.tenant)}</Text>
+          <View style={styles.personSubRow}>
+            <Icon name="phone" size={10} color={colors.slate500} />
+            <Text style={styles.personSub}>{appt.contactNumber}</Text>
+          </View>
+        </View>
       </View>
 
       <Pressable
@@ -139,12 +147,9 @@ function OwnerCard({ appt, onAction, onOpenProperty }) {
         {thumb ? <Image source={{ uri: imgUrl(thumb) }} style={styles.propertyThumb} contentFit="cover" cachePolicy="memory-disk" transition={200} /> : <View style={styles.propertyThumb} />}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.propertyTitle} numberOfLines={1}>{appt.property?.title ?? 'Property'}</Text>
-          <Text style={styles.propertySub}>{appt.property?.city}</Text>
+          <Text style={styles.propertySub} numberOfLines={1}>{appt.property?.city}</Text>
         </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text style={styles.dateText}>{shortDate(appt.requestedDate)}</Text>
-          <Text style={styles.propertySub}>{appt.requestedTime}</Text>
-        </View>
+        <Icon name="chevronRight" size={16} color={colors.slate400} />
       </Pressable>
 
       {!!appt.message && <Text style={styles.note}><Text style={styles.noteLabel}>Note: </Text>{appt.message}</Text>}
@@ -191,6 +196,14 @@ function TenantCard({ appt, onOpenProperty }) {
   const thumb = appt.property?.images?.[0]?.url
   return (
     <View style={styles.card}>
+      <View style={styles.whenRow}>
+        <View style={styles.whenText}>
+          <Text style={styles.whenDate}>{shortDate(appt.requestedDate)}</Text>
+          <Text style={styles.whenTime}>{appt.requestedTime}</Text>
+        </View>
+        <StatusPill status={appt.status} />
+      </View>
+
       <Pressable
         style={styles.propertyRow}
         onPress={() => appt.property?.id && onOpenProperty?.(appt.property.id)}
@@ -201,14 +214,10 @@ function TenantCard({ appt, onOpenProperty }) {
         {thumb ? <Image source={{ uri: imgUrl(thumb) }} style={styles.propertyThumb} contentFit="cover" cachePolicy="memory-disk" transition={200} /> : <View style={styles.propertyThumb} />}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.propertyTitle} numberOfLines={1}>{appt.property?.title ?? 'Property'}</Text>
-          <Text style={styles.propertySub}>{appt.property?.city}</Text>
+          <Text style={styles.propertySub} numberOfLines={1}>{appt.property?.city}</Text>
         </View>
-        <StatusPill status={appt.status} />
+        <Icon name="chevronRight" size={16} color={colors.slate400} />
       </Pressable>
-      <View style={styles.dateRow}>
-        <Text style={styles.dateText}>{shortDate(appt.requestedDate)}</Text>
-        <Text style={styles.dateText}>{appt.requestedTime}</Text>
-      </View>
       {!!appt.message && <Text style={styles.note}><Text style={styles.noteLabel}>Your note: </Text>{appt.message}</Text>}
       {!!appt.ownerNote && <Text style={styles.replyNote}><Text style={styles.replyNoteLabel}>Owner reply: </Text>{appt.ownerNote}</Text>}
     </View>
@@ -318,8 +327,11 @@ const styles = StyleSheet.create({
   dropdownOptionText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate700 },
   dropdownOptionTextActive: { color: colors.brand700, fontFamily: fonts.bodySemiBold },
   dropdownSeparator: { height: 1, backgroundColor: colors.slate100, marginHorizontal: spacing.lg },
+  whenRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginBottom: spacing.sm },
+  whenText: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm, flexShrink: 1 },
+  whenDate: { fontFamily: fonts.displayBold, fontSize: fontSizes.base, color: colors.slate800 },
+  whenTime: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand700 },
   card: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, padding: spacing.md, marginBottom: spacing.sm },
-  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   personRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },
   avatar: { width: 32, height: 32, borderRadius: radius.full, backgroundColor: colors.slate800, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   avatarImg: { width: '100%', height: '100%' },
@@ -334,8 +346,6 @@ const styles = StyleSheet.create({
   propertyThumb: { width: 36, height: 36, borderRadius: radius.sm, backgroundColor: colors.slate200 },
   propertyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
   propertySub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
-  dateText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
-  dateRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.sm },
   note: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginBottom: spacing.sm, lineHeight: 18 },
   noteLabel: { fontFamily: fonts.bodyMedium, color: colors.slate500 },
   replyNote: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#2563EB', marginBottom: spacing.sm, lineHeight: 18 },
