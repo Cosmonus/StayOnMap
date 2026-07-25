@@ -6,28 +6,91 @@ import { propertyService } from '@services/property.service'
 import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { formatPrice, imgUrl } from '@utils/format'
+import { specLabel } from '@utils/propertySpec'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-const STATUS_COLORS = {
-  DRAFT: { bg: colors.slate100, text: colors.slate600 },
-  ACTIVE: { bg: colors.success50, text: '#15803D' },
-  INACTIVE: { bg: colors.slate100, text: colors.slate500 },
-  PENDING: { bg: colors.warning50, text: '#B45309' },
-  OCCUPIED: { bg: '#EEF2FF', text: '#4338CA' },
-  SUSPENDED: { bg: colors.danger50, text: '#DC2626' },
-  REJECTED: { bg: colors.danger50, text: '#DC2626' },
+// Colour plus, more importantly, what the status MEANS for the owner. A pill
+// reading "DRAFT" tells you the enum value; "Not published yet" tells you why
+// nobody can see it. OCCUPIED used to be in this map and is not a
+// PropertyStatus — the enum is DRAFT|ACTIVE|INACTIVE|PENDING|SUSPENDED|REJECTED.
+// Mirrors MAX_LISTINGS_PER_OWNER in backend properties.service.js.
+const MAX_ACTIVE = 3
+
+const STATUS = {
+  DRAFT:     { bg: colors.slate100,  text: colors.slate600, label: 'Draft',     meaning: 'Not published yet' },
+  PENDING:   { bg: colors.warning50, text: colors.warning700, label: 'In review', meaning: 'Waiting on moderation' },
+  ACTIVE:    { bg: colors.success50, text: '#15803D',       label: 'Live',      meaning: 'Visible to renters' },
+  INACTIVE:  { bg: colors.slate100,  text: colors.slate600, label: 'Paused',    meaning: 'Hidden from search' },
+  SUSPENDED: { bg: colors.danger50,  text: colors.danger600, label: 'Suspended', meaning: 'Removed by moderation' },
+  REJECTED:  { bg: colors.danger50,  text: colors.danger600, label: 'Rejected',  meaning: 'Needs changes before it can go live' },
 }
 
 function StatusPill({ status }) {
-  const c = STATUS_COLORS[status] ?? STATUS_COLORS.DRAFT
+  const s = STATUS[status] ?? STATUS.DRAFT
   return (
-    <View style={[styles.statusPill, { backgroundColor: c.bg }]}>
-      <Text style={[styles.statusPillText, { color: c.text }]}>{status}</Text>
+    <View style={[styles.statusPill, { backgroundColor: s.bg }]}>
+      <Text style={[styles.statusPillText, { color: s.text }]}>{s.label}</Text>
     </View>
+  )
+}
+
+// One row per listing, full width. This was a 2-column grid: on a phone that
+// made each card ~165px wide with a 12px truncated title, and it crammed two
+// action buttons in at ~22px tall — well under the 44dp minimum. Owners are
+// capped at 3 active listings, so a dense browse grid was solving a problem
+// nobody had, at the cost of legibility and reachable controls.
+//
+// The old per-card Verify / Offer Lease buttons are gone rather than resized:
+// ManageListingScreen already offers both, plus Edit and Preview, at a proper
+// size. The whole row is now one tap target to that screen.
+function ListingRow({ item, onPress }) {
+  const s = STATUS[item.status] ?? STATUS.DRAFT
+  const spec = specLabel(item)
+  const requests = item._count?.appointments ?? 0
+  const thumb = item.images?.[0]?.url
+
+  return (
+    <Pressable
+      style={styles.row}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.title}. ${s.label}. ${s.meaning}. Opens listing management.`}
+    >
+      {thumb ? (
+        <Image source={{ uri: imgUrl(thumb, 'card') }} style={styles.thumb} contentFit="cover" cachePolicy="memory-disk" transition={200} />
+      ) : (
+        <View style={[styles.thumb, styles.thumbEmpty]}>
+          <Icon name="image" size={18} color={colors.slate400} />
+        </View>
+      )}
+
+      <View style={styles.rowBody}>
+        <View style={styles.rowTop}>
+          <Text style={styles.rowTitle} numberOfLines={1}>{item.title}</Text>
+          <StatusPill status={item.status} />
+        </View>
+
+        <Text style={styles.rowPrice} numberOfLines={1}>
+          {formatPrice(item)}{spec ? ` · ${spec}` : ''}
+        </Text>
+        <Text style={styles.rowCity} numberOfLines={1}>
+          {item.city}{item.state ? `, ${item.state}` : ''}
+        </Text>
+
+        <View style={styles.rowMeta}>
+          <Text style={styles.rowMeaning} numberOfLines={1}>{s.meaning}</Text>
+          {requests > 0 && (
+            <Text style={styles.rowRequests}>{requests} request{requests === 1 ? '' : 's'}</Text>
+          )}
+        </View>
+      </View>
+
+      <Icon name="chevronRight" size={18} color={colors.slate400} />
+    </Pressable>
   )
 }
 
@@ -68,6 +131,8 @@ export default function MyListingsScreen({ navigation }) {
     enabled: isOwner,
   })
 
+  const activeCount = listings.filter((l) => l.status === 'ACTIVE').length
+
   if (!isOwner) {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -106,11 +171,25 @@ export default function MyListingsScreen({ navigation }) {
         <FlatList
           data={listings}
           keyExtractor={(item) => item.id}
-          numColumns={2}
-          columnWrapperStyle={{ gap: spacing.md }}
           contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            listings.length > 0 ? (
+              // The 3-active cap is enforced server-side and used to be
+              // invisible until creation failed with a 403. Saying it up front
+              // costs one line.
+              <Text style={styles.capNote}>
+                {activeCount} of {MAX_ACTIVE} active
+                {activeCount >= MAX_ACTIVE ? ' — pause one to add another' : ''}
+              </Text>
+            ) : null
+          }
           ListEmptyComponent={
-            <Pressable style={styles.emptyState} onPress={() => navigation.navigate('AddListing')}>
+            <Pressable
+              style={styles.emptyState}
+              onPress={() => navigation.navigate('AddListing')}
+              accessibilityRole="button"
+              accessibilityLabel="Add your first property"
+            >
               <View style={styles.emptyIcon}>
                 <Icon name="plus" size={20} color={colors.brand600} />
               </View>
@@ -119,41 +198,7 @@ export default function MyListingsScreen({ navigation }) {
             </Pressable>
           }
           renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Pressable
-                onPress={() => navigation.navigate('ManageListing', { propertyId: item.id })}
-                accessibilityRole="button"
-                accessibilityLabel={`Manage listing ${item.title}`}
-              >
-                <View style={styles.cardImageWrap}>
-                  {item.images?.[0] ? <Image source={{ uri: imgUrl(item.images[0].url, 'card') }} style={styles.cardImage} contentFit="cover" cachePolicy="memory-disk" transition={200} /> : <View style={styles.cardImage} />}
-                  <View style={styles.statusPillWrap}><StatusPill status={item.status} /></View>
-                </View>
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-                  <Text style={styles.cardRent}>{formatPrice(item)}</Text>
-                  <Text style={styles.cardCity} numberOfLines={1}>{item.city}{item.state ? `, ${item.state}` : ''}</Text>
-                </View>
-              </Pressable>
-              <View style={styles.cardActions}>
-                <Pressable
-                  style={styles.cardActionButton}
-                  onPress={() => navigation.navigate('Verification', { propertyId: item.id, propertyTitle: item.title })}
-                >
-                  <Icon name="shieldCheck" size={11} color={colors.slate600} />
-                  <Text style={styles.cardActionText}>Verify</Text>
-                </Pressable>
-                {item.status === 'ACTIVE' && (
-                  <Pressable
-                    style={styles.cardActionButton}
-                    onPress={() => navigation.navigate('CreateLease', { propertyId: item.id, propertyTitle: item.title })}
-                  >
-                    <Icon name="document" size={11} color={colors.slate600} />
-                    <Text style={styles.cardActionText}>Offer Lease</Text>
-                  </Pressable>
-                )}
-              </View>
-            </View>
+            <ListingRow item={item} onPress={() => navigation.navigate('ManageListing', { propertyId: item.id })} />
           )}
         />
       )}
@@ -175,20 +220,31 @@ const styles = StyleSheet.create({
   // minimum for text. It was fine as a button FILL behind white; as the text
   // colour itself it is not.
   addLinkText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand700 },
-  list: { padding: spacing.lg, gap: spacing.md },
-  card: { flex: 1, backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, overflow: 'hidden', marginBottom: spacing.md },
-  cardImageWrap: { aspectRatio: 16 / 10, backgroundColor: colors.slate100 },
-  cardImage: { width: '100%', height: '100%' },
-  statusPillWrap: { position: 'absolute', top: 6, left: 6 },
+  list: { padding: spacing.lg, gap: spacing.sm },
+  capNote: {
+    fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.slate600,
+    marginBottom: spacing.sm,
+  },
+  // Full-width row. 96px thumb + flexible body + chevron; the whole thing is
+  // one tap target, comfortably past 44dp tall.
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    backgroundColor: colors.white, borderRadius: radius.lg,
+    borderWidth: 1, borderColor: colors.slate100,
+    padding: spacing.sm,
+  },
+  thumb: { width: 96, height: 96, borderRadius: radius.md, backgroundColor: colors.slate100 },
+  thumbEmpty: { alignItems: 'center', justifyContent: 'center' },
+  rowBody: { flex: 1, minWidth: 0, gap: 2 },
+  rowTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  rowTitle: { flex: 1, minWidth: 0, fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
+  rowPrice: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand700 },
+  rowCity: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
+  rowMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 2 },
+  rowMeaning: { flex: 1, minWidth: 0, fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
+  rowRequests: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
   statusPill: { borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 2 },
   statusPillText: { fontFamily: fonts.bodySemiBold, fontSize: 11 },
-  cardBody: { padding: spacing.sm },
-  cardActions: { flexDirection: 'row', gap: 6, paddingHorizontal: spacing.sm, paddingBottom: spacing.sm },
-  cardActionButton: { flex: 1, flexDirection: 'row', gap: 3, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.sm, paddingVertical: 5, alignItems: 'center', justifyContent: 'center' },
-  cardActionText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate600 },
-  cardTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate800 },
-  cardRent: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand600, marginTop: 2 },
-  cardCity: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 2 },
   emptyState: { padding: spacing.xxl, borderWidth: 1, borderColor: colors.slate200, borderStyle: 'dashed', borderRadius: radius.lg, alignItems: 'center', width: '100%' },
   emptyIcon: { width: 44, height: 44, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
