@@ -10,6 +10,7 @@ import { getSocket } from '@lib/socket'
 import { imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -55,25 +56,22 @@ export default function ConversationListScreen({ navigation }) {
     return () => { socket.off('user:online', onOnline); socket.off('user:offline', onOffline) }
   }, [])
 
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.emptyContainer}>
-        <ActivityIndicator color={colors.brand600} />
-      </SafeAreaView>
-    )
-  }
+  // ONE layout for every state. Each branch used to return its own
+  // SafeAreaView, which is how a header added to the happy path alone would
+  // vanish on empty/error — and why the loading and empty states sat in a
+  // centred container the header must not be inside.
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <ScreenHeader title={hostMode ? 'Inbox' : 'Messages'} />
 
-  if (isError) {
-    return (
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      {isLoading ? (
+        <View style={styles.stateWrap}>
+          <ActivityIndicator color={colors.brand600} />
+        </View>
+      ) : isError ? (
         <ErrorState title="Couldn't load conversations" onRetry={refetch} />
-      </SafeAreaView>
-    )
-  }
-
-  if (!conversations.length) {
-    return (
-      <SafeAreaView style={styles.emptyContainer}>
+      ) : !conversations.length ? (
+        <View style={styles.stateWrap}>
         <View style={styles.emptyIcon}>
           <Icon name="messageCircle" size={26} color={colors.brand600} />
         </View>
@@ -85,12 +83,8 @@ export default function ConversationListScreen({ navigation }) {
             ? 'When a renter messages you about one of your listings, it will appear here.'
             : 'Start a chat from a property’s detail page.'}
         </Text>
-      </SafeAreaView>
-    )
-  }
-
-  return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+        </View>
+      ) : (
       <FlatList
         data={conversations}
         keyExtractor={(c) => c.id}
@@ -146,12 +140,14 @@ export default function ConversationListScreen({ navigation }) {
           )
         }}
       />
+      )}
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
+  stateWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg, backgroundColor: colors.slate50 },
   emptyIcon: { width: 52, height: 52, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate700 },

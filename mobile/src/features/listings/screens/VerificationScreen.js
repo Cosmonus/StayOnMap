@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { verificationService } from '@services/verification.service'
 import Icon from '@components/common/Icon'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
@@ -90,11 +91,13 @@ export default function VerificationScreen({ route }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* This screen is PUSHED but had no back button at all — its header was
+          an icon and the words 'Get Verified'. Hardware back worked; nothing
+          on screen said so. ScreenHeader shows one whenever canGoBack(). */}
+      <ScreenHeader title="Get Verified" />
+
       <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.headerTitleRow}>
-          <Icon name="shieldCheck" size={20} color={colors.slate800} />
-          <Text style={styles.headerTitle}>Get Verified</Text>
-        </View>
+
 
         <View style={styles.propertyBox}>
           <Text style={styles.propertyBoxLabel}>Verifying ownership for</Text>

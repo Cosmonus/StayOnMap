@@ -6,6 +6,7 @@ import { savedService } from '@services/saved.service'
 import PropertyCard from '@features/properties/components/PropertyCard'
 import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -20,7 +21,8 @@ export default function SavedScreen({ navigation }) {
   })
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <ScreenHeader title="Saved" />
       {isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.brand600} />

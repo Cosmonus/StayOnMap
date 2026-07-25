@@ -37,8 +37,12 @@ const Tab = createBottomTabNavigator()
 function makeStack(screens) {
   const Stack = createNativeStackNavigator()
   return function StackScreen() {
+    // Every screen draws its own ScreenHeader, so the native header is off by
+    // default here rather than repeated per screen — a new screen that forgot
+    // the flag used to silently get a platform header in system typography,
+    // which is exactly how five of them drifted.
     return (
-      <Stack.Navigator>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
         {screens.map(({ name, component, options, initialParams }) => (
           <Stack.Screen key={name} name={name} component={component} options={options} initialParams={initialParams} />
         ))}
@@ -48,33 +52,33 @@ function makeStack(screens) {
 }
 
 const BOOKING_SCREENS = [
-  { name: 'PropertyDetail', component: PropertyDetailScreen, options: { headerShown: false } },
-  { name: 'BookViewing', component: BookViewingScreen, options: { headerShown: false, presentation: 'modal' } },
+  { name: 'PropertyDetail', component: PropertyDetailScreen },
+  { name: 'BookViewing', component: BookViewingScreen, options: { presentation: 'modal' } },
 ]
 
 const ExploreStack = makeStack([
-  { name: 'ExploreHome', component: ExploreScreen, options: { headerShown: false } },
+  { name: 'ExploreHome', component: ExploreScreen },
   ...BOOKING_SCREENS,
 ])
 
 const SavedStack = makeStack([
-  { name: 'SavedHome', component: SavedScreen, options: { title: 'Saved' } },
+  { name: 'SavedHome', component: SavedScreen },
   ...BOOKING_SCREENS,
 ])
 
 const ChatStack = makeStack([
-  { name: 'ChatHome', component: ConversationListScreen, options: { title: 'Chat' } },
-  { name: 'Conversation', component: ConversationScreen, options: { title: 'Chat' } },
+  { name: 'ChatHome', component: ConversationListScreen },
+  { name: 'Conversation', component: ConversationScreen },
 ])
 
 // Renter-only — listing management moved out to host mode's My Listing tab.
 const ProfileStack = makeStack([
-  { name: 'ProfileHome', component: ProfileScreen, options: { title: 'Profile' } },
-  { name: 'Appointments', component: AppointmentsScreen, options: { headerShown: false } },
-  { name: 'Notifications', component: NotificationsScreen, options: { headerShown: false } },
-  { name: 'Leases', component: LeasesScreen, options: { headerShown: false } },
-  { name: 'Settings', component: SettingsScreen, options: { headerShown: false } },
-  { name: 'Support', component: SupportScreen, options: { headerShown: false } },
+  { name: 'ProfileHome', component: ProfileScreen },
+  { name: 'Appointments', component: AppointmentsScreen },
+  { name: 'Notifications', component: NotificationsScreen },
+  { name: 'Leases', component: LeasesScreen },
+  { name: 'Settings', component: SettingsScreen },
+  { name: 'Support', component: SupportScreen },
   // Appointments and leases are ABOUT a property, so the property has to be
   // reachable from them — without this a push to PropertyDetail bubbles to the
   // tab navigator, finds no such tab, and silently does nothing.
@@ -83,29 +87,29 @@ const ProfileStack = makeStack([
 
 // ── Host mode — new stacks ──────────────────────────────────────────────
 const DashboardStack = makeStack([
-  { name: 'DashboardHome', component: HostDashboardScreen, options: { headerShown: false } },
-  { name: 'Calendar', component: CalendarScreen, options: { title: 'Calendar' } },
+  { name: 'DashboardHome', component: HostDashboardScreen },
+  { name: 'Calendar', component: CalendarScreen },
 ])
 
 const HostAppointmentsStack = makeStack([
-  { name: 'AppointmentsHome', component: AppointmentsScreen, options: { headerShown: false }, initialParams: { initialTab: 'incoming' } },
+  { name: 'AppointmentsHome', component: AppointmentsScreen, initialParams: { initialTab: 'incoming' } },
   ...BOOKING_SCREENS,
 ])
 
 const HostProfileStack = makeStack([
-  { name: 'HostProfileHome', component: HostProfileScreen, options: { headerShown: false } },
-  { name: 'Notifications', component: NotificationsScreen, options: { headerShown: false } },
-  { name: 'Settings', component: SettingsScreen, options: { headerShown: false } },
-  { name: 'Support', component: SupportScreen, options: { headerShown: false } },
+  { name: 'HostProfileHome', component: HostProfileScreen },
+  { name: 'Notifications', component: NotificationsScreen },
+  { name: 'Settings', component: SettingsScreen },
+  { name: 'Support', component: SupportScreen },
 ])
 
 const MyListingStack = makeStack([
-  { name: 'MyListingsHome', component: MyListingsScreen, options: { headerShown: false } },
-  { name: 'AddListing', component: AddListingScreen, options: { headerShown: false, presentation: 'modal' } },
-  { name: 'ManageListing', component: ManageListingScreen, options: { headerShown: false } },
-  { name: 'EditListing', component: EditListingScreen, options: { headerShown: false } },
-  { name: 'Verification', component: VerificationScreen, options: { headerShown: false } },
-  { name: 'CreateLease', component: CreateLeaseScreen, options: { headerShown: false, presentation: 'modal' } },
+  { name: 'MyListingsHome', component: MyListingsScreen },
+  { name: 'AddListing', component: AddListingScreen, options: { presentation: 'modal' } },
+  { name: 'ManageListing', component: ManageListingScreen },
+  { name: 'EditListing', component: EditListingScreen },
+  { name: 'Verification', component: VerificationScreen },
+  { name: 'CreateLease', component: CreateLeaseScreen, options: { presentation: 'modal' } },
   ...BOOKING_SCREENS,
 ])
 

@@ -6,6 +6,7 @@ import { authService } from '@services/auth.service'
 import { propertyService } from '@services/property.service'
 import Icon from '@components/common/Icon'
 import NotificationBell from '@components/common/NotificationBell'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -44,11 +45,13 @@ export default function HostDashboardScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* Outside the ScrollView so it stays put while the page scrolls — the
+          same fixed app bar the renter home has, so switching modes doesn't
+          feel like a different app. */}
+      <ScreenHeader logo elevated right={<NotificationBell />} />
+
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.titleRow}>
-          <Text style={styles.title}>Dashboard</Text>
-          <NotificationBell />
-        </View>
+        <Text style={styles.title}>Dashboard</Text>
         <Text style={styles.subtitle}>Welcome back — here&apos;s your overview.</Text>
 
         {loadingProfile || loadingListings ? (
@@ -92,7 +95,6 @@ export default function HostDashboardScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
   subtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2, marginBottom: spacing.lg },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },

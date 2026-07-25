@@ -13,6 +13,8 @@ import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
 import ReadReceipt from '../components/ReadReceipt'
 import ChatPropertyCard from '../components/ChatPropertyCard'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -72,23 +74,6 @@ export default function ConversationScreen({ route, navigation }) {
   const other = otherParam ?? (conversation ? (conversation.tenantId === user?.id ? conversation.owner : conversation.tenant) : null)
   const property = conversation?.property
 
-  useEffect(() => {
-    navigation.setOptions({
-      title: other?.name || other?.email?.split('@')[0] || 'Chat',
-      headerRight: () => (
-        <Pressable
-          style={styles.headerSearchButton}
-          onPress={() => { setSearchOpen((o) => !o); setMsgSearch('') }}
-          accessibilityRole="button"
-          accessibilityLabel={searchOpen ? 'Close message search' : 'Search messages'}
-          accessibilityState={{ expanded: searchOpen }}
-          hitSlop={6}
-        >
-          <Icon name={searchOpen ? 'close' : 'search'} size={20} color={searchOpen ? colors.brand600 : colors.slate500} />
-        </Pressable>
-      ),
-    })
-  }, [navigation, other, searchOpen])
 
   // Debounce the search box 300ms before hitting the backend search endpoint
   useEffect(() => {
@@ -299,11 +284,33 @@ export default function ConversationScreen({ route, navigation }) {
   const resultCount = searchQuery.length > 0 ? listData.length : null
 
   return (
+    // The native header used to supply the top inset; without it the title
+    // would sit under the status bar. edges omits 'bottom' because
+    // KeyboardAvoidingView owns that edge for the message input.
+    <SafeAreaView style={styles.container} edges={['top']}>
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
+      {/* Was navigation.setOptions({ title, headerRight }) driving the NATIVE
+          header. With that header off, setOptions configured something nobody
+          drew — so the title and the search toggle move here. */}
+      <ScreenHeader
+        title={other?.name || other?.email?.split('@')[0] || 'Chat'}
+        right={
+          <Pressable
+            style={styles.headerSearchButton}
+            onPress={() => { setSearchOpen((o) => !o); setMsgSearch('') }}
+            accessibilityRole="button"
+            accessibilityLabel={searchOpen ? 'Close message search' : 'Search messages'}
+            accessibilityState={{ expanded: searchOpen }}
+            hitSlop={6}
+          >
+            <Icon name={searchOpen ? 'close' : 'search'} size={20} color={searchOpen ? colors.brand600 : colors.slate500} />
+          </Pressable>
+        }
+      />
       {searchOpen && (
         <View style={styles.searchBar}>
           <Icon name="search" size={16} color={colors.slate500} />
@@ -435,6 +442,7 @@ export default function ConversationScreen({ route, navigation }) {
         </Pressable>
       </View>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 

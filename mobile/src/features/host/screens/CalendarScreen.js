@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
 import { leaseService } from '@services/lease.service'
 import Icon from '@components/common/Icon'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
@@ -75,9 +76,9 @@ export default function CalendarScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <ScreenHeader title="Calendar" subtitle="Upcoming appointments and lease dates" />
+
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Calendar</Text>
-        <Text style={styles.subtitle}>Upcoming appointments and lease dates</Text>
 
         {isLoading ? (
           <ActivityIndicator color={colors.brand600} style={{ marginTop: spacing.xl }} />

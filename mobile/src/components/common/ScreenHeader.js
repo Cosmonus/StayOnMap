@@ -1,7 +1,9 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import Icon from './Icon'
+import Logo from './Logo'
 import { colors } from '@theme/colors'
+import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing } from '@theme/spacing'
 
@@ -18,12 +20,15 @@ import { spacing } from '@theme/spacing'
 // `back` defaults to showing whenever the screen can actually go back, so a
 // pushed screen gets an affordance without opting in and a tab root doesn't
 // get a dead arrow.
-export default function ScreenHeader({ title, subtitle, right = null, back }) {
+// `logo` swaps the title for the wordmark and `elevated` gives the white,
+// shadowed bar — together they reproduce the renter home's app bar, so host
+// mode's Dashboard reads as the same product rather than a different screen.
+export default function ScreenHeader({ title, subtitle, right = null, back, logo = false, elevated = false }) {
   const navigation = useNavigation()
   const showBack = back ?? navigation.canGoBack()
 
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, elevated && styles.elevated]}>
       <View style={styles.left}>
         {showBack && (
           <Pressable
@@ -35,10 +40,14 @@ export default function ScreenHeader({ title, subtitle, right = null, back }) {
             <Icon name="chevronLeft" size={20} color={colors.slate800} />
           </Pressable>
         )}
-        <View style={styles.titleWrap}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
-          {!!subtitle && <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>}
-        </View>
+        {logo ? (
+          <Logo />
+        ) : (
+          <View style={styles.titleWrap}>
+            <Text style={styles.title} numberOfLines={1}>{title}</Text>
+            {!!subtitle && <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>}
+          </View>
+        )}
       </View>
       {right}
     </View>
@@ -51,6 +60,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm,
     gap: spacing.sm,
   },
+  // Matches ExploreScreen's app bar (white + shadows.md) so the renter home and
+  // the host dashboard read as one product.
+  elevated: { backgroundColor: colors.white, ...shadows.md },
   left: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1, minWidth: 0 },
   titleWrap: { flex: 1, minWidth: 0 },
   title: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },

@@ -6,6 +6,7 @@ import { authService } from '@services/auth.service'
 import { useUiStore } from '@store/uiStore'
 import MenuItem from '@features/profile/components/MenuItem'
 import Icon from '@components/common/Icon'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -30,7 +31,8 @@ export default function ProfileScreen({ navigation }) {
   })
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <ScreenHeader title="Profile" />
       <View style={styles.card}>
         {profile?.avatarUrl ? (
           <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} resizeMode="cover" />
