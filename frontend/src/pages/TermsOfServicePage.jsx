@@ -31,7 +31,7 @@ export default function TermsOfServicePage() {
         description="The rules and disclaimers that govern your use of StayOnMap."
         canonical={canonical('/terms')}
       />
-      <LegalPageLayout title="Terms of Service" lastUpdated="July 21, 2026" sections={SECTIONS}>
+      <LegalPageLayout title="Terms of Service" lastUpdated="July 27, 2026" sections={SECTIONS}>
 
         <Section id="acceptance" title="1. Acceptance of terms">
           <p>
@@ -83,9 +83,9 @@ export default function TermsOfServicePage() {
         <Section id="roles" title="5. Tenant & owner roles">
           <p><strong>Tenants</strong> can browse listings, save favourites, request visits,
             chat with owners, sign leases offered to them, and leave reviews.</p>
-          <p><strong>Owners</strong> can create and manage listings (up to 3 active listings on
-            the free tier), respond to visit requests, offer leases, and respond to reviews
-            and reports on their properties.</p>
+          <p><strong>Owners</strong> can create and manage listings, respond to visit
+            requests, offer leases, and respond to reviews and reports on their
+            properties.</p>
         </Section>
 
         <Section id="listings" title="6. Listings & verification">
@@ -101,8 +101,8 @@ export default function TermsOfServicePage() {
         <Section id="appointments" title="7. Appointments, leases & fees">
           <p>
             StayOnMap does not charge tenants any commission or brokerage fee, and does not
-            currently charge owners for listing a property (free tier: up to 3 active
-            listings). We do not currently process rent or deposit payments through the
+            currently charge owners for listing a property. We do not currently process rent
+            or deposit payments through the
             Platform &mdash; any payment arrangement is made directly between tenant and owner, at
             their own risk. Never send a deposit or rent through a channel that cannot be verified.
           </p>

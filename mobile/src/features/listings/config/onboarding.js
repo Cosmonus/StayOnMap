@@ -36,7 +36,14 @@ export const STEPS = [
 // `houseStyle`; `type` itself is then derived from that choice — see
 // deriveType() below).
 export const DESCRIBE = {
+  // Studio (bhk 0) is offered because the SEARCH filter offers it: config/
+  // filters.js has had `{ value: 0, label: 'Studio' }` all along while this
+  // list started at 1 BHK, so no owner could create the thing renters were
+  // filtering for and "Studio" returned zero results permanently — a dead
+  // filter of exactly the kind CLAUDE.md warns fails silently. Studios and 1RKs
+  // are a large share of single-renter stock in every city we're live in.
   apartment: { q: 'Which best describes your flat?', k: 'bhk', opts: [
+    [0, 'Studio / 1 RK', 'One room, no separate bedroom'],
     [1, '1 BHK', 'One bed, hall, kitchen'], [2, '2 BHK', 'Two bedrooms'],
     [3, '3 BHK', 'Three bedrooms'], [4, '4 BHK+', 'Four or more bedrooms'],
   ] },

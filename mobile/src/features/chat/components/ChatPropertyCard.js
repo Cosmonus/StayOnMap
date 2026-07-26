@@ -60,7 +60,13 @@ const styles = StyleSheet.create({
   },
   // Pinned full-width header: no floating-card border/radius, keep comfortable
   // horizontal padding so content isn't flush to the screen edge.
-  cardPinned: { marginBottom: 0, borderWidth: 0, borderRadius: 0, paddingHorizontal: spacing.md },
+  // Transparent when pinned: the strip behind it (ConversationScreen's
+  // pinnedProperty) supplies the tint and the divider, and a white card on top
+  // of that tint would be a box inside a box.
+  cardPinned: {
+    marginBottom: 0, borderWidth: 0, borderRadius: 0,
+    paddingHorizontal: spacing.md, backgroundColor: 'transparent',
+  },
   thumb: { width: 56, height: 56, borderRadius: radius.md, backgroundColor: colors.slate100 },
   thumbFallback: { alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, minWidth: 0 },

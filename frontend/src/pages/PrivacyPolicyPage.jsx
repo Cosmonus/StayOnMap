@@ -27,7 +27,7 @@ export default function PrivacyPolicyPage() {
         description="How StayOnMap collects, uses, and protects your personal data — including owner verification documents."
         canonical={canonical('/privacy')}
       />
-      <LegalPageLayout title="Privacy Policy" lastUpdated="July 21, 2026" sections={SECTIONS}>
+      <LegalPageLayout title="Privacy Policy" lastUpdated="July 27, 2026" sections={SECTIONS}>
 
         <Section id="scope" title="1. Scope & who we are">
           <p>

@@ -126,7 +126,7 @@ export default function SavedScreen({ navigation }) {
     : null
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* The title used to live in React Navigation's native header, so this
           screen's own inset started below it. It is a ScreenHeader inside the
           safe area now, like every other screen. */}

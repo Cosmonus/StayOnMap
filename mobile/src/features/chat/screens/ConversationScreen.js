@@ -286,8 +286,11 @@ export default function ConversationScreen({ route, navigation }) {
 
   const resultCount = searchQuery.length > 0 ? listData.length : null
 
+  // edges: none. ScreenHeader owns the top inset (and paints it white); the
+  // visible tab bar below owns the bottom one. Claiming either here padded it
+  // twice — that was the slate50 band under the input bar.
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* This screen was the ONE without a SafeAreaView — it leaned on React
           Navigation's native header for the top inset. Now it owns it, like
           every other screen, and the header is the shared one. */}
@@ -471,8 +474,11 @@ export default function ConversationScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   flex: { flex: 1 },
+  // Tinted, not white: this strip is a link to the listing the whole
+  // conversation is about, and as a plain white block between a white header
+  // and a white message canvas it read as a slab rather than something to tap.
   pinnedProperty: {
-    backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.slate200,
+    backgroundColor: colors.brand50, borderBottomWidth: 1, borderBottomColor: colors.brand100,
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   headerSearchButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

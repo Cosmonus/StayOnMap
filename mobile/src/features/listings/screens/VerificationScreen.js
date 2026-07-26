@@ -84,14 +84,14 @@ export default function VerificationScreen({ route }) {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.center} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.center} edges={[]}>
         <ActivityIndicator color={colors.brand600} size="large" />
       </SafeAreaView>
     )
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader title="Get verified" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.propertyBox}>

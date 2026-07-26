@@ -157,7 +157,7 @@ export default function ManageListingScreen({ navigation, route }) {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.center} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.center} edges={[]}>
         <ActivityIndicator color={colors.brand600} size="large" />
       </SafeAreaView>
     )
@@ -165,7 +165,7 @@ export default function ManageListingScreen({ navigation, route }) {
 
   if (isError || !property) {
     return (
-      <SafeAreaView style={styles.center} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.center} edges={[]}>
         <Text style={styles.errorTitle}>Couldn&apos;t load this listing</Text>
         <Pressable style={styles.retryButton} onPress={() => refetch()} accessibilityRole="button" accessibilityLabel="Retry loading listing">
           <Text style={styles.retryText}>Retry</Text>
@@ -310,7 +310,7 @@ export default function ManageListingScreen({ navigation, route }) {
   )
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader
         title="Manage listing"
         onBack={() => navigation.goBack()}

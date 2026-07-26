@@ -263,8 +263,6 @@ export async function getPropertiesByOwner(ownerId) {
   })
 }
 
-const MAX_LISTINGS_PER_OWNER = 3
-
 function assertAllowedCity(city) {
   if (!SUPPORTED_CITIES.includes(city)) {
     throw Object.assign(new Error(`Listings are only available in ${SUPPORTED_CITIES.join(', ')} right now — more cities opening soon`), { statusCode: 403 })
@@ -276,12 +274,14 @@ export async function createProperty(ownerId, data) {
 
   assertAllowedCity(data.city)
 
+  // No listing cap. There was a 3-active-listing free-tier limit until
+  // 2026-07-27; it was removed because the tier it belonged to does not exist —
+  // payments and plans are on hold (roadmap P3.2/P3.3), so the cap turned
+  // owners away at three with nothing to upgrade to. Reinstate it WITH the paid
+  // tier, not before, and put the count back inside this transaction when you
+  // do: the check has to see the same snapshot as the create, or two parallel
+  // requests both pass it.
   const property = await prisma.$transaction(async (tx) => {
-    const activeCount = await tx.property.count({ where: { ownerId, status: 'ACTIVE' } })
-    if (activeCount >= MAX_LISTINGS_PER_OWNER) {
-      throw Object.assign(new Error(`Maximum of ${MAX_LISTINGS_PER_OWNER} active listings reached — deactivate a listing to add another`), { statusCode: 403 })
-    }
-
     return tx.property.create({
       data: {
         ...propertyData,

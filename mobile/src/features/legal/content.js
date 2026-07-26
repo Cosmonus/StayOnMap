@@ -19,7 +19,7 @@
 //   { note }               small print
 import { CITY_LIST_LABEL } from '@config/cities'
 
-export const LAST_UPDATED = 'July 21, 2026'
+export const LAST_UPDATED = 'July 27, 2026'
 
 const ADDRESS = 'Vivekanandar Street, Gandhi Nagar, Avadi, Ambattur, Tiruvallur – 600054, Tamil Nadu'
 const CONTACT_EMAIL = 'hello@cosmonus.com'
@@ -189,7 +189,7 @@ export const TERMS = {
       title: '5. Tenant & owner roles',
       blocks: [
         { lead: 'Tenants', p: 'can browse listings, save favourites, request visits, chat with owners, sign leases offered to them, and leave reviews.' },
-        { lead: 'Owners', p: 'can create and manage listings (up to 3 active listings on the free tier), respond to visit requests, offer leases, and respond to reviews and reports on their properties.' },
+        { lead: 'Owners', p: 'can create and manage listings, respond to visit requests, offer leases, and respond to reviews and reports on their properties.' },
       ],
     },
     {
@@ -201,7 +201,7 @@ export const TERMS = {
     {
       title: '7. Appointments, leases & fees',
       blocks: [
-        { p: 'StayOnMap does not charge tenants any commission or brokerage fee, and does not currently charge owners for listing a property (free tier: up to 3 active listings). We do not currently process rent or deposit payments through the Platform — any payment arrangement is made directly between tenant and owner, at their own risk. Never send a deposit or rent through a channel that cannot be verified.' },
+        { p: 'StayOnMap does not charge tenants any commission or brokerage fee, and does not currently charge owners for listing a property. We do not currently process rent or deposit payments through the Platform — any payment arrangement is made directly between tenant and owner, at their own risk. Never send a deposit or rent through a channel that cannot be verified.' },
         { p: 'Lease documents tracked in the Platform (offer, sign, reject, terminate) are a convenience for recording terms both parties agreed to — they do not replace a legally executed rental agreement where one is required by local law.' },
       ],
     },

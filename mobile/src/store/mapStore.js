@@ -31,6 +31,11 @@ export const useMapStore = create((set) => ({
   // anywhere yet, so it's not mirrored until that's actually built).
   activeLayers: { metro: false, itCorridors: false, traffic: false },
 
+  // Whether the blue "you are here" dot is drawn. Lives here rather than in
+  // MapView's own state because the control that turns it on (LocateButton)
+  // now sits in the top pill row, outside MapView.
+  userLocationEnabled: false,
+
   setRegion: (region) => set({ region }),
   setBounds: (bounds) => set({ bounds }),
   setPins: (pins) => set({ pins }),
@@ -38,6 +43,7 @@ export const useMapStore = create((set) => ({
   clearSelection: () => set({ selectedPinId: null, selectedAreaSlug: null }),
   setSelectedAreaSlug: (slug) => set({ selectedAreaSlug: slug, selectedPinId: null }),
   setFlyTo: (fn) => set({ flyTo: fn }),
+  enableUserLocation: () => set({ userLocationEnabled: true }),
   setSearchedPlace: (place) => set({ searchedPlace: place }),
   toggleLayer: (name) => set((s) => ({
     activeLayers: { ...s.activeLayers, [name]: !s.activeLayers[name] },

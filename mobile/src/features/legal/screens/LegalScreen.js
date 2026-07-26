@@ -55,7 +55,7 @@ export default function LegalScreen({ navigation, route }) {
   const doc = LEGAL_DOCS[route.params?.doc] ?? LEGAL_DOCS.privacy
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader
         title={doc.title}
         subtitle={`Last updated ${LAST_UPDATED}`}

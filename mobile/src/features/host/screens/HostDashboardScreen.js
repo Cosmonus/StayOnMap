@@ -15,6 +15,7 @@ import { STEPS, CATEGORIES, suggestTitle } from '@features/listings/config/onboa
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ErrorState from '@components/common/ErrorState'
+import NotificationBell from '@components/common/NotificationBell'
 import { VISIT_SLOTS, formatTime } from '@utils/time'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -258,25 +259,29 @@ export default function HostDashboardScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Mobile has no Calendar tab (web does) — it was folded into this screen,
-          so this is the primary way in. It sat at the BOTTOM of the success
-          branch: below the queue, four stat cards and the Add-listing button,
-          and gone entirely when the dashboard failed to load, which is exactly
-          when a host wants to check what is booked. */}
+    <SafeAreaView style={styles.container} edges={[]}>
+      {/* Two round icon buttons, matched. Mobile has no Calendar tab (web does)
+          — it was folded into this screen, so the calendar button is the
+          primary way in, and it must render whatever the dashboard fetch did:
+          a host checks what is booked precisely when things are broken. The
+          bell was reachable only from the account tab's menu, so a real-time
+          notification arrived with nothing on screen to show for it. */}
       <ScreenHeader
         title="Hosting"
         subtitle={isLoading ? 'Checking what needs you…' : headline}
         right={(
-          <Pressable
-            style={styles.calendarButton}
-            onPress={() => navigation.navigate('Calendar')}
-            accessibilityRole="button"
-            accessibilityLabel="View calendar"
-          >
-            <Icon name="calendar" size={18} color={colors.slate700} />
-            <Text style={styles.calendarButtonText}>Calendar</Text>
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              style={styles.iconButton}
+              onPress={() => navigation.navigate('Calendar')}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="View calendar"
+            >
+              <Icon name="calendar" size={18} color={colors.slate700} />
+            </Pressable>
+            <NotificationBell />
+          </View>
         )}
       />
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -485,13 +490,14 @@ const styles = StyleSheet.create({
     minHeight: 48, backgroundColor: colors.black, borderRadius: radius.md, marginTop: spacing.xs,
   },
   addButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.white },
-  calendarButton: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    minHeight: 44, paddingHorizontal: spacing.sm + 2,
-    borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.full,
-    backgroundColor: colors.white,
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  // Same 40dp circle as NotificationBell so the pair reads as one control set
+  // rather than a labelled pill beside a round icon.
+  iconButton: {
+    width: 40, height: 40, borderRadius: radius.full,
+    borderWidth: 1, borderColor: colors.slate200, backgroundColor: colors.white,
+    alignItems: 'center', justifyContent: 'center',
   },
-  calendarButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700 },
 
   backdrop: { flex: 1, backgroundColor: 'rgba(13,12,10,0.45)', justifyContent: 'flex-end' },
   sheet: {

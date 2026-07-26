@@ -15,6 +15,7 @@ import ConversationListScreen from '@features/chat/screens/ConversationListScree
 import ConversationScreen from '@features/chat/screens/ConversationScreen'
 import ProfileScreen from '@features/profile/screens/ProfileScreen'
 import PropertyDetailScreen from '@features/properties/screens/PropertyDetailScreen'
+import PropertyListScreen from '@features/properties/screens/PropertyListScreen'
 import BookViewingScreen from '@features/appointments/screens/BookViewingScreen'
 import AppointmentsScreen from '@features/appointments/screens/AppointmentsScreen'
 import NotificationsScreen from '@features/notifications/screens/NotificationsScreen'
@@ -31,6 +32,7 @@ import HostProfileScreen from '@features/host/screens/HostProfileScreen'
 import CalendarScreen from '@features/host/screens/CalendarScreen'
 import SupportScreen from '@features/host/screens/SupportScreen'
 import LegalScreen from '@features/legal/screens/LegalScreen'
+import RulesScreen from '@features/legal/screens/RulesScreen'
 
 const Tab = createBottomTabNavigator()
 
@@ -62,6 +64,9 @@ const BOOKING_SCREENS = [
 
 const ExploreStack = makeStack([
   { name: 'ExploreHome', component: ExploreScreen, options: { headerShown: false } },
+  // The map's list handoff — web's /properties. Explore-only: it reads the
+  // live map viewport, so it has no meaning pushed from anywhere else.
+  { name: 'PropertyList', component: PropertyListScreen, options: { headerShown: false } },
   ...BOOKING_SCREENS,
 ])
 
@@ -84,6 +89,7 @@ const ProfileStack = makeStack([
   { name: 'Settings', component: SettingsScreen, options: { headerShown: false } },
   { name: 'Support', component: SupportScreen, options: { headerShown: false } },
   { name: 'Legal', component: LegalScreen, options: { headerShown: false } },
+  { name: 'Rules', component: RulesScreen, options: { headerShown: false } },
 ])
 
 // ── Host mode — new stacks ──────────────────────────────────────────────
@@ -102,6 +108,7 @@ const HostProfileStack = makeStack([
   { name: 'Settings', component: SettingsScreen, options: { headerShown: false } },
   { name: 'Support', component: SupportScreen, options: { headerShown: false } },
   { name: 'Legal', component: LegalScreen, options: { headerShown: false } },
+  { name: 'Rules', component: RulesScreen, options: { headerShown: false } },
 ])
 
 const MyListingStack = makeStack([
@@ -201,7 +208,10 @@ export default function AppTabs() {
         tabBarActiveTintColor: colors.brand600,
         tabBarInactiveTintColor: colors.slate500,
         tabBarLabelStyle: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs },
-        tabBarStyle: { borderTopColor: colors.slate200 },
+        // Explicit white, not the platform default: the app's chrome is white
+        // top (ScreenHeader, including the status-bar inset) and bottom, with
+        // the slate50 canvas between — the shell every other phone app uses.
+        tabBarStyle: { backgroundColor: colors.white, borderTopColor: colors.slate200 },
         tabBarBadgeStyle: {
           backgroundColor: colors.danger,
           color: colors.white,

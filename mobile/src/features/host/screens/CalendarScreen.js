@@ -76,7 +76,7 @@ export default function CalendarScreen({ navigation }) {
     : ''
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader
         title="Calendar"
         subtitle="Upcoming appointments and lease dates"

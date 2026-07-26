@@ -1,12 +1,9 @@
 import { useState } from 'react'
-import { Pressable, Text, ActivityIndicator, Alert, StyleSheet } from 'react-native'
+import { Alert } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as Location from 'expo-location'
-import Icon from '@components/common/Icon'
-import { colors } from '@theme/colors'
-import { shadows } from '@theme/shadows'
-import { fonts, fontSizes } from '@theme/typography'
-import { spacing, radius } from '@theme/spacing'
+import MapPill from './MapPill'
+import { useMapStore } from '@store/mapStore'
 
 const LOCATE_ZOOM = 15
 
@@ -15,8 +12,9 @@ const LOCATE_ZOOM = 15
 // its own prompt separately.)
 const LOCATION_CONSENT_KEY = 'sn_location_consent'
 
-export default function LocateButton({ onLocate, onPermissionGranted }) {
+export default function LocateButton() {
   const [locating, setLocating] = useState(false)
+  const enableUserLocation = useMapStore((s) => s.enableUserLocation)
 
   async function locate() {
     setLocating(true)
@@ -29,9 +27,11 @@ export default function LocateButton({ onLocate, onPermissionGranted }) {
         )
         return
       }
-      onPermissionGranted?.()
+      enableUserLocation()
       const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
-      onLocate(coords.latitude, coords.longitude, LOCATE_ZOOM)
+      // Read at call time, not at render: MapView registers this once the
+      // native map mounts, which can be after this button has rendered.
+      useMapStore.getState().flyTo?.({ latitude: coords.latitude, longitude: coords.longitude, zoom: LOCATE_ZOOM })
     } catch {
       Alert.alert('Location unavailable', "We couldn't get your current position. Please try again.")
     } finally {
@@ -65,33 +65,16 @@ export default function LocateButton({ onLocate, onPermissionGranted }) {
   }
 
   return (
-    <Pressable
-      style={styles.button}
+    // The same MapPill as Metro/IT Zones/Traffic — it sits in that row, and a
+    // pill that renders itself is a pill that drifts. `busy` swaps the icon for
+    // a spinner without changing the height.
+    <MapPill
+      icon="locate"
+      label={locating ? 'Locating…' : 'Near me'}
+      busy={locating}
       onPress={handlePress}
       accessibilityLabel="Go to my location"
-      accessibilityRole="button"
       accessibilityState={{ busy: locating }}
-    >
-      {/* Labelled, like web's "Near me" pill. A bare crosshair is a guess:
-          this one asks for a location permission when tapped, and an icon
-          alone gives no warning of that. */}
-      {locating ? (
-        <ActivityIndicator size="small" color={colors.brand600} />
-      ) : (
-        <Icon name="locate" size={18} color={colors.slate700} />
-      )}
-      <Text style={styles.label}>{locating ? 'Locating…' : 'Near me'}</Text>
-    </Pressable>
+    />
   )
 }
-
-const styles = StyleSheet.create({
-  button: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    minHeight: 44, paddingHorizontal: spacing.md, borderRadius: radius.full,
-    backgroundColor: colors.white,
-    borderWidth: 1, borderColor: colors.slate200,
-    ...shadows.float,
-  },
-  label: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
-})

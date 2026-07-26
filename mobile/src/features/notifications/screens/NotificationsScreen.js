@@ -93,7 +93,7 @@ export default function NotificationsScreen({ navigation }) {
   }, [notifications])
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader
         title="Notifications"
         subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}

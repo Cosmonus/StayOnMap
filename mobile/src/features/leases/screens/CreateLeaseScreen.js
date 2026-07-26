@@ -42,7 +42,7 @@ export default function CreateLeaseScreen({ route, navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScreenHeader
         title="Offer lease"
         right={(

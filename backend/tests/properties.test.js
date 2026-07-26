@@ -378,7 +378,6 @@ describe('createProperty', () => {
 
   it('allows creation for Chennai', async () => {
     const created = makeProperty({ city: 'Chennai', status: 'DRAFT' })
-    // count returns 0 active listings — under the limit
     prismaMock.property.count.mockResolvedValue(0)
     prismaMock.property.create.mockResolvedValue(created)
 
@@ -387,22 +386,24 @@ describe('createProperty', () => {
     expect(result.status).toBe('DRAFT')
   })
 
-  it('throws 403 when owner already has 3 active listings', async () => {
-    // count inside transaction returns MAX_LISTINGS_PER_OWNER (3)
-    prismaMock.property.count.mockResolvedValue(3)
+  // The 3-active-listing free-tier cap was removed on 2026-07-27 (see
+  // properties.service.js) — this asserts an owner well past the old limit is
+  // no longer stopped, so reinstating the cap without updating the tier story
+  // fails here rather than silently.
+  it('creates a listing for an owner who already has many active ones', async () => {
+    const created = makeProperty({ status: 'DRAFT', ownerId: 'owner-1' })
+    prismaMock.property.count.mockResolvedValue(12)
+    prismaMock.property.create.mockResolvedValue(created)
 
-    await expect(createProperty('owner-1', validData)).rejects.toMatchObject({
-      statusCode: 403,
-      message: expect.stringContaining('Maximum'),
-    })
+    const result = await createProperty('owner-1', validData)
 
-    // create must not have been called
-    expect(prismaMock.property.create).not.toHaveBeenCalled()
+    expect(result.status).toBe('DRAFT')
+    expect(prismaMock.property.create).toHaveBeenCalled()
   })
 
-  it('creates property as DRAFT when city is valid and owner is under the limit', async () => {
+  it('creates property as DRAFT when the city is valid', async () => {
     const created = makeProperty({ status: 'DRAFT', ownerId: 'owner-1' })
-    prismaMock.property.count.mockResolvedValue(2) // 2 active — under limit of 3
+    prismaMock.property.count.mockResolvedValue(2)
     prismaMock.property.create.mockResolvedValue(created)
 
     const result = await createProperty('owner-1', validData)

@@ -14,7 +14,6 @@ import { CITIES } from '@config/cities'
 import PropertyPin from './PropertyPin'
 import ClusterMarker from './ClusterMarker'
 import MetroLines from './MetroLines'
-import LocateButton from './LocateButton'
 import MapViewportBar from './MapViewportBar'
 import { spacing } from '@theme/spacing'
 
@@ -36,7 +35,6 @@ export default function MapView({ onPinPress, onDeselect }) {
   const mapRef = useRef(null)
   const pendingFlyRef = useRef(null)
   const [mapReady, setMapReady] = useState(false)
-  const [userLocationEnabled, setUserLocationEnabled] = useState(false)
   const { onRegionChangeComplete, fetchPinsNow } = useMapPins()
 
   const region = useMapStore((s) => s.region)
@@ -45,6 +43,7 @@ export default function MapView({ onPinPress, onDeselect }) {
   const selectedPinId = useMapStore((s) => s.selectedPinId)
   const selectedAreaSlug = useMapStore((s) => s.selectedAreaSlug)
   const searchedPlace = useMapStore((s) => s.searchedPlace)
+  const userLocationEnabled = useMapStore((s) => s.userLocationEnabled)
   const selectPin = useMapStore((s) => s.selectPin)
   const clearSelection = useMapStore((s) => s.clearSelection)
   const setFlyTo = useMapStore((s) => s.setFlyTo)
@@ -239,17 +238,14 @@ export default function MapView({ onPinPress, onDeselect }) {
         })}
       </NativeMapView>
 
-      {/* Both hide behind a pin preview or an area card — the card IS the
-          answer to "what is here", so the count and the locate button would
-          only be stacking on top of it. */}
+      {/* Hidden behind a pin preview or an area card — that card IS the answer
+          to "what is here", so the count would only stack on top of it.
+          Sits as low as the safe area allows: it reports on the map above it,
+          and every pixel it takes is a pixel of map. The Near me control moved
+          OUT of here on 2026-07-27, up beside the layer pills. */}
       {!selectedPinId && !selectedAreaSlug && (
         <SafeAreaView edges={['bottom']} style={styles.bottomOverlay} pointerEvents="box-none">
-          <View style={styles.countRow} pointerEvents="none">
-            <MapViewportBar />
-          </View>
-          <View style={styles.locateRow} pointerEvents="box-none">
-            <LocateButton onLocate={flyTo} onPermissionGranted={() => setUserLocationEnabled(true)} />
-          </View>
+          <MapViewportBar />
         </SafeAreaView>
       )}
     </View>
@@ -257,7 +253,5 @@ export default function MapView({ onPinPress, onDeselect }) {
 }
 
 const styles = StyleSheet.create({
-  bottomOverlay: { position: 'absolute', left: 0, right: 0, bottom: spacing.md, gap: spacing.sm },
-  countRow: { alignItems: 'center', paddingHorizontal: spacing.md },
-  locateRow: { alignItems: 'flex-end', paddingHorizontal: spacing.md },
+  bottomOverlay: { position: 'absolute', left: 0, right: 0, bottom: spacing.xs, paddingHorizontal: spacing.md },
 })
