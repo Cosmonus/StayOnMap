@@ -37,7 +37,7 @@ function ScoreRow({ label, value, uid }) {
       <span className="text-xs font-medium text-slate-500 w-24 shrink-0">{label}</span>
       <div className="flex items-center gap-2">
         <span className="text-sm font-bold text-slate-800 tabular-nums">
-          {value > 0 ? value.toFixed(1) : '—'}<span className="font-normal text-slate-500 text-xs">/5</span>
+          {value > 0 ? value.toFixed(1) : '—'}<span className="font-normal text-slate-400 text-xs">/5</span>
         </span>
         <MiniStars score={value} uid={uid} />
       </div>
@@ -81,7 +81,7 @@ function InsightTile({ label, value, max = 10 }) {
         {value > 0 ? value.toFixed(1) : '—'}
         <span className="font-normal text-[0.65rem] opacity-60">/{max}</span>
       </div>
-      <div className="text-[0.7rem] mt-1 font-medium text-slate-500">{label}</div>
+      <div className="text-[0.7rem] mt-1 font-medium text-slate-400">{label}</div>
     </div>
   )
 }
@@ -92,7 +92,7 @@ export default function TrustScoreWidget({ trustScore, riskScore: _riskScore }) 
     return (
       <div className="py-6 text-center">
         <p className="text-sm font-medium text-slate-500">No community data yet</p>
-        <p className="text-xs text-slate-500 mt-1">Be the first to review this property.</p>
+        <p className="text-xs text-slate-400 mt-1">Be the first to review this property.</p>
       </div>
     )
   }
@@ -112,10 +112,10 @@ export default function TrustScoreWidget({ trustScore, riskScore: _riskScore }) 
       {/* Header */}
       <div>
         <p className="text-2xl font-bold text-slate-900 leading-none mb-2">
-          {hasReviews && score > 0 ? score.toFixed(1) : '—'}<span className="text-slate-500 font-normal">/5</span>
+          {hasReviews && score > 0 ? score.toFixed(1) : '—'}<span className="text-slate-400 font-normal">/5</span>
         </p>
         <div className="mb-2"><Stars score={score} /></div>
-        <p className="text-xs text-slate-500 mt-2">
+        <p className="text-xs text-slate-400 mt-2">
           {hasReviews
             ? <>{recommendPct.toFixed(0)}% recommend &middot; {trustScore.totalReviews} review{trustScore.totalReviews !== 1 ? 's' : ''}</>
             : 'No reviews yet'
@@ -129,7 +129,7 @@ export default function TrustScoreWidget({ trustScore, riskScore: _riskScore }) 
       {/* Area insights */}
       {hasAreaScores && (
         <div>
-          <p className="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-widest mb-2.5">Area Insights</p>
+          <p className="text-[0.7rem] font-semibold text-slate-400 uppercase tracking-widest mb-2.5">Area Insights</p>
           <div className="grid grid-cols-2 gap-2">
             {trustScore.areaScore > 0        && <InsightTile label="Area"          value={trustScore.areaScore}        />}
             {trustScore.waterScore > 0       && <InsightTile label="Water"         value={trustScore.waterScore}       />}
@@ -141,7 +141,7 @@ export default function TrustScoreWidget({ trustScore, riskScore: _riskScore }) 
       {/* Review scores */}
       {hasReviewScores ? (
         <div>
-          <p className="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-widest mb-3">From Reviews</p>
+          <p className="text-[0.7rem] font-semibold text-slate-400 uppercase tracking-widest mb-3">From Reviews</p>
           <div className="flex flex-col gap-3">
             <ScoreRow label="Safety"        value={Number(trustScore.safetyScore       ?? 0)} uid={`${uid}-s`} />
             <ScoreRow label="Cleanliness"   value={Number(trustScore.cleanlinessScore  ?? 0)} uid={`${uid}-c`} />
@@ -150,7 +150,7 @@ export default function TrustScoreWidget({ trustScore, riskScore: _riskScore }) 
         </div>
       ) : (
         <div className="py-4 bg-slate-50 rounded-xl text-center">
-          <p className="text-xs text-slate-500">Scores appear once tenants review this property.</p>
+          <p className="text-xs text-slate-400">Scores appear once tenants review this property.</p>
         </div>
       )}
 

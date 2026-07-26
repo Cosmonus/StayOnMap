@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
-import { View, Text, Pressable, StyleSheet, FlatList, AccessibilityInfo } from 'react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
@@ -31,95 +30,6 @@ function specLabel(property) {
   if (property.bhk === 0) return 'Studio'
   if (property.bhk) return `${property.bhk} BHK`
   return null
-}
-
-const AUTO_ADVANCE_MS = 3500
-
-// The photo strip on the preview card. Auto-advances when there is more than
-// one image, because a static "1 / 5" badge tells you photos exist without
-// showing you any of them.
-//
-// Auto-advancing content is a WCAG 2.2.2 concern (Pause, Stop, Hide), so it
-// stops two ways: a manual swipe stops it permanently for that card — once
-// somebody is browsing, yanking the photo out from under them is worse than
-// not animating at all — and Reduce Motion suppresses it before it ever
-// starts. Width comes from onLayout rather than Dimensions so the paging
-// offset is right regardless of card margins or orientation.
-function ImageCarousel({ images }) {
-  const [width, setWidth] = useState(0)
-  const [index, setIndex] = useState(0)
-  const [paused, setPaused] = useState(false)
-  const listRef = useRef(null)
-
-  useEffect(() => {
-    let cancelled = false
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then((on) => { if (on && !cancelled) setPaused(true) })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [])
-
-  useEffect(() => {
-    if (paused || width === 0 || images.length < 2) return
-    const timer = setInterval(() => {
-      setIndex((current) => {
-        const next = (current + 1) % images.length
-        listRef.current?.scrollToOffset({ offset: next * width, animated: true })
-        return next
-      })
-    }, AUTO_ADVANCE_MS)
-    return () => clearInterval(timer)
-  }, [paused, width, images.length])
-
-  if (!images.length) return <View style={[styles.imageWrap, styles.imageFallback]} />
-
-  // One photo needs no list, no timer and no paging maths.
-  if (images.length === 1) {
-    return (
-      <View style={styles.imageWrap}>
-        <Image
-          source={{ uri: imgUrl(images[0].url, 'card') }}
-          style={styles.image}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-          transition={200}
-        />
-      </View>
-    )
-  }
-
-  return (
-    <View
-      style={styles.imageWrap}
-      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-      accessibilityLabel={`${images.length} photos`}
-    >
-      {width > 0 && (
-        <FlatList
-          ref={listRef}
-          data={images}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(img, i) => img.id ?? String(i)}
-          onScrollBeginDrag={() => setPaused(true)}
-          onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
-          renderItem={({ item }) => (
-            <Image
-              source={{ uri: imgUrl(item.url, 'card') }}
-              style={{ width, height: '100%' }}
-              contentFit="cover"
-              cachePolicy="memory-disk"
-              transition={200}
-            />
-          )}
-        />
-      )}
-      <View style={styles.imageCount}>
-        <Text style={styles.imageCountText}>{index + 1} / {images.length}</Text>
-      </View>
-    </View>
-  )
 }
 
 // Floating preview card over the map for the currently selected pin — same
@@ -166,9 +76,18 @@ export default function PinPreviewCard({ propertyId, onPress }) {
         accessibilityRole="button"
         accessibilityLabel={`View details for ${property.title}`}
       >
-        {/* Keyed by property so switching pins resets the carousel to photo 1
-            and restarts its timer, rather than resuming mid-strip. */}
-        <ImageCarousel key={propertyId} images={images.filter((img) => img?.url)} />
+        <View style={styles.imageWrap}>
+          {images[0]?.url ? (
+            <Image source={{ uri: imgUrl(images[0].url, 'card') }} style={styles.image} contentFit="cover" cachePolicy="memory-disk" transition={200} />
+          ) : (
+            <View style={[styles.image, styles.imageFallback]} />
+          )}
+          {images.length > 1 && (
+            <View style={styles.imageCount}>
+              <Text style={styles.imageCountText}>1 / {images.length}</Text>
+            </View>
+          )}
+        </View>
 
         <View style={styles.body}>
           <View style={styles.priceRow}>
@@ -188,7 +107,7 @@ export default function PinPreviewCard({ propertyId, onPress }) {
 
           {highlights.length > 0 && (
             <View style={styles.highlightRow}>
-              <Icon name="mapPin" size={12} color={colors.slate500} />
+              <Icon name="mapPin" size={12} color={colors.slate400} />
               <Text style={styles.highlightText} numberOfLines={1}>
                 {highlights.map((h) => `${h.label} ${h.distance}`).join('  ·  ')}
               </Text>
@@ -217,11 +136,8 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.slate100,
     ...shadows.float,
   },
-  skeleton: { height: 248, width: '100%', backgroundColor: colors.slate100 },
-  // 132 -> 180: the photo is the first thing that answers "do I want this
-  // place", and at 132 it was a strip. Skeleton grew by the same 48 so the
-  // card doesn't jump height when the query resolves.
-  imageWrap: { height: 180, backgroundColor: colors.slate100 },
+  skeleton: { height: 200, width: '100%', backgroundColor: colors.slate100 },
+  imageWrap: { height: 132, backgroundColor: colors.slate100 },
   image: { width: '100%', height: '100%' },
   imageFallback: { backgroundColor: colors.slate100 },
   imageCount: {
@@ -233,10 +149,10 @@ const styles = StyleSheet.create({
   body: { padding: spacing.md, gap: 3 },
   priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   price: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800, flexShrink: 1 },
-  priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
+  priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
   deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   title: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate700 },
-  meta: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
+  meta: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
   highlightRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
   highlightText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.slate600, flexShrink: 1 },
   cta: {

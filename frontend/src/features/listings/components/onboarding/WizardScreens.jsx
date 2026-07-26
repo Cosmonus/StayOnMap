@@ -103,7 +103,7 @@ function PincodeTruth({ pincode, city }) {
   }
 
   return (
-    <p className="text-xs text-slate-500 mt-1.5">
+    <p className="text-xs text-slate-400 mt-1.5">
       {office ? `${office} — ` : ''}{place} (India Post)
     </p>
   )
@@ -182,7 +182,7 @@ export function PhotosScreen({ categoryKey, draft, setDraft }) {
     <div>
       <Head kicker="Shared · core" title="Add some photos" sub="Add at least 5. The first is your cover — lead with the best light." />
       <div className="max-w-lg">
-        <p className="text-xs text-slate-500 mb-3">{PHOTO_HINTS[categoryKey]}</p>
+        <p className="text-xs text-slate-400 mb-3">{PHOTO_HINTS[categoryKey]}</p>
         <ImageUploader value={draft.images} onChange={(urls) => setDraft((d) => ({ ...d, images: urls }))} />
       </div>
     </div>
@@ -194,14 +194,14 @@ export function TitleScreen({ categoryKey, draft, setDraft }) {
   return (
     <div>
       <Head title="Now, give it a title" sub="Short titles work best. You can always change it later." />
-      <p className="text-xs text-slate-500 mb-2">e.g. &ldquo;{hint.example}&rdquo;</p>
+      <p className="text-xs text-slate-400 mb-2">e.g. &ldquo;{hint.example}&rdquo;</p>
       <input
         value={draft.title}
         onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value.slice(0, 100) }))}
         placeholder={hint.placeholder}
         className="w-full max-w-lg px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-slate-400"
       />
-      <p className="text-xs text-slate-500 mt-2">{draft.title.length}/100 characters</p>
+      <p className="text-xs text-slate-400 mt-2">{draft.title.length}/100 characters</p>
     </div>
   )
 }
@@ -212,7 +212,7 @@ export function DescriptionScreen({ categoryKey, draft, setDraft }) {
       <Head title="Create your description" sub="Tell renters what makes it special and what's nearby." />
       <ul className="max-w-xl mb-3 space-y-1">
         {DESC_PROMPTS[categoryKey].map((p) => (
-          <li key={p} className="text-xs text-slate-500">· {p}</li>
+          <li key={p} className="text-xs text-slate-400">· {p}</li>
         ))}
       </ul>
       <textarea
@@ -259,7 +259,7 @@ export function PricingScreen({ categoryKey, draft, setDraft }) {
                   }`}
                 >
                   <span className={`text-sm ${active ? 'font-semibold text-slate-900' : 'font-medium text-slate-600'}`}>{m.label}</span>
-                  <span className="text-[11px] text-slate-500 leading-tight">{m.hint}</span>
+                  <span className="text-[11px] text-slate-400 leading-tight">{m.hint}</span>
                 </button>
               )
             })}
@@ -277,7 +277,7 @@ export function PricingScreen({ categoryKey, draft, setDraft }) {
           <div key={key} className="flex-1 min-w-[150px]">
             <p className="text-xs font-semibold text-slate-700 mb-2">{label}</p>
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-mono font-semibold text-slate-500">₹</span>
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-mono font-semibold text-slate-400">₹</span>
               <input
                 value={draft.pricing[key] ?? ''}
                 onChange={(e) => set(key, e.target.value)}
@@ -309,7 +309,7 @@ export function ContactScreen({ categoryKey, draft, setDraft }) {
           <div className="flex items-center justify-between py-3 px-4 bg-slate-50 rounded-xl border border-slate-100">
             <div>
               <p className="text-sm font-medium text-slate-800">Instant book</p>
-              <p className="text-xs text-slate-500 mt-0.5">Guests can book without waiting for approval</p>
+              <p className="text-xs text-slate-400 mt-0.5">Guests can book without waiting for approval</p>
             </div>
             <Toggle checked={!!draft.instantBook} onChange={(v) => setDraft((d) => ({ ...d, instantBook: v }))} />
           </div>
@@ -370,9 +370,9 @@ export function ReviewScreen({ categoryKey, draft, missing = [], onJump }) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-slate-900 truncate">{draft.title || `New ${cat.label} listing`}</p>
-            <p className="text-xs text-slate-500 mt-0.5">{draft.location.city || 'Your city'} · {cat.long}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{draft.location.city || 'Your city'} · {cat.long}</p>
           </div>
-          <span className="text-[11px] font-bold uppercase tracking-wide text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full shrink-0">Draft</span>
+          <span className="text-[10px] font-bold uppercase tracking-wide text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full shrink-0">Draft</span>
         </div>
         <div className="px-5 py-2">
           {facts.map(([label, value], i) => (

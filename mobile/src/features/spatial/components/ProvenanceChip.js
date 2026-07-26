@@ -27,5 +27,5 @@ export default function ProvenanceChip({ provenance }) {
 
 const styles = StyleSheet.create({
   chip: { borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 2, alignSelf: 'flex-start' },
-  text: { fontFamily: fonts.bodySemiBold, fontSize: 11 },
+  text: { fontFamily: fonts.bodySemiBold, fontSize: 10 },
 })

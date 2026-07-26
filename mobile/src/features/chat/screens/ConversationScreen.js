@@ -113,9 +113,6 @@ export default function ConversationScreen({ route, navigation }) {
     onSuccess: (res) => {
       qc.setQueryData(['chat-messages', conversationId], (old = []) => [...old, res.data])
       qc.invalidateQueries({ queryKey: ['conversations'] })
-      // Keeps the Chat/Inbox tab badge honest: opening a thread marks it
-      // read server-side, so the unread count must be refetched too.
-      qc.invalidateQueries({ queryKey: ['chat', 'unread'] })
     },
     onError: () => Alert.alert('Message not sent', 'Check your connection and try again.'),
   })
@@ -167,9 +164,6 @@ export default function ConversationScreen({ route, navigation }) {
       qc.setQueryData(['chat-messages', conversationId], (old = []) =>
         old.map((m) => (m.senderId === user?.id ? { ...m, isRead: true } : m)))
       qc.invalidateQueries({ queryKey: ['conversations'] })
-      // Keeps the Chat/Inbox tab badge honest: opening a thread marks it
-      // read server-side, so the unread count must be refetched too.
-      qc.invalidateQueries({ queryKey: ['chat', 'unread'] })
     }
 
     function onMessageEdited(msg) {
@@ -306,13 +300,13 @@ export default function ConversationScreen({ route, navigation }) {
     >
       {searchOpen && (
         <View style={styles.searchBar}>
-          <Icon name="search" size={16} color={colors.slate500} />
+          <Icon name="search" size={16} color={colors.slate400} />
           <TextInput
             style={styles.searchInput}
             value={msgSearch}
             onChangeText={setMsgSearch}
             placeholder="Search messages..."
-            placeholderTextColor={colors.slate500}
+            placeholderTextColor={colors.slate400}
             autoFocus
             accessibilityLabel="Search messages"
           />
@@ -419,7 +413,7 @@ export default function ConversationScreen({ route, navigation }) {
           value={input}
           onChangeText={(v) => { setInput(v); emitTyping() }}
           placeholder="Type a message..."
-          placeholderTextColor={colors.slate500}
+          placeholderTextColor={colors.slate400}
           multiline
           accessibilityLabel="Message text"
         />
@@ -451,15 +445,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
   },
   searchInput: { flex: 1, minHeight: 40, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800 },
-  searchCount: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
+  searchCount: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
   list: { padding: spacing.md, flexGrow: 1 },
   typingRow: { paddingVertical: spacing.xs, paddingHorizontal: spacing.sm },
-  typingText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, fontStyle: 'italic' },
+  typingText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, fontStyle: 'italic' },
   noResults: { paddingVertical: spacing.xl, alignItems: 'center', transform: [{ scaleY: -1 }] },
-  noResultsText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500 },
+  noResultsText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400 },
   dateRow: { alignItems: 'center', marginVertical: spacing.sm },
   dateLabel: {
-    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500,
+    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400,
     backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate100,
     borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 3, overflow: 'hidden',
   },
@@ -479,7 +473,7 @@ const styles = StyleSheet.create({
   bubbleDeletedText: { fontStyle: 'italic', opacity: 0.7 },
   attachmentImage: { width: 200, height: 200, borderRadius: radius.md, marginBottom: spacing.xs },
   bubbleMeta: { flexDirection: 'row', alignItems: 'center', gap: 3, alignSelf: 'flex-end', marginTop: 4 },
-  bubbleTime: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
+  bubbleTime: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400 },
   bubbleTimeOwn: { color: 'rgba(255,255,255,0.75)' },
   editingBanner: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

@@ -27,8 +27,8 @@ export default function SourcesFooter({ sources, computedAt }) {
       >
         <Text style={styles.toggleText}>Sources &amp; freshness</Text>
         {open
-          ? <ChevronUp size={14} color={colors.slate500} />
-          : <ChevronDown size={14} color={colors.slate500} />}
+          ? <ChevronUp size={14} color={colors.slate400} />
+          : <ChevronDown size={14} color={colors.slate400} />}
       </Pressable>
       {open && (
         <View style={styles.body}>
@@ -49,7 +49,7 @@ export default function SourcesFooter({ sources, computedAt }) {
 const styles = StyleSheet.create({
   wrap: { marginTop: spacing.md },
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 32 },
-  toggleText: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.slate500 },
+  toggleText: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.slate400 },
   body: { marginTop: 4 },
-  source: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 2 },
+  source: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400, marginTop: 2 },
 })

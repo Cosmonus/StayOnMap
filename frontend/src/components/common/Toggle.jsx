@@ -16,10 +16,6 @@ export default function Toggle({
         type="button"
         role="switch"
         aria-checked={checked}
-        // A wrapping <label> does NOT name a <button> — only labelable form
-        // controls get their name that way — so without this the switch is
-        // announced with no name at all.
-        aria-label={label}
         disabled={disabled}
         onClick={() => onChange?.(!checked)}
         className={`relative inline-flex h-6 w-10 shrink-0 rounded-full transition-colors duration-fast focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${checked ? 'bg-brand-600' : 'bg-slate-300'}`}

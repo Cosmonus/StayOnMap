@@ -50,7 +50,7 @@ function DoneScreen({ category, onListAnother, onGoToListings }) {
       </p>
       <div className="flex items-center justify-center gap-2 my-7">
         {['DRAFT', 'PENDING', 'ACTIVE'].map((s, i) => (
-          <span key={s} className={`text-[11px] font-bold px-3 py-1.5 rounded-full ${i <= 1 ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-500'}`}>{s}</span>
+          <span key={s} className={`text-[11px] font-bold px-3 py-1.5 rounded-full ${i <= 1 ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-400'}`}>{s}</span>
         ))}
       </div>
       <div className="flex items-center justify-center gap-3">
@@ -82,7 +82,7 @@ function ListingsOverview({ onAdd, onView, onOfferLease }) {
       <div className="shrink-0 flex items-start sm:items-center justify-between gap-3 px-6 md:px-10 py-5 border-b border-slate-200 bg-white">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Your listings</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Manage your properties on StayOnMap</p>
+          <p className="text-sm text-slate-400 mt-0.5">Manage your properties on StayOnMap</p>
         </div>
         <button
           onClick={onAdd}
@@ -271,7 +271,7 @@ export default function OnboardingWizard({ profile }) {
           {[1, 2, 3].map((n) => (
             <div key={n} className="flex-1">
               <div className={`h-1 rounded-full ${n <= phase ? 'bg-brand-600' : 'bg-slate-200'}`} />
-              <p className={`text-[11px] mt-1.5 ${n === phase ? 'text-brand-700 font-bold' : 'text-slate-500'}`}>
+              <p className={`text-[11px] mt-1.5 ${n === phase ? 'text-brand-700 font-bold' : 'text-slate-400'}`}>
                 {['Tell us about your place', 'Make it stand out', 'Finish & publish'][n - 1]}
               </p>
             </div>
@@ -294,7 +294,7 @@ export default function OnboardingWizard({ profile }) {
 
         {blockError && <p className="px-8 -mt-4 pb-4 text-sm text-red-500">{blockError}</p>}
         {showFinishLater && (
-          <p className="px-8 -mt-4 pb-4 text-xs text-slate-500">
+          <p className="px-8 -mt-4 pb-4 text-xs text-slate-400">
             You can finish this later — we&apos;ll flag anything missing at review.
           </p>
         )}
@@ -302,7 +302,7 @@ export default function OnboardingWizard({ profile }) {
         <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50">
           <button onClick={back} className="text-sm font-bold text-slate-700 underline underline-offset-2">Back</button>
           <div className="flex items-center gap-4">
-            {!isPhase && <span className="text-xs font-mono text-slate-500">{pct}%</span>}
+            {!isPhase && <span className="text-xs font-mono text-slate-400">{pct}%</span>}
             <button
               onClick={next}
               disabled={isPending || (isLast && missing.length > 0)}

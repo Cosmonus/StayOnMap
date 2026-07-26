@@ -33,12 +33,12 @@ export default function FilterSection({ label, activeCount, defaultOpen = false,
               tabIndex={0}
               onClick={(e) => { e.stopPropagation(); onClear() }}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onClear() } }}
-              className="text-xs font-semibold text-slate-500 hover:text-slate-700 underline underline-offset-2 transition-colors"
+              className="text-xs font-semibold text-slate-400 hover:text-slate-700 underline underline-offset-2 transition-colors"
             >
               Clear
             </span>
           )}
-          <span className="w-7 h-7 rounded-full flex items-center justify-center text-slate-500 group-hover:bg-slate-100 group-hover:text-slate-600 transition-colors">
+          <span className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-600 transition-colors">
             <ChevronDown size={16} className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
           </span>
         </span>

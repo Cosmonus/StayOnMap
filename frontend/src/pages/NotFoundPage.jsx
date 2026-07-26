@@ -7,7 +7,7 @@ export default function NotFoundPage() {
       <SEOMeta title="Page not found" noindex={true} />
 
       <div className="flex flex-col items-center gap-5 text-center">
-        <p className="text-sm text-slate-500 font-mono">404</p>
+        <p className="text-sm text-slate-400 font-mono">404</p>
 
         <svg
           width="80"

@@ -44,7 +44,7 @@ export default function DevicesCard() {
       {isLoading ? (
         <div className="h-16 bg-slate-100 animate-pulse rounded-xl" />
       ) : !sessions?.length ? (
-        <p className="text-[11px] text-slate-500">
+        <p className="text-[11px] text-slate-400">
           No active sessions listed yet — they appear from your next sign-in.
         </p>
       ) : (
@@ -53,7 +53,7 @@ export default function DevicesCard() {
             <div key={s.id} className="flex items-center justify-between">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-slate-800 truncate">{s.deviceLabel ?? 'Unknown device'}</p>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-400">
                   {since(s.lastUsedAt)}{s.ip ? ` · ${s.ip}` : ''}
                 </p>
               </div>

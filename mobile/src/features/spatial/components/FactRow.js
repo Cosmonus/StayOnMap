@@ -46,5 +46,5 @@ const styles = StyleSheet.create({
   body: { flex: 1, minWidth: 0 },
   label: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   display: { fontFamily: fonts.bodySemiBold, fontSize: 13, lineHeight: 18, color: colors.slate800, marginTop: 2 },
-  method: { fontFamily: fonts.body, fontSize: 11, lineHeight: 14, color: colors.slate500, marginTop: 2 },
+  method: { fontFamily: fonts.body, fontSize: 10, lineHeight: 14, color: colors.slate400, marginTop: 2 },
 })

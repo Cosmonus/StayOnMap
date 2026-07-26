@@ -14,7 +14,6 @@ import Icon from '@components/common/Icon'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
 import { countActiveFilters } from '@config/filters'
-import NotificationBell from '@components/common/NotificationBell'
 import { colors } from '@theme/colors'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
@@ -83,7 +82,6 @@ export default function ExploreScreen({ navigation }) {
             >
               <Icon name="search" size={16} color={colors.slate700} />
             </Pressable>
-            <NotificationBell />
             <Pressable
               style={styles.filterButton}
               onPress={() => setFiltersOpen(true)}
@@ -151,7 +149,7 @@ const styles = StyleSheet.create({
     minWidth: 16, height: 16, borderRadius: 8, backgroundColor: colors.danger,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
   },
-  filterBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.white },
+  filterBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.white },
   searchWrap: {
     marginHorizontal: spacing.md, marginTop: spacing.sm,
   },

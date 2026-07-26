@@ -104,7 +104,7 @@ export default function DetailSheet({ property, variant, isOwner, directionsUrl 
             {rulesDenied.map(r => (
               <div key={r.label} className="flex items-center gap-2.5">
                 <X className="h-[18px] w-[18px] shrink-0 text-error-500" strokeWidth={2.5} />
-                <span className="text-sm font-semibold text-slate-500">No {r.label.toLowerCase()}</span>
+                <span className="text-sm font-semibold text-slate-400">No {r.label.toLowerCase()}</span>
               </div>
             ))}
           </div>
@@ -131,13 +131,6 @@ export default function DetailSheet({ property, variant, isOwner, directionsUrl 
         </SheetSection>
       )}
 
-      {/* Order: the listing's OWN facts first (description, amenities, rules),
-          then the neighbourhood. Operator decision 2026-07-25, overriding the
-          earlier spatial-first ordering: amenities and house rules are
-          structured facts rather than the "long textual descriptions"
-          .claude/ui-ux.md's priority list deprioritises, and splitting the
-          three apart to hoist the panel read worse than keeping them together.
-          What this DOES preserve is that spatial still sits above reviews. */}
       {/* Spatial intelligence — one mount, always here. The panel owns
           its own heading, so this section deliberately has none.
           The hand-authored "Neighbourhood intelligence" card that used

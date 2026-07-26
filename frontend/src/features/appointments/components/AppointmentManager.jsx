@@ -54,11 +54,11 @@ const OWNER_FILTERS = [
 function EmptyState({ title = 'No appointments', message }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 mb-3">
+      <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
         <Calendar size={20} strokeWidth={1.8} />
       </div>
       <p className="text-sm font-semibold text-slate-700 mb-0.5">{title}</p>
-      <p className="text-xs text-slate-500 max-w-[240px]">{message}</p>
+      <p className="text-xs text-slate-400 max-w-[240px]">{message}</p>
     </div>
   )
 }
@@ -83,7 +83,7 @@ function OwnerCard({ appt, onAction }) {
           )}
           <div className="min-w-0">
             <p className="text-sm font-semibold text-slate-800 truncate">{personName(appt.tenant)}</p>
-            <p className="text-[11px] text-slate-500">{appt.contactNumber}</p>
+            <p className="text-[11px] text-slate-400">{appt.contactNumber}</p>
           </div>
         </div>
         <StatusDot status={appt.status} />
@@ -100,19 +100,19 @@ function OwnerCard({ appt, onAction }) {
             {appt.property?.title ?? 'Property'}
           </Link>
           {appt.property?.displayId && (
-            <p className="text-[11px] font-mono text-slate-500 tracking-wide">{appt.property.displayId}</p>
+            <p className="text-[9px] font-mono text-slate-400 tracking-wide">{appt.property.displayId}</p>
           )}
-          <p className="text-[11px] text-slate-500">{appt.property?.city}</p>
+          <p className="text-[11px] text-slate-400">{appt.property?.city}</p>
         </div>
         <div className="text-right shrink-0">
           <p className="text-xs font-semibold text-slate-700">{shortDate(appt.requestedDate)}</p>
-          <p className="text-[11px] text-slate-500">{appt.requestedTime}</p>
+          <p className="text-[11px] text-slate-400">{appt.requestedTime}</p>
         </div>
       </div>
 
       {appt.message && (
         <p className="text-xs text-slate-500 mb-3 leading-relaxed">
-          <span className="font-medium text-slate-500">Note: </span>{appt.message}
+          <span className="font-medium text-slate-400">Note: </span>{appt.message}
         </p>
       )}
 
@@ -163,9 +163,9 @@ function TenantCard({ appt }) {
             {appt.property?.title ?? 'Property'}
           </Link>
           {appt.property?.displayId && (
-            <p className="text-[11px] font-mono text-slate-500 tracking-wide">{appt.property.displayId}</p>
+            <p className="text-[9px] font-mono text-slate-400 tracking-wide">{appt.property.displayId}</p>
           )}
-          <p className="text-[11px] text-slate-500">{appt.property?.city}</p>
+          <p className="text-[11px] text-slate-400">{appt.property?.city}</p>
         </div>
         <StatusDot status={appt.status} />
       </div>
@@ -177,7 +177,7 @@ function TenantCard({ appt }) {
 
       {appt.message && (
         <p className="text-xs text-slate-500 mb-2 leading-relaxed">
-          <span className="font-medium text-slate-500">Your note: </span>{appt.message}
+          <span className="font-medium text-slate-400">Your note: </span>{appt.message}
         </p>
       )}
 
@@ -245,7 +245,7 @@ export default function AppointmentManager() {
       {/* Header */}
       <div>
         <h1 className="text-xl font-bold text-slate-900">Appointments</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
+        <p className="text-sm text-slate-400 mt-0.5">
           {hostMode ? 'Visit requests for your properties' : 'Visits you’ve requested'}
         </p>
       </div>

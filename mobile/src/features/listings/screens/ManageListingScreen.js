@@ -48,7 +48,7 @@ function ActionRow({ icon, label, sub, onPress, disabled, variant = 'default' })
         <Text style={[styles.actionLabel, { color: labelColor }]}>{label}</Text>
         {sub ? <Text style={styles.actionSub}>{sub}</Text> : null}
       </View>
-      <Icon name="chevronRight" size={16} color={colors.slate500} />
+      <Icon name="chevronRight" size={16} color={colors.slate400} />
     </Pressable>
   )
 }
@@ -189,7 +189,7 @@ export default function ManageListingScreen({ navigation, route }) {
           <Image source={{ uri: imgUrl(primaryImage.url, 'detail') }} style={styles.heroImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
         ) : (
           <View style={[styles.heroImage, styles.heroPlaceholder]}>
-            <Icon name="image" size={28} color={colors.slate500} />
+            <Icon name="image" size={28} color={colors.slate400} />
           </View>
         )}
         <View style={styles.statusPillWrap}>
@@ -299,7 +299,7 @@ export default function ManageListingScreen({ navigation, route }) {
   ) : (
     <View style={styles.contactsState}>
       <View style={styles.contactsEmptyIcon}>
-        <Icon name="users" size={18} color={colors.slate500} />
+        <Icon name="users" size={18} color={colors.slate400} />
       </View>
       <Text style={styles.contactsStateText}>No contacts yet</Text>
       <Text style={styles.contactsStateSub}>People who reach out will appear here</Text>
@@ -358,17 +358,17 @@ const styles = StyleSheet.create({
   tenantBannerName: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, marginTop: 1 },
   tenantBannerSince: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 1 },
   sectionTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, paddingHorizontal: spacing.lg, marginTop: spacing.lg, marginBottom: spacing.sm },
-  sectionHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, paddingHorizontal: spacing.lg, marginBottom: spacing.xs },
+  sectionHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, paddingHorizontal: spacing.lg, marginBottom: spacing.xs },
   actionsCard: { marginHorizontal: spacing.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate100, borderRadius: radius.lg, overflow: 'hidden' },
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, minHeight: 56, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.slate100 },
   actionIcon: { width: 34, height: 34, borderRadius: radius.md, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center' },
   actionText: { flex: 1, minWidth: 0 },
   actionLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm },
-  actionSub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 1 },
+  actionSub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 1 },
   contactsState: { alignItems: 'center', paddingVertical: spacing.xl, paddingHorizontal: spacing.lg, gap: spacing.sm },
   contactsEmptyIcon: { width: 40, height: 40, borderRadius: radius.full, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center' },
   contactsStateText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate500 },
-  contactsStateSub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
+  contactsStateSub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
   errorTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
   retryButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, minHeight: 40, justifyContent: 'center' },
   retryText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },

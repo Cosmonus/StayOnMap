@@ -108,7 +108,7 @@ export default function EditProfileSheet({ visible, onClose, settings }) {
 
 const styles = StyleSheet.create({
   cityLabel: {
-    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500,
+    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400,
     textTransform: 'uppercase', letterSpacing: 0.5,
     marginTop: spacing.md, marginBottom: spacing.sm,
   },

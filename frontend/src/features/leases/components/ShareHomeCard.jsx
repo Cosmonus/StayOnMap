@@ -98,7 +98,7 @@ export default function ShareHomeButton({ lease }) {
       <Modal isOpen={open} onClose={() => setOpen(false)} title="You found a home 🎉">
         <div className="space-y-4">
           <canvas ref={canvasRef} width={SIZE} height={SIZE} className="w-full rounded-2xl border border-slate-100" />
-          <p className="text-xs text-slate-500 text-center">
+          <p className="text-xs text-slate-400 text-center">
             Only your area, city and move-in month are on the card — never the address, a photo or a link.
           </p>
           <button

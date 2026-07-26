@@ -48,7 +48,7 @@ function Toggle({ checked, onChange, label, description, disabled }) {
     >
       <div className="text-left pr-3">
         <p className="text-sm font-medium text-slate-800">{label}</p>
-        {description && <p className="text-[11px] text-slate-500 mt-0.5">{description}</p>}
+        {description && <p className="text-[11px] text-slate-400 mt-0.5">{description}</p>}
       </div>
       <div className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${checked && !disabled ? 'bg-[#111111]' : 'bg-slate-200'}`}>
         <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${checked && !disabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
@@ -65,11 +65,11 @@ function VisOpt({ value, current, onChange, icon: IconComp, label }) {
       onClick={() => onChange(value)}
       className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl border transition-all text-left ${sel ? 'border-[#111111] bg-slate-50' : 'border-slate-100 hover:border-slate-200'}`}
     >
-      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${sel ? 'bg-[#111111] text-white' : 'bg-slate-100 text-slate-500'}`}>
+      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${sel ? 'bg-[#111111] text-white' : 'bg-slate-100 text-slate-400'}`}>
         <IconComp className="w-3.5 h-3.5" strokeWidth={1.8} />
       </div>
       <span className={`text-sm font-medium ${sel ? 'text-slate-900' : 'text-slate-600'}`}>{label}</span>
-      {sel && <span className="ml-auto text-[11px] font-bold text-slate-500 uppercase tracking-wide">Active</span>}
+      {sel && <span className="ml-auto text-[10px] font-bold text-slate-400 uppercase tracking-wide">Active</span>}
     </button>
   )
 }
@@ -222,7 +222,7 @@ export default function SettingsPanel() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-slate-900">Settings</h1>
-          <p className="text-xs text-slate-500">Manage your profile, privacy, and account</p>
+          <p className="text-xs text-slate-400">Manage your profile, privacy, and account</p>
         </div>
         <button
           onClick={() => save(form)}
@@ -251,7 +251,6 @@ export default function SettingsPanel() {
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={uploading}
-                aria-label="Change profile photo"
                 className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/40 flex items-center justify-center transition-colors"
               >
                 <Camera className="w-4 h-4 text-white opacity-0 group-hover:opacity-100" strokeWidth={1.8} />
@@ -261,11 +260,11 @@ export default function SettingsPanel() {
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <p className="text-sm font-semibold text-slate-800 truncate">{settings.name}</p>
-                <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${isOwner ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-500'}`}>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isOwner ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-500'}`}>
                   {isOwner ? 'Owner' : 'Tenant'}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 truncate">{settings.email}</p>
+              <p className="text-[11px] text-slate-400 truncate">{settings.email}</p>
               <button onClick={() => fileRef.current?.click()} disabled={uploading} className="text-[11px] font-medium text-brand-600 mt-0.5">
                 {uploading ? 'Uploading...' : 'Change photo'}
               </button>
@@ -291,7 +290,7 @@ export default function SettingsPanel() {
                 />
               </Field>
               <Field label="Email">
-                <input type="email" value={settings.email} disabled className="w-full px-3 py-2 border border-slate-100 rounded-lg text-sm bg-slate-100 text-slate-500 cursor-not-allowed" />
+                <input type="email" value={settings.email} disabled className="w-full px-3 py-2 border border-slate-100 rounded-lg text-sm bg-slate-100 text-slate-400 cursor-not-allowed" />
               </Field>
             </div>
             <Field label="Bio">
@@ -410,7 +409,7 @@ export default function SettingsPanel() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-50">
               <div>
                 <p className="text-sm font-medium text-slate-800">Email verification</p>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-400">
                   {settings.isVerified ? 'Your email address is confirmed' : 'Confirm your email to mark your account as trusted'}
                 </p>
               </div>
@@ -431,7 +430,7 @@ export default function SettingsPanel() {
             <div className="flex items-center justify-between pt-3">
               <div>
                 <p className="text-sm font-medium text-slate-800">Password</p>
-                <p className="text-[11px] text-slate-500">Reset via email link</p>
+                <p className="text-[11px] text-slate-400">Reset via email link</p>
               </div>
               <button
                 onClick={() => sendPasswordReset()}

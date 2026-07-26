@@ -17,7 +17,7 @@ const STATUS = {
   ACCEPTED: { bg: colors.success50, text: '#15803D', dot: '#4ADE80', label: 'Accepted' },
   REJECTED: { bg: colors.danger50, text: '#DC2626', dot: '#F87171', label: 'Rejected' },
   RESCHEDULED: { bg: colors.brand50, text: colors.brand700, dot: colors.brand500, label: 'Rescheduled' },
-  CANCELLED: { bg: colors.slate50, text: colors.slate600, dot: colors.slate500, label: 'Cancelled' },
+  CANCELLED: { bg: colors.slate50, text: colors.slate600, dot: colors.slate400, label: 'Cancelled' },
 }
 
 const OWNER_FILTERS = [
@@ -62,7 +62,7 @@ function FilterDropdown({ value, options, onChange }) {
             <View style={styles.dropdownSheetHeader}>
               <Text style={styles.dropdownSheetTitle}>Filter by status</Text>
               <Pressable onPress={() => setOpen(false)} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close filter options">
-                <Icon name="close" size={18} color={colors.slate500} />
+                <Icon name="close" size={18} color={colors.slate400} />
               </Pressable>
             </View>
             <FlatList
@@ -100,7 +100,7 @@ function StatusPill({ status }) {
   )
 }
 
-function OwnerCard({ appt, onAction, onOpenProperty }) {
+function OwnerCard({ appt, onAction }) {
   const [rejecting, setRejecting] = useState(false)
   const [note, setNote] = useState('')
   const isPending = appt.status === 'PENDING'
@@ -120,7 +120,7 @@ function OwnerCard({ appt, onAction, onOpenProperty }) {
           <View style={{ flexShrink: 1 }}>
             <Text style={styles.personName} numberOfLines={1}>{personName(appt.tenant)}</Text>
             <View style={styles.personSubRow}>
-              <Icon name="phone" size={10} color={colors.slate500} />
+              <Icon name="phone" size={10} color={colors.slate400} />
               <Text style={styles.personSub}>{appt.contactNumber}</Text>
             </View>
           </View>
@@ -128,13 +128,7 @@ function OwnerCard({ appt, onAction, onOpenProperty }) {
         <StatusPill status={appt.status} />
       </View>
 
-      <Pressable
-        style={styles.propertyRow}
-        onPress={() => appt.property?.id && onOpenProperty?.(appt.property.id)}
-        disabled={!appt.property?.id}
-        accessibilityRole="button"
-        accessibilityLabel={`Open ${appt.property?.title ?? 'property'}`}
-      >
+      <View style={styles.propertyRow}>
         {thumb ? <Image source={{ uri: imgUrl(thumb) }} style={styles.propertyThumb} contentFit="cover" cachePolicy="memory-disk" transition={200} /> : <View style={styles.propertyThumb} />}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.propertyTitle} numberOfLines={1}>{appt.property?.title ?? 'Property'}</Text>
@@ -144,7 +138,7 @@ function OwnerCard({ appt, onAction, onOpenProperty }) {
           <Text style={styles.dateText}>{shortDate(appt.requestedDate)}</Text>
           <Text style={styles.propertySub}>{appt.requestedTime}</Text>
         </View>
-      </Pressable>
+      </View>
 
       {!!appt.message && <Text style={styles.note}><Text style={styles.noteLabel}>Note: </Text>{appt.message}</Text>}
       {!!appt.ownerNote && <Text style={styles.replyNote}><Text style={styles.replyNoteLabel}>Your reply: </Text>{appt.ownerNote}</Text>}
@@ -167,7 +161,7 @@ function OwnerCard({ appt, onAction, onOpenProperty }) {
           <TextInput
             style={styles.rejectInput}
             placeholder="Reason (optional)"
-            placeholderTextColor={colors.slate500}
+            placeholderTextColor={colors.slate400}
             value={note}
             onChangeText={setNote}
             multiline
@@ -186,24 +180,18 @@ function OwnerCard({ appt, onAction, onOpenProperty }) {
   )
 }
 
-function TenantCard({ appt, onOpenProperty }) {
+function TenantCard({ appt }) {
   const thumb = appt.property?.images?.[0]?.url
   return (
     <View style={styles.card}>
-      <Pressable
-        style={styles.propertyRow}
-        onPress={() => appt.property?.id && onOpenProperty?.(appt.property.id)}
-        disabled={!appt.property?.id}
-        accessibilityRole="button"
-        accessibilityLabel={`Open ${appt.property?.title ?? 'property'}`}
-      >
+      <View style={styles.propertyRow}>
         {thumb ? <Image source={{ uri: imgUrl(thumb) }} style={styles.propertyThumb} contentFit="cover" cachePolicy="memory-disk" transition={200} /> : <View style={styles.propertyThumb} />}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.propertyTitle} numberOfLines={1}>{appt.property?.title ?? 'Property'}</Text>
           <Text style={styles.propertySub}>{appt.property?.city}</Text>
         </View>
         <StatusPill status={appt.status} />
-      </Pressable>
+      </View>
       <View style={styles.dateRow}>
         <Text style={styles.dateText}>{shortDate(appt.requestedDate)}</Text>
         <Text style={styles.dateText}>{appt.requestedTime}</Text>
@@ -218,7 +206,7 @@ function EmptyState({ message }) {
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIcon}>
-        <Icon name="calendar" size={22} color={colors.slate500} />
+        <Icon name="calendar" size={22} color={colors.slate400} />
       </View>
       <Text style={styles.emptyTitle}>No appointments</Text>
       <Text style={styles.emptyBody}>{message}</Text>
@@ -227,10 +215,6 @@ function EmptyState({ message }) {
 }
 
 export default function AppointmentsScreen({ navigation, route }) {
-  // A plain push, no tab named: BOOKING_SCREENS is spread into ProfileStack
-  // (renter) and HostAppointmentsStack (host) precisely so this resolves inside
-  // whichever stack the screen was pushed onto, keeping the user in their tab.
-  const openProperty = (propertyId) => navigation.navigate('PropertyDetail', { propertyId })
   const qc = useQueryClient()
 
   // Fixed by which nav stack registered this screen, not a user-facing
@@ -307,7 +291,7 @@ export default function AppointmentsScreen({ navigation, route }) {
           }
           ListEmptyComponent={<EmptyState message="Tenant visit requests will appear here." />}
           renderItem={({ item }) => (
-            <OwnerCard appt={item} onAction={(id, status, ownerNote) => mutation.mutate({ id, status, ownerNote })} onOpenProperty={openProperty} />
+            <OwnerCard appt={item} onAction={(id, status, ownerNote) => mutation.mutate({ id, status, ownerNote })} />
           )}
         />
       ) : (
@@ -316,7 +300,7 @@ export default function AppointmentsScreen({ navigation, route }) {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           ListEmptyComponent={<EmptyState message="Appointments you've requested will appear here." />}
-          renderItem={({ item }) => <TenantCard appt={item} onOpenProperty={openProperty} />}
+          renderItem={({ item }) => <TenantCard appt={item} />}
         />
       )}
     </SafeAreaView>
@@ -329,7 +313,7 @@ const styles = StyleSheet.create({
   headerTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2 },
+  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: spacing.lg, gap: spacing.md },
   filterRow: { marginBottom: spacing.md, alignItems: 'flex-start' },
@@ -355,18 +339,18 @@ const styles = StyleSheet.create({
   avatarInitial: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
   personName: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
   personSubRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  personSub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
+  personSub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.full },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontFamily: fonts.bodySemiBold, fontSize: 11 },
   propertyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.slate50, borderRadius: radius.md, padding: spacing.sm, marginBottom: spacing.sm },
   propertyThumb: { width: 36, height: 36, borderRadius: radius.sm, backgroundColor: colors.slate200 },
   propertyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
-  propertySub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
+  propertySub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
   dateText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
   dateRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.sm },
   note: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginBottom: spacing.sm, lineHeight: 18 },
-  noteLabel: { fontFamily: fonts.bodyMedium, color: colors.slate500 },
+  noteLabel: { fontFamily: fonts.bodyMedium, color: colors.slate400 },
   replyNote: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#2563EB', marginBottom: spacing.sm, lineHeight: 18 },
   replyNoteLabel: { fontFamily: fonts.bodyMedium, color: '#60A5FA' },
   actionRow: { flexDirection: 'row', gap: spacing.sm },
@@ -381,5 +365,5 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: spacing.xxl },
   emptyIcon: { width: 48, height: 48, borderRadius: radius.full, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700 },
-  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2, textAlign: 'center', maxWidth: 240 },
+  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2, textAlign: 'center', maxWidth: 240 },
 })

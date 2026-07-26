@@ -10,7 +10,7 @@ export default function FilterChip({ label, icon, active, onClick }) {
           : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'
       }`}
     >
-      {icon && <span className={`shrink-0 ${active ? 'text-white' : 'text-slate-500'}`}>{icon}</span>}
+      {icon && <span className={`shrink-0 ${active ? 'text-white' : 'text-slate-400'}`}>{icon}</span>}
       {label}
     </button>
   )

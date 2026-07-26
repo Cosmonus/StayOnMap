@@ -104,7 +104,7 @@ export default function SettingsScreen({ navigation }) {
   if (isError) {
     return (
       <SafeAreaView style={styles.center} edges={['top']}>
-        <Icon name="alertTriangle" size={28} color={colors.slate500} />
+        <Icon name="alertTriangle" size={28} color={colors.slate400} />
         <Text style={styles.errorText}>Could not load your settings.</Text>
         <Pressable
           style={styles.retryButton}
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   },
   profileInfo: { flex: 1 },
   profileName: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
-  profileEmail: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2 },
+  profileEmail: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2 },
   roleBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start',
     marginTop: spacing.xs, backgroundColor: colors.brand50, borderRadius: radius.full,
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   },
   roleBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
   sectionLabel: {
-    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500,
+    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400,
     textTransform: 'uppercase', letterSpacing: 0.5,
     marginTop: spacing.lg, marginBottom: spacing.xs,
   },
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   verifiedIcon: { width: 34, height: 34, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center' },
   verifiedLabels: { flex: 1 },
   verifiedLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate800 },
-  verifiedHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
+  verifiedHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
   verifiedPill: { backgroundColor: colors.brand50, borderRadius: radius.full, paddingHorizontal: spacing.sm + 2, paddingVertical: 4 },
   verifiedPillText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
 })

@@ -63,7 +63,7 @@ export default function CreateLeaseScreen({ route, navigation }) {
             value={form.tenantId}
             onChangeText={(v) => setForm((f) => ({ ...f, tenantId: v }))}
             placeholder="Paste tenant's user ID"
-            placeholderTextColor={colors.slate500}
+            placeholderTextColor={colors.slate400}
             autoCapitalize="none"
           />
           <Text style={styles.hint}>Find the tenant ID in their appointment details</Text>
@@ -71,22 +71,22 @@ export default function CreateLeaseScreen({ route, navigation }) {
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>Start date</Text>
-              <TextInput style={styles.input} value={form.startDate} onChangeText={(v) => setForm((f) => ({ ...f, startDate: v }))} placeholder="YYYY-MM-DD" placeholderTextColor={colors.slate500} />
+              <TextInput style={styles.input} value={form.startDate} onChangeText={(v) => setForm((f) => ({ ...f, startDate: v }))} placeholder="YYYY-MM-DD" placeholderTextColor={colors.slate400} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>End date</Text>
-              <TextInput style={styles.input} value={form.endDate} onChangeText={(v) => setForm((f) => ({ ...f, endDate: v }))} placeholder="YYYY-MM-DD" placeholderTextColor={colors.slate500} />
+              <TextInput style={styles.input} value={form.endDate} onChangeText={(v) => setForm((f) => ({ ...f, endDate: v }))} placeholder="YYYY-MM-DD" placeholderTextColor={colors.slate400} />
             </View>
           </View>
 
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>Monthly rent (₹)</Text>
-              <TextInput style={styles.input} value={form.rentAmount} onChangeText={(v) => setForm((f) => ({ ...f, rentAmount: v }))} placeholder="28000" placeholderTextColor={colors.slate500} keyboardType="numeric" />
+              <TextInput style={styles.input} value={form.rentAmount} onChangeText={(v) => setForm((f) => ({ ...f, rentAmount: v }))} placeholder="28000" placeholderTextColor={colors.slate400} keyboardType="numeric" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>Deposit (₹)</Text>
-              <TextInput style={styles.input} value={form.depositAmount} onChangeText={(v) => setForm((f) => ({ ...f, depositAmount: v }))} placeholder="56000" placeholderTextColor={colors.slate500} keyboardType="numeric" />
+              <TextInput style={styles.input} value={form.depositAmount} onChangeText={(v) => setForm((f) => ({ ...f, depositAmount: v }))} placeholder="56000" placeholderTextColor={colors.slate400} keyboardType="numeric" />
             </View>
           </View>
 
@@ -96,7 +96,7 @@ export default function CreateLeaseScreen({ route, navigation }) {
             value={form.ownerNote}
             onChangeText={(v) => setForm((f) => ({ ...f, ownerNote: v }))}
             placeholder="Any specific terms or notes..."
-            placeholderTextColor={colors.slate500}
+            placeholderTextColor={colors.slate400}
             multiline
             numberOfLines={2}
           />
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   label: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500, marginTop: spacing.sm, marginBottom: 4 },
   input: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm + 2, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800 },
   textarea: { minHeight: 60, textAlignVertical: 'top' },
-  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 2 },
+  hint: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400, marginTop: 2 },
   row: { flexDirection: 'row', gap: spacing.sm },
   submitButton: { minHeight: 44, flexDirection: 'row', gap: 6, backgroundColor: colors.black, borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', justifyContent: 'center', marginTop: spacing.lg },
   submitButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },

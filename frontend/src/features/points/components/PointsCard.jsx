@@ -40,7 +40,7 @@ export default function PointsCard() {
           </div>
           <div>
             <p className="text-sm font-bold text-slate-900">{data.name ?? `Level ${data.level}`}</p>
-            <p className="text-[11px] text-slate-500">Points for helping the next renter — visible only to you</p>
+            <p className="text-[11px] text-slate-400">Points for helping the next renter — visible only to you</p>
           </div>
         </div>
         <p className="text-2xl font-bold text-brand-700 tabular-nums">{data.points}</p>
@@ -51,7 +51,7 @@ export default function PointsCard() {
           <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
             <div className="h-full bg-brand-500 rounded-full" style={{ width: `${progressPct}%` }} />
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">
+          <p className="text-[10px] text-slate-400 mt-1">
             {data.pointsToNext} points to level {data.nextLevel}
           </p>
         </div>
@@ -67,7 +67,7 @@ export default function PointsCard() {
           ))}
         </ul>
       ) : (
-        <p className="text-xs text-slate-500 border-t border-slate-50 pt-3">
+        <p className="text-xs text-slate-400 border-t border-slate-50 pt-3">
           Earn points when a review is approved, a report you filed is confirmed, or you sign a
           lease here. Anonymous reports earn nothing — that&apos;s the trade for anonymity.
         </p>

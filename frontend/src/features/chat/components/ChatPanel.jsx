@@ -70,13 +70,13 @@ function Avatar({ name, url, size = 40, className = '' }) {
 function SearchBar({ value, onChange }) {
   return (
     <div className="relative">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" strokeWidth={2} />
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" strokeWidth={2} />
       <input
         type="text"
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder="Search conversations..."
-        className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 placeholder:text-slate-500"
+        className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 placeholder:text-slate-400"
       />
     </div>
   )
@@ -101,7 +101,7 @@ function ConversationList({ conversations, activeId, onSelect, userId, search, o
         <p className="text-sm font-semibold text-slate-600">
           {hostMode ? 'No messages from renters yet' : 'No conversations yet'}
         </p>
-        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+        <p className="text-xs text-slate-400 mt-1 leading-relaxed">
           {hostMode
             ? 'When a renter messages you about one of your listings, the conversation will appear here.'
             : 'Start a chat by visiting a property and clicking “Chat with owner”'}
@@ -113,7 +113,7 @@ function ConversationList({ conversations, activeId, onSelect, userId, search, o
   if (filtered.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center flex-1 px-8 text-center">
-        <p className="text-sm text-slate-500">No results for &ldquo;{search}&rdquo;</p>
+        <p className="text-sm text-slate-400">No results for &ldquo;{search}&rdquo;</p>
       </div>
     )
   }
@@ -151,15 +151,15 @@ function ConversationList({ conversations, activeId, onSelect, userId, search, o
                   <p className={`text-sm truncate ${isActive || unread > 0 ? 'font-bold text-slate-900' : 'font-semibold text-slate-700'}`}>
                     {displayName(other)}
                   </p>
-                  <span className={`text-[11px] font-bold px-1 py-0.5 rounded shrink-0 ${otherRole === 'Owner' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>
+                  <span className={`text-[9px] font-bold px-1 py-0.5 rounded shrink-0 ${otherRole === 'Owner' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>
                     {otherRole}
                   </span>
                 </div>
-                <span className="text-[11px] text-slate-500 shrink-0 ml-2">
+                <span className="text-[11px] text-slate-400 shrink-0 ml-2">
                   {lastMsg ? timeLabel(lastMsg.createdAt) : ''}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 truncate">{c.property?.title}</p>
+              <p className="text-xs text-slate-400 truncate">{c.property?.title}</p>
               {lastMsg && (
                 <p className={`text-xs truncate mt-0.5 ${unread > 0 ? 'text-slate-700 font-medium' : 'text-slate-500'}`}>
                   {lastMsg.senderId === userId ? 'You: ' : ''}{lastMsg.body}
@@ -168,7 +168,7 @@ function ConversationList({ conversations, activeId, onSelect, userId, search, o
             </div>
 
             {unread > 0 && (
-              <span className="min-w-[20px] h-5 px-1.5 flex items-center justify-center text-[11px] font-bold text-white bg-brand-500 rounded-full shrink-0">
+              <span className="min-w-[20px] h-5 px-1.5 flex items-center justify-center text-[10px] font-bold text-white bg-brand-500 rounded-full shrink-0">
                 {unread > 9 ? '9+' : unread}
               </span>
             )}
@@ -193,14 +193,14 @@ function ChatHeader({ conversation, userId, typingUser, searchOpen, onToggleSear
         <div>
           <div className="flex items-center gap-2">
             <p className="text-sm font-bold text-slate-900">{displayName(other)}</p>
-            <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${otherRole === 'Owner' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${otherRole === 'Owner' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>
               {otherRole}
             </span>
           </div>
           {typingUser ? (
             <p className="text-xs text-brand-500 font-medium animate-pulse">Typing...</p>
           ) : (
-            <p className="text-xs text-slate-500">{conversation.property?.title}</p>
+            <p className="text-xs text-slate-400">{conversation.property?.title}</p>
           )}
         </div>
       </div>
@@ -245,7 +245,7 @@ function ChatPropertyCard({ property }) {
         <p className="text-sm font-bold text-slate-800 truncate group-hover:text-brand-600 transition-colors">{property.title}</p>
         <div className="flex items-center gap-1.5 mt-0.5">
           {property.city && (
-            <span className="text-xs text-slate-500 truncate">
+            <span className="text-xs text-slate-400 truncate">
               {property.address ? `${property.address}, ` : ''}{property.city}
             </span>
           )}
@@ -255,10 +255,10 @@ function ChatPropertyCard({ property }) {
             <span className="text-xs font-bold text-brand-600">{formatPrice(property)}</span>
           )}
           {bhkLabel && (
-            <span className="text-[11px] font-semibold text-slate-500 px-1.5 py-0.5 bg-slate-100 rounded">{bhkLabel}</span>
+            <span className="text-[10px] font-semibold text-slate-500 px-1.5 py-0.5 bg-slate-100 rounded">{bhkLabel}</span>
           )}
           {typeLabel && (
-            <span className="text-[11px] font-semibold text-slate-500 px-1.5 py-0.5 bg-slate-100 rounded">{typeLabel}</span>
+            <span className="text-[10px] font-semibold text-slate-500 px-1.5 py-0.5 bg-slate-100 rounded">{typeLabel}</span>
           )}
         </div>
       </div>
@@ -313,7 +313,7 @@ function MessageArea({
           <div key={msg.id}>
             {showDate && (
               <div className="flex items-center justify-center my-5">
-                <span className="px-3 py-1 text-[11px] font-semibold text-slate-500 bg-white rounded-full border border-slate-100 shadow-xs">
+                <span className="px-3 py-1 text-[11px] font-semibold text-slate-400 bg-white rounded-full border border-slate-100 shadow-xs">
                   {msgDate}
                 </span>
               </div>
@@ -331,14 +331,14 @@ function MessageArea({
                 <div className="hidden group-hover:flex items-center gap-1 mr-1.5">
                   <button
                     onClick={() => onStartEdit(msg)}
-                    className="w-6 h-6 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-600"
+                    className="w-6 h-6 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600"
                     title="Edit message"
                   >
                     <Pencil className="w-3 h-3" strokeWidth={2} />
                   </button>
                   <button
                     onClick={() => onDeleteRequest(msg)}
-                    className="w-6 h-6 rounded-full hover:bg-red-50 flex items-center justify-center text-slate-500 hover:text-red-500"
+                    className="w-6 h-6 rounded-full hover:bg-red-50 flex items-center justify-center text-slate-400 hover:text-red-500"
                     title="Delete message"
                   >
                     <Trash2 className="w-3 h-3" strokeWidth={2} />
@@ -354,7 +354,7 @@ function MessageArea({
                       {isMe ? 'You' : displayName(msg.sender)}
                     </span>
                     {role && (
-                      <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                         role === 'Owner' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'
                       }`}>
                         {role}
@@ -374,7 +374,7 @@ function MessageArea({
                       className="w-full text-sm text-slate-800 resize-none focus:outline-none"
                     />
                     <div className="flex items-center justify-end gap-2 mt-1">
-                      <button onClick={onCancelEdit} className="text-xs font-semibold text-slate-500 hover:text-slate-600 px-2 py-1">Cancel</button>
+                      <button onClick={onCancelEdit} className="text-xs font-semibold text-slate-400 hover:text-slate-600 px-2 py-1">Cancel</button>
                       <button onClick={onSaveEdit} className="text-xs font-semibold text-brand-600 hover:text-brand-700 px-2 py-1">Save</button>
                     </div>
                   </div>
@@ -384,7 +384,7 @@ function MessageArea({
                     : 'bg-white text-slate-800 rounded-2xl rounded-bl-md border border-slate-100 shadow-xs'
                   }`}>
                     {msg.deletedAt ? (
-                      <span className={`italic ${isMe ? 'text-white/70' : 'text-slate-500'}`}>This message was deleted</span>
+                      <span className={`italic ${isMe ? 'text-white/70' : 'text-slate-400'}`}>This message was deleted</span>
                     ) : (
                       <>
                         {msg.attachmentUrl && (
@@ -395,9 +395,9 @@ function MessageArea({
                     )}
                     <span className="inline-flex items-center gap-1 ml-2 align-bottom translate-y-0.5">
                       {msg.editedAt && !msg.deletedAt && (
-                        <span className={`text-[11px] ${isMe ? 'opacity-70' : 'text-slate-500'}`}>edited</span>
+                        <span className={`text-[10px] ${isMe ? 'opacity-70' : 'text-slate-400'}`}>edited</span>
                       )}
-                      <span className={`text-[11px] ${isMe ? 'opacity-70' : 'text-slate-500'}`}>{chatTime(msg.createdAt)}</span>
+                      <span className={`text-[10px] ${isMe ? 'opacity-70' : 'text-slate-400'}`}>{chatTime(msg.createdAt)}</span>
                       {isMe && <ReadReceipt isRead={msg.isRead} />}
                     </span>
                   </div>
@@ -471,7 +471,7 @@ function InputBar({ onSend, onTyping, isPending }) {
         type="button"
         onClick={() => fileInputRef.current?.click()}
         disabled={busy}
-        className="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-500 shrink-0 mb-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
+        className="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-400 shrink-0 mb-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
         title="Attach an image"
       >
         <Paperclip className="w-5 h-5" strokeWidth={2} />
@@ -486,7 +486,7 @@ function InputBar({ onSend, onTyping, isPending }) {
           placeholder={uploading ? 'Uploading image...' : 'Type a message...'}
           rows={1}
           disabled={uploading}
-          className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 resize-none placeholder:text-slate-500 disabled:opacity-60"
+          className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 resize-none placeholder:text-slate-400 disabled:opacity-60"
           style={{ minHeight: '42px', maxHeight: '120px' }}
         />
       </div>
@@ -495,7 +495,6 @@ function InputBar({ onSend, onTyping, isPending }) {
       <button
         type="submit"
         disabled={!input.trim() || busy}
-        aria-label="Send message"
         className="w-10 h-10 rounded-full bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 mb-0.5"
       >
         <Send className="w-4 h-4" fill="currentColor" />
@@ -513,7 +512,7 @@ function EmptyChat() {
           <MessageCircle className="w-9 h-9 text-slate-300" strokeWidth={1.2} />
         </div>
         <p className="text-base font-bold text-slate-600 mb-1">Select a conversation</p>
-        <p className="text-sm text-slate-500">Choose from your existing chats on the left</p>
+        <p className="text-sm text-slate-400">Choose from your existing chats on the left</p>
       </div>
     </div>
   )
@@ -680,17 +679,17 @@ function ChatWindow({ conversation, conversationId, userId }) {
       {searchOpen && (
         <div className="shrink-0 px-6 py-2.5 border-b border-slate-100 bg-white">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" strokeWidth={2} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" strokeWidth={2} />
             <input
               autoFocus
               type="text"
               value={msgSearch}
               onChange={e => setMsgSearch(e.target.value)}
               placeholder="Search messages..."
-              className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 placeholder:text-slate-500"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 placeholder:text-slate-400"
             />
             {msgSearch && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-500">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">
                 {visibleMessages.length} result{visibleMessages.length !== 1 ? 's' : ''}
               </span>
             )}
@@ -785,7 +784,7 @@ export default function ChatPanel() {
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold text-slate-900">{hostMode ? 'Inbox' : 'Messages'}</h1>
             <div className="flex items-center gap-1">
-              <button aria-label="New conversation" className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-500">
+              <button className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-500">
                 <SquarePen className="w-[18px] h-[18px]" strokeWidth={2} />
               </button>
             </div>
