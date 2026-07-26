@@ -39,9 +39,12 @@ export default function MapViewportBar() {
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-4 pb-4 md:px-5 md:pb-5">
-      <div className="flex flex-wrap items-center justify-center gap-2 md:justify-between">
+      {/* Three tracks at md+ so the count pill is centred on the MAP, not just
+          pushed to the far end by justify-between. The third track stays empty
+          on purpose — it is what keeps the middle one centred. */}
+      <div className="flex flex-col items-center gap-2 md:grid md:grid-cols-3 md:items-end md:gap-3">
         {/* ── Search-as-I-move, plus the manual escape hatch when it's off ── */}
-        <div className="pointer-events-auto order-2 flex items-center gap-2 md:order-1">
+        <div className="pointer-events-auto order-2 flex flex-wrap items-center gap-2 md:order-1 md:justify-self-start">
           <button
             type="button"
             role="checkbox"
@@ -78,7 +81,7 @@ export default function MapViewportBar() {
         </div>
 
         {/* ── What's in view, and the way into the list ── */}
-        <div className="pointer-events-auto order-1 md:order-2">
+        <div className="pointer-events-auto order-1 md:order-2 md:justify-self-center">
           {count > 0 ? (
             <div className="flex items-center gap-1 rounded-full bg-slate-900 py-1 pl-4 pr-1 text-white shadow-lg">
               <span className="text-sm">

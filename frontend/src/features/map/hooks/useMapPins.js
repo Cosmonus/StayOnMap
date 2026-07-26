@@ -1,5 +1,5 @@
 // Renders property pins and cluster bubbles on the Google Map.
-// Zoomed out → nearby pins merge into "N flats" bubbles.
+// Zoomed out → nearby pins merge into "N homes" bubbles.
 // Zoomed in  → bubbles split back into individual price pills.
 
 import { useEffect, useRef } from 'react'
@@ -123,7 +123,9 @@ function applySelected(el, selected, pin) {
 
 // ── Cluster bubble (brand-blue pill with count) ───────────────────
 function makeClusterEl(count) {
-  const label = `${count} flat${count !== 1 ? 's' : ''}`
+  // "homes", not "flats" — the map carries plots, PGs, shops and short stays
+  // too, and calling a cluster of them flats is simply wrong.
+  const label = `${count} home${count !== 1 ? 's' : ''}`
   const el = document.createElement('div')
   el.setAttribute('aria-label', `${count} properties`)
   el.style.cssText = `
@@ -137,10 +139,10 @@ function makeClusterEl(count) {
     font-family: 'Plus Jakarta Sans', sans-serif;
     white-space: nowrap;
     cursor: pointer;
-    background: #0284c7;
+    background: #0d8a5f;
     color: #fff;
     border: 2px solid #fff;
-    box-shadow: 0 2px 12px rgba(2,132,199,0.35);
+    box-shadow: 0 2px 12px rgba(13,138,95,0.35);
     transition: transform 150ms ease;
     transform-origin: center bottom;
     will-change: transform;

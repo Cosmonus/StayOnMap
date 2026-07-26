@@ -28,18 +28,24 @@ const BELOW_HEADER_H = 'h-[calc(100vh-132px)] md:h-[calc(100vh-166px)]'
 const HOW_IT_WORKS_STEPS = [
   {
     num: '01',
-    title: 'Search the map',
-    description: 'Zoom into the neighbourhood you actually want. Every pin is a real, verified rental.',
+    title: 'Search the map, not a feed',
+    description:
+      'Zoom into the neighbourhood you actually want and every pin is a real rental you can visit. Pan the map and the results follow you.',
+    proof: 'Filter by budget, BHK, furnishing, amenities and house rules — then hand the exact view you built to a list.',
   },
   {
     num: '02',
     title: 'Read the area, not just the flat',
-    description: 'Commute, groceries, drainage and air for that exact address — with our confidence stated.',
+    description:
+      'The walls are the easy part. We measure what surrounds the address — the metro you would actually walk to, groceries, banks, air quality, even how the ground sits.',
+    proof: 'Every figure names its source and how sure we are, and says so plainly when we do not know. No invented walk times.',
   },
   {
     num: '03',
-    title: 'Book a visit with the owner',
-    description: 'Pick a slot, message them directly, sign directly. No broker takes a month\'s rent.',
+    title: 'Deal with the owner directly',
+    description:
+      'Message the owner, pick a visit slot that suits you both, and sign the agreement between the two of you. Nobody stands in the middle taking a cut.',
+    proof: 'Owners verify ownership documents before a listing goes live, and every listing carries a TrustScore you can see.',
   },
 ]
 
@@ -67,23 +73,29 @@ function MapSurface() {
    THE ARGUMENT — what's actually differentiated, three live
    numbers, three steps, one CTA.
    ================================================================ */
-function Metric({ value, label }) {
+function Metric({ value, label, note }) {
   return (
-    <div>
+    <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
       <p className="font-serif text-4xl font-semibold leading-none text-slate-900">{value}</p>
-      <p className="mt-1.5 text-sm text-slate-500">{label}</p>
+      <p className="mt-2 text-sm font-medium text-slate-700">{label}</p>
+      <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{note}</p>
     </div>
   )
 }
 
-function Step({ num, title, description }) {
+function Step({ num, title, description, proof }) {
   return (
-    <li className="flex gap-4">
-      <span className="mt-0.5 shrink-0 font-mono text-xs font-semibold text-slate-400">{num}</span>
-      <div>
-        <p className="text-sm font-semibold text-slate-800">{title}</p>
-        <p className="mt-1 max-w-sm text-sm leading-relaxed text-slate-500">{description}</p>
+    <li className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="flex items-center gap-3">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 font-mono text-xs font-semibold text-white">
+          {num}
+        </span>
+        <p className="text-base font-semibold leading-snug text-slate-900">{title}</p>
       </div>
+      <p className="mt-3.5 text-sm leading-relaxed text-slate-600">{description}</p>
+      <p className="mt-auto border-t border-slate-100 pt-3.5 text-xs leading-relaxed text-slate-500">
+        {proof}
+      </p>
     </li>
   )
 }
@@ -93,14 +105,19 @@ function Argument({ liveListings, activeOwners, citiesLive, isLoading }) {
   const dash = isLoading ? '—' : null
 
   return (
-    <section className="w-full px-4 py-14 md:px-6 md:py-20">
-      <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:gap-16">
-        {/* ── Left: the claim, the proof, the CTA ── */}
-        <div>
+    <section className="w-full bg-slate-50/60 px-4 py-14 md:px-6 md:py-20">
+      {/* Stacked full-width bands, not two columns. A short left column beside
+          a tall right one strands a band of whitespace that reads as a
+          rendering failure — the exact fault this page was rebuilt to remove. */}
+      {/* Capped only for ultra-wide; at 1440 and below this is the same slim
+          gutter the properties grid and footer use, so the bands line up. */}
+      <div className="mx-auto max-w-[1600px]">
+        {/* ── The claim ── */}
+        <div className="max-w-3xl">
           <h1 className="font-display text-3xl font-bold leading-tight tracking-tight text-slate-900 md:text-4xl">
             Rent with <span className="text-brand-600">intelligence</span>.
           </h1>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-600">
+          <p className="mt-4 text-lg leading-relaxed text-slate-600">
             Every home on the map carries a live TrustScore, and we tell you what&apos;s around the
             address — metro, groceries, drainage, air — with the confidence to say when we
             don&apos;t know. No brokers, no brokerage.
@@ -122,30 +139,57 @@ function Argument({ liveListings, activeOwners, citiesLive, isLoading }) {
               <ArrowRight size={13} strokeWidth={2.5} />
             </Link>
           </div>
-
-          <div className="mt-10 flex flex-wrap gap-x-12 gap-y-6">
-            <Metric value={dash ?? liveListings} label="Live listings" />
-            <Metric value={dash ?? activeOwners} label="Active owners" />
-            <Metric value={dash ?? citiesLive} label={citiesLive === 1 ? 'City live' : 'Cities live'} />
-          </div>
         </div>
 
-        {/* ── Right: how it works, then the app waitlist ── */}
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">How it works</p>
-          <ol className="mt-5 flex flex-col gap-6">
+        {/* ── The proof: three live numbers, each saying what it means ── */}
+        <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Metric
+            value={dash ?? liveListings}
+            label="Live listings"
+            note="Published right now and visible to you — not an all-time total."
+          />
+          <Metric
+            value={dash ?? activeOwners}
+            label="Active owners"
+            note="Real people who own what they list. No agencies, no brokers."
+          />
+          <Metric
+            value={dash ?? citiesLive}
+            label={citiesLive === 1 ? 'City live' : 'Cities live'}
+            note="Cities with homes on the map today, counted from the listings themselves."
+          />
+        </div>
+
+        {/* ── How it works: three steps across, so no column strands space ── */}
+        <div className="mt-16">
+          <h2 className="font-display text-2xl font-bold leading-tight text-slate-900">
+            How it works
+          </h2>
+          <p className="mt-2 max-w-2xl text-base leading-relaxed text-slate-600">
+            Three steps, and a broker in none of them.
+          </p>
+          <ol className="mt-7 grid grid-cols-1 gap-5 md:grid-cols-3">
             {HOW_IT_WORKS_STEPS.map((step) => (
               <Step key={step.num} {...step} />
             ))}
           </ol>
+        </div>
 
-          <div className="mt-9 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        {/* ── Slim closing strip ── */}
+        <div className="mt-10 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
             <p className="text-sm font-semibold text-slate-800">Apps coming to iOS &amp; Android.</p>
-            <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
-              The live map, TrustScores and owner chat, in your pocket. Everything on this site
-              works in a mobile browser today — nothing is waiting on the app.
+            <p className="mt-1 text-sm leading-relaxed text-slate-500">
+              Everything here already works in a mobile browser — nothing is waiting on the app.
             </p>
           </div>
+          <Link
+            to="/intelligence"
+            className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 self-start text-sm font-semibold text-brand-700 no-underline underline-offset-4 hover:underline sm:self-auto"
+          >
+            See how the scoring works
+            <ArrowRight size={13} strokeWidth={2.5} />
+          </Link>
         </div>
       </div>
     </section>
@@ -229,7 +273,7 @@ function RentingHere() {
 
   if (isLoading) {
     return (
-      <section className="w-full border-t border-slate-200 bg-slate-50/60 px-4 py-14 md:px-6 md:py-16">
+      <section className="w-full border-t border-slate-200 bg-white px-4 py-14 md:px-6 md:py-16">
         <div className="h-7 w-56 animate-pulse rounded bg-slate-200" />
         <div className="mt-2 h-4 w-72 animate-pulse rounded bg-slate-200" />
         <div className="mt-8 grid gap-5 [grid-template-columns:repeat(auto-fill,minmax(260px,1fr))]">
@@ -243,7 +287,7 @@ function RentingHere() {
 
   if (isError) {
     return (
-      <section className="w-full border-t border-slate-200 bg-slate-50/60 px-4 py-14 md:px-6 md:py-16">
+      <section className="w-full border-t border-slate-200 bg-white px-4 py-14 md:px-6 md:py-16">
         <h2 className="font-display text-2xl font-bold text-slate-900">Renting right now</h2>
         <p className="mt-2 text-sm text-slate-500">
           We couldn&apos;t load listings just now.{' '}
@@ -258,7 +302,7 @@ function RentingHere() {
 
   if (!rows.length) {
     return (
-      <section className="w-full border-t border-slate-200 bg-slate-50/60 px-4 py-14 md:px-6 md:py-16">
+      <section className="w-full border-t border-slate-200 bg-white px-4 py-14 md:px-6 md:py-16">
         <h2 className="font-display text-2xl font-bold text-slate-900">
           {placeName ? `Nothing listed in ${placeName} yet` : 'No listings match those filters yet'}
         </h2>
@@ -272,7 +316,7 @@ function RentingHere() {
   }
 
   return (
-    <section className="w-full border-t border-slate-200 bg-slate-50/60 px-4 py-14 md:px-6 md:py-16">
+    <section className="w-full border-t border-slate-200 bg-white px-4 py-14 md:px-6 md:py-16">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="font-display text-2xl font-bold leading-tight text-slate-900 md:text-3xl">
