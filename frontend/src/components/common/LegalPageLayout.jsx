@@ -16,14 +16,14 @@ export function LegalPageLayout({ title, lastUpdated, sections, children }) {
           <h1 className="font-display font-bold text-2xl sm:text-3xl text-slate-900 tracking-tight mb-2">
             {title}
           </h1>
-          <p className="text-sm text-slate-500">Last updated: {lastUpdated}</p>
+          <p className="text-sm text-slate-400">Last updated: {lastUpdated}</p>
         </div>
       </section>
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
         {/* Table of contents */}
         <nav className="bg-white rounded-2xl border border-slate-200 p-5 mb-8">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">On this page</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">On this page</p>
           <ol className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5">
             {sections.map(({ id, label }, i) => (
               <li key={id}>
@@ -44,7 +44,7 @@ export function LegalPageLayout({ title, lastUpdated, sections, children }) {
         <div className="mt-12 rounded-2xl bg-[#111111] p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5">
           <div className="flex-1">
             <h3 className="font-display font-bold text-base text-white mb-1">Questions about this document?</h3>
-            <p className="text-sm text-slate-500 leading-relaxed">
+            <p className="text-sm text-slate-400 leading-relaxed">
               Reach out and we will get back to you.
             </p>
           </div>

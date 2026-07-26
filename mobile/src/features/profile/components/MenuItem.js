@@ -21,7 +21,7 @@ export default function MenuItem({ icon, label, hint, onPress, danger = false, r
         <Text style={[styles.menuItemText, danger && styles.menuItemTextDanger]}>{label}</Text>
         {!!hint && <Text style={styles.menuItemHint}>{hint}</Text>}
       </View>
-      {rightElement ?? <Icon name="chevronRight" size={16} color={colors.slate500} />}
+      {rightElement ?? <Icon name="chevronRight" size={16} color={colors.slate400} />}
     </Pressable>
   )
 }
@@ -36,5 +36,5 @@ const styles = StyleSheet.create({
   menuItemLabels: { flex: 1 },
   menuItemText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate800 },
   menuItemTextDanger: { color: colors.danger },
-  menuItemHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
+  menuItemHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
 })

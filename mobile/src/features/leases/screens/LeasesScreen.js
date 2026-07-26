@@ -16,8 +16,8 @@ const STATUS_CFG = {
   OFFERED:    { label: 'Awaiting signature', bg: colors.warning50, text: '#B45309', dot: '#FBBF24' },
   ACTIVE:     { label: 'Active',             bg: colors.success50, text: '#15803D', dot: '#4ADE80' },
   REJECTED:   { label: 'Rejected',           bg: colors.danger50, text: '#DC2626', dot: '#F87171' },
-  TERMINATED: { label: 'Terminated',         bg: colors.slate100, text: colors.slate600, dot: colors.slate500 },
-  EXPIRED:    { label: 'Expired',            bg: colors.slate100, text: colors.slate500, dot: colors.slate200 },
+  TERMINATED: { label: 'Terminated',         bg: colors.slate100, text: colors.slate600, dot: colors.slate400 },
+  EXPIRED:    { label: 'Expired',            bg: colors.slate100, text: colors.slate400, dot: colors.slate200 },
 }
 
 function StatusPill({ status }) {
@@ -121,7 +121,7 @@ function LeaseCard({ lease, currentUserId }) {
             value={note}
             onChangeText={setNote}
             placeholder={showConfirm === 'sign' ? 'Optional note…' : 'Reason (optional)…'}
-            placeholderTextColor={colors.slate500}
+            placeholderTextColor={colors.slate400}
             multiline
           />
           <View style={styles.actionRow}>
@@ -237,7 +237,7 @@ export default function LeasesScreen({ navigation }) {
           {asOwner.length === 0 && asTenant.length === 0 && (
             <View style={styles.empty}>
               <View style={styles.emptyIcon}>
-                <Icon name="document" size={22} color={colors.slate500} />
+                <Icon name="document" size={22} color={colors.slate400} />
               </View>
               <Text style={styles.emptyTitle}>No leases yet</Text>
               <Text style={styles.emptyBody}>
@@ -260,19 +260,19 @@ const styles = StyleSheet.create({
   headerTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2 },
+  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2 },
   scroll: { padding: spacing.lg, paddingTop: spacing.xs },
-  sectionLabel: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionLabel: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.slate500, textTransform: 'uppercase', letterSpacing: 0.5 },
   card: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, padding: spacing.md, marginBottom: spacing.sm, gap: spacing.sm },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm },
   propertyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
-  propertyCity: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 1 },
+  propertyCity: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 1 },
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.full },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontFamily: fonts.bodySemiBold, fontSize: 11 },
+  statusText: { fontFamily: fonts.bodySemiBold, fontSize: 10 },
   detailsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.slate50, paddingTop: spacing.sm },
   detailCell: { minWidth: '40%' },
-  detailLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
+  detailLabel: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400 },
   detailValueBrand: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700, marginTop: 1 },
   detailValue: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700, marginTop: 1 },
   dateRow: { flexDirection: 'row', gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.slate50, paddingTop: spacing.sm },
@@ -295,5 +295,5 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: spacing.xxl },
   emptyIcon: { width: 48, height: 48, borderRadius: radius.full, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700 },
-  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 4, textAlign: 'center', maxWidth: 260 },
+  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 4, textAlign: 'center', maxWidth: 260 },
 })

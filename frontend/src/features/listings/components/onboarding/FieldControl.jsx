@@ -33,19 +33,17 @@ function Count({ value, onChange }) {
         type="button"
         onClick={() => onChange(Math.max(0, n - 1))}
         disabled={n <= 0}
-        aria-label="Decrease"
         className="w-10 h-10 rounded-full border border-slate-200 text-slate-700 text-lg font-semibold flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:border-slate-400"
       >
-        <span aria-hidden="true">–</span>
+        –
       </button>
-      <span className="font-mono text-lg font-semibold w-6 text-center" aria-live="polite">{n}</span>
+      <span className="font-mono text-lg font-semibold w-6 text-center">{n}</span>
       <button
         type="button"
         onClick={() => onChange(n + 1)}
-        aria-label="Increase"
         className="w-10 h-10 rounded-full border border-slate-200 text-slate-700 text-lg font-semibold flex items-center justify-center hover:border-slate-400"
       >
-        <span aria-hidden="true">+</span>
+        +
       </button>
     </div>
   )
@@ -61,7 +59,7 @@ function Txt({ value, onChange, ph, suf }) {
         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 outline-none focus:border-slate-400 transition-colors"
         style={{ paddingRight: suf ? 44 : undefined }}
       />
-      {suf && <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500">{suf}</span>}
+      {suf && <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">{suf}</span>}
     </div>
   )
 }

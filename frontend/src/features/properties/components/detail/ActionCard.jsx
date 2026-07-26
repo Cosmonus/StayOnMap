@@ -12,7 +12,7 @@ function LoginGate({ onLogin }) {
         <Lock className="w-7 h-7 text-brand-600" strokeWidth={1.8} />
       </div>
       <h3 className="text-base font-bold text-slate-800 mb-1">Sign in to contact the owner</h3>
-      <p className="text-sm text-slate-500 mb-5 max-w-[240px] mx-auto">
+      <p className="text-sm text-slate-400 mb-5 max-w-[240px] mx-auto">
         Create a free account to request visits, chat with owners, and save properties.
       </p>
       <button
@@ -22,7 +22,7 @@ function LoginGate({ onLogin }) {
       >
         Sign in or create account
       </button>
-      <p className="text-xs text-slate-500 mt-3">Zero brokerage. Always free for tenants.</p>
+      <p className="text-xs text-slate-400 mt-3">Zero brokerage. Always free for tenants.</p>
     </div>
   )
 }

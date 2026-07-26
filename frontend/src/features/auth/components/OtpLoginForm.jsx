@@ -69,7 +69,7 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, onSignup,
           <input
             type="email" value={email} onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com" required autoFocus
-            className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 transition-all bg-slate-50 placeholder:text-slate-500"
+            className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 transition-all bg-slate-50 placeholder:text-slate-400"
           />
         </div>
 
@@ -86,7 +86,7 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, onSignup,
           {loading ? 'Sending…' : 'Email me a code'}
         </button>
 
-        <p className="text-sm text-center text-slate-500">
+        <p className="text-sm text-center text-slate-400">
           <button type="button" onClick={onUsePassword} className="font-semibold text-brand-600 hover:text-brand-700">
             Use my password instead
           </button>
@@ -95,7 +95,7 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, onSignup,
         {/* Codes only go to registered emails — say so up front and point new
             users at signup. Shown to everyone, so it reveals nothing about
             whether any particular email has an account. */}
-        <p className="text-xs text-center text-slate-500 pt-1 border-t border-slate-100">
+        <p className="text-xs text-center text-slate-400 pt-1 border-t border-slate-100">
           Sign-in codes only work for existing accounts.{' '}
           <button type="button" onClick={onSignup} className="font-semibold text-brand-600 hover:text-brand-700">
             New to StayOnMap? Sign up first
@@ -113,10 +113,10 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, onSignup,
         </div>
         {/* Deliberately hedged: the backend no-ops silently for unregistered
             emails so this screen can't confirm whether an account exists. */}
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-400">
           If <span className="font-medium text-slate-600">{email}</span> has an account, a 6-digit code is on its way. It expires in 10 minutes.
         </p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-400">
           No code after a minute? You may not have an account yet —{' '}
           <button type="button" onClick={onSignup} className="font-semibold text-brand-600 hover:text-brand-700">
             create one
@@ -152,7 +152,7 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, onSignup,
       <div className="flex items-center justify-between text-sm">
         <button
           type="button" onClick={() => { setStep('email'); setCode(''); setError('') }}
-          className="text-slate-500 hover:text-slate-600"
+          className="text-slate-400 hover:text-slate-600"
         >
           ← Change email
         </button>

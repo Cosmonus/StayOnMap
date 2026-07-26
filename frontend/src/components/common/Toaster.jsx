@@ -55,7 +55,7 @@ function ToastItem({ t, onDismiss }) {
         {t.title && <p className="text-sm font-semibold text-slate-800">{t.title}</p>}
         {t.message && <p className="text-xs text-slate-600 mt-0.5">{t.message}</p>}
       </div>
-      <button onClick={() => onDismiss(t.id)} aria-label="Dismiss notification" className="shrink-0 text-slate-500 hover:text-slate-600 mt-0.5">
+      <button onClick={() => onDismiss(t.id)} className="shrink-0 text-slate-400 hover:text-slate-600 mt-0.5">
         <X className="w-4 h-4" />
       </button>
     </div>

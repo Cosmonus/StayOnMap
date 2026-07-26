@@ -210,7 +210,6 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
           <button
             type="button"
             onMouseDown={(e) => { e.preventDefault(); clear() }}
-            aria-label="Clear search"
             className="shrink-0 flex items-center justify-center w-4 h-4 rounded-full bg-slate-200 hover:bg-slate-300 transition-colors"
           >
             <X size={8} stroke="#64748b" strokeWidth={3} />
@@ -222,7 +221,7 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
         <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden z-50">
           {!query && recents.length > 0 && (
             <>
-              <p className="px-3 pt-2 pb-1 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Recent</p>
+              <p className="px-3 pt-2 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Recent</p>
               {recents.map((label) => (
                 <button
                   key={label}
@@ -257,7 +256,7 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
                 <MapPin size={13} fill="#f4511e" stroke="none" className="shrink-0 mt-0.5" />
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-800 truncate">{name}</p>
-                  {context && <p className="text-xs text-slate-500 truncate">{context}</p>}
+                  {context && <p className="text-xs text-slate-400 truncate">{context}</p>}
                 </div>
               </button>
             )

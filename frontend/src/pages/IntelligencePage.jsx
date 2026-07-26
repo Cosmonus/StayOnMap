@@ -114,7 +114,7 @@ export default function IntelligencePage() {
               Cosmonus intelligence,{' '}
               <span className="text-brand-400">running in production.</span>
             </h1>
-            <p className="text-slate-500 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
+            <p className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
               StayOnMap isn&apos;t a listing site with an algorithm bolted on. Every property carries a TrustScore computed
               from 12 compounding signals, every report runs through deterministic fraud checks, and every neighbourhood
               fact declares where it came from. No black boxes — every number here can be traced back to the evidence
@@ -251,7 +251,7 @@ export default function IntelligencePage() {
           <Reveal>
             <div className="bg-[#111111] rounded-2xl p-8 md:p-10">
               <p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-2">What we refuse to guess</p>
-              <p className="text-sm text-slate-500 leading-relaxed mb-8 max-w-2xl">
+              <p className="text-sm text-slate-400 leading-relaxed mb-8 max-w-2xl">
                 An honest data layer is defined as much by what it won&apos;t say as by what it will.
                 These are deliberate refusals, not gaps we haven&apos;t got to.
               </p>
@@ -259,7 +259,7 @@ export default function IntelligencePage() {
                 {REFUSALS.map(({ title, body }) => (
                   <div key={title}>
                     <h3 className="text-sm font-bold text-white mb-2">{title}</h3>
-                    <p className="text-xs text-slate-500 leading-relaxed">{body}</p>
+                    <p className="text-xs text-slate-400 leading-relaxed">{body}</p>
                   </div>
                 ))}
               </div>
@@ -277,7 +277,7 @@ export default function IntelligencePage() {
               <h2 className="font-display font-bold text-3xl sm:text-4xl md:text-5xl text-white leading-tight mb-4">
                 See the score on a real listing
               </h2>
-              <p className="text-sm sm:text-base text-slate-500 max-w-lg mx-auto mb-8">
+              <p className="text-sm sm:text-base text-slate-400 max-w-lg mx-auto mb-8">
                 Every badge on StayOnMap is live, computed from this engine, on every property, right now.
               </p>
               <Link to="/properties" className="inline-flex items-center gap-2 px-7 py-3.5 bg-white hover:bg-slate-100 text-[#111111] text-sm font-semibold rounded-xl transition-colors no-underline">

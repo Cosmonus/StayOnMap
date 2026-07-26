@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   info: { flex: 1, minWidth: 0 },
   name: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
   meta: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 1 },
-  activity: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 1 },
+  activity: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 1 },
   tenantButton: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, minHeight: 36, justifyContent: 'center' },
   tenantButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
   disabled: { opacity: 0.5 },

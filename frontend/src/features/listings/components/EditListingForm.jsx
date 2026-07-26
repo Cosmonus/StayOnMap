@@ -23,14 +23,14 @@ function Field({ label, error, children, hint }) {
     <div className="flex flex-col gap-1">
       <label className="text-sm font-medium text-slate-700">{label}</label>
       {children}
-      {hint  && !error && <p className="text-xs text-slate-500">{hint}</p>}
+      {hint  && !error && <p className="text-xs text-slate-400">{hint}</p>}
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   )
 }
 
 function SectionHeading({ children }) {
-  return <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide pt-2">{children}</p>
+  return <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide pt-2">{children}</p>
 }
 
 function fromProperty(p) {
@@ -193,7 +193,7 @@ export default function EditListingForm({ property, onSuccess }) {
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
               activeTab === t
                 ? 'border-brand-600 text-brand-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
+                : 'border-transparent text-slate-400 hover:text-slate-700'
             }`}
           >
             {TAB_LABEL[t]}
@@ -341,7 +341,7 @@ export default function EditListingForm({ property, onSuccess }) {
           {/* Appointment Window */}
           <div className="border-t border-slate-100 pt-5">
             <p className="text-sm font-medium text-slate-700 mb-1">Visit Availability Window</p>
-            <p className="text-xs text-slate-500 mb-3">Tenants can only request visits within this time range. Leave blank to allow all times.</p>
+            <p className="text-xs text-slate-400 mb-3">Tenants can only request visits within this time range. Leave blank to allow all times.</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">From</label>
@@ -380,7 +380,7 @@ export default function EditListingForm({ property, onSuccess }) {
               <div key={key} className="flex items-center justify-between py-2.5 px-3 bg-slate-50 rounded-lg border border-slate-100">
                 <div>
                   <p className="text-sm font-medium text-slate-800">{label}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
                 </div>
                 <Toggle checked={data[key]} onChange={val => set(key, val)} />
               </div>

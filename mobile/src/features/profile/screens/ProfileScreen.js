@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontFamily: fonts.displayBold, fontSize: fontSizes.xxl, color: colors.brand700 },
   name: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  email: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: spacing.xs },
+  email: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: spacing.xs },
   errorText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate600, marginTop: spacing.sm },
   retryButton: {
     minHeight: 44, borderRadius: radius.md, backgroundColor: colors.brand600,

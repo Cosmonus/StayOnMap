@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { notificationService } from '@services/notification.service'
 import { getSocket } from '@lib/socket'
-import { navigateToReference, canNavigateToReference } from '@navigation/navigationRef'
 import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
 import { colors } from '@theme/colors'
@@ -141,7 +140,7 @@ export default function NotificationsScreen({ navigation }) {
           ListEmptyComponent={isLoading ? null : (
             <View style={styles.empty}>
               <View style={styles.emptyIcon}>
-                <Icon name="bell" size={24} color={colors.slate500} />
+                <Icon name="bell" size={24} color={colors.slate400} />
               </View>
               <Text style={styles.emptyTitle}>No notifications</Text>
               <Text style={styles.emptyBody}>Appointment updates and messages will show up here.</Text>
@@ -150,21 +149,10 @@ export default function NotificationsScreen({ navigation }) {
           renderItem={({ item: n }) => (
             <Pressable
               style={[styles.row, !n.isRead && styles.rowUnread]}
-              // Tapping used to only mark the row read, which made every
-              // notification a dead end — you were told an appointment changed
-              // and then had to go find it yourself. Now it also opens the thing
-              // it is about, when there is something to open.
-              onPress={() => {
-                if (!n.isRead) markOne(n.id)
-                if (canNavigateToReference(n)) navigateToReference(n)
-              }}
+              onPress={() => { if (!n.isRead) markOne(n.id) }}
               accessibilityRole="button"
               accessibilityLabel={`${n.isRead ? '' : 'Unread. '}${n.title}. ${n.body}`}
-              accessibilityHint={
-                canNavigateToReference(n)
-                  ? 'Opens the related item'
-                  : n.isRead ? undefined : 'Marks this notification as read'
-              }
+              accessibilityHint={n.isRead ? undefined : 'Marks this notification as read'}
             >
               <View style={styles.rowIcon}>
                 <Icon name={TYPE_ICON[n.type] ?? 'bell'} size={16} color={colors.brand600} />
@@ -193,12 +181,12 @@ const styles = StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2 },
+  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2 },
   markAllButton: { backgroundColor: colors.brand50, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   markAllButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand600 },
   list: { padding: spacing.lg, paddingTop: spacing.xs },
   sectionHeader: {
-    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500,
+    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400,
     textTransform: 'uppercase', letterSpacing: 0.8,
     paddingTop: spacing.md, paddingBottom: spacing.sm, paddingHorizontal: spacing.xs,
   },
@@ -210,10 +198,10 @@ const styles = StyleSheet.create({
   unreadDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.brand500 },
   title: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate700, flexShrink: 1 },
   titleUnread: { fontFamily: fonts.bodySemiBold, color: colors.slate900 },
-  time: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
+  time: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
   body: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: spacing.xs, lineHeight: 20 },
   empty: { alignItems: 'center', paddingVertical: spacing.xxl },
   emptyIcon: { width: 52, height: 52, borderRadius: radius.full, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate700 },
-  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: spacing.xs, textAlign: 'center', maxWidth: 260 },
+  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: spacing.xs, textAlign: 'center', maxWidth: 260 },
 })

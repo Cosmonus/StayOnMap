@@ -33,7 +33,7 @@ export default function CommuteCalculator({ lat, lng }) {
         <TextInput
           style={styles.input}
           placeholder="e.g. Whitefield, Bengaluru"
-          placeholderTextColor={colors.slate500}
+          placeholderTextColor={colors.slate400}
           value={destination}
           onChangeText={setDestination}
           onSubmitEditing={handleSubmit}
@@ -82,7 +82,7 @@ export default function CommuteCalculator({ lat, lng }) {
 const styles = StyleSheet.create({
   section: { marginTop: spacing.lg },
   sectionTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
-  sectionHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2, marginBottom: spacing.sm },
+  sectionHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2, marginBottom: spacing.sm },
   inputRow: { flexDirection: 'row', gap: spacing.sm },
   input: {
     flex: 1, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md,
@@ -101,8 +101,8 @@ const styles = StyleSheet.create({
   resultTo: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate600 },
   resultRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
   resultDuration: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.brand600 },
-  resultDistance: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
-  resultFreeFlow: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
-  resultEmpty: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
+  resultDistance: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  resultFreeFlow: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400 },
+  resultEmpty: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
   resultError: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.danger },
 })

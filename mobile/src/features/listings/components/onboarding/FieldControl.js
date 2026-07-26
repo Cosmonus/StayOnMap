@@ -70,7 +70,7 @@ function Txt({ value, onChange, ph, suf, numeric }) {
         value={value != null ? String(value) : ''}
         onChangeText={onChange}
         placeholder={ph}
-        placeholderTextColor={colors.slate500}
+        placeholderTextColor={colors.slate400}
         keyboardType={numeric ? 'numeric' : 'default'}
       />
       {!!suf && (
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   txtWrap: { position: 'relative' },
   txtInput: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800 },
   txtSuffixWrap: { position: 'absolute', right: spacing.md, top: 0, bottom: 0, justifyContent: 'center' },
-  txtSuffix: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate500 },
+  txtSuffix: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate400 },
   twoRow: { flexDirection: 'row', gap: spacing.md },
   twoCol: { flex: 1 },
 })

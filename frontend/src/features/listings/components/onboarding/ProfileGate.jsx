@@ -23,10 +23,10 @@ function ChecklistRow({ label, hint, done }) {
         {done && <Check size={12} color="#fff" strokeWidth={3} />}
       </span>
       <div className="min-w-0">
-        <p className={`text-sm font-semibold ${done ? 'text-slate-500 line-through' : 'text-slate-800'}`}>
+        <p className={`text-sm font-semibold ${done ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
           {label}
         </p>
-        {!done && <p className="text-xs text-slate-500 mt-0.5">{hint}</p>}
+        {!done && <p className="text-xs text-slate-400 mt-0.5">{hint}</p>}
       </div>
     </li>
   )

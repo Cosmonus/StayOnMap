@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   handle: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: colors.slate200, marginTop: spacing.sm + 2 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.md - 2 },
   heading: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  prompt: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginBottom: spacing.sm + 2 },
+  prompt: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginBottom: spacing.sm + 2 },
   assessLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
   assessDetail: { fontFamily: fonts.body, fontSize: fontSizes.xs, lineHeight: 18, color: colors.slate500, marginTop: 4 },
   factsWrap: { marginTop: spacing.lg },

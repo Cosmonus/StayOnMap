@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     position: 'absolute', top: spacing.sm, left: spacing.sm,
     backgroundColor: colors.success, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 3,
   },
-  availableBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.white },
+  availableBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.white },
   heartButton: {
     position: 'absolute', top: spacing.sm, right: spacing.sm,
     width: 32, height: 32, borderRadius: radius.full,
@@ -125,8 +125,8 @@ const styles = StyleSheet.create({
   body: { padding: spacing.md },
   priceRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: spacing.xs + 2 },
   price: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
-  priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
-  deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
+  priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: spacing.xs + 2 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.slate100, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 2 },
   chipBrand: { backgroundColor: colors.brand50 },
@@ -134,6 +134,6 @@ const styles = StyleSheet.create({
   chipTextBrand: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.brand700 },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, marginBottom: spacing.xs },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  city: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, flexShrink: 1 },
-  age: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
+  city: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, flexShrink: 1 },
+  age: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400 },
 })

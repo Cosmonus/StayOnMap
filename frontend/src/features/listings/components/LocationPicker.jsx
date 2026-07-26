@@ -88,7 +88,7 @@ export default function LocationPicker({ value, onChange }) {
 
       <div ref={containerRef} className="w-full h-52 rounded-lg overflow-hidden border border-slate-200" />
 
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-400">
         {value
           ? `Pin at ${value.lat.toFixed(5)}, ${value.lng.toFixed(5)} — drag the marker to fine-tune`
           : 'Search your area then click the map or drag the marker to set the exact location'}

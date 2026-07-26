@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   },
   rowLabels: { flex: 1, minWidth: 0 },
   rowLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate800 },
-  rowHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
+  rowHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
   outlineButton: {
     minHeight: 40, paddingHorizontal: spacing.md, borderRadius: radius.md,
     borderWidth: 1, borderColor: colors.slate200, alignItems: 'center', justifyContent: 'center',
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   },
   dangerButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.danger },
   disabled: { opacity: 0.5 },
-  empty: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, paddingVertical: spacing.md },
+  empty: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, paddingVertical: spacing.md },
   retryButton: {
     minHeight: 44, minWidth: 110, borderRadius: radius.md, backgroundColor: colors.brand600,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.md,

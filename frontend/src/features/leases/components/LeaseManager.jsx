@@ -14,7 +14,7 @@ const STATUS_CFG = {
   ACTIVE:     { label: 'Active',             bg: 'bg-green-50',  text: 'text-green-700',  dot: 'bg-green-500' },
   REJECTED:   { label: 'Rejected',           bg: 'bg-red-50',    text: 'text-red-600',    dot: 'bg-red-400' },
   TERMINATED: { label: 'Terminated',         bg: 'bg-slate-100', text: 'text-slate-500',  dot: 'bg-slate-400' },
-  EXPIRED:    { label: 'Expired',            bg: 'bg-slate-100', text: 'text-slate-500',  dot: 'bg-slate-300' },
+  EXPIRED:    { label: 'Expired',            bg: 'bg-slate-100', text: 'text-slate-400',  dot: 'bg-slate-300' },
 }
 
 function StatusPill({ status }) {
@@ -81,7 +81,7 @@ export function CreateLeaseModal({ propertyId, propertyTitle, isOpen, onClose })
             placeholder="Paste tenant's user ID"
             className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
           />
-          <p className="text-[11px] text-slate-500 mt-1">Find the tenant ID in their appointment details</p>
+          <p className="text-[11px] text-slate-400 mt-1">Find the tenant ID in their appointment details</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -161,7 +161,7 @@ function LeaseCard({ lease, currentUserId }) {
       <div className="px-5 py-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-bold text-slate-900 truncate">{lease.property?.title}</p>
-          <p className="text-xs text-slate-500 mt-0.5">{lease.property?.city}</p>
+          <p className="text-xs text-slate-400 mt-0.5">{lease.property?.city}</p>
         </div>
         <StatusPill status={lease.status} />
       </div>
@@ -169,19 +169,19 @@ function LeaseCard({ lease, currentUserId }) {
       {/* Details */}
       <div className="px-5 pb-4 grid grid-cols-2 sm:grid-cols-4 gap-4 border-b border-slate-50">
         <div>
-          <p className="text-[11px] text-slate-500 mb-0.5">Rent</p>
+          <p className="text-[11px] text-slate-400 mb-0.5">Rent</p>
           <p className="text-sm font-bold text-brand-700">{formatCurrency(Number(lease.rentAmount))}/mo</p>
         </div>
         <div>
-          <p className="text-[11px] text-slate-500 mb-0.5">Deposit</p>
+          <p className="text-[11px] text-slate-400 mb-0.5">Deposit</p>
           <p className="text-sm font-semibold text-slate-700">{formatCurrency(Number(lease.depositAmount))}</p>
         </div>
         <div>
-          <p className="text-[11px] text-slate-500 mb-0.5">Duration</p>
+          <p className="text-[11px] text-slate-400 mb-0.5">Duration</p>
           <p className="text-sm font-semibold text-slate-700">{months} month{months !== 1 ? 's' : ''}</p>
         </div>
         <div>
-          <p className="text-[11px] text-slate-500 mb-0.5">{otherRole}</p>
+          <p className="text-[11px] text-slate-400 mb-0.5">{otherRole}</p>
           <p className="text-sm font-semibold text-slate-700 truncate">{other?.name ?? '—'}</p>
         </div>
       </div>
@@ -283,7 +283,7 @@ export default function LeaseManager() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Leases</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Manage rental agreements</p>
+          <p className="text-sm text-slate-400 mt-0.5">Manage rental agreements</p>
         </div>
       </div>
 
@@ -308,10 +308,10 @@ export default function LeaseManager() {
       {asOwner.length === 0 && asTenant.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-            <FileText className="w-6 h-6 text-slate-500" strokeWidth={1.8} />
+            <FileText className="w-6 h-6 text-slate-400" strokeWidth={1.8} />
           </div>
           <p className="text-sm font-semibold text-slate-600 mb-1">No leases yet</p>
-          <p className="text-xs text-slate-500 max-w-xs">
+          <p className="text-xs text-slate-400 max-w-xs">
             {isOwner
               ? 'Once an appointment is accepted, create a lease offer from your Listings page.'
               : 'Your owner will send a lease offer after your appointment is confirmed.'}

@@ -65,7 +65,7 @@ function amenityIcon(name) {
 function rentBenchmarkLabel(rent, benchmark) {
   if (!benchmark) return null
   const diff = Math.round(((rent - benchmark.avgRent) / benchmark.avgRent) * 100)
-  if (diff === 0) return { text: 'Right at the average for similar homes nearby', color: colors.slate500 }
+  if (diff === 0) return { text: 'Right at the average for similar homes nearby', color: colors.slate400 }
   const below = diff < 0
   return {
     text: `${Math.abs(diff)}% ${below ? 'below' : 'above'} the average for similar homes nearby`,
@@ -299,6 +299,16 @@ export default function PropertyDetailScreen({ route, navigation }) {
           <ZeroBrokerageBanner brokerage={property.brokerage} />
           <HouseRulesSection rules={property.rules} />
 
+          <LocationMapCard lat={lat} lng={lng} />
+          {/* The spatial layer supersedes AreaIntelligenceSection and
+              PropertyAreaInsightCard (2026-07-19, matching web) — context
+              arrives joined on the property payload, already filtered to this
+              listing's property type. CommuteCalculator survives inside the
+              same titled group. */}
+          <SpatialContextPanel context={property.spatialContext} coords={{ lat, lng }}>
+            <CommuteCalculator lat={lat} lng={lng} />
+          </SpatialContextPanel>
+
           {!!amenities.length && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Amenities</Text>
@@ -312,23 +322,6 @@ export default function PropertyDetailScreen({ route, navigation }) {
               </View>
             </View>
           )}
-
-          {/* Order: the listing's OWN facts first (description, details,
-              pricing, rules, amenities), then the neighbourhood. Operator
-              decision 2026-07-25, overriding the earlier spatial-first
-              ordering — amenities and house rules are structured facts, not
-              the "long textual descriptions" .claude/ui-ux.md's priority list
-              deprioritises. Web's DetailSheet.jsx has the same order. Amenities
-              moved ABOVE this block too; it used to sit below the panel. */}
-          <LocationMapCard lat={lat} lng={lng} />
-          {/* The spatial layer supersedes AreaIntelligenceSection and
-              PropertyAreaInsightCard (2026-07-19, matching web) — context
-              arrives joined on the property payload, already filtered to this
-              listing's property type. CommuteCalculator survives inside the
-              same titled group. */}
-          <SpatialContextPanel context={property.spatialContext} coords={{ lat, lng }}>
-            <CommuteCalculator lat={lat} lng={lng} />
-          </SpatialContextPanel>
 
           <OwnerCard owner={property.owner} />
 
@@ -391,7 +384,7 @@ const styles = StyleSheet.create({
   statusScrim: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: colors.white },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white },
   centerBack: { position: 'absolute', top: spacing.sm, left: spacing.md },
-  emptyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500 },
+  emptyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400 },
   gallery: { height: 260 },
   galleryImageWrap: { width: SCREEN_WIDTH, height: 260 },
   galleryImage: { width: '100%', height: '100%' },
@@ -409,13 +402,13 @@ const styles = StyleSheet.create({
   body: { padding: spacing.lg },
   priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm, marginBottom: spacing.xs },
   price: { fontFamily: fonts.displayBold, fontSize: fontSizes.xxl, color: colors.slate800 },
-  priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500 },
-  deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
+  priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400 },
+  deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
   benchmark: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, marginBottom: spacing.xs },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.lg, color: colors.slate800, marginTop: spacing.xs },
   idChip: { alignSelf: 'flex-start', backgroundColor: colors.slate100, borderRadius: radius.md, paddingHorizontal: 8, paddingVertical: 2, marginTop: 4 },
-  idChipText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500, letterSpacing: 0.5 },
-  location: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2, marginBottom: spacing.md },
+  idChipText: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.slate500, letterSpacing: 0.5 },
+  location: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2, marginBottom: spacing.md },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.slate100, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 6 },
   chipBrand: { backgroundColor: colors.brand50 },

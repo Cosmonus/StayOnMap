@@ -62,5 +62,5 @@ export const BAND_LABEL = {
   HIGH:     { text: 'High confidence', color: colors.brand700 },
   MODERATE: { text: 'Moderate',        color: colors.slate500 },
   LOW:      { text: 'Low confidence',  color: colors.warning },
-  MINIMAL:  { text: 'Limited data',    color: colors.slate500 },
+  MINIMAL:  { text: 'Limited data',    color: colors.slate400 },
 }

@@ -39,7 +39,7 @@ function Row({ report }) {
         <p className="text-sm font-medium text-slate-800">
           {DATASET_LABELS[report.dataset] ?? report.dataset}
         </p>
-        {report.scope && <p className="text-xs text-slate-500 mt-0.5">{report.scope}</p>}
+        {report.scope && <p className="text-xs text-slate-400 mt-0.5">{report.scope}</p>}
       </td>
       <td className="px-4 py-3 text-sm text-slate-600 tabular-nums">
         {report.recordCount.toLocaleString('en-IN')}
@@ -77,7 +77,7 @@ export default function DataQualityPanel() {
   return (
     <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden">
       <div className="flex items-center gap-2 px-5 py-4 border-b border-slate-100">
-        <Database size={15} strokeWidth={2} className="text-slate-500" />
+        <Database size={15} strokeWidth={2} className="text-slate-400" />
         <p className="text-sm font-semibold text-slate-700">Spatial data coverage</p>
       </div>
 
@@ -94,7 +94,7 @@ export default function DataQualityPanel() {
       {data && data.length === 0 && (
         <div className="px-5 py-8 text-center">
           <p className="text-sm text-slate-500">No ETL runs recorded yet.</p>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-400 mt-1">
             Run the seeders in <code className="text-slate-500">backend/scripts/</code> — see
             operator-actions.md §1.4.
           </p>

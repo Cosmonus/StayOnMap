@@ -30,25 +30,25 @@ function OverviewSection({ listings, isOwner, onListProperty }) {
         { label: 'My listings',    value: listings.length,                                       color: 'text-slate-800' },
         { label: 'Active',         value: listings.filter(l => l.status === 'ACTIVE').length,   color: 'text-slate-800' },
         { label: 'Pending review', value: listings.filter(l => l.status === 'PENDING').length,  color: 'text-slate-500' },
-        { label: 'Drafts',         value: listings.filter(l => l.status === 'DRAFT').length,    color: 'text-slate-500' },
+        { label: 'Drafts',         value: listings.filter(l => l.status === 'DRAFT').length,    color: 'text-slate-400' },
       ]
     : [
-        { label: 'Listings',  value: '0',      color: 'text-slate-500' },
+        { label: 'Listings',  value: '0',      color: 'text-slate-400' },
         { label: 'Role',      value: 'Tenant', color: 'text-slate-500' },
-        { label: 'Visits',    value: '—',      color: 'text-slate-500' },
+        { label: 'Visits',    value: '—',      color: 'text-slate-400' },
       ]
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Welcome back — here&apos;s your overview.</p>
+        <p className="text-sm text-slate-400 mt-0.5">Welcome back — here&apos;s your overview.</p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {stats.map(({ label, value, color }) => (
           <div key={label} className="bg-white rounded-2xl border border-slate-100 p-5">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{label}</p>
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">{label}</p>
             <p className={`text-3xl font-bold ${color}`}>{value}</p>
           </div>
         ))}
@@ -68,7 +68,7 @@ function OverviewSection({ listings, isOwner, onListProperty }) {
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-800">List a property</p>
-              <p className="text-xs text-slate-500">Add a new rental to StayOnMap</p>
+              <p className="text-xs text-slate-400">Add a new rental to StayOnMap</p>
             </div>
           </button>
           <Link
@@ -80,7 +80,7 @@ function OverviewSection({ listings, isOwner, onListProperty }) {
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-800">Browse properties</p>
-              <p className="text-xs text-slate-500">Explore rentals on the map</p>
+              <p className="text-xs text-slate-400">Explore rentals on the map</p>
             </div>
           </Link>
         </div>
@@ -93,11 +93,11 @@ function OverviewSection({ listings, isOwner, onListProperty }) {
 function ComingSoon({ icon: IconComp, title, description }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 mb-4">
+      <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-4">
         <IconComp size={24} strokeWidth={1.8} />
       </div>
       <h2 className="text-lg font-bold text-slate-800 mb-1">{title}</h2>
-      <p className="text-sm text-slate-500 max-w-xs">{description}</p>
+      <p className="text-sm text-slate-400 max-w-xs">{description}</p>
     </div>
   )
 }
@@ -114,7 +114,7 @@ function WishlistSection() {
       <div className="space-y-5">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Wishlist</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Properties you&apos;ve saved</p>
+          <p className="text-sm text-slate-400 mt-0.5">Properties you&apos;ve saved</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map(i => <div key={i} className="bg-slate-100 animate-pulse rounded-xl h-64" />)}
@@ -126,11 +126,11 @@ function WishlistSection() {
   if (!saved.length) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 mb-4">
+        <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-4">
           <Heart size={24} strokeWidth={1.8} />
         </div>
         <h2 className="text-lg font-bold text-slate-800 mb-1">No saved properties</h2>
-        <p className="text-sm text-slate-500 max-w-xs">
+        <p className="text-sm text-slate-400 max-w-xs">
           Tap the heart on any listing to save it here for later.
         </p>
       </div>
@@ -141,7 +141,7 @@ function WishlistSection() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Wishlist</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
+        <p className="text-sm text-slate-400 mt-0.5">
           {saved.length} saved {saved.length === 1 ? 'property' : 'properties'}
         </p>
       </div>
@@ -224,7 +224,7 @@ function WishlistCard({ property }) {
             {property.title}
           </h3>
           {property.address && (
-            <p className="text-[11px] text-slate-500 mt-0.5 leading-tight line-clamp-1">
+            <p className="text-[11px] text-slate-400 mt-0.5 leading-tight line-clamp-1">
               {property.address}{property.city ? `, ${property.city}` : ''}
             </p>
           )}
@@ -271,21 +271,21 @@ function WishlistCard({ property }) {
         {/* Amenities */}
         {property.amenities?.length > 0 && (
           <div>
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Amenities</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Amenities</p>
             <div className="flex flex-wrap gap-1.5">
               {property.amenities.slice(0, 10).map((a) => (
                 <span
                   key={a.amenityId ?? a.amenity?.name}
                   className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-slate-100 rounded-lg text-[11px] text-slate-600 font-medium"
                 >
-                  <span className="text-slate-500 shrink-0">
+                  <span className="text-slate-400 shrink-0">
                     <AmenityIcon name={a.amenity?.name} size={13} />
                   </span>
                   {a.amenity?.name}
                 </span>
               ))}
               {property.amenities.length > 10 && (
-                <span className="px-2 py-1 text-[11px] text-slate-500 bg-slate-50 border border-slate-100 rounded-lg">
+                <span className="px-2 py-1 text-[11px] text-slate-400 bg-slate-50 border border-slate-100 rounded-lg">
                   +{property.amenities.length - 10}
                 </span>
               )}
@@ -314,8 +314,8 @@ function WishlistCard({ property }) {
               <Phone size={15} />
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-slate-500 font-medium">Owner contact</p>
-              <p className="text-[11px] text-slate-300 mt-0.5">Request a visit to unlock</p>
+              <p className="text-xs text-slate-400 font-medium">Owner contact</p>
+              <p className="text-[10px] text-slate-300 mt-0.5">Request a visit to unlock</p>
             </div>
             <Lock size={13} color="#cbd5e1" />
           </div>
@@ -324,15 +324,15 @@ function WishlistCard({ property }) {
         {/* Stay Score */}
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-100">
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-bold text-amber-700 uppercase tracking-widest mb-1">Stay Score</p>
+            <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-1">Stay Score</p>
             <div className="flex items-center gap-2">
               <WishlistStars score={score} />
               <span className="text-sm font-bold text-slate-800">
                 {score > 0 ? score.toFixed(1) : '—'}
-                <span className="text-xs font-normal text-slate-500">/5</span>
+                <span className="text-xs font-normal text-slate-400">/5</span>
               </span>
               {reviewCount > 0 && (
-                <span className="text-[11px] text-slate-500">({reviewCount})</span>
+                <span className="text-[11px] text-slate-400">({reviewCount})</span>
               )}
             </div>
           </div>
@@ -420,18 +420,18 @@ function CalendarSection() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Calendar</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Upcoming appointments and lease dates</p>
+        <p className="text-sm text-slate-400 mt-0.5">Upcoming appointments and lease dates</p>
       </div>
 
       <div className="bg-white border border-slate-100 rounded-2xl p-5 max-w-md">
         <div className="flex items-center justify-between mb-4">
-          <button type="button" aria-label="Previous month" onClick={() => setCursor(c => c.month === 0 ? { year: c.year - 1, month: 11 } : { ...c, month: c.month - 1 })} className="text-slate-500 hover:text-slate-700 w-8 h-8 flex items-center justify-center"><span aria-hidden="true">‹</span></button>
+          <button type="button" onClick={() => setCursor(c => c.month === 0 ? { year: c.year - 1, month: 11 } : { ...c, month: c.month - 1 })} className="text-slate-400 hover:text-slate-700 px-2">‹</button>
           <p className="text-sm font-bold text-slate-900">{monthLabel}</p>
-          <button type="button" aria-label="Next month" onClick={() => setCursor(c => c.month === 11 ? { year: c.year + 1, month: 0 } : { ...c, month: c.month + 1 })} className="text-slate-500 hover:text-slate-700 w-8 h-8 flex items-center justify-center"><span aria-hidden="true">›</span></button>
+          <button type="button" onClick={() => setCursor(c => c.month === 11 ? { year: c.year + 1, month: 0 } : { ...c, month: c.month + 1 })} className="text-slate-400 hover:text-slate-700 px-2">›</button>
         </div>
         <div className="grid grid-cols-7 gap-1">
           {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-            <div key={i} className="text-center text-[11px] font-semibold text-slate-500 py-1">{d}</div>
+            <div key={i} className="text-center text-[11px] font-semibold text-slate-400 py-1">{d}</div>
           ))}
           {cells.map((day, i) => {
             if (!day) return <div key={i} />
@@ -467,7 +467,7 @@ function CalendarSection() {
 
       <Modal isOpen={!!selectedKey} onClose={() => setSelectedKey(null)} title={selectedLabel} size="sm">
         {selectedEvents.length === 0 ? (
-          <p className="text-sm text-slate-500 text-center py-6">No bookings on this date.</p>
+          <p className="text-sm text-slate-400 text-center py-6">No bookings on this date.</p>
         ) : (
           <div className="space-y-3">
             {selectedEvents.map((e, idx) => (
@@ -475,7 +475,7 @@ function CalendarSection() {
                 <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${DOT_COLOR[e.type]}`} />
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-800 truncate">{e.label}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-400 mt-0.5">
                     {EVENT_TYPE_LABEL[e.type]}{e.person ? ` · ${e.person}` : ''}{e.detail ? ` · ${e.detail}` : ''}
                   </p>
                 </div>

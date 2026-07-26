@@ -70,13 +70,13 @@ export default function Select({
             className,
           ].join(' ')}
         >
-          <span className={`truncate text-left ${selected ? 'text-slate-800' : 'text-slate-500'}`}>
+          <span className={`truncate text-left ${selected ? 'text-slate-800' : 'text-slate-400'}`}>
             {selected ? selected.label : placeholder}
           </span>
           <ChevronDown
             size={14}
             strokeWidth={2.5}
-            className={`shrink-0 text-slate-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            className={`shrink-0 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
           />
         </button>
 
@@ -104,7 +104,7 @@ export default function Select({
               )
             })}
             {options.length === 0 && (
-              <p className="px-3 py-4 text-xs text-slate-500 text-center">No options</p>
+              <p className="px-3 py-4 text-xs text-slate-400 text-center">No options</p>
             )}
           </div>,
           document.body

@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   avatarImage: { width: 44, height: 44, borderRadius: radius.full, backgroundColor: colors.slate100 },
   avatarText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.brand700 },
   name: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
-  memberSince: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 1 },
+  memberSince: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 1 },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.xs, marginTop: spacing.sm },
   directBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.brand50,
@@ -88,9 +88,9 @@ const styles = StyleSheet.create({
   trustPillText: { fontFamily: fonts.bodySemiBold, fontSize: 11 },
   trustBlock: { marginTop: spacing.sm, gap: 4 },
   trustHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  trustLabel: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.slate500 },
-  trustLevel: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
+  trustLabel: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.slate400 },
+  trustLevel: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
   trustTrack: { height: 4, backgroundColor: colors.slate100, borderRadius: radius.full, overflow: 'hidden' },
   trustFill: { height: '100%', borderRadius: radius.full },
-  responseRate: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
+  responseRate: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
 })

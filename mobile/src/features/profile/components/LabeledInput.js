@@ -9,7 +9,7 @@ export default function LabeledInput({ label, error, multiline = false, style, .
       <Text style={styles.label}>{label}</Text>
       <TextInput
         style={[styles.input, multiline && styles.inputMultiline, error && styles.inputError, style]}
-        placeholderTextColor={colors.slate500}
+        placeholderTextColor={colors.slate400}
         multiline={multiline}
         accessibilityLabel={label}
         {...inputProps}

@@ -38,7 +38,6 @@ export default function LocationMapCard({ lat, lng }) {
           rotateEnabled={false}
           pitchEnabled={false}
           pointerEvents="none"
-          userInterfaceStyle="light"
         >
           <Marker coordinate={{ latitude: lat, longitude: lng }} />
         </NativeMapView>

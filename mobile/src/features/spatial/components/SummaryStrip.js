@@ -54,7 +54,7 @@ export default function SummaryStrip({ envelopes, onOpenModule }) {
               accessibilityLabel={`${chip.count} ${chip.label} nearby — open details`}
               style={styles.chip}
             >
-              <Glyph size={13} color={colors.slate500} strokeWidth={2} />
+              <Glyph size={13} color={colors.slate400} strokeWidth={2} />
               <Text style={styles.count}>{chip.count}</Text>
               <Text style={styles.label}>{chip.label}</Text>
             </Pressable>
@@ -74,7 +74,7 @@ export default function SummaryStrip({ envelopes, onOpenModule }) {
 const styles = StyleSheet.create({
   wrap: { marginTop: spacing.sm },
   heading: {
-    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500,
+    fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.slate500,
     textTransform: 'uppercase', letterSpacing: 0.5,
   },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
@@ -85,5 +85,5 @@ const styles = StyleSheet.create({
   },
   count: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.slate800 },
   label: { fontFamily: fonts.body, fontSize: 11, color: colors.slate600 },
-  sparseNote: { fontFamily: fonts.body, fontSize: 11, lineHeight: 14, color: colors.slate500, marginTop: 6 },
+  sparseNote: { fontFamily: fonts.body, fontSize: 10, lineHeight: 14, color: colors.slate400, marginTop: 6 },
 })

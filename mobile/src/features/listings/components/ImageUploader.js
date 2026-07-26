@@ -86,10 +86,10 @@ const styles = StyleSheet.create({
   thumbWrap: { width: 88, height: 88, borderRadius: radius.md, overflow: 'hidden' },
   thumb: { width: '100%', height: '100%' },
   coverBadge: { position: 'absolute', bottom: 4, left: 4, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
-  coverBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.white },
+  coverBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 9, color: colors.white },
   removeButton: { position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
   addButton: { width: 88, height: 88, borderRadius: radius.md, borderWidth: 1, borderColor: colors.slate200, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: colors.slate50 },
   addButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand600 },
   error: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.danger, marginTop: spacing.sm },
-  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: spacing.sm },
+  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: spacing.sm },
 })

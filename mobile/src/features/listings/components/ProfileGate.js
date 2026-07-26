@@ -101,8 +101,8 @@ const styles = StyleSheet.create({
   tickPending: { borderWidth: 2, borderColor: colors.slate300 },
   rowText: { flex: 1, minWidth: 0 },
   rowLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
-  rowLabelDone: { color: colors.slate500, textDecorationLine: 'line-through' },
-  rowHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2, lineHeight: 16 },
+  rowLabelDone: { color: colors.slate400, textDecorationLine: 'line-through' },
+  rowHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2, lineHeight: 16 },
   primaryButton: {
     alignSelf: 'stretch', marginTop: spacing.xl, minHeight: 48, borderRadius: radius.lg,
     backgroundColor: colors.slate900, flexDirection: 'row',

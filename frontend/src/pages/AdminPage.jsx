@@ -51,7 +51,7 @@ function ChartCard({ title, value, footer, children }) {
       <div className="flex-1 px-4 py-3">{children}</div>
       {footer && (
         <div className="px-5 py-3 border-t border-slate-100 shrink-0">
-          <p className="text-xs text-slate-500">{footer}</p>
+          <p className="text-xs text-slate-400">{footer}</p>
         </div>
       )}
     </div>
@@ -113,7 +113,7 @@ function PropertyDonut({ data }) {
         <Doughnut data={chartData} options={options} />
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <span className="text-3xl font-bold text-slate-900">{total}</span>
-          <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-widest">Total</span>
+          <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">Total</span>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-2">
@@ -238,7 +238,7 @@ function OverviewSection() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Overview</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Platform health at a glance.</p>
+        <p className="text-sm text-slate-400 mt-0.5">Platform health at a glance.</p>
       </div>
 
       {/* Row 1: Total Users full width */}
@@ -340,7 +340,7 @@ function AdminPasswordField({ label, value, onChange, autoComplete }) {
         <button
           type="button"
           onClick={() => setShow((v) => !v)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 rounded"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 rounded"
           tabIndex={-1}
           aria-label={show ? 'Hide password' : 'Show password'}
         >
@@ -402,8 +402,7 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
         </div>
         <button
           onClick={onClose}
-          aria-label="Close"
-          className="shrink-0 p-1 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          className="shrink-0 p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
         >
           <X size={16} />
         </button>
@@ -422,14 +421,12 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
                 <>
                   <button
                     onClick={() => setImgIdx(i => (i - 1 + images.length) % images.length)}
-                    aria-label="Previous image"
                     className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center"
                   >
                     <ChevronLeft size={12} color="white" strokeWidth={2.5} />
                   </button>
                   <button
                     onClick={() => setImgIdx(i => (i + 1) % images.length)}
-                    aria-label="Next image"
                     className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center"
                   >
                     <ChevronRight size={12} color="white" strokeWidth={2.5} />
@@ -461,7 +458,7 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
                   {priceLabel(property)}
                 </p>
                 {property?.deposit > 0 && (
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-slate-400 mt-1">
                     {property?.type === 'LAND' ? 'Advance' : 'Deposit'}: ₹{Number(property.deposit).toLocaleString('en-IN')}
                   </p>
                 )}
@@ -469,7 +466,7 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
               {property?.maintenance > 0 && (
                 <p className="text-xs text-slate-500 text-right">
                   +₹{Number(property.maintenance).toLocaleString('en-IN')}<br />
-                  <span className="text-slate-500">maintenance</span>
+                  <span className="text-slate-400">maintenance</span>
                 </p>
               )}
             </div>
@@ -500,7 +497,7 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
 
           {!isLoading && property?.address && (
             <div className="flex items-start gap-1.5">
-              <MapPin className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" strokeWidth={1.8} />
+              <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" strokeWidth={1.8} />
               <p className="text-xs text-slate-500 leading-snug">
                 {property.address}{property.city ? `, ${property.city}` : ''}{property.state ? `, ${property.state}` : ''}
               </p>
@@ -512,19 +509,19 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
               <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
                 {property.owner.avatarUrl
                   ? <img src={property.owner.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
-                  : <span className="text-[11px] font-bold text-slate-500">{(property.owner.name || property.owner.email || '?')[0].toUpperCase()}</span>
+                  : <span className="text-[10px] font-bold text-slate-500">{(property.owner.name || property.owner.email || '?')[0].toUpperCase()}</span>
                 }
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-slate-700 truncate">{property.owner.name || property.owner.email?.split('@')[0]}</p>
-                <p className="text-[11px] text-slate-500">Owner</p>
+                <p className="text-[10px] text-slate-400">Owner</p>
               </div>
             </div>
           )}
 
           {amenities.length > 0 && !isLoading && (
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Amenities</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Amenities</p>
               <div className="flex flex-wrap gap-1.5">
                 {amenities.slice(0, 8).map(a => (
                   <span key={a.amenity?.name} className="px-2 py-1 bg-slate-50 border border-slate-100 rounded-lg text-xs text-slate-600 whitespace-nowrap">
@@ -532,7 +529,7 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
                   </span>
                 ))}
                 {amenities.length > 8 && (
-                  <span className="px-2 py-1 text-xs text-slate-500 bg-slate-50 border border-slate-100 rounded-lg">+{amenities.length - 8} more</span>
+                  <span className="px-2 py-1 text-xs text-slate-400 bg-slate-50 border border-slate-100 rounded-lg">+{amenities.length - 8} more</span>
                 )}
               </div>
             </div>
@@ -861,7 +858,7 @@ function Avatar({ name, email, avatarUrl, size = 6 }) {
   if (avatarUrl) return <img src={avatarUrl} alt="" className={`${cls} rounded-full object-cover shrink-0`} />
   return (
     <div className={`${cls} rounded-full bg-slate-200 flex items-center justify-center shrink-0`}>
-      <span className="text-[11px] font-bold text-slate-500">{display[0]?.toUpperCase()}</span>
+      <span className="text-[10px] font-bold text-slate-500">{display[0]?.toUpperCase()}</span>
     </div>
   )
 }
@@ -934,7 +931,7 @@ function ReviewCard({ property, onSelect }) {
         <div>
           <p className="text-sm font-bold text-slate-800 truncate">{property.title}</p>
           {property.displayId && (
-            <p className="text-[11px] font-mono text-slate-500">{property.displayId}</p>
+            <p className="text-[10px] font-mono text-slate-400">{property.displayId}</p>
           )}
           <p className="text-xs text-slate-500 mt-0.5">
             {priceText}
@@ -1040,7 +1037,7 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
                 <button
                   onClick={() => navigator.clipboard.writeText(property.displayId)}
                   title="Click to copy"
-                  className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 text-[11px] font-mono font-semibold text-slate-500 hover:bg-slate-200 transition-colors"
+                  className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-[11px] font-mono font-semibold text-slate-500 hover:bg-slate-200 transition-colors"
                 >
                   {property.displayId}
                   <Copy size={10} strokeWidth={2.5} />
@@ -1127,16 +1124,16 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
                       />
                     </div>
                     <div className="flex items-center gap-2 mt-2.5">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50 border border-blue-100 text-[11px] font-semibold text-blue-700">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-100 text-[11px] font-semibold text-blue-700">
                         📅 {u.appointmentCount} appt{u.appointmentCount !== 1 ? 's' : ''}
                       </span>
                       {u.visitedCount > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-green-50 border border-green-100 text-[11px] font-semibold text-green-700">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-50 border border-green-100 text-[11px] font-semibold text-green-700">
                           ✓ visited
                         </span>
                       )}
                       {u.hasConversation && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-50 border border-purple-100 text-[11px] font-semibold text-purple-700">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 border border-purple-100 text-[11px] font-semibold text-purple-700">
                           💬 chatted
                         </span>
                       )}
@@ -1178,12 +1175,12 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
                     {userReports.map(r => (
                       <div key={r.id} className="p-3.5 rounded-xl border border-slate-100 space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded-lg text-[11px] font-bold uppercase ${SEV_COLOR_PILL[r.severity] ?? 'bg-slate-100 text-slate-600'}`}>{r.severity}</span>
+                          <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold uppercase ${SEV_COLOR_PILL[r.severity] ?? 'bg-slate-100 text-slate-600'}`}>{r.severity}</span>
                           <span className="text-xs font-medium text-slate-600">{r.category?.replace(/_/g, ' ')}</span>
-                          <span className={`ml-auto px-2 py-0.5 rounded-lg text-[11px] font-semibold ${r.status === 'PENDING' ? 'bg-yellow-50 text-yellow-700' : r.status === 'RESOLVED' ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{r.status}</span>
+                          <span className={`ml-auto px-2 py-0.5 rounded-md text-[11px] font-semibold ${r.status === 'PENDING' ? 'bg-yellow-50 text-yellow-700' : r.status === 'RESOLVED' ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{r.status}</span>
                         </div>
                         <p className="text-sm text-slate-600 leading-relaxed">{r.description}</p>
-                        <p className="text-xs text-slate-500">{fmtDate(r.createdAt)}</p>
+                        <p className="text-xs text-slate-400">{fmtDate(r.createdAt)}</p>
                       </div>
                     ))}
                   </div>
@@ -1201,7 +1198,7 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
                       <div key={a.id} className="p-3.5 rounded-xl border border-slate-100 space-y-2">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-sm font-medium text-slate-700">📅 {fmtDate(a.requestedDate)}{a.requestedTime ? ` at ${a.requestedTime}` : ''}</span>
-                          <span className={`shrink-0 px-2 py-0.5 rounded-lg text-[11px] font-semibold ${APPT_BADGE[a.status] ?? 'bg-slate-100 text-slate-600'}`}>{a.status}</span>
+                          <span className={`shrink-0 px-2 py-0.5 rounded-md text-[11px] font-semibold ${APPT_BADGE[a.status] ?? 'bg-slate-100 text-slate-600'}`}>{a.status}</span>
                         </div>
                         {a.contactNumber && <p className="text-xs text-slate-500">📞 {a.contactNumber}</p>}
                         {a.message && (
@@ -1239,12 +1236,12 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
                               <div className="flex items-center gap-2 mb-1">
                                 <span className={`text-xs font-semibold ${isOwner ? 'text-white/80' : 'text-slate-500'}`}>{senderLabel}</span>
                                 {m.editedAt && !m.deletedAt && (
-                                  <span className={`text-[11px] ${isOwner ? 'text-white/50' : 'text-slate-500'}`}>edited</span>
+                                  <span className={`text-[10px] ${isOwner ? 'text-white/50' : 'text-slate-400'}`}>edited</span>
                                 )}
-                                <span className={`text-[11px] ${isOwner ? 'text-white/50' : 'text-slate-500'}`}>{new Date(m.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                <span className={`text-[10px] ${isOwner ? 'text-white/50' : 'text-slate-400'}`}>{new Date(m.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
                               </div>
                               {m.deletedAt ? (
-                                <p className={`text-sm italic ${isOwner ? 'text-white/70' : 'text-slate-500'}`}>This message was deleted</p>
+                                <p className={`text-sm italic ${isOwner ? 'text-white/70' : 'text-slate-400'}`}>This message was deleted</p>
                               ) : (
                                 <>
                                   {m.attachmentUrl && (
@@ -1337,7 +1334,7 @@ function ReviewListingsSection() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Review Listings</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Review and approve submitted listings. Click any card for full details.</p>
+        <p className="text-sm text-slate-400 mt-0.5">Review and approve submitted listings. Click any card for full details.</p>
       </div>
 
       {/* Status list comes from the shared config — this used to be an inline
@@ -1393,7 +1390,7 @@ function UsersSection() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Users</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Search and manage platform users.</p>
+        <p className="text-sm text-slate-400 mt-0.5">Search and manage platform users.</p>
       </div>
 
       <input
@@ -1411,24 +1408,24 @@ function UsersSection() {
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
                 {['User ID', 'Name', 'Email', 'Role', 'City', 'Properties', 'Status', 'Action'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
+                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {(data?.users ?? []).map(u => (
                 <tr key={u.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 text-[11px] font-mono text-slate-500">{u.displayId ?? '—'}</td>
+                  <td className="px-4 py-3 text-[11px] font-mono text-slate-400">{u.displayId ?? '—'}</td>
                   <td className="px-4 py-3 font-medium text-slate-800">{u.name ?? '—'}</td>
                   <td className="px-4 py-3 text-slate-500 max-w-48 truncate">{u.email}</td>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td className="px-4 py-3 text-slate-400">
                     {u.role}
                     {u.isBusiness && (
-                      <span className="ml-1.5 px-1.5 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-600 uppercase">Biz</span>
+                      <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 uppercase">Biz</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-slate-500">{u.city ?? '—'}</td>
-                  <td className="px-4 py-3 text-slate-500">{u._count?.properties ?? 0}</td>
+                  <td className="px-4 py-3 text-slate-400">{u.city ?? '—'}</td>
+                  <td className="px-4 py-3 text-slate-400">{u._count?.properties ?? 0}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.isBlocked ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
                       {u.isBlocked ? 'Blocked' : 'Active'}
@@ -1445,7 +1442,7 @@ function UsersSection() {
                 </tr>
               ))}
               {(data?.users ?? []).length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-slate-500">No users found.</td></tr>
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-slate-400">No users found.</td></tr>
               )}
             </tbody>
           </table>
@@ -1466,7 +1463,7 @@ function WaitlistSection() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Waitlist</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
+        <p className="text-sm text-slate-400 mt-0.5">
           Signups from cities we haven&apos;t launched in yet — {data?.total ?? 0} total.
         </p>
       </div>
@@ -1479,7 +1476,7 @@ function WaitlistSection() {
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
                 {['Name', 'Email', 'City', 'Signed up'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
+                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1491,13 +1488,13 @@ function WaitlistSection() {
                   <td className="px-4 py-3">
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">{entry.city}</span>
                   </td>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td className="px-4 py-3 text-slate-400">
                     {new Date(entry.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
                 </tr>
               ))}
               {(data?.entries ?? []).length === 0 && (
-                <tr><td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-500">No waitlist signups yet.</td></tr>
+                <tr><td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-400">No waitlist signups yet.</td></tr>
               )}
             </tbody>
           </table>
@@ -1534,7 +1531,7 @@ function ReportsSection() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Reports</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Moderate user-submitted reports.</p>
+        <p className="text-sm text-slate-400 mt-0.5">Moderate user-submitted reports.</p>
       </div>
 
       <div className="flex gap-2 flex-wrap">
@@ -1560,10 +1557,10 @@ function ReportsSection() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${SEV_COLOR[r.severity]}`}>{r.severity}</span>
                     <span className="text-xs text-slate-500">{r.category?.replace(/_/g, ' ')}</span>
-                    <span className="text-xs text-slate-500">{new Date(r.createdAt).toLocaleDateString('en-IN')}</span>
+                    <span className="text-xs text-slate-400">{new Date(r.createdAt).toLocaleDateString('en-IN')}</span>
                   </div>
                   <p className="text-sm text-slate-700 mt-2 line-clamp-2">{r.description}</p>
-                  {r.property && <p className="text-xs text-slate-500 mt-1">{r.property.title} · {r.property.city}</p>}
+                  {r.property && <p className="text-xs text-slate-400 mt-1">{r.property.title} · {r.property.city}</p>}
                 </div>
                 <div className="w-36 shrink-0">
                   <Select
@@ -1577,7 +1574,7 @@ function ReportsSection() {
             </div>
           ))}
           {(data?.reports ?? []).length === 0 && (
-            <div className="text-center py-12 bg-white border border-slate-100 rounded-2xl text-sm text-slate-500">No reports found.</div>
+            <div className="text-center py-12 bg-white border border-slate-100 rounded-2xl text-sm text-slate-400">No reports found.</div>
           )}
         </div>
       )}
@@ -1638,19 +1635,19 @@ function AdminReviewCard({ r, onAction, busy }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-semibold text-slate-800">{name}</span>
-              <span className="text-xs text-slate-500">{REVIEWER_TYPE_LABEL[r.reviewerType] ?? ''}</span>
+              <span className="text-xs text-slate-400">{REVIEWER_TYPE_LABEL[r.reviewerType] ?? ''}</span>
               {r.recommend != null && (
-                <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                   r.recommend ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
                 }`}>
                   {r.recommend ? '👍 Recommends' : '👎 Not recommended'}
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">{date}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{date}</p>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${REVIEW_STATUS_PILL[r.status] ?? 'bg-slate-100 text-slate-500'}`}>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${REVIEW_STATUS_PILL[r.status] ?? 'bg-slate-100 text-slate-500'}`}>
               {r.status.charAt(0) + r.status.slice(1).toLowerCase()}
             </span>
             <div className="flex items-center gap-1">
@@ -1667,9 +1664,9 @@ function AdminReviewCard({ r, onAction, busy }) {
             onClick={() => setSearchParams({ tab: 'review-listings', propertyId: r.property.id })}
             className="w-full flex items-center gap-2 bg-slate-50 hover:bg-brand-50 border border-slate-100 hover:border-brand-200 rounded-xl px-3 py-2 transition-colors group text-left"
           >
-            <Building2 className="w-3.5 h-3.5 text-slate-500 group-hover:text-brand-500 shrink-0" strokeWidth={2} />
+            <Building2 className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-500 shrink-0" strokeWidth={2} />
             <span className="text-xs font-semibold text-slate-700 group-hover:text-brand-700 truncate flex-1">{r.property.title}</span>
-            <span className="text-xs text-slate-500 shrink-0">{r.property.city}</span>
+            <span className="text-xs text-slate-400 shrink-0">{r.property.city}</span>
             <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-brand-400 shrink-0" strokeWidth={2} />
           </button>
         )}
@@ -1693,11 +1690,11 @@ function AdminReviewCard({ r, onAction, busy }) {
               const val = r[key] ?? 0
               return (
                 <div key={key} className="flex items-center gap-2">
-                  <span className="text-[11px] text-slate-500 w-20 shrink-0">{label}</span>
+                  <span className="text-[10px] text-slate-400 w-20 shrink-0">{label}</span>
                   <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                     <div className="h-full bg-amber-400 rounded-full" style={{ width: `${(val / 5) * 100}%` }} />
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-600 w-4 text-right shrink-0">{val}</span>
+                  <span className="text-[10px] font-semibold text-slate-600 w-4 text-right shrink-0">{val}</span>
                 </div>
               )
             })}
@@ -1707,7 +1704,7 @@ function AdminReviewCard({ r, onAction, busy }) {
         {/* Owner response */}
         {r.ownerResponse && (
           <div className="ml-2 border-l-2 border-brand-200 pl-3">
-            <p className="text-[11px] font-bold text-brand-600 uppercase tracking-wide mb-1">Owner response</p>
+            <p className="text-[10px] font-bold text-brand-600 uppercase tracking-wide mb-1">Owner response</p>
             <p className="text-xs text-slate-600 leading-relaxed">{r.ownerResponse}</p>
           </div>
         )}
@@ -1782,7 +1779,7 @@ function AdminReviewsSection() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Reviews</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Moderate community reviews before they go live.</p>
+        <p className="text-sm text-slate-400 mt-0.5">Moderate community reviews before they go live.</p>
       </div>
 
       {/* Status tabs */}
@@ -1805,7 +1802,7 @@ function AdminReviewsSection() {
         </div>
       ) : reviews.length === 0 ? (
         <div className="text-center py-20 bg-white border border-slate-100 rounded-2xl">
-          <p className="text-sm text-slate-500">No {status.toLowerCase()} reviews</p>
+          <p className="text-sm text-slate-400">No {status.toLowerCase()} reviews</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -1932,7 +1929,7 @@ function AdminSettingsSection() {
     <div className="max-w-xl space-y-6">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Settings</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Manage your profile and platform configuration</p>
+        <p className="text-sm text-slate-400 mt-0.5">Manage your profile and platform configuration</p>
       </div>
 
       {/* Profile card */}
@@ -2010,7 +2007,7 @@ function AdminSettingsSection() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
         <div className="flex items-center justify-between mb-4">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-            Amenities <span className="font-normal text-slate-500">({amenities.length})</span>
+            Amenities <span className="font-normal text-slate-400">({amenities.length})</span>
           </p>
           <button
             type="button"
@@ -2024,7 +2021,7 @@ function AdminSettingsSection() {
         {/* Icon catalogue */}
         {showCatalogue && (
           <div className="mb-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
-            <p className="text-[11px] text-slate-500 mb-2">Click a name to use it in the field below</p>
+            <p className="text-[11px] text-slate-400 mb-2">Click a name to use it in the field below</p>
             <div className="flex flex-wrap gap-1.5">
               {KNOWN_ICONS.filter(n => !existingNames.has(n)).map(name => (
                 <button
@@ -2033,13 +2030,13 @@ function AdminSettingsSection() {
                   onClick={() => { setNewAmenity(name); setShowCatalogue(false) }}
                   className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-slate-200 hover:border-brand-400 hover:bg-brand-50 text-xs text-slate-700 transition-colors"
                 >
-                  <span className="text-slate-500"><AmenityIcon name={name} size={13} /></span>
+                  <span className="text-slate-400"><AmenityIcon name={name} size={13} /></span>
                   {name}
                 </button>
               ))}
             </div>
             {KNOWN_ICONS.filter(n => !existingNames.has(n)).length === 0 && (
-              <p className="text-xs text-slate-500 text-center py-2">All known icons are already added.</p>
+              <p className="text-xs text-slate-400 text-center py-2">All known icons are already added.</p>
             )}
           </div>
         )}
@@ -2049,7 +2046,7 @@ function AdminSettingsSection() {
           <div className="flex gap-2">
             <div className="relative flex-1">
               {newAmenity.trim() && (
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                   <AmenityIcon name={newAmenity.trim()} size={15} />
                 </span>
               )}
@@ -2065,7 +2062,7 @@ function AdminSettingsSection() {
             </button>
           </div>
           {newAmenity.trim() && (
-            <p className={`text-[11px] mt-1.5 ${hasMatchingIcon ? 'text-green-600' : 'text-slate-500'}`}>
+            <p className={`text-[11px] mt-1.5 ${hasMatchingIcon ? 'text-green-600' : 'text-slate-400'}`}>
               {hasMatchingIcon ? '✓ Icon matched' : 'No icon match — will use default icon. Try browsing above.'}
             </p>
           )}
@@ -2075,13 +2072,13 @@ function AdminSettingsSection() {
         {amenitiesLoading ? (
           <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-9 bg-slate-100 rounded-xl animate-pulse" />)}</div>
         ) : amenities.length === 0 ? (
-          <p className="text-sm text-slate-500 text-center py-6">No amenities yet.</p>
+          <p className="text-sm text-slate-400 text-center py-6">No amenities yet.</p>
         ) : (
           <ul className="space-y-1.5">
             {amenities.map(a => (
               <li key={a.id} className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 border border-slate-100">
                 <div className="flex items-center gap-2.5">
-                  <span className="text-slate-500 shrink-0"><AmenityIcon name={a.name} size={15} /></span>
+                  <span className="text-slate-400 shrink-0"><AmenityIcon name={a.name} size={15} /></span>
                   <span className="text-sm text-slate-700">{a.name}</span>
                 </div>
                 <button onClick={() => handleDelete(a.id)} className="text-xs text-red-500 hover:text-red-700 font-medium shrink-0">

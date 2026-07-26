@@ -131,7 +131,7 @@ export default function FilterSheet({
                   }`}
                 >
                   <span className={`text-sm ${active ? 'font-semibold' : 'font-medium'}`}>{m.label}</span>
-                  <span className="text-[11px] text-slate-500 leading-tight text-left">{m.hint}</span>
+                  <span className="text-[11px] text-slate-400 leading-tight text-left">{m.hint}</span>
                 </button>
               )
             })}

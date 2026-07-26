@@ -86,12 +86,12 @@ export default function AreaInsightCard() {
               {isLoading ? <span className="block h-5 w-28 bg-slate-100 animate-pulse rounded" /> : area?.name}
             </p>
             {area?.fullName && area.fullName !== area.name && (
-              <p className="text-xs text-slate-500 truncate">{area.fullName}</p>
+              <p className="text-xs text-slate-400 truncate">{area.fullName}</p>
             )}
           </div>
           <button
             onClick={() => setSelectedArea(null)}
-            className="shrink-0 text-slate-500 hover:text-slate-600 mt-0.5"
+            className="shrink-0 text-slate-400 hover:text-slate-600 mt-0.5"
             aria-label="Close"
           >
             <X className="w-4 h-4" strokeWidth={2} />
@@ -100,7 +100,7 @@ export default function AreaInsightCard() {
 
         {area?.avgRent && (
           <p className="text-sm font-semibold text-brand-700 mt-1">
-            ~{formatCurrency(area.avgRent)}<span className="font-normal text-slate-500 text-xs">/mo avg rent</span>
+            ~{formatCurrency(area.avgRent)}<span className="font-normal text-slate-400 text-xs">/mo avg rent</span>
           </p>
         )}
       </div>
@@ -126,7 +126,7 @@ export default function AreaInsightCard() {
           {area.bestFor?.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {area.bestFor.map((b) => (
-                <span key={b} className="text-[11px] font-medium bg-brand-50 text-brand-700 rounded-full px-2 py-0.5">
+                <span key={b} className="text-[10px] font-medium bg-brand-50 text-brand-700 rounded-full px-2 py-0.5">
                   {b}
                 </span>
               ))}

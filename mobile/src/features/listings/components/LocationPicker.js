@@ -32,13 +32,13 @@ export default function LocationPicker({ value, onChange }) {
     <View style={{ gap: spacing.sm }}>
       <View style={styles.searchRow}>
         <View style={styles.searchInputWrap}>
-          <Icon name="mapPin" size={16} color={colors.slate500} />
+          <Icon name="mapPin" size={16} color={colors.slate400} />
           <TextInput
             style={styles.searchInput}
             value={query}
             onChangeText={setQuery}
             placeholder="Search area, e.g. Koramangala, Bengaluru"
-            placeholderTextColor={colors.slate500}
+            placeholderTextColor={colors.slate400}
             onSubmitEditing={handleSearch}
             returnKeyType="search"
           />
@@ -54,7 +54,6 @@ export default function LocationPicker({ value, onChange }) {
         style={styles.map}
         initialRegion={initialRegion}
         onPress={(e) => onChange({ lat: e.nativeEvent.coordinate.latitude, lng: e.nativeEvent.coordinate.longitude })}
-        userInterfaceStyle="light"
       >
         {value && (
           <Marker
@@ -86,5 +85,5 @@ const styles = StyleSheet.create({
   searchButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.lg, alignItems: 'center', justifyContent: 'center' },
   searchButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   map: { width: '100%', height: 200, borderRadius: radius.md },
-  hint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
+  hint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
 })

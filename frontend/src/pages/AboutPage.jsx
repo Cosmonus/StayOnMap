@@ -141,7 +141,7 @@ export default function AboutPage() {
               </div>
               <p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-3">Our Mission</p>
               <h3 className="text-xl font-bold text-white mb-3 leading-snug">Make renting in India transparent, fair, and broker-free.</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">
+              <p className="text-sm text-slate-400 leading-relaxed">
                 Every tenant should see every listing — no paywalls, no pay-per-contact. Every owner should be able to manage their property without paying a middleman. We&apos;re building the tools to make that happen.
               </p>
             </div>
@@ -275,13 +275,13 @@ export default function AboutPage() {
                     <MapPin className="w-6 h-6 text-brand-600 group-hover:text-white transition-colors" strokeWidth={1.8} />
                   </div>
                   <h3 className="text-lg font-bold text-slate-900 mb-1">{city.name}</h3>
-                  <p className="text-xs text-slate-500 mb-3">{city.state}</p>
+                  <p className="text-xs text-slate-400 mb-3">{city.state}</p>
                   <p className="text-sm font-bold text-brand-600">{isLoading ? '…' : `${byCity[city.name] ?? 0} listings`}</p>
                   <div className="flex flex-wrap justify-center gap-1.5 mt-3">
                     {city.areas.slice(0, 4).map(area => (
-                      <span key={area} className="px-2 py-0.5 rounded-lg text-[11px] font-medium bg-slate-50 text-slate-500 border border-slate-100">{area}</span>
+                      <span key={area} className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-50 text-slate-500 border border-slate-100">{area}</span>
                     ))}
-                    {city.areas.length > 4 && <span className="px-2 py-0.5 rounded-lg text-[11px] font-medium bg-slate-50 text-slate-500">+{city.areas.length - 4} more</span>}
+                    {city.areas.length > 4 && <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-50 text-slate-400">+{city.areas.length - 4} more</span>}
                   </div>
                 </div>
               </Link>
@@ -315,7 +315,7 @@ export default function AboutPage() {
 
               {/* Bio side */}
               <div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">The person behind it</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">The person behind it</p>
                 <h2 className="font-display font-bold text-2xl sm:text-3xl text-slate-900 mb-4">Sri Gokul Krishnan</h2>
                 <p className="text-sm sm:text-base text-slate-500 leading-relaxed mb-4">
                   Based in Chennai. I built StayOnMap after spending weeks searching for a rental — finding paywalls instead of listings, and commission demands instead of conversations. The tools for owners and tenants to work together directly just didn&apos;t exist. So I built them.
@@ -338,7 +338,7 @@ export default function AboutPage() {
               <h2 className="font-display font-bold text-3xl sm:text-4xl md:text-5xl text-white leading-tight mb-4">
                 Ready to find your home?
               </h2>
-              <p className="text-sm sm:text-base text-slate-500 max-w-lg mx-auto mb-8">
+              <p className="text-sm sm:text-base text-slate-400 max-w-lg mx-auto mb-8">
                 Every listing is visible. No paywalls. No commission. Just homes — pinned on a map.
               </p>
               <div className="flex items-center justify-center gap-3 flex-wrap">

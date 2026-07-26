@@ -127,7 +127,7 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
             })}
           />
           {windowStart && windowEnd && (
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-[10px] text-slate-400 mt-1">
               Owner available {windowStart.replace(/^0/, '')} – {windowEnd.replace(/^0/, '')}
             </p>
           )}
@@ -144,7 +144,7 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
         />
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">Message <span className="text-slate-500">(optional)</span></label>
+        <label className="block text-xs font-medium text-slate-600 mb-1">Message <span className="text-slate-400">(optional)</span></label>
         <textarea
           rows={3}
           placeholder="Anything the owner should know..."

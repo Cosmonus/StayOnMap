@@ -31,12 +31,12 @@ export default function ChipGroup({ label, options, value, single = false, searc
       {label && <Text style={styles.label}>{label}</Text>}
       {searchable && (
         <View style={styles.searchWrap}>
-          <Icon name="search" size={13} color={colors.slate500} />
+          <Icon name="search" size={13} color={colors.slate400} />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder="Search amenities"
-            placeholderTextColor={colors.slate500}
+            placeholderTextColor={colors.slate400}
             style={styles.searchInput}
           />
         </View>
@@ -69,5 +69,5 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, paddingVertical: 8, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate700 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  empty: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500 },
+  empty: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400 },
 })

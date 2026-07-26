@@ -72,7 +72,7 @@ export default function DatePickerSheet({ visible, title, value, onSelect, onClo
               accessibilityRole="button"
               accessibilityLabel="Previous month"
             >
-              <Icon name="chevronLeft" size={20} color={colors.slate500} />
+              <Icon name="chevronLeft" size={20} color={colors.slate400} />
             </Pressable>
             <Text style={styles.monthLabel}>{monthLabel}</Text>
             <Pressable
@@ -81,7 +81,7 @@ export default function DatePickerSheet({ visible, title, value, onSelect, onClo
               accessibilityRole="button"
               accessibilityLabel="Next month"
             >
-              <Icon name="chevronRight" size={20} color={colors.slate500} />
+              <Icon name="chevronRight" size={20} color={colors.slate400} />
             </Pressable>
           </View>
 
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   monthLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
   weekRow: { flexDirection: 'row' },
-  weekday: { width: CELL_WIDTH, textAlign: 'center', fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500, paddingVertical: 4 },
+  weekday: { width: CELL_WIDTH, textAlign: 'center', fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400, paddingVertical: 4 },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: CELL_WIDTH, aspectRatio: 1, alignItems: 'center', justifyContent: 'center' },
   dayCircle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
