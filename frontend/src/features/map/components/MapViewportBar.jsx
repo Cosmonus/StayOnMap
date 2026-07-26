@@ -82,7 +82,15 @@ export default function MapViewportBar() {
 
         {/* ── What's in view, and the way into the list ── */}
         <div className="pointer-events-auto order-1 md:order-2 md:justify-self-center">
-          {count > 0 ? (
+          {/* No bounds yet means the map has not reported a viewport, so no pin
+              fetch has happened. Claiming "no homes in this view" then is a
+              false negative during loading — the single loudest way to make
+              people think the listings failed to load. */}
+          {!bounds ? (
+            <p className="rounded-full bg-slate-900/90 px-4 py-2 text-sm text-white/90 shadow-lg">
+              Loading homes…
+            </p>
+          ) : count > 0 ? (
             <div className="flex items-center gap-1 rounded-full bg-slate-900 py-1 pl-4 pr-1 text-white shadow-lg">
               <span className="text-sm">
                 <span className="font-mono font-bold">{count}</span>
