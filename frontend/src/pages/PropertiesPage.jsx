@@ -1,7 +1,7 @@
-﻿import { useMemo } from 'react'
-import { Link } from 'react-router-dom'
+﻿import { useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Home } from 'lucide-react'
+import { Home, X } from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { resolvePlace } from '@lib/googleMaps'
 import { useFilterStore } from '@store/filterStore'
@@ -69,7 +69,7 @@ export default function PropertiesPage() {
     retry: 1,
   })
 
-  const bounds = useMemo(() => {
+  const areaBounds = useMemo(() => {
     if (!area || !place) return null
     if (place.viewport) return place.viewport
     // No viewport on the geometry (rare) — a ~2km box around the point beats
@@ -77,6 +77,28 @@ export default function PropertiesPage() {
     const d = 0.02
     return { swLat: place.lat - d, swLng: place.lng - d, neLat: place.lat + d, neLng: place.lng + d }
   }, [area, place])
+
+  // The map's viewport, handed over by "See them as a list". Read once on
+  // mount: it is where the visitor was looking, not a filter, so it must not
+  // be recomputed when they change a filter here.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [mapBounds, setMapBounds] = useState(() => {
+    const n = (key) => Number(searchParams.get(key))
+    const box = { swLat: n('swLat'), swLng: n('swLng'), neLat: n('neLat'), neLng: n('neLng') }
+    const complete = Object.values(box).every((v) => Number.isFinite(v) && v !== 0)
+    return complete ? box : null
+  })
+
+  function clearMapBounds() {
+    setMapBounds(null)
+    const next = new URLSearchParams(searchParams)
+    for (const key of ['swLat', 'swLng', 'neLat', 'neLng']) next.delete(key)
+    setSearchParams(next, { replace: true })
+  }
+
+  // The viewport wins over the geocoded place: panning into one neighbourhood
+  // is more specific than the city the search box resolved to.
+  const bounds = mapBounds ?? areaBounds
 
   // Every active filter (modal included) shapes the grid — same schema-driven
   // params the map's pin fetch uses, plus the searched place's bounds.
@@ -94,7 +116,8 @@ export default function PropertiesPage() {
     // Hold the fetch until the searched place resolves — fetching unbounded
     // first would flash every listing before snapping to the searched area.
     // A failed/unresolvable geocode falls through to an unbounded fetch.
-    enabled: !area || placeResolved,
+    // A handed-over map viewport needs no geocode, so it never waits.
+    enabled: !!mapBounds || !area || placeResolved,
   })
   // isPending (not isLoading) so the geocode wait renders skeletons too —
   // a disabled query is pending but not "loading" in React Query v5 terms.
@@ -143,6 +166,25 @@ export default function PropertiesPage() {
                 ? 'No properties match your filters — try clearing the city or furnishing filter.'
                 : `${properties.length} home${properties.length !== 1 ? 's' : ''} available`}
             </p>
+
+            {/*
+              A viewport constrains the grid invisibly — without this the
+              visitor clears every filter, still sees a short list, and has no
+              way to know why. Same rule as the unjudged note below: an
+              exclusion the user can't see is an exclusion we have to say.
+            */}
+            {mapBounds && (
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 py-1.5 pl-3.5 pr-1.5 text-sm text-slate-600">
+                Showing the area you were viewing on the map
+                <button
+                  onClick={clearMapBounds}
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                  aria-label="Show homes everywhere, not just the area I was viewing"
+                >
+                  <X size={14} strokeWidth={2.5} aria-hidden="true" />
+                </button>
+              </div>
+            )}
 
             {/*
               The listings this filter could not judge either way.

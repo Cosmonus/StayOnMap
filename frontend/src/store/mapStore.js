@@ -16,6 +16,14 @@ export const useMapStore = create((set) => ({
   flyTo: null,
   searchedPlace: null,
 
+  // Refetching pins on every pan is a request storm, and it makes the results
+  // list jump under the cursor while you're reading it. On by default so
+  // behaviour is unchanged, but now it's a visible control the user can stop.
+  searchOnMove: true,
+  // Registered by useMapBounds, same pattern as flyTo — lets the overlay's
+  // "Search this area" button fetch on demand once auto-search is off.
+  refetchPins: null,
+
   // Whether the user has accepted our "Turn on location?" explainer — the
   // browser's own permission prompt is never triggered before this is true.
   locationConsent: localStorage.getItem(LOCATION_CONSENT_KEY) === 'granted',
@@ -35,6 +43,8 @@ export const useMapStore = create((set) => ({
   selectPin: (id, rect) => set({ selectedPinId: id, selectedPinRect: rect ?? null }),
   clearSelection: () => set({ selectedPinId: null, selectedPinRect: null }),
   setFlyTo: (fn) => set({ flyTo: fn }),
+  setSearchOnMove: (on) => set({ searchOnMove: on }),
+  setRefetchPins: (fn) => set({ refetchPins: fn }),
   grantLocationConsent: () => {
     localStorage.setItem(LOCATION_CONSENT_KEY, 'granted')
     set({ locationConsent: true })
