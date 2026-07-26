@@ -358,12 +358,20 @@ export default function AppointmentsScreen({ navigation, route }) {
     if (!appt.property?.id || !appt.tenant?.id) return
     setChattingId(appt.id)
     try {
-      await chatService.startWithTenant(appt.property.id, appt.tenant.id)
+      // Returns the conversation itself (getOrCreateConversation), so this
+      // opens the THREAD rather than dropping you on the inbox list to hunt
+      // for the person you just tapped. `other` is passed through because
+      // ConversationScreen titles itself from it immediately, instead of
+      // waiting for the conversations list to load and finding itself in it.
+      const convo = await chatService.startWithTenant(appt.property.id, appt.tenant.id).then((r) => r.data)
       qc.invalidateQueries({ queryKey: ['conversations'] })
       // The chat tab is 'Inbox' in host mode and 'Chat' in renter mode — the
       // same branch every other cross-tab jump makes (navigationRef.js,
       // AppointmentForm). Hardcoding either name breaks in the other mode.
-      navigation.getParent()?.navigate(hostMode ? 'Inbox' : 'Chat')
+      navigation.getParent()?.navigate(hostMode ? 'Inbox' : 'Chat', {
+        screen: 'Conversation',
+        params: { conversationId: convo.id, other: appt.tenant, otherRole: 'Tenant' },
+      })
     } catch {
       Alert.alert('Couldn’t open the chat', 'Please try again in a moment.')
     } finally {
