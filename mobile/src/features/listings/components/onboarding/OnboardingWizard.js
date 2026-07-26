@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { View, Text, Pressable, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, BackHandler, Alert, StyleSheet } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
@@ -6,29 +6,37 @@ import { availabilityService } from '@services/availability.service'
 import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import Icon from '@components/common/Icon'
-import TypePicker, { BusinessGate } from './TypePicker'
-import PhaseInterstitial from './PhaseInterstitial'
+import { BusinessGate } from './HostGates'
+import { readSavedDraft, writeSavedDraft, clearSavedDraft } from './draftStore'
+import { BasicsScreen, LocationScreen, PhotosScreen, FeaturesScreen, PriceScreen, ReviewScreen } from './WizardScreens'
 import {
-  DescribeScreen, FieldsScreen, LocationScreen, FeaturesScreen, PhotosScreen,
-  TitleScreen, DescriptionScreen, PricingScreen, ContactScreen, ReviewScreen,
-} from './WizardScreens'
-import { CATEGORIES, BUSINESS_GATED_TYPES, DESCRIBE, getScreens, phaseOf, deriveType, missingRequirements, buildPayload } from '../../config/onboarding.js'
+  CATEGORIES, BUSINESS_GATED_TYPES, DESCRIBE, STEPS,
+  deriveType, missingRequirements, buildPayload, suggestTitle, defaultRules,
+} from '../../config/onboarding.js'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
+// Six steps, the same six as web. The draft is persisted after every change (see
+// draftStore.js) — a listing takes photos, a pin and a price, and a phone WILL
+// be interrupted halfway through.
 const EMPTY_DRAFT = {
   fields: {},
   amenityNames: [],
+  rules: {},
   location: { address: '', city: '', state: '', pincode: '', landmark: '', lat: null, lng: null },
   images: [],
   title: '',
+  titlePrefilled: false,
   description: '',
-  // RENT unless the owner picks Lease on the pricing screen (only offered for
+  // RENT unless the owner picks Lease on the price step (only offered for
   // LEASE_CATEGORIES). Lives beside `pricing` rather than inside it because
   // everything in `pricing` is a money string; this is a mode.
   pricingModel: 'RENT',
   pricing: {},
+  terms: {},
+  zeroBrokerage: true,
+  brokerage: '',
   appointmentWindowStart: '',
   appointmentWindowEnd: '',
   instantBook: false,
@@ -57,10 +65,10 @@ function DoneScreen({ category, onListAnother, onDone }) {
         ))}
       </View>
       <View style={styles.doneActions}>
-        <Pressable style={styles.doneSecondaryButton} onPress={onListAnother}>
-          <Text style={styles.doneSecondaryText}>List another type</Text>
+        <Pressable style={styles.doneSecondaryButton} onPress={onListAnother} accessibilityRole="button">
+          <Text style={styles.doneSecondaryText}>List another</Text>
         </Pressable>
-        <Pressable style={styles.donePrimaryButton} onPress={onDone}>
+        <Pressable style={styles.donePrimaryButton} onPress={onDone} accessibilityRole="button">
           <Text style={styles.donePrimaryText}>Go to my listings</Text>
         </Pressable>
       </View>
@@ -68,25 +76,50 @@ function DoneScreen({ category, onListAnother, onDone }) {
   )
 }
 
-function TopBar({ title, onClose }) {
+// One bar, not two rows: back, where you are, and the way out. Six named steps
+// don't fit a phone's width, so the stepper is "Step N of 6 · Label" over a
+// single continuous progress bar rather than six labelled segments.
+function WizardBar({ step, onBack, onExit }) {
   return (
-    <View style={styles.topBar}>
-      <Text style={styles.topBarTitle}>{title}</Text>
-      <Pressable onPress={onClose} accessibilityRole="button" hitSlop={14}>
-        <Text style={styles.topBarClose}>Close</Text>
+    <View style={styles.bar}>
+      <Pressable onPress={onBack} hitSlop={16} accessibilityRole="button" accessibilityLabel="Go back" style={styles.barBack}>
+        <Icon name="chevronLeft" size={22} color={colors.slate800} />
+      </Pressable>
+      <View style={styles.barCenter}>
+        <Text style={styles.barTitle} numberOfLines={1}>Step {step.n} of {STEPS.length} · {step.label}</Text>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${(step.n / STEPS.length) * 100}%` }]} />
+        </View>
+      </View>
+      <Pressable onPress={onExit} hitSlop={16} accessibilityRole="button" accessibilityLabel="Save and exit" style={styles.barExit}>
+        <Text style={styles.barExitText}>Save &amp; exit</Text>
       </Pressable>
     </View>
   )
 }
 
+// The line under the primary button. Per step, because what reassures someone
+// differs by where they are: that nothing is lost, or that a human looks before
+// this goes live.
+const FOOTER_NOTE = {
+  basics: 'Saved automatically',
+  location: 'The pin decides your area report',
+  photos: 'Safe to close — we keep your draft',
+  features: 'Title pre-filled from your answers',
+  pricing: 'Compared with live listings nearby',
+  review: 'Reviewed by us before it goes live',
+}
+
 export default function OnboardingWizard({ onDone }) {
   const { user } = useAuth()
   const qc = useQueryClient()
-  const [stage, setStage] = useState('picker')
+  const [stage, setStage] = useState('flow')
   const [categoryKey, setCategoryKey] = useState(null)
-  const [screenIdx, setScreenIdx] = useState(0)
+  const [stepIdx, setStepIdx] = useState(0)
   const [draft, setDraft] = useState(EMPTY_DRAFT)
   const [blockError, setBlockError] = useState('')
+  const restored = useRef(false)
+  const scrollRef = useRef(null)
 
   const { data: profile } = useQuery({
     queryKey: ['me'],
@@ -98,6 +131,24 @@ export default function OnboardingWizard({ onDone }) {
     queryKey: ['amenities'],
     queryFn: () => propertyService.getAmenities().then((r) => r.data),
   })
+
+  // Restore once, on mount, before a category is chosen — never clobber a
+  // draft the owner is already typing into.
+  useEffect(() => {
+    if (restored.current) return
+    restored.current = true
+    readSavedDraft().then((s) => {
+      if (!s) return
+      setCategoryKey(s.categoryKey)
+      setDraft({ ...EMPTY_DRAFT, ...s.draft })
+      setStepIdx(s.stepIdx ?? 0)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (stage !== 'flow' || !categoryKey) return
+    writeSavedDraft({ categoryKey, stepIdx, draft })
+  }, [stage, categoryKey, stepIdx, draft])
 
   const { mutate: publish, isPending } = useMutation({
     mutationFn: async () => {
@@ -115,181 +166,142 @@ export default function OnboardingWizard({ onDone }) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['my-listings'] })
+      qc.invalidateQueries({ queryKey: ['host-dashboard'] })
+      clearSavedDraft()
       setStage('done')
     },
     onError: (err) => setBlockError(err?.message ?? 'Please try again.'),
   })
 
+  // Changing the category mid-step-1 resets the answers that only made sense
+  // for the old one — a plot's approval status is not a flat's furnishing.
   function pickCategory(key) {
+    setBlockError('')
     if (BUSINESS_GATED_TYPES.includes(key) && !profile?.isBusiness) {
       setCategoryKey(key)
       setStage('business-gate')
       return
     }
     setCategoryKey(key)
+    setDraft((d) => ({ ...d, fields: {}, amenityNames: [], rules: defaultRules(key), terms: {}, pricing: {}, pricingModel: 'RENT' }))
+  }
+
+  function startNewListing() {
+    setCategoryKey(null)
     setDraft(EMPTY_DRAFT)
-    setScreenIdx(0)
+    setStepIdx(0)
     setBlockError('')
     setStage('flow')
   }
 
-  function back() {
+  const step = STEPS[stepIdx]
+  const isLast = stepIdx === STEPS.length - 1
+  const missing = categoryKey ? missingRequirements(categoryKey, draft) : []
+  const missingProfile = profile?.missingProfileFields ?? []
+
+  function goTo(idx) {
     setBlockError('')
-    if (screenIdx > 0) { setScreenIdx((i) => i - 1); return }
-    setCategoryKey(null)
-    setStage('picker')
+    // Offer a title the moment we have enough to write one, and only into an
+    // empty field — never overwrite what the owner typed.
+    if (STEPS[idx]?.k === 'features' && !draft.title.trim()) {
+      const suggested = suggestTitle(categoryKey, draft)
+      if (suggested) setDraft((d) => ({ ...d, title: suggested, titlePrefilled: true }))
+    }
+    setStepIdx(idx)
+    scrollRef.current?.scrollTo({ y: 0, animated: false })
   }
 
+  function next() {
+    if (!categoryKey) { setBlockError('Pick what you’re listing to continue.'); return }
+    // The one mid-flow gate: step branching and type derivation hang off it.
+    if (step.k === 'basics' && draft.fields[DESCRIBE[categoryKey].k] === undefined) {
+      setBlockError(`${DESCRIBE[categoryKey].q} Make a selection to continue.`)
+      return
+    }
+    if (isLast) { publish(); return }
+    goTo(stepIdx + 1)
+  }
+
+  function back() {
+    setBlockError('')
+    if (stepIdx > 0) { goTo(stepIdx - 1); return }
+    onDone()
+  }
+
+  // Hardware back steps BACK through the flow; it may never silently discard
+  // the listing (mobile/AGENTS.md §2). The draft is saved either way, so the
+  // first-step confirm is about leaving, not losing.
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       if (stage === 'done') return false
-      if (stage === 'flow') { back(); return true }
-      if (stage === 'business-gate') { setCategoryKey(null); setStage('picker'); return true }
-      Alert.alert('Discard listing?', 'Anything you entered so far will be lost.', [
-        { text: 'Stay', style: 'cancel' },
-        { text: 'Discard', style: 'destructive', onPress: onDone },
+      if (stage === 'business-gate') { setCategoryKey(null); setStage('flow'); return true }
+      if (stepIdx > 0) { goTo(stepIdx - 1); return true }
+      if (!categoryKey) return false
+      Alert.alert('Leave this listing?', 'It stays saved as a draft — you can pick it up where you left off.', [
+        { text: 'Keep editing', style: 'cancel' },
+        { text: 'Leave', onPress: onDone },
       ])
       return true
     })
     return () => sub.remove()
   })
 
-  if (stage === 'picker') {
-    return (
-      <View style={{ flex: 1 }}>
-        <TopBar title="List your property" onClose={onDone} />
-        <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
-          <TypePicker onPick={pickCategory} />
-        </ScrollView>
-      </View>
-    )
-  }
-
   if (stage === 'business-gate') {
     return (
-      <View style={{ flex: 1 }}>
-        <TopBar title="List your property" onClose={onDone} />
-        <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
-          <BusinessGate
-            onUpgraded={() => pickCategory(categoryKey)}
-            onChooseDifferent={() => { setCategoryKey(null); setStage('picker') }}
-          />
-        </ScrollView>
-      </View>
+      <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
+        <BusinessGate
+          onUpgraded={() => { setStage('flow'); pickCategory(categoryKey) }}
+          onChooseDifferent={() => { setCategoryKey(null); setStage('flow') }}
+        />
+      </ScrollView>
     )
   }
 
   if (stage === 'done') {
     return (
-      <View style={{ flex: 1 }}>
-        <TopBar title="List your property" onClose={onDone} />
-        <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
-          <DoneScreen
-            category={CATEGORIES[categoryKey]}
-            onListAnother={() => { setCategoryKey(null); setStage('picker') }}
-            onDone={onDone}
-          />
-        </ScrollView>
-      </View>
+      <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
+        <DoneScreen category={CATEGORIES[categoryKey]} onListAnother={startNewListing} onDone={onDone} />
+      </ScrollView>
     )
   }
 
-  // stage === 'flow'
-  const screens = getScreens()
-  const screen = screens[screenIdx]
-  const isPhase = screen.k === 'phase'
-  const phase = phaseOf(screenIdx)
-  const totalScreens = screens.filter((s) => s.k !== 'phase').length
-  const doneCount = screens.slice(0, screenIdx).filter((s) => s.k !== 'phase').length
-  const pct = Math.round((doneCount / totalScreens) * 100)
-  const isLast = screenIdx === screens.length - 1
-  const missing = missingRequirements(categoryKey, draft)
-  const showFinishLater = !isPhase && !['describe', 'review'].includes(screen.k)
-    && missing.some((m) => m.screenK === screen.k)
-
-  function next() {
-    // The describe choice is the one mid-flow gate — screen branching and type
-    // derivation hang off it, and it's a single tap. Everything else surfaces
-    // at review via missingRequirements.
-    if (screen.k === 'describe' && draft.fields[DESCRIBE[categoryKey].k] === undefined) {
-      setBlockError('Make a selection to continue.')
-      return
-    }
-    setBlockError('')
-    if (isLast) { publish(); return }
-    setScreenIdx((i) => i + 1)
-  }
-
-  function jumpTo(screenK) {
-    const idx = screens.findIndex((s) => s.k === screenK)
-    if (idx >= 0) { setBlockError(''); setScreenIdx(idx) }
-  }
+  const canPublish = isLast && missing.length === 0 && missingProfile.length === 0 && !isPending
+  const stepProps = { categoryKey, draft, setDraft }
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={styles.flowHeader}>
-        <Text style={styles.flowHeaderTitle}>{CATEGORIES[categoryKey].label}</Text>
-        <Pressable style={styles.saveExitButton} onPress={onDone} accessibilityRole="button" hitSlop={8}>
-          <Text style={styles.saveExitText}>Save &amp; exit</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.phaseBar}>
-        {[1, 2, 3].map((n) => (
-          <View key={n} style={{ flex: 1 }}>
-            <View style={[styles.phaseSegment, n <= phase && styles.phaseSegmentActive]} />
-            <Text style={[styles.phaseLabel, n === phase && styles.phaseLabelActive]} numberOfLines={1}>
-              {['Tell us about your place', 'Make it stand out', 'Finish & publish'][n - 1]}
-            </Text>
-          </View>
-        ))}
-      </View>
+      <WizardBar step={step} onBack={back} onExit={onDone} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.flowContent} keyboardShouldPersistTaps="handled">
-          {isPhase && <PhaseInterstitial n={screen.n} title={screen.title} blurb={screen.blurb} />}
-          {screen.k === 'describe' && <DescribeScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'fields' && <FieldsScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'location' && <LocationScreen draft={draft} setDraft={setDraft} />}
-          {screen.k === 'features' && <FeaturesScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'photos' && <PhotosScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'title' && <TitleScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'description' && <DescriptionScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'pricing' && <PricingScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'contact' && <ContactScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'review' && <ReviewScreen categoryKey={categoryKey} draft={draft} missing={missing} onJump={jumpTo} />}
-
-          {!!blockError && <Text style={styles.blockError}>{blockError}</Text>}
-          {showFinishLater && (
-            <Text style={styles.finishLater}>
-              You can finish this later — we&apos;ll flag anything missing at review.
-            </Text>
+        <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {step.k === 'basics' && <BasicsScreen {...stepProps} onPickCategory={pickCategory} />}
+          {categoryKey && step.k === 'location' && <LocationScreen {...stepProps} />}
+          {categoryKey && step.k === 'photos' && <PhotosScreen {...stepProps} />}
+          {categoryKey && step.k === 'features' && <FeaturesScreen {...stepProps} />}
+          {categoryKey && step.k === 'pricing' && <PriceScreen {...stepProps} />}
+          {categoryKey && step.k === 'review' && (
+            <ReviewScreen {...stepProps} missing={missing} profile={profile} onJump={(k) => goTo(STEPS.findIndex((s) => s.k === k))} />
           )}
+          {!!blockError && <Text style={styles.blockError}>{blockError}</Text>}
         </ScrollView>
 
-        <View style={styles.flowFooter}>
-          <Pressable onPress={back} accessibilityRole="button" hitSlop={14}>
-            <Text style={styles.backLink}>Back</Text>
+        {/* Full-width primary action — back lives in the top bar and on the
+            hardware button, so the footer is one thumb-reachable target. */}
+        <View style={styles.footer}>
+          <Pressable
+            style={[styles.nextButton, isLast && styles.publishButton, (isPending || (isLast && !canPublish)) && styles.disabled]}
+            onPress={next}
+            disabled={isPending || (isLast && !canPublish)}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: isPending || (isLast && !canPublish) }}
+          >
+            {isPending ? (
+              <ActivityIndicator color={colors.white} size="small" />
+            ) : (
+              <Text style={styles.nextButtonText}>{isLast ? 'Publish listing' : `Next — ${step.next}`}</Text>
+            )}
           </Pressable>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-            {!isPhase && <Text style={styles.pctText}>{pct}%</Text>}
-            <Pressable
-              style={[styles.nextButton, (isPending || (isLast && missing.length > 0)) && styles.disabled]}
-              onPress={next}
-              disabled={isPending || (isLast && missing.length > 0)}
-              accessibilityRole="button"
-              accessibilityState={{ disabled: isPending || (isLast && missing.length > 0) }}
-              hitSlop={4}
-            >
-              {isPending ? (
-                <ActivityIndicator color={colors.white} size="small" />
-              ) : (
-                <Text style={styles.nextButtonText}>
-                  {isPhase ? 'Get started' : isLast ? 'Publish listing' : 'Next'}
-                </Text>
-              )}
-            </Pressable>
-          </View>
+          <Text style={styles.footerNote}>{FOOTER_NOTE[step.k]}</Text>
         </View>
       </KeyboardAvoidingView>
     </View>
@@ -297,52 +309,42 @@ export default function OnboardingWizard({ onDone }) {
 }
 
 const styles = StyleSheet.create({
-  topBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
-    borderBottomWidth: 1, borderBottomColor: colors.slate200,
-  },
-  topBarTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
-  topBarClose: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand600 },
-  flowHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
+  bar: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
     borderBottomWidth: 1, borderBottomColor: colors.slate100,
   },
-  flowHeaderTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
-  saveExitButton: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 6 },
-  saveExitText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate600 },
-  phaseBar: { flexDirection: 'row', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, backgroundColor: colors.slate50, borderBottomWidth: 1, borderBottomColor: colors.slate100 },
-  phaseSegment: { height: 3, borderRadius: 2, backgroundColor: colors.slate200 },
-  phaseSegmentActive: { backgroundColor: colors.brand600 },
-  phaseLabel: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400, marginTop: 6 },
-  phaseLabelActive: { color: colors.brand700, fontFamily: fonts.bodySemiBold },
-  flowContent: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  barBack: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  barCenter: { flex: 1, gap: 6 },
+  barTitle: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate800 },
+  progressTrack: { height: 4, borderRadius: 2, backgroundColor: colors.slate200, overflow: 'hidden' },
+  progressFill: { height: 4, borderRadius: 2, backgroundColor: colors.brand600 },
+  barExit: { minHeight: 44, justifyContent: 'center' },
+  barExitText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand700 },
+  content: { padding: spacing.lg, paddingBottom: spacing.xxl },
   blockError: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.danger, marginTop: spacing.md },
-  finishLater: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: spacing.md },
-  flowFooter: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
-    borderTopWidth: 1, borderTopColor: colors.slate100, backgroundColor: colors.slate50,
+  footer: {
+    gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm,
+    borderTopWidth: 1, borderTopColor: colors.slate100, backgroundColor: colors.white,
   },
-  backLink: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700, textDecorationLine: 'underline' },
-  pctText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
-  nextButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm + 4 },
+  footerNote: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, textAlign: 'center' },
+  nextButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand600, borderRadius: radius.md },
+  publishButton: { backgroundColor: colors.slate900 },
   disabled: { opacity: 0.6 },
   nextButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   doneContainer: { alignItems: 'center', padding: spacing.xl },
   doneIconOuter: { width: 64, height: 64, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.lg },
   doneIconInner: { width: 44, height: 44, borderRadius: radius.full, backgroundColor: colors.brand600, alignItems: 'center', justifyContent: 'center' },
   doneTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800, textAlign: 'center' },
-  doneBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, textAlign: 'center', lineHeight: 20, marginTop: spacing.sm, marginBottom: spacing.lg },
+  doneBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate600, textAlign: 'center', lineHeight: 20, marginTop: spacing.sm, marginBottom: spacing.lg },
   doneStatusRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
   doneStatusPill: { paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radius.full, backgroundColor: colors.slate100 },
   doneStatusPillActive: { backgroundColor: colors.brand50 },
-  doneStatusText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400 },
+  doneStatusText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500 },
   doneStatusTextActive: { color: colors.brand700 },
   doneActions: { flexDirection: 'row', gap: spacing.sm, width: '100%' },
-  doneSecondaryButton: { flex: 1, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center' },
+  doneSecondaryButton: { flex: 1, minHeight: 48, justifyContent: 'center', borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, alignItems: 'center' },
   doneSecondaryText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700 },
-  donePrimaryButton: { flex: 1, backgroundColor: colors.slate800, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center' },
+  donePrimaryButton: { flex: 1, minHeight: 48, justifyContent: 'center', backgroundColor: colors.slate800, borderRadius: radius.md, alignItems: 'center' },
   donePrimaryText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
 })

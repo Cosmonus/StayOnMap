@@ -2,7 +2,37 @@ import { prisma } from '../../lib/prisma.js'
 import { notifyUser } from '../notifications/notifications.service.js'
 import { getOrCreateConversation, sendMessage } from '../chat/chat.service.js'
 
+// India-only platform, so a wall-clock slot is always IST. The server may run
+// anywhere (production is a UTC VM), which is exactly why this can't lean on
+// the process timezone: `new Date('2026-07-26')` is UTC midnight, and adding a
+// local "09:00" to it lands 5.5 hours off in either direction depending on
+// where the box is.
+const IST_OFFSET_MIN = 5.5 * 60
+
+function istSlotInstant(dateISO, hhmm) {
+  const day = new Date(dateISO)
+  const [h, m] = hhmm.split(':').map(Number)
+  return new Date(Date.UTC(
+    day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), h, m,
+  ) - IST_OFFSET_MIN * 60_000)
+}
+
 export async function requestAppointment(tenantId, propertyId, data) {
+  // A visit can't be requested for a time that has already happened. Nothing
+  // checked this, so "Today · 9:00 AM" booked at 3pm was accepted and sent to
+  // the owner as a real request — they get a notification about a slot that
+  // passed six hours ago and no way to tell it from a genuine one.
+  const slot = istSlotInstant(data.requestedDate, data.requestedTime)
+  if (Number.isNaN(slot.getTime())) {
+    throw Object.assign(new Error('That date and time could not be read'), { statusCode: 400 })
+  }
+  if (slot.getTime() <= Date.now()) {
+    throw Object.assign(
+      new Error('That time has already passed — pick a later slot.'),
+      { statusCode: 400 },
+    )
+  }
+
   const property = await prisma.property.findUnique({ where: { id: propertyId }, select: { id: true, ownerId: true, status: true, riskScore: true } })
   if (!property) throw Object.assign(new Error('Property not found'), { statusCode: 404 })
   if (property.status !== 'ACTIVE') throw Object.assign(new Error('Property is not available'), { statusCode: 400 })
@@ -48,11 +78,56 @@ export async function getPropertyAppointments(propertyId, ownerId) {
   return prisma.appointment.findMany({ where: { propertyId }, include: { tenant: { select: { id: true, name: true, email: true, phone: true, avatarUrl: true } } }, orderBy: { createdAt: 'desc' } })
 }
 
-export async function updateAppointmentStatus(appointmentId, ownerId, { status, scheduledAt, ownerNote }) {
+// Statuses that end the exchange — reopening one would resurrect a visit both
+// sides have moved on from.
+const SETTLED = new Set(['REJECTED', 'CANCELLED'])
+
+export async function updateAppointmentStatus(appointmentId, userId, { status, scheduledAt, ownerNote }) {
   const appt = await prisma.appointment.findUnique({ where: { id: appointmentId }, include: { property: { select: { title: true } } } })
   if (!appt) throw Object.assign(new Error('Appointment not found'), { statusCode: 404 })
-  if (appt.ownerId !== ownerId) throw Object.assign(new Error('Access denied'), { statusCode: 403 })
+
+  const isOwner  = appt.ownerId === userId
+  const isTenant = appt.tenantId === userId
+  if (!isOwner && !isTenant) throw Object.assign(new Error('Access denied'), { statusCode: 403 })
+
+  // This endpoint was owner-only, so the person who ASKED for the visit had no
+  // way to call it off — CANCELLED was a valid status nothing could ever set,
+  // and a renter who changed their mind could only message the owner and hope.
+  // A tenant may cancel their own request; everything else stays the owner's.
+  if (isTenant && !isOwner && status !== 'CANCELLED') {
+    throw Object.assign(
+      new Error('Only the owner can accept, reject or reschedule — you can cancel your request.'),
+      { statusCode: 403 },
+    )
+  }
+
+  if (SETTLED.has(appt.status)) {
+    throw Object.assign(
+      new Error(`This visit was already ${appt.status.toLowerCase()}.`),
+      { statusCode: 409 },
+    )
+  }
+
   const updated = await prisma.appointment.update({ where: { id: appointmentId }, data: { status, scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined, ownerNote } })
+
+  // A tenant cancelling has to reach the OWNER — the notification below is
+  // addressed to the tenant, which for this one case is the wrong person.
+  if (isTenant && !isOwner) {
+    await notifyUser(appt.ownerId, {
+      type: 'APPOINTMENT_STATUS',
+      title: 'Visit cancelled',
+      body: `The renter cancelled their visit to “${appt.property?.title ?? 'your property'}”.`,
+      referenceId: appt.id,
+      referenceType: 'Appointment',
+    })
+    // The thread already carries the request, so it should carry the withdrawal
+    // — otherwise the owner reads an open request that no longer exists.
+    try {
+      const convo = await getOrCreateConversation(appt.tenantId, appt.propertyId)
+      await sendMessage(convo.id, appt.tenantId, '📋 Visit cancelled by the renter')
+    } catch { /* best-effort — chat must never fail the cancellation */ }
+    return updated
+  }
 
   const notifType = status === 'ACCEPTED' ? 'APPOINTMENT_ACCEPTED' : status === 'REJECTED' ? 'APPOINTMENT_REJECTED' : 'APPOINTMENT_STATUS'
   const emailMeta = (status === 'ACCEPTED' || status === 'REJECTED')
@@ -90,7 +165,7 @@ export async function updateAppointmentStatus(appointmentId, ownerId, { status, 
     let chatMsg = `${emoji} Appointment ${status.toLowerCase()}`
     if (ownerNote) chatMsg += `\n\n${ownerNote}`
     const convo = await getOrCreateConversation(appt.tenantId, appt.propertyId)
-    await sendMessage(convo.id, ownerId, chatMsg)
+    await sendMessage(convo.id, appt.ownerId, chatMsg)
   } catch { /* best-effort */ }
 
   return updated

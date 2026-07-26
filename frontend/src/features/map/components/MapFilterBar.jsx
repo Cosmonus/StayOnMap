@@ -8,6 +8,7 @@ import { Search } from 'lucide-react'
 import { useFilterStore } from '@store/filterStore'
 import { useMapStore } from '@store/mapStore'
 import { resolvePlace } from '@lib/googleMaps'
+import { toast } from '@components/common/Toaster'
 import AreaInput from '@features/search/components/AreaInput'
 
 export default function MapFilterBar() {
@@ -28,12 +29,30 @@ export default function MapFilterBar() {
       return
     }
     useMapStore.getState().clearSelection()
+    // Committing the area is what moves the map: MapView owns the camera and
+    // flies on `area` changing. Flying here as well meant one search fired two
+    // competing camera moves — fitBounds to the city's extent, and a fixed
+    // street zoom on its centre — and whichever landed last won.
     setFilter('area', query)
 
     const place = await resolvePlace(query, city).catch(() => null)
-    if (!place) return
-    useMapStore.getState().flyTo?.({ center: [place.lng, place.lat], zoom: 16, bounds: place.viewport ?? undefined, duration: 800 })
+    if (!place) {
+      // Previously a silent `return`, which left the box and the URL saying
+      // Bengaluru while the map had not moved an inch and nothing said why.
+      toast.error(`We couldn't find "${query}". Try a nearby landmark or area.`)
+      return
+    }
     useMapStore.getState().setSearchedPlace(place)
+  }
+
+  // Picking a suggestion commits the search, rather than only nudging the
+  // camera. It used to fly the map but never set `area`, so the URL stayed
+  // empty, the page heading stayed generic, a reload lost the place, and
+  // "See them as a list" handed the grid no location at all.
+  function handlePlacePicked(place) {
+    useMapStore.getState().clearSelection()
+    setFilter('area', place.name)
+    useMapStore.getState().setSearchedPlace({ name: place.name, lat: place.lat, lng: place.lng })
   }
 
   return (
@@ -43,6 +62,8 @@ export default function MapFilterBar() {
           value={area}
           city={city}
           onChange={setArea}
+          onPlacePicked={handlePlacePicked}
+          onClear={() => { setFilter('area', ''); useMapStore.getState().setSearchedPlace(null) }}
           showLabel={false}
           bare
         />

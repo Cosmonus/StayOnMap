@@ -9,7 +9,7 @@ const MATCH_STYLE = {
   match: 'bg-green-50 text-green-700',
   partial: 'bg-slate-100 text-slate-600',
   mismatch: 'bg-amber-50 text-amber-800',
-  not_comparable: 'bg-slate-50 text-slate-400',
+  not_comparable: 'bg-slate-50 text-slate-500',
 }
 
 // The address comparison is the reviewer's context, not their verdict —
@@ -21,8 +21,8 @@ function AddressMatch({ v }) {
   const m = v.addressMatch
   return (
     <div className="mt-2 text-xs space-y-1 bg-slate-50 rounded-lg p-2.5">
-      <p><span className="text-slate-400">Listing:</span> <span className="text-slate-700">{v.property?.address}{v.property?.pincode ? `, ${v.property.pincode}` : ''}</span></p>
-      <p><span className="text-slate-400">Document:</span> <span className="text-slate-700">{v.documentAddress}</span></p>
+      <p><span className="text-slate-500">Listing:</span> <span className="text-slate-700">{v.property?.address}{v.property?.pincode ? `, ${v.property.pincode}` : ''}</span></p>
+      <p><span className="text-slate-500">Document:</span> <span className="text-slate-700">{v.documentAddress}</span></p>
       {m && (
         <p className="flex items-center gap-2 flex-wrap">
           <span className={`px-2 py-0.5 rounded-full font-semibold ${MATCH_STYLE[m.verdict] ?? MATCH_STYLE.not_comparable}`}>
@@ -45,7 +45,7 @@ export default function VerificationsSection() {
   const [status, setStatus] = useState('PENDING')
   const [notes, setNotes] = useState({})
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['admin-verifications', status],
     queryFn: () => adminService.verifications({ status, limit: 30 }).then(r => r.data),
   })
@@ -61,7 +61,7 @@ export default function VerificationsSection() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Ownership Verifications</h1>
-        <p className="text-sm text-slate-400 mt-0.5">
+        <p className="text-sm text-slate-500 mt-0.5">
           Read the documents against the listing — the address comparison is context, the decision is yours.
         </p>
       </div>
@@ -80,8 +80,25 @@ export default function VerificationsSection() {
 
       {isLoading ? (
         <div className="h-40 bg-slate-100 animate-pulse rounded-2xl" />
+      ) : isError ? (
+        /* A failed fetch is NOT an empty queue. Rendering one as the other hid
+           a 500 behind "No pending verifications" — the queue looked clear
+           while a real request sat in it, which is the worst way for a
+           moderation surface to fail. */
+        <div className="text-center py-12 bg-white border border-red-100 rounded-2xl">
+          <p className="text-sm font-semibold text-slate-800">Couldn’t load the verification queue</p>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+            {error?.message ?? 'Something went wrong.'} This is a load failure, not an empty queue — there may be requests waiting.
+          </p>
+          <button
+            onClick={() => refetch()}
+            className="min-h-[44px] mt-4 px-4 py-3 text-xs font-semibold text-white bg-[#111111] hover:bg-[#2a2a2a] rounded-xl transition-colors"
+          >
+            Try again
+          </button>
+        </div>
       ) : rows.length === 0 ? (
-        <div className="text-center py-12 bg-white border border-slate-100 rounded-2xl text-sm text-slate-400">
+        <div className="text-center py-12 bg-white border border-slate-100 rounded-2xl text-sm text-slate-500">
           No {status.toLowerCase().replace('_', ' ')} verifications.
         </div>
       ) : (
@@ -91,7 +108,7 @@ export default function VerificationsSection() {
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-800 truncate">{v.property?.title ?? v.propertyId}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     Owner: {v.owner?.name ?? v.ownerId}{v.owner?.email ? ` · ${v.owner.email}` : ''}
                   </p>
                 </div>
@@ -122,7 +139,7 @@ export default function VerificationsSection() {
                     value={notes[v.id] ?? ''}
                     onChange={e => setNotes(n => ({ ...n, [v.id]: e.target.value }))}
                     placeholder="Note to the owner (required for rejection)"
-                    className="flex-1 min-w-[220px] border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                    className="flex-1 min-w-[220px] border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
                   />
                   <button
                     onClick={() => mutation.mutate({ id: v.id, next: 'VERIFIED', adminNote: notes[v.id] || undefined })}

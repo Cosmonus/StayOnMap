@@ -106,8 +106,14 @@ describe('filters.registry — pricingModel', () => {
     expect(buildFilterWhere({ pricingModel: 'LEASE' }, FILTERS)).toEqual([{ pricingModel: 'LEASE' }])
   })
 
-  it('rejects anything outside the enum', () => {
-    expect(FILTERS.pricingModel.schema.safeParse('SALE').success).toBe(false)
+  // SALE became a real mode on 2026-07-26 (flats/houses/shops/land can be
+  // sold), so it belongs INSIDE the enum now. This assertion used to name SALE
+  // as the example of an invalid value — kept pointed at the same boundary,
+  // just at a value that is genuinely not a pricing model.
+  it('accepts SALE and rejects anything outside the enum', () => {
+    expect(FILTERS.pricingModel.schema.safeParse('SALE').success).toBe(true)
+    expect(buildFilterWhere({ pricingModel: 'SALE' }, FILTERS)).toEqual([{ pricingModel: 'SALE' }])
+    expect(FILTERS.pricingModel.schema.safeParse('AUCTION').success).toBe(false)
   })
 
   // No registry-level default: the public map sends pricingModel=RENT itself,

@@ -175,6 +175,32 @@ describe('getPropertyById', () => {
     expect(result.id).toBe('prop-1')
   })
 
+  // The owner's listing page reports reach, so a view has to be counted — but
+  // only somebody ELSE's view of a LIVE listing, and never at the cost of the
+  // page itself.
+  it('counts a visitor view, and does not count the owner looking at their own', async () => {
+    prismaMock.property.findUnique.mockResolvedValue(makeProperty({ status: 'ACTIVE', ownerId: 'owner-1' }))
+
+    await getPropertyById('prop-1')
+    expect(prismaMock.property.update).toHaveBeenCalledWith({
+      where: { id: 'prop-1' },
+      data: { viewCount: { increment: 1 } },
+    })
+
+    prismaMock.property.update.mockClear()
+    await getPropertyById('prop-1', 'owner-1')
+    expect(prismaMock.property.update).not.toHaveBeenCalled()
+  })
+
+  it('still returns the property when the view counter fails', async () => {
+    prismaMock.property.findUnique.mockResolvedValue(makeProperty({ status: 'ACTIVE' }))
+    prismaMock.property.update.mockRejectedValueOnce(new Error('db down'))
+
+    const result = await getPropertyById('prop-1')
+
+    expect(result?.id).toBe('prop-1')
+  })
+
   it('owner can see their own DRAFT property', async () => {
     const draftProperty = makeProperty({ status: 'DRAFT', ownerId: 'owner-1' })
     prismaMock.property.findUnique.mockResolvedValue(draftProperty)
@@ -439,8 +465,11 @@ describe('publishProperty', () => {
 
     const result = await publishProperty('prop-1', 'owner-1')
 
+    // submittedAt is set here and nowhere else: "Submitted 4 hours ago" on the
+    // owner's listing page has to mean submitted, and updatedAt moves on any
+    // later edit.
     expect(prismaMock.property.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { status: 'PENDING' } })
+      expect.objectContaining({ data: expect.objectContaining({ status: 'PENDING', submittedAt: expect.any(Date) }) })
     )
     expect(result.status).toBe('PENDING')
   })

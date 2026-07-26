@@ -5,7 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
 import { imgUrl } from '@utils/format'
+import { formatTime } from '@utils/time'
 import Icon from '@components/common/Icon'
+import ScreenHeader from '@components/common/ScreenHeader'
 import ErrorState from '@components/common/ErrorState'
 import { colors } from '@theme/colors'
 import { shadows } from '@theme/shadows'
@@ -62,7 +64,7 @@ function FilterDropdown({ value, options, onChange }) {
             <View style={styles.dropdownSheetHeader}>
               <Text style={styles.dropdownSheetTitle}>Filter by status</Text>
               <Pressable onPress={() => setOpen(false)} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close filter options">
-                <Icon name="close" size={18} color={colors.slate400} />
+                <Icon name="close" size={18} color={colors.slate500} />
               </Pressable>
             </View>
             <FlatList
@@ -120,7 +122,7 @@ function OwnerCard({ appt, onAction }) {
           <View style={{ flexShrink: 1 }}>
             <Text style={styles.personName} numberOfLines={1}>{personName(appt.tenant)}</Text>
             <View style={styles.personSubRow}>
-              <Icon name="phone" size={10} color={colors.slate400} />
+              <Icon name="phone" size={10} color={colors.slate500} />
               <Text style={styles.personSub}>{appt.contactNumber}</Text>
             </View>
           </View>
@@ -136,7 +138,7 @@ function OwnerCard({ appt, onAction }) {
         </View>
         <View style={{ alignItems: 'flex-end' }}>
           <Text style={styles.dateText}>{shortDate(appt.requestedDate)}</Text>
-          <Text style={styles.propertySub}>{appt.requestedTime}</Text>
+          <Text style={styles.propertySub}>{formatTime(appt.requestedTime)}</Text>
         </View>
       </View>
 
@@ -161,7 +163,7 @@ function OwnerCard({ appt, onAction }) {
           <TextInput
             style={styles.rejectInput}
             placeholder="Reason (optional)"
-            placeholderTextColor={colors.slate400}
+            placeholderTextColor={colors.slate500}
             value={note}
             onChangeText={setNote}
             multiline
@@ -194,7 +196,7 @@ function TenantCard({ appt }) {
       </View>
       <View style={styles.dateRow}>
         <Text style={styles.dateText}>{shortDate(appt.requestedDate)}</Text>
-        <Text style={styles.dateText}>{appt.requestedTime}</Text>
+        <Text style={styles.dateText}>{formatTime(appt.requestedTime)}</Text>
       </View>
       {!!appt.message && <Text style={styles.note}><Text style={styles.noteLabel}>Your note: </Text>{appt.message}</Text>}
       {!!appt.ownerNote && <Text style={styles.replyNote}><Text style={styles.replyNoteLabel}>Owner reply: </Text>{appt.ownerNote}</Text>}
@@ -206,7 +208,7 @@ function EmptyState({ message }) {
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIcon}>
-        <Icon name="calendar" size={22} color={colors.slate400} />
+        <Icon name="calendar" size={22} color={colors.slate500} />
       </View>
       <Text style={styles.emptyTitle}>No appointments</Text>
       <Text style={styles.emptyBody}>{message}</Text>
@@ -251,29 +253,11 @@ export default function AppointmentsScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <View style={styles.headerTopRow}>
-          {navigation.canGoBack() && (
-            <Pressable
-              onPress={() => navigation.goBack()}
-              hitSlop={12}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <Icon name="chevronLeft" size={20} color={colors.slate800} />
-            </Pressable>
-          )}
-          <View style={styles.headerTitleRow}>
-            <Icon name="calendar" size={20} color={colors.slate800} />
-            <Text style={styles.headerTitle}>
-              Appointments{isIncoming && pendingCount > 0 ? ` (${pendingCount})` : ''}
-            </Text>
-          </View>
-        </View>
-        <Text style={styles.headerSub}>
-          {isIncoming ? 'Visit requests for your properties' : 'Visits you’ve requested'}
-        </Text>
-      </View>
+      <ScreenHeader
+        title={`Appointments${isIncoming && pendingCount > 0 ? ` (${pendingCount})` : ''}`}
+        subtitle={isIncoming ? 'Visit requests for your properties' : 'Visits you’ve requested'}
+        onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
+      />
 
       {isLoading ? (
         <View style={styles.center}><ActivityIndicator color={colors.brand600} /></View>
@@ -309,11 +293,6 @@ export default function AppointmentsScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
-  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
-  headerTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: spacing.lg, gap: spacing.md },
   filterRow: { marginBottom: spacing.md, alignItems: 'flex-start' },
@@ -339,18 +318,18 @@ const styles = StyleSheet.create({
   avatarInitial: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
   personName: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
   personSubRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  personSub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
+  personSub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.full },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontFamily: fonts.bodySemiBold, fontSize: 11 },
   propertyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.slate50, borderRadius: radius.md, padding: spacing.sm, marginBottom: spacing.sm },
   propertyThumb: { width: 36, height: 36, borderRadius: radius.sm, backgroundColor: colors.slate200 },
   propertyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
-  propertySub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
+  propertySub: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   dateText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
   dateRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.sm },
   note: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginBottom: spacing.sm, lineHeight: 18 },
-  noteLabel: { fontFamily: fonts.bodyMedium, color: colors.slate400 },
+  noteLabel: { fontFamily: fonts.bodyMedium, color: colors.slate500 },
   replyNote: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#2563EB', marginBottom: spacing.sm, lineHeight: 18 },
   replyNoteLabel: { fontFamily: fonts.bodyMedium, color: '#60A5FA' },
   actionRow: { flexDirection: 'row', gap: spacing.sm },
@@ -365,5 +344,5 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: spacing.xxl },
   emptyIcon: { width: 48, height: 48, borderRadius: radius.full, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700 },
-  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2, textAlign: 'center', maxWidth: 240 },
+  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2, textAlign: 'center', maxWidth: 240 },
 })

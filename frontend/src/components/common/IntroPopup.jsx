@@ -86,7 +86,7 @@ export default function IntroPopup() {
         </div>
 
         {/* Legal */}
-        <p className="text-[10px] text-center mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>
+        <p className="text-[11px] text-center mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>
           By continuing you agree to our{' '}
           <Link to="/rules" onClick={dismiss} className="underline" style={{ color: 'rgba(255,255,255,0.4)' }}>Community Rules</Link>
           {' '}and{' '}

@@ -26,6 +26,18 @@ const BHK_REQUIRED_TYPES = ['APARTMENT', 'HOUSE', 'VILLA', 'INDEPENDENT_HOUSE', 
 // LAND already carries its own `saleOrLease` field and isn't rented monthly.
 export const LEASE_ELIGIBLE_TYPES = ['APARTMENT', 'HOUSE', 'VILLA', 'INDEPENDENT_HOUSE', 'COMMERCIAL']
 
+// Types that can be SOLD outright (added 2026-07-26). Anything with a title
+// deed behind it: the four residential types, commercial space, and land.
+// A PG bed and a nightly stay are operating businesses, not assets a renter
+// browsing this platform can buy, so they are rental-only by construction.
+export const SALE_ELIGIBLE_TYPES = ['APARTMENT', 'HOUSE', 'VILLA', 'INDEPENDENT_HOUSE', 'COMMERCIAL', 'LAND']
+
+// A monthly rent and an asking price are three orders of magnitude apart, so
+// they cannot share one cap: ₹1Cr is an absurd rent and an ordinary Mumbai
+// flat. Both fit Decimal(12,2).
+const MAX_RENT  = 10_000_000
+const MAX_PRICE = 999_999_999
+
 const rulesSchemaCreate = z.object({
   smokingAllowed:    z.boolean().default(false),
   petsAllowed:       z.boolean().default(false),
@@ -113,16 +125,36 @@ export const createPropertySchema = z.object({
   instantBook: z.boolean().optional(),
 
   // Pricing
-  // `rent` is the primary price in both modes — monthly rent for RENT, the
-  // refundable lump sum for LEASE (which is why the cap is 10M, wide enough
-  // for a real lease sum). See PricingModel in schema.prisma.
-  pricingModel:       z.enum(['RENT', 'LEASE']).default('RENT'),
-  rent:               z.number().positive().max(10_000_000),
-  deposit:            z.number().min(0).max(50_000_000),
+  // `rent` is the primary price in all three modes — monthly rent for RENT,
+  // the refundable lump sum for LEASE, the asking price for SALE. The
+  // per-mode ceiling is enforced in a refinement below, since one max() can't
+  // tell a rent from a price. See PricingModel in schema.prisma.
+  pricingModel:       z.enum(['RENT', 'LEASE', 'SALE']).default('RENT'),
+  rent:               z.number().positive().max(MAX_PRICE),
+  deposit:            z.number().min(0).max(MAX_PRICE),
   maintenance:        z.number().min(0).optional(),
   brokerage:          z.number().min(0).optional(),
   electricityCharges: z.number().min(0).optional(),
   waterCharges:       z.number().min(0).optional(),
+
+  // SALE
+  possessionStatus: z.enum(['Ready to move', 'Under construction', 'New launch']).optional(),
+  priceNegotiable:  z.boolean().optional(),
+  loanEligible:     z.boolean().optional(),
+
+  // LAND RECORDS — never returned publicly (properties.service.js strips them).
+  // Deliberately loose formats: a survey number is "12/3B" in one district and
+  // "Sy.No. 45, Blk 2" in the next, and rejecting a real one an owner is
+  // reading off a document is worse than storing it verbatim for a human to
+  // check. Length caps only.
+  surveyNumber:      z.string().max(60).trim().optional(),
+  subdivisionNumber: z.string().max(60).trim().optional(),
+  landRecordType:    z.string().max(40).trim().optional(),
+  landRecordNumber:  z.string().max(60).trim().optional(),
+  conversionStatus:  z.enum(['Converted', 'Not converted', 'Not applicable']).optional(),
+  ecAvailable:       z.boolean().optional(),
+  ecYears:           z.number().int().min(0).max(99).optional(),
+  guidelineValue:    z.number().min(0).max(MAX_PRICE).optional(),
 
   // Availability
   availableFrom:  z.string().datetime().optional(),
@@ -142,6 +174,14 @@ export const createPropertySchema = z.object({
 }).refine(
   (d) => d.pricingModel !== 'LEASE' || LEASE_ELIGIBLE_TYPES.includes(d.type),
   { message: 'Lease pricing is only available for flats, houses and commercial spaces', path: ['pricingModel'] }
+).refine(
+  (d) => d.pricingModel !== 'SALE' || SALE_ELIGIBLE_TYPES.includes(d.type),
+  { message: 'Only flats, houses, commercial spaces and land can be listed for sale', path: ['pricingModel'] }
+).refine(
+  // A rent above ₹1Cr is a typo or a price in the wrong mode; the same number
+  // as an asking price is a normal flat.
+  (d) => d.pricingModel === 'SALE' || d.rent <= MAX_RENT,
+  { message: 'That looks like a sale price — switch the listing to For sale', path: ['rent'] }
 ).refine(
   // On a lease the lump sum in `rent` IS the money at stake — a second
   // refundable deposit on top is a different (and misleading) deal.
@@ -217,8 +257,12 @@ export const updatePropertySchema = z.object({
   // update can never flip it. Switching modes silently re-reads `rent`: an ₹8L
   // lease sum flipped to RENT becomes ₹8L/month. A partial payload also has no
   // `type` to re-check LEASE_ELIGIBLE_TYPES against. Relist instead.
-  rent:            z.number().positive().max(10_000_000).optional(),
-  deposit:            z.number().min(0).max(50_000_000).optional(),
+  // MAX_PRICE, not MAX_RENT: pricingModel is deliberately not updatable (see
+  // above), so a SALE listing keeps its mode — and a ₹4.5Cr asking price has to
+  // remain EDITABLE. Capping this at the rent ceiling meant a sale listing
+  // could be created and then never corrected.
+  rent:               z.number().positive().max(MAX_PRICE).optional(),
+  deposit:            z.number().min(0).max(MAX_PRICE).optional(),
   maintenance:        z.number().min(0).optional(),
   brokerage:          z.number().min(0).optional(),
   electricityCharges: z.number().min(0).optional(),
@@ -230,6 +274,23 @@ export const updatePropertySchema = z.object({
   appointmentWindowEnd:   z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format').optional(),
   amenityIds:         z.array(z.string()).max(20).optional(),
   images:             z.array(storageImageUrl).min(1).max(10).optional(),
+
+  // SALE + LAND RECORDS. Absent until 2026-07-26, which meant a plot's survey
+  // number and a sale's possession status could be set at creation and then
+  // never corrected — validate() strips unknown fields, so the edit silently
+  // did nothing rather than erroring.
+  possessionStatus:  z.enum(['Ready to move', 'Under construction', 'New launch']).optional(),
+  priceNegotiable:   z.boolean().optional(),
+  loanEligible:      z.boolean().optional(),
+  surveyNumber:      z.string().max(60).trim().optional(),
+  subdivisionNumber: z.string().max(60).trim().optional(),
+  landRecordType:    z.string().max(40).trim().optional(),
+  landRecordNumber:  z.string().max(60).trim().optional(),
+  conversionStatus:  z.enum(['Converted', 'Not converted', 'Not applicable']).optional(),
+  ecAvailable:       z.boolean().optional(),
+  ecYears:           z.number().int().min(0).max(99).optional(),
+  guidelineValue:    z.number().min(0).max(MAX_PRICE).optional(),
+
   rules: rulesSchemaUpdate.optional(),
 }).refine(
   (d) => d.floor === undefined || d.totalFloors === undefined || d.floor <= d.totalFloors,
@@ -286,3 +347,14 @@ export const pinsQuerySchema = z.object({
 // Live result count for the filter modal — same shape as /pins (bounds
 // required: the count is always "matches in the current viewport").
 export const countQuerySchema = pinsQuerySchema
+
+// The listing wizard's price benchmark: what comparable live listings ask.
+// Narrow on purpose — it takes exactly the four things that define a
+// comparable, so it can never grow into a second, unfiltered list endpoint.
+export const benchmarkQuerySchema = z.object({
+  city:         z.enum(SUPPORTED_CITIES),
+  type:         z.enum(PROPERTY_TYPES),
+  bhk:          z.coerce.number().int().min(0).max(10).optional(),
+  sharing:      z.coerce.number().int().min(1).max(6).optional(),
+  pricingModel: z.enum(PRICING_MODELS).default('RENT'),
+})

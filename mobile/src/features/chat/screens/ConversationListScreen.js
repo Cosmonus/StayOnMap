@@ -10,6 +10,7 @@ import { getSocket } from '@lib/socket'
 import { imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -55,17 +56,23 @@ export default function ConversationListScreen({ navigation }) {
     return () => { socket.off('user:online', onOnline); socket.off('user:offline', onOffline) }
   }, [])
 
+  // The tab is called "Inbox" in host mode and "Messages" in renter mode; the
+  // native header this replaced said "Chat" in both, matching neither.
+  const title = hostMode ? 'Inbox' : 'Messages'
+
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.emptyContainer}>
-        <ActivityIndicator color={colors.brand600} />
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <ScreenHeader title={title} />
+        <View style={styles.centered}><ActivityIndicator color={colors.brand600} /></View>
       </SafeAreaView>
     )
   }
 
   if (isError) {
     return (
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <ScreenHeader title={title} />
         <ErrorState title="Couldn't load conversations" onRetry={refetch} />
       </SafeAreaView>
     )
@@ -73,7 +80,9 @@ export default function ConversationListScreen({ navigation }) {
 
   if (!conversations.length) {
     return (
-      <SafeAreaView style={styles.emptyContainer}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <ScreenHeader title={title} />
+        <View style={styles.centered}>
         <View style={styles.emptyIcon}>
           <Icon name="messageCircle" size={26} color={colors.brand600} />
         </View>
@@ -85,12 +94,14 @@ export default function ConversationListScreen({ navigation }) {
             ? 'When a renter messages you about one of your listings, it will appear here.'
             : 'Start a chat from a property’s detail page.'}
         </Text>
+        </View>
       </SafeAreaView>
     )
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <ScreenHeader title={title} />
       <FlatList
         data={conversations}
         keyExtractor={(c) => c.id}
@@ -152,10 +163,10 @@ export default function ConversationListScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
-  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg, backgroundColor: colors.slate50 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   emptyIcon: { width: 52, height: 52, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate700 },
-  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: spacing.xs, textAlign: 'center' },
+  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: spacing.xs, textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.slate100 },
   avatar: { width: 44, height: 44, borderRadius: radius.full },
   avatarFallback: { backgroundColor: colors.brand100, alignItems: 'center', justifyContent: 'center' },
@@ -169,13 +180,13 @@ const styles = StyleSheet.create({
   roleBadge: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 },
   roleBadgeOwner: { backgroundColor: colors.warning50 },
   roleBadgeTenant: { backgroundColor: '#EFF6FF' },
-  roleBadgeText: { fontSize: 9, fontFamily: fonts.bodySemiBold },
+  roleBadgeText: { fontSize: 11, fontFamily: fonts.bodySemiBold },
   roleBadgeTextOwner: { color: '#D97706' },
   roleBadgeTextTenant: { color: '#2563EB' },
-  time: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
-  propertyTitle: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 1 },
+  time: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
+  propertyTitle: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 1 },
   preview: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
   previewUnread: { color: colors.slate700, fontFamily: fonts.bodyMedium },
   unreadBadge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.brand500, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
-  unreadBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.white },
+  unreadBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.white },
 })

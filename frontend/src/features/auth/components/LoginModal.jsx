@@ -27,7 +27,7 @@ function InputField({ label, type = 'text', value, onChange, placeholder, childr
           onChange={onChange}
           placeholder={placeholder}
           required
-          className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 transition-all bg-slate-50 placeholder:text-slate-400"
+          className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 transition-all bg-slate-50 placeholder:text-slate-500"
         />
         {children}
       </div>
@@ -199,7 +199,7 @@ export default function LoginModal() {
             <h3 className="text-xl font-bold text-slate-800 mb-1">
               {tab === 'login' ? 'Welcome back' : tab === 'otp' ? 'Sign in with a code' : tab === 'forgot' ? 'Reset password' : waitlisted ? 'Almost there' : 'Create account'}
             </h3>
-            <p className="text-sm text-slate-400 mb-6">
+            <p className="text-sm text-slate-500 mb-6">
               {tab === 'login'
                 ? 'Sign in to access your saved properties.'
                 : tab === 'otp'
@@ -220,7 +220,7 @@ export default function LoginModal() {
                     onClick={() => switchTab(t)}
                     className={[
                       'flex-1 py-2 rounded-lg text-sm font-semibold transition-all',
-                      tab === t ? 'bg-brand-600 text-white shadow-sm' : 'text-slate-400 hover:text-brand-600',
+                      tab === t ? 'bg-brand-600 text-white shadow-sm' : 'text-slate-500 hover:text-brand-600',
                     ].join(' ')}
                   >
                     {label}
@@ -252,7 +252,7 @@ export default function LoginModal() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-slate-800">Check your inbox</p>
-                    <p className="text-sm text-slate-400 mt-1">We sent a reset link to <span className="font-medium text-slate-600">{email}</span></p>
+                    <p className="text-sm text-slate-500 mt-1">We sent a reset link to <span className="font-medium text-slate-600">{email}</span></p>
                   </div>
                   <button
                     type="button"
@@ -276,7 +276,7 @@ export default function LoginModal() {
                   >
                     {loading ? 'Sending…' : 'Send reset link'}
                   </button>
-                  <p className="text-sm text-center text-slate-400">
+                  <p className="text-sm text-center text-slate-500">
                     <button type="button" onClick={() => switchTab('login')} className="font-semibold text-brand-600 hover:text-brand-700">
                       ← Back to log in
                     </button>
@@ -290,7 +290,7 @@ export default function LoginModal() {
                   <button
                     type="button"
                     onClick={() => setShowPw(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600"
                     tabIndex={-1}
                   >
                     {showPw
@@ -319,7 +319,7 @@ export default function LoginModal() {
 
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-px bg-slate-200" />
-                  <span className="text-xs text-slate-400">or</span>
+                  <span className="text-xs text-slate-500">or</span>
                   <div className="flex-1 h-px bg-slate-200" />
                 </div>
 
@@ -337,7 +337,7 @@ export default function LoginModal() {
                   <SocialLoginButtons row />
                 </div>
 
-                <p className="text-sm text-center text-slate-400">
+                <p className="text-sm text-center text-slate-500">
                   Don&apos;t have an account?{' '}
                   <button type="button" onClick={() => switchTab('signup')} className="font-semibold text-brand-600 hover:text-brand-700">
                     Sign up free
@@ -351,7 +351,7 @@ export default function LoginModal() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-800">You&apos;re on the waitlist</p>
-                  <p className="text-sm text-slate-400 mt-1">
+                  <p className="text-sm text-slate-500 mt-1">
                     StayOnMap is currently live in {CITY_LIST_LABEL}. We&apos;ll email <span className="font-medium text-slate-600">{email}</span> as soon as we launch near you.
                   </p>
                 </div>
@@ -386,10 +386,10 @@ export default function LoginModal() {
                       onChange={e => setOtherCity(e.target.value)}
                       placeholder="Which city are you in?"
                       required
-                      className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 transition-all bg-slate-50 placeholder:text-slate-400"
+                      className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 transition-all bg-slate-50 placeholder:text-slate-500"
                     />
                   )}
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-slate-500 mt-1">
                     We&apos;re only live in {CITY_LIST_LABEL} right now — other cities go on our waitlist.
                   </p>
                 </div>
@@ -398,7 +398,7 @@ export default function LoginModal() {
                   <button
                     type="button"
                     onClick={() => setShowPw(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600"
                     tabIndex={-1}
                   >
                     {showPw
@@ -407,6 +407,14 @@ export default function LoginModal() {
                     }
                   </button>
                 </InputField>
+                {/* The placeholder said "Min. 8 characters" while the server
+                    (strongPassword in auth.validation.js) also requires upper,
+                    lower, a digit and a symbol — so "password1" was typed,
+                    submitted, and bounced with a rule nobody had been told.
+                    State the whole rule before they type it. */}
+                <p className="-mt-2 text-xs text-slate-500">
+                  At least 8 characters, with an uppercase letter, a lowercase letter, a number and a symbol.
+                </p>
 
                 {/* Role picker */}
                 <div>
@@ -437,18 +445,18 @@ export default function LoginModal() {
 
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-px bg-slate-200" />
-                  <span className="text-xs text-slate-400">or</span>
+                  <span className="text-xs text-slate-500">or</span>
                   <div className="flex-1 h-px bg-slate-200" />
                 </div>
 
                 <SocialLoginButtons mode="signup" />
 
-                <p className="text-xs text-center text-slate-400">
+                <p className="text-xs text-center text-slate-500">
                   By signing up you agree to our{' '}
                   <span className="underline cursor-default">Terms of Service</span>.
                 </p>
 
-                <p className="text-sm text-center text-slate-400">
+                <p className="text-sm text-center text-slate-500">
                   Already have an account?{' '}
                   <button type="button" onClick={() => switchTab('login')} className="font-semibold text-brand-600 hover:text-brand-700">
                     Log in

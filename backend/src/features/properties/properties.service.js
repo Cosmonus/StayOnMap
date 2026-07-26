@@ -10,6 +10,28 @@ import { SUPPORTED_CITIES } from '../../config/cities.js'
 import { buildFilterWhere, filterCacheKey } from './filters.registry.js'
 import { encode } from '../../lib/geohash.js'
 import { resolveProximityFilter, proximityCacheKey } from './proximityFilter.js'
+import { notifyUser } from '../notifications/notifications.service.js'
+
+// The land-record IDENTIFIERS, which never leave the server for anyone but the
+// listing's own owner. Enforced here rather than by omitting them from a
+// select, because both read paths use `include` and would silently start
+// leaking the next column added to the model.
+//
+// `landRecordType` ("A-khata", "Patta") is deliberately NOT in this list: which
+// KIND of record exists is a quality signal a buyer must see — B-khata land
+// cannot be mortgaged — while the number is what turns a public listing into a
+// land-fraud kit. Same shape as the owner-phone rule below: withhold server
+// side, never client side.
+const PRIVATE_RECORD_FIELDS = ['surveyNumber', 'subdivisionNumber', 'landRecordNumber']
+
+export function stripPrivateRecords(property, userId = null) {
+  if (!property) return property
+  if (userId && property.ownerId === userId) return property
+  for (const field of PRIVATE_RECORD_FIELDS) {
+    if (field in property) delete property[field]
+  }
+  return property
+}
 
 const FULL_INCLUDE = {
   images:    { orderBy: { order: 'asc' } },
@@ -41,7 +63,7 @@ export async function listProperties(filters, { skip, limit }, userId = null) {
   // the one surface with nowhere to put a provenance chip, so the count travels
   // with the response instead.
   return {
-    properties,
+    properties: properties.map((p) => stripPrivateRecords(p, userId)),
     total,
     ...(proximity && {
       proximity: { unknown: proximity.unknown, label: proximity.label },
@@ -80,7 +102,10 @@ export async function getPinsInBounds(bounds, filters, userId = null) {
 
   const pins = await prisma.property.findMany({
     where,
-    select: { id: true, lat: true, lng: true, rent: true, type: true, bhk: true, sharing: true, trustScore: { select: { badge: true } } },
+    // pricingModel is here so a pin can LABEL itself: the same 4500000 in
+    // `rent` is "₹45K/mo" on a rental and "₹45L" on a sale, and a pin that
+    // guessed wrong would misprice every plot and flat on the map.
+    select: { id: true, lat: true, lng: true, rent: true, pricingModel: true, type: true, bhk: true, sharing: true, trustScore: { select: { badge: true } } },
     take: 200,
   })
 
@@ -109,6 +134,37 @@ export async function countPropertiesInBounds(bounds, filters, userId = null) {
   const count = await prisma.property.count({ where })
   await cacheSet(cacheKey, count, 15)
   return count
+}
+
+// Three records of the same view, each answering a question the others can't:
+//   viewCount          lifetime total, on the listing itself
+//   PropertyDailyView  per day, so "last 30 days" is answerable
+//   PropertyViewer     per identified person, for the one place the host
+//                      dashboard shows it (see the schema comment)
+//
+// Called fire-and-forget from getPropertyById, already past the owner and
+// ACTIVE guards, so it only ever records somebody else viewing a live listing.
+async function recordView(propertyId, userId) {
+  // Date-only key: the unique index is (propertyId, day), so the time of day
+  // must be stripped or every view creates its own row.
+  const day = new Date()
+  day.setUTCHours(0, 0, 0, 0)
+
+  await Promise.all([
+    prisma.property.update({ where: { id: propertyId }, data: { viewCount: { increment: 1 } } }),
+    prisma.propertyDailyView.upsert({
+      where: { propertyId_day: { propertyId, day } },
+      create: { propertyId, day, count: 1 },
+      update: { count: { increment: 1 } },
+    }),
+    // Anonymous views are not attributable to anyone, so they stay in the
+    // totals only.
+    ...(userId ? [prisma.propertyViewer.upsert({
+      where: { propertyId_userId: { propertyId, userId } },
+      create: { propertyId, userId, count: 1, lastViewedAt: new Date() },
+      update: { count: { increment: 1 }, lastViewedAt: new Date() },
+    })] : []),
+  ])
 }
 
 export async function getPropertyById(id, userId = null) {
@@ -165,14 +221,45 @@ export async function getPropertyById(id, userId = null) {
 
   if (userId && property.ownerId === userId) return property
   if (property.status !== 'ACTIVE') return null
-  return property
+
+  // Past the owner check and the ACTIVE check, so this counts what the owner
+  // actually wants counted: someone else looking at a live listing. Their own
+  // refreshes returned above and never reach here.
+  //
+  // Fire-and-forget — a failed counter must never cost someone the page. It is
+  // a raw view count, not unique visitors: we don't fingerprint readers, so
+  // display it as "views" and never as "people".
+  // Wrapped in Promise.resolve so a synchronous throw can't escape either — a
+  // counter that takes the page down with it is worse than no counter, and
+  // `.catch()` alone only covers the rejection case.
+  Promise.resolve(recordView(id, userId))
+    .catch((err) => intelError('property.view_count_failed', err, { propertyId: id }))
+
+  return stripPrivateRecords(property, userId)
 }
 
 export async function getPropertiesByOwner(ownerId) {
   return prisma.property.findMany({
     where: { ownerId },
     orderBy: { createdAt: 'desc' },
-    include: { images: { orderBy: { order: 'asc' } }, amenities: { include: { amenity: true } }, trustScore: true, riskScore: true, _count: { select: { appointments: true, reports: true } } },
+    include: {
+      images: { orderBy: { order: 'asc' } },
+      amenities: { include: { amenity: true } },
+      trustScore: true,
+      riskScore: true,
+      _count: {
+        select: {
+          // PENDING only, not every appointment ever made: this drives the
+          // owner's "Visit requests · 2" action, which means requests WAITING
+          // ON THEM. The unfiltered total had no consumer on either client.
+          // (Prisma allows one count per relation and no aliases, so this is a
+          // replacement rather than a second field.)
+          appointments: { where: { status: 'PENDING' } },
+          reports: true,
+          savedBy: true,
+        },
+      },
+    },
   })
 }
 
@@ -290,10 +377,63 @@ export async function updateProperty(id, ownerId, data) {
   return updated
 }
 
+// A listing is the OWNER's to delete — an admin can only pause it (see
+// admin.service.js's setPropertyStatus). Two states make a delete the wrong
+// action though, and both used to go through silently because this was a bare
+// findUnique + delete:
+//
+//   1. A signed lease means somebody lives there. The row cascades, so
+//      deleting the listing would erase the tenancy record both sides rely on.
+//   2. A paused listing is under moderation. Letting the owner delete it while
+//      we're looking into a report is how a bad actor clears the evidence and
+//      relists clean.
+//
+// Everything else — draft, pending, active, inactive, rejected — is theirs to
+// remove, and anyone with a live visit request is told rather than left
+// wondering why the page 404s.
 export async function deleteProperty(id, ownerId) {
-  const property = await prisma.property.findUnique({ where: { id, ownerId } })
+  const property = await prisma.property.findUnique({
+    where: { id, ownerId },
+    select: {
+      id: true, title: true, status: true,
+      leases: { where: { status: 'ACTIVE' }, select: { id: true } },
+      appointments: {
+        where: { status: { in: ['PENDING', 'ACCEPTED', 'RESCHEDULED'] } },
+        select: { tenantId: true },
+      },
+    },
+  })
   if (!property) throw Object.assign(new Error('Property not found or access denied'), { statusCode: 404 })
-  return prisma.property.delete({ where: { id } })
+
+  if (property.leases.length) {
+    throw Object.assign(
+      new Error('This listing has a signed lease on it. Terminate the lease first — deleting it now would erase the tenancy record.'),
+      { statusCode: 409 },
+    )
+  }
+
+  if (property.status === 'SUSPENDED') {
+    throw Object.assign(
+      new Error('This listing is paused while StayOnMap reviews it, so it can’t be deleted yet. Reply to the notification and we’ll sort it out.'),
+      { statusCode: 409 },
+    )
+  }
+
+  const waitingTenants = [...new Set(property.appointments.map((a) => a.tenantId))]
+  const deleted = await prisma.property.delete({ where: { id } })
+
+  // Fire-and-forget, after the delete succeeded: never promise a removal that
+  // then failed. Their appointment row is already gone with the cascade, so
+  // this notification is the only trace they'd otherwise have.
+  for (const tenantId of waitingTenants) {
+    notifyUser(tenantId, {
+      type: 'SYSTEM',
+      title: 'A listing you were visiting was removed',
+      body: `The owner has taken “${property.title}” off StayOnMap, so your visit is cancelled.`,
+    }).catch(() => {})
+  }
+
+  return deleted
 }
 
 export async function publishProperty(id, ownerId) {
@@ -302,7 +442,7 @@ export async function publishProperty(id, ownerId) {
   if (property.status !== 'DRAFT' && property.status !== 'REJECTED') {
     throw Object.assign(new Error('Only draft or rejected properties can be submitted for review'), { statusCode: 400 })
   }
-  const updated = await prisma.property.update({ where: { id }, data: { status: 'PENDING' } })
+  const updated = await prisma.property.update({ where: { id }, data: { status: 'PENDING', submittedAt: new Date() } })
 
   // Fire-and-forget: re-evaluate at submission so the admin moderation queue
   // sees a current risk score, not the one from draft creation time
@@ -374,6 +514,52 @@ export async function getPublicStats() {
 
 export async function getAllAmenities() {
   return prisma.amenity.findMany({ orderBy: { name: 'asc' } })
+}
+
+// What comparable listings in this city actually ask — shown beside the price
+// field while the owner is still typing, not after they publish.
+//
+// Deliberately a spread and a median, never a single "recommended price": we
+// have no basis for telling someone what their home is worth, and a lone
+// number reads as advice. A p25–p75 band with the sample size behind it says
+// what is true and leaves the pricing decision where it belongs.
+//
+// Same comparability rule as the fraud-scan benchmark
+// (services/intelligence.service.js): same city, same type, same size, same
+// pricingModel — mixing a lease lump sum into monthly rents poisons the
+// average. Minimum 3 comparables, or we report that we cannot say.
+const BENCHMARK_MIN_SAMPLE = 3
+const BENCHMARK_MAX_SAMPLE = 500
+
+export async function getPriceBenchmark({ city, type, bhk, sharing, pricingModel = 'RENT' }) {
+  const rows = await prisma.property.findMany({
+    where: {
+      status: 'ACTIVE',
+      city,
+      type,
+      pricingModel,
+      ...(type === 'PG'
+        ? (sharing ? { sharing } : {})
+        : (bhk !== undefined ? { bhk } : {})),
+    },
+    select: { rent: true },
+    take: BENCHMARK_MAX_SAMPLE,
+  })
+
+  if (rows.length < BENCHMARK_MIN_SAMPLE) {
+    return { available: false, count: rows.length }
+  }
+
+  const values = rows.map((r) => Number(r.rent)).sort((a, b) => a - b)
+  const at = (q) => values[Math.min(values.length - 1, Math.floor(q * values.length))]
+
+  return {
+    available: true,
+    count: values.length,
+    p25: Math.round(at(0.25)),
+    median: Math.round(at(0.5)),
+    p75: Math.round(at(0.75)),
+  }
 }
 
 export async function markTenant(propertyId, ownerId, tenantId) {

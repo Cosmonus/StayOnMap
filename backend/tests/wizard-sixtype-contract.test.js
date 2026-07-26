@@ -18,6 +18,14 @@ import {
   CATEGORIES,
   DESCRIBE,
   FIELDS,
+  RULES,
+  TERMS,
+  SALE_CATEGORIES,
+  LAND_RECORD_FIELD_KEYS,
+  defaultRules,
+  pricingModes,
+  resolveMode,
+  termRows,
   LEASE_CATEGORIES,
   BUSINESS_GATED_TYPES as WIZARD_GATED_CATEGORIES,
   pricingRows,
@@ -25,7 +33,7 @@ import {
   deriveType,
   buildPayload,
 } from '../../frontend/src/features/listings/config/onboarding.js'
-import { createPropertySchema, LEASE_ELIGIBLE_TYPES } from '../src/features/properties/properties.validation.js'
+import { createPropertySchema, LEASE_ELIGIBLE_TYPES, SALE_ELIGIBLE_TYPES } from '../src/features/properties/properties.validation.js'
 import { BUSINESS_GATED_TYPES as BACKEND_GATED_TYPES } from '../src/middlewares/requireBusiness.middleware.js'
 
 const CATEGORY_KEYS = ['apartment', 'house', 'land', 'pg', 'shop', 'stay']
@@ -47,6 +55,10 @@ function makeDraft(overrides) {
   return {
     fields: {},
     amenityNames: [],
+    rules: {},
+    terms: {},
+    zeroBrokerage: true,
+    brokerage: '',
     location,
     images: ['https://example.com/photo-1.jpg'],
     title: 'A realistic listing title',
@@ -115,6 +127,7 @@ describe('wizard six-type contract — complete drafts', () => {
     // describe step or FIELDS[key], so this suite can't pass on inputs the
     // real wizard could never produce.
     const offered = new Set([DESCRIBE[key].k])
+    if (key === 'land') LAND_RECORD_FIELD_KEYS.forEach((k) => offered.add(k))
     for (const row of FIELDS[key]) {
       if (row.field) offered.add(row.field)
       if (row.a) offered.add(row.a[0])
@@ -134,30 +147,30 @@ describe('wizard six-type contract — complete drafts', () => {
 describe('wizard six-type contract — incomplete drafts surface at review', () => {
   it.each(CATEGORY_KEYS)('%s: no photos → a photos entry', (key) => {
     const missing = missingRequirements(key, { ...COMPLETE_DRAFTS[key], images: [] })
-    expect(missing).toEqual([{ screenK: 'photos', label: 'Add at least one photo' }])
+    expect(missing).toEqual([{ stepK: 'photos', label: 'Add at least one photo' }])
   })
 
-  it.each(CATEGORY_KEYS)('%s: short title + no pin → title and location entries', (key) => {
+  it.each(CATEGORY_KEYS)('%s: short title + no pin → features and location entries', (key) => {
     const draft = {
       ...COMPLETE_DRAFTS[key],
       title: 'Hi',
       location: { ...location, lat: null, lng: null },
     }
     const missing = missingRequirements(key, draft)
-    expect(missing.map((m) => m.screenK).sort()).toEqual(['location', 'title'])
+    expect(missing.map((m) => m.stepK).sort()).toEqual(['features', 'location'])
   })
 
-  it.each(CATEGORY_KEYS)('%s: unanswered describe question → a describe entry', (key) => {
+  it.each(CATEGORY_KEYS)('%s: unanswered describe question → a basics entry', (key) => {
     const fields = { ...COMPLETE_DRAFTS[key].fields }
     delete fields[DESCRIBE[key].k]
     const missing = missingRequirements(key, { ...COMPLETE_DRAFTS[key], fields })
-    expect(missing.some((m) => m.screenK === 'describe')).toBe(true)
+    expect(missing.some((m) => m.stepK === 'basics')).toBe(true)
   })
 
   it.each(CATEGORY_KEYS)('%s: empty required price → a pricing entry per required row', (key) => {
     const missing = missingRequirements(key, { ...COMPLETE_DRAFTS[key], pricing: {} })
     const requiredRows = pricingRows(key, 'RENT').filter(([k]) => !['deposit', 'maintenance', 'cleaningFee', 'weekendRate'].includes(k))
-    expect(missing.filter((m) => m.screenK === 'pricing')).toHaveLength(requiredRows.length)
+    expect(missing.filter((m) => m.stepK === 'pricing')).toHaveLength(requiredRows.length)
   })
 })
 
@@ -260,5 +273,216 @@ describe('wizard six-type contract — payload details the map relies on', () =>
     expect(r.success).toBe(true)
     expect(r.data.powerLoad).toBe('15')
     expect(r.data.floor).toBe(0)
+  })
+})
+
+// Everything below guards the 2026-07-26 six-step rework: the specs, rules and
+// terms each type collects, and that they survive the trip to the schema.
+describe('wizard six-type contract — per-type specs, rules and terms', () => {
+  it.each(CATEGORY_KEYS)('%s: declares its own spec set, rules and terms', (key) => {
+    expect(FIELDS[key].length).toBeGreaterThan(0)
+    expect(RULES[key]).toBeDefined()
+    expect(TERMS[key].length).toBeGreaterThan(0)
+  })
+
+  it('land and commercial declare NO house rules — hidden, not caveated', () => {
+    expect(RULES.land).toEqual([])
+    expect(RULES.shop).toEqual([])
+  })
+
+  it.each(['apartment', 'house', 'pg', 'stay'])('%s: default rules reach the payload', (key) => {
+    const draft = { ...COMPLETE_DRAFTS[key], rules: defaultRules(key) }
+    const r = createPropertySchema.safeParse(payloadFor(key, draft))
+    expect(r.success, r.success ? '' : JSON.stringify(r.error.issues)).toBe(true)
+    for (const rule of RULES[key]) {
+      if (rule.t === 'time') continue
+      expect(r.data.rules[rule.k], `${key}.${rule.k}`).toBe(rule.def)
+    }
+  })
+
+  it('a rule the owner flips travels as the flipped value', () => {
+    const draft = { ...COMPLETE_DRAFTS.apartment, rules: { ...defaultRules('apartment'), petsAllowed: true, bachelorAllowed: false } }
+    const r = createPropertySchema.safeParse(payloadFor('apartment', draft))
+    expect(r.success).toBe(true)
+    expect(r.data.rules.petsAllowed).toBe(true)
+    expect(r.data.rules.bachelorAllowed).toBe(false)
+  })
+
+  it('an empty PG curfew is omitted entirely — that is what "no curfew" filters on', () => {
+    const withCurfew = payloadFor('pg', { ...COMPLETE_DRAFTS.pg, rules: { ...defaultRules('pg'), curfewTime: '22:30' } })
+    const without = payloadFor('pg', { ...COMPLETE_DRAFTS.pg, rules: defaultRules('pg') })
+    expect(withCurfew.rules.curfewTime).toBe('22:30')
+    expect(without.rules.curfewTime).toBeUndefined()
+    expect(createPropertySchema.safeParse(withCurfew).success).toBe(true)
+  })
+
+  it('availableFrom reaches the schema as an ISO datetime (the availableBy filter reads it)', () => {
+    const draft = { ...COMPLETE_DRAFTS.apartment, terms: { availableFrom: '2026-08-01', leaseDuration: '11' } }
+    const r = createPropertySchema.safeParse(payloadFor('apartment', draft))
+    expect(r.success, r.success ? '' : JSON.stringify(r.error.issues)).toBe(true)
+    expect(r.data.availableFrom).toBe('2026-08-01T00:00:00.000Z')
+    expect(r.data.leaseDuration).toBe(11)
+  })
+
+  it('stay night limits come from the owner, and fall back to 1/28 when left empty', () => {
+    const set = payloadFor('stay', { ...COMPLETE_DRAFTS.stay, terms: { minNights: '2', maxNights: '90' } })
+    expect(set.minNights).toBe(2)
+    expect(set.maxNights).toBe(90)
+    expect(createPropertySchema.safeParse(set).success).toBe(true)
+
+    const unset = payloadFor('stay')
+    expect(unset.minNights).toBe(1)
+    expect(unset.maxNights).toBe(28)
+  })
+
+  it.each(CATEGORY_KEYS)('%s: brokerage is 0 unless the owner says they charge one', (key) => {
+    expect(payloadFor(key).brokerage).toBe(0)
+    const charging = payloadFor(key, { ...COMPLETE_DRAFTS[key], zeroBrokerage: false, brokerage: '15000' })
+    expect(charging.brokerage).toBe(15000)
+    expect(createPropertySchema.safeParse(charging).success).toBe(true)
+  })
+})
+
+// ── For sale ────────────────────────────────────────────────────────────
+// Added 2026-07-26 with the SALE pricing mode. Flats, houses, shops and plots
+// can be sold outright; a PG bed and a nightly stay cannot.
+describe('wizard six-type contract — sale mode', () => {
+  const SALE_FIXTURES = {
+    apartment: { rent: '45000000', deposit: '500000', maintenance: '1500' },
+    house: { rent: '18000000', deposit: '500000' },
+    shop: { rent: '25000000', deposit: '500000' },
+    land: { rent: '8500000', deposit: '200000' },
+  }
+
+  function saleDraft(key) {
+    return {
+      ...COMPLETE_DRAFTS[key],
+      pricingModel: 'SALE',
+      pricing: SALE_FIXTURES[key],
+      terms: {
+        availableFrom: '2026-09-01',
+        priceNegotiable: true,
+        loanEligible: true,
+        ...(key === 'land' ? {} : { possessionStatus: 'Ready to move' }),
+      },
+      // Land declares sale through its own first spec question, not the picker.
+      ...(key === 'land' ? { fields: { ...COMPLETE_DRAFTS.land.fields, saleOrLease: 'SALE' } } : {}),
+    }
+  }
+
+  it('SALE_CATEGORIES maps onto exactly the backend-eligible types', () => {
+    expect([...SALE_CATEGORIES].sort()).toEqual(['apartment', 'house', 'land', 'shop'])
+    for (const key of SALE_CATEGORIES) {
+      for (const [value] of DESCRIBE[key].opts) {
+        expect(SALE_ELIGIBLE_TYPES, `${key}/${value}`).toContain(deriveType(key, value))
+      }
+    }
+  })
+
+  it('offers no sale mode for a PG bed or a nightly stay', () => {
+    expect(pricingModes('pg')).toEqual(['RENT'])
+    expect(pricingModes('stay')).toEqual(['RENT'])
+  })
+
+  it.each(SALE_CATEGORIES)('%s: a complete sale draft is accepted by the backend', (key) => {
+    const draft = saleDraft(key)
+    expect(missingRequirements(key, draft)).toEqual([])
+
+    const payload = payloadFor(key, draft)
+    expect(payload.pricingModel).toBe('SALE')
+    expect(payload.rent).toBe(Number(SALE_FIXTURES[key].rent))
+    // On a sale `deposit` is the booking advance — kept, unlike on a lease.
+    expect(payload.deposit).toBe(Number(SALE_FIXTURES[key].deposit))
+    expect(payload.availableFrom).toBe('2026-09-01T00:00:00.000Z')
+    expect(payload.priceNegotiable).toBe(true)
+    expect(payload.loanEligible).toBe(true)
+
+    const r = createPropertySchema.safeParse(payload)
+    expect(r.success, r.success ? '' : JSON.stringify(r.error.issues, null, 2)).toBe(true)
+  })
+
+  it('a crore-scale price is a valid ASKING price and an invalid rent', () => {
+    const sale = createPropertySchema.safeParse(payloadFor('apartment', saleDraft('apartment')))
+    expect(sale.success).toBe(true)
+    expect(sale.data.rent).toBe(45000000)
+
+    // Same number, rent mode: caught rather than published as ₹4.5Cr a month.
+    const asRent = createPropertySchema.safeParse(
+      payloadFor('apartment', { ...COMPLETE_DRAFTS.apartment, pricing: { rent: '45000000', deposit: '0' } })
+    )
+    expect(asRent.success).toBe(false)
+  })
+
+  it('rental-only terms never ride along onto a sale', () => {
+    const payload = payloadFor('apartment', saleDraft('apartment'))
+    expect(payload.leaseDuration).toBeUndefined()
+    expect(termRows('apartment', 'SALE').map((t) => t.k)).not.toContain('leaseDuration')
+    // ...and sale-only fields never ride along onto a rental.
+    const rental = payloadFor('apartment')
+    expect(rental.possessionStatus).toBeUndefined()
+    expect(rental.loanEligible).toBeUndefined()
+    expect(rental.priceNegotiable).toBeUndefined()
+  })
+
+  it('land derives its mode from saleOrLease, never from the picker', () => {
+    expect(pricingModes('land')).toEqual([])
+    const forSale = { ...COMPLETE_DRAFTS.land, fields: { ...COMPLETE_DRAFTS.land.fields, saleOrLease: 'SALE' } }
+    const forLease = { ...COMPLETE_DRAFTS.land, fields: { ...COMPLETE_DRAFTS.land.fields, saleOrLease: 'LEASE' } }
+    expect(resolveMode('land', forSale)).toBe('SALE')
+    // RENT, not LEASE: a let plot is paid periodically, and the backend rejects
+    // LEASE for LAND (LEASE means the refundable lump-sum deal).
+    expect(resolveMode('land', forLease)).toBe('RENT')
+    expect(payloadFor('land', forLease).pricingModel).toBe('RENT')
+    expect(createPropertySchema.safeParse(payloadFor('land', forLease)).success).toBe(true)
+  })
+
+  it('every mode a category offers is one the backend accepts for it', () => {
+    for (const key of Object.keys(CATEGORIES)) {
+      for (const mode of pricingModes(key)) {
+        const draft = mode === 'SALE' ? saleDraft(key) : { ...COMPLETE_DRAFTS[key], pricingModel: mode, pricing: mode === 'LEASE' ? { rent: '800000' } : COMPLETE_DRAFTS[key].pricing }
+        const r = createPropertySchema.safeParse(payloadFor(key, draft))
+        expect(r.success, `${key} in ${mode}: ${r.success ? '' : JSON.stringify(r.error.issues)}`).toBe(true)
+      }
+    }
+  })
+})
+
+// ── Indian land records ─────────────────────────────────────────────────
+describe('wizard six-type contract — land records', () => {
+  const RECORDS = {
+    surveyNumber: 'Sy. No. 12/3B',
+    subdivisionNumber: '2A',
+    landRecordType: 'A-khata',
+    landRecordNumber: 'BBMP/2019/4412',
+    conversionStatus: 'Converted',
+    ecAvailable: true,
+    ecYears: '30',
+    guidelineValue: '3200',
+  }
+
+  it('a plot carrying its state record passes the backend schema', () => {
+    const draft = { ...COMPLETE_DRAFTS.land, fields: { ...COMPLETE_DRAFTS.land.fields, ...RECORDS } }
+    const payload = payloadFor('land', draft)
+
+    // Text stays verbatim (a survey number is "12/3B" in one district and
+    // "Sy.No. 45, Blk 2" in the next); the two numerics are coerced.
+    expect(payload.surveyNumber).toBe('Sy. No. 12/3B')
+    expect(payload.landRecordType).toBe('A-khata')
+    expect(payload.ecAvailable).toBe(true)
+    expect(payload.ecYears).toBe(30)
+    expect(payload.guidelineValue).toBe(3200)
+
+    const r = createPropertySchema.safeParse(payload)
+    expect(r.success, r.success ? '' : JSON.stringify(r.error.issues, null, 2)).toBe(true)
+  })
+
+  it('records are optional — a plot with none is still publishable', () => {
+    expect(missingRequirements('land', COMPLETE_DRAFTS.land)).toEqual([])
+    expect(createPropertySchema.safeParse(payloadFor('land')).success).toBe(true)
+  })
+
+  it('ecAvailable false is sent, not dropped — "I have no EC" is an answer', () => {
+    const draft = { ...COMPLETE_DRAFTS.land, fields: { ...COMPLETE_DRAFTS.land.fields, ecAvailable: false } }
+    expect(payloadFor('land', draft).ecAvailable).toBe(false)
   })
 })

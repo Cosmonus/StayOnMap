@@ -48,7 +48,7 @@ function Toggle({ checked, onChange, label, description, disabled }) {
     >
       <div className="text-left pr-3">
         <p className="text-sm font-medium text-slate-800">{label}</p>
-        {description && <p className="text-[11px] text-slate-400 mt-0.5">{description}</p>}
+        {description && <p className="text-[11px] text-slate-500 mt-0.5">{description}</p>}
       </div>
       <div className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${checked && !disabled ? 'bg-[#111111]' : 'bg-slate-200'}`}>
         <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${checked && !disabled ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
@@ -63,13 +63,13 @@ function VisOpt({ value, current, onChange, icon: IconComp, label }) {
     <button
       type="button"
       onClick={() => onChange(value)}
-      className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl border transition-all text-left ${sel ? 'border-[#111111] bg-slate-50' : 'border-slate-100 hover:border-slate-200'}`}
+      className={`min-h-[44px] flex items-center gap-2.5 w-full px-3 py-3 rounded-xl border transition-all text-left ${sel ? 'border-[#111111] bg-slate-50' : 'border-slate-100 hover:border-slate-200'}`}
     >
-      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${sel ? 'bg-[#111111] text-white' : 'bg-slate-100 text-slate-400'}`}>
+      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${sel ? 'bg-[#111111] text-white' : 'bg-slate-100 text-slate-500'}`}>
         <IconComp className="w-3.5 h-3.5" strokeWidth={1.8} />
       </div>
       <span className={`text-sm font-medium ${sel ? 'text-slate-900' : 'text-slate-600'}`}>{label}</span>
-      {sel && <span className="ml-auto text-[10px] font-bold text-slate-400 uppercase tracking-wide">Active</span>}
+      {sel && <span className="ml-auto text-[11px] font-bold text-slate-500 uppercase tracking-wide">Active</span>}
     </button>
   )
 }
@@ -90,11 +90,11 @@ function DeleteModal({ onConfirm, onCancel, deleting }) {
           className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400 mb-4"
         />
         <div className="flex gap-2">
-          <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
+          <button onClick={onCancel} className="min-h-[44px] flex-1 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
           <button
             onClick={onConfirm}
             disabled={typed !== 'DELETE' || deleting}
-            className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="min-h-[44px] flex-1 py-3 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {deleting ? 'Deleting...' : 'Delete'}
           </button>
@@ -222,12 +222,12 @@ export default function SettingsPanel() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-slate-900">Settings</h1>
-          <p className="text-xs text-slate-400">Manage your profile, privacy, and account</p>
+          <p className="text-xs text-slate-500">Manage your profile, privacy, and account</p>
         </div>
         <button
           onClick={() => save(form)}
           disabled={saving}
-          className="flex items-center gap-1.5 px-4 py-2 bg-[#111111] text-white text-sm font-semibold rounded-xl hover:bg-[#2a2a2a] transition-colors disabled:opacity-60"
+          className="min-h-[44px] flex items-center gap-1.5 px-4 py-3 bg-[#111111] text-white text-sm font-semibold rounded-xl hover:bg-[#2a2a2a] transition-colors disabled:opacity-60"
         >
           <Save className="w-3.5 h-3.5" strokeWidth={1.8} />
           {saving ? 'Saving...' : 'Save'}
@@ -260,11 +260,11 @@ export default function SettingsPanel() {
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <p className="text-sm font-semibold text-slate-800 truncate">{settings.name}</p>
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isOwner ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-500'}`}>
+                <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${isOwner ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-500'}`}>
                   {isOwner ? 'Owner' : 'Tenant'}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 truncate">{settings.email}</p>
+              <p className="text-[11px] text-slate-500 truncate">{settings.email}</p>
               <button onClick={() => fileRef.current?.click()} disabled={uploading} className="text-[11px] font-medium text-brand-600 mt-0.5">
                 {uploading ? 'Uploading...' : 'Change photo'}
               </button>
@@ -290,7 +290,7 @@ export default function SettingsPanel() {
                 />
               </Field>
               <Field label="Email">
-                <input type="email" value={settings.email} disabled className="w-full px-3 py-2 border border-slate-100 rounded-lg text-sm bg-slate-100 text-slate-400 cursor-not-allowed" />
+                <input type="email" value={settings.email} disabled className="min-h-[44px] w-full px-3 py-3 border border-slate-100 rounded-lg text-sm bg-slate-100 text-slate-500 cursor-not-allowed" />
               </Field>
             </div>
             <Field label="Bio">
@@ -409,7 +409,7 @@ export default function SettingsPanel() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-50">
               <div>
                 <p className="text-sm font-medium text-slate-800">Email verification</p>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-500">
                   {settings.isVerified ? 'Your email address is confirmed' : 'Confirm your email to mark your account as trusted'}
                 </p>
               </div>
@@ -430,7 +430,7 @@ export default function SettingsPanel() {
             <div className="flex items-center justify-between pt-3">
               <div>
                 <p className="text-sm font-medium text-slate-800">Password</p>
-                <p className="text-[11px] text-slate-400">Reset via email link</p>
+                <p className="text-[11px] text-slate-500">Reset via email link</p>
               </div>
               <button
                 onClick={() => sendPasswordReset()}

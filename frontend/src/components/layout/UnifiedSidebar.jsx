@@ -104,7 +104,7 @@ function SectionLabel({ text, collapsed }) {
   if (collapsed) return <div className="my-1 mx-4 border-t border-slate-200" />
   return (
     <div className="px-5 pt-4 pb-1">
-      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{text}</p>
+      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{text}</p>
     </div>
   )
 }
@@ -163,7 +163,7 @@ function ProfileCard({ collapsed, onLogout, userName, userEmail, avatarUrl }) {
     <div className="relative px-4 py-3" ref={ref}>
       <button
         onClick={() => setMenuOpen(v => !v)}
-        className="w-full flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-slate-50 transition-colors"
+        className="min-h-[44px] w-full flex items-center gap-3 rounded-xl px-2 py-3 hover:bg-slate-50 transition-colors"
       >
         {avatarUrl ? (
           <img src={avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
@@ -174,7 +174,7 @@ function ProfileCard({ collapsed, onLogout, userName, userEmail, avatarUrl }) {
         )}
         <div className="flex-1 min-w-0 text-left">
           <p className="text-sm font-semibold text-slate-800 truncate">{displayName}</p>
-          <p className="text-[11px] text-slate-400 truncate">{subtitle}</p>
+          <p className="text-[11px] text-slate-500 truncate">{subtitle}</p>
         </div>
         <ChevronsUpDown size={14} color="#94a3b8" strokeWidth={2} className="shrink-0" />
       </button>
@@ -235,7 +235,7 @@ export default function UnifiedSidebar({ active, onChange, isAdmin = false, onLo
         {!collapsed && (
           <button
             onClick={() => setCollapsed(true)}
-            className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-400 hover:text-slate-600"
+            className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-500 hover:text-slate-600"
             title="Collapse sidebar"
           >
             <PanelLeftClose size={14} strokeWidth={2} />
@@ -248,7 +248,7 @@ export default function UnifiedSidebar({ active, onChange, isAdmin = false, onLo
         <div className="flex justify-center pb-2">
           <button
             onClick={() => setCollapsed(false)}
-            className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-400 hover:text-slate-600"
+            className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-500 hover:text-slate-600"
             title="Expand sidebar"
           >
             <PanelLeftOpen size={14} strokeWidth={2} />

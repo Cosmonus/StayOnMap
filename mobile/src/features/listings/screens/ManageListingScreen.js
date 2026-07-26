@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
 import { formatPrice, formatDate, imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
+import ScreenHeader from '@components/common/ScreenHeader'
 import ContactRow, { buildContactStats } from '../components/ContactRow'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -48,7 +49,7 @@ function ActionRow({ icon, label, sub, onPress, disabled, variant = 'default' })
         <Text style={[styles.actionLabel, { color: labelColor }]}>{label}</Text>
         {sub ? <Text style={styles.actionSub}>{sub}</Text> : null}
       </View>
-      <Icon name="chevronRight" size={16} color={colors.slate400} />
+      <Icon name="chevronRight" size={16} color={colors.slate500} />
     </Pressable>
   )
 }
@@ -189,7 +190,7 @@ export default function ManageListingScreen({ navigation, route }) {
           <Image source={{ uri: imgUrl(primaryImage.url, 'detail') }} style={styles.heroImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
         ) : (
           <View style={[styles.heroImage, styles.heroPlaceholder]}>
-            <Icon name="image" size={28} color={colors.slate400} />
+            <Icon name="image" size={28} color={colors.slate500} />
           </View>
         )}
         <View style={styles.statusPillWrap}>
@@ -224,7 +225,7 @@ export default function ManageListingScreen({ navigation, route }) {
       <View style={styles.actionsCard}>
         <ActionRow
           icon="home"
-          label="View public listing"
+          label="View listing"
           sub="See this property as renters do"
           onPress={() => navigation.navigate('PropertyDetail', { propertyId })}
           disabled={busy}
@@ -240,10 +241,10 @@ export default function ManageListingScreen({ navigation, route }) {
           />
         )}
         {status === 'ACTIVE' && (
-          <ActionRow icon="eye" label="Deactivate" sub="Hide from the public map" onPress={() => toggleMutation.mutate()} disabled={busy} />
+          <ActionRow icon="eye" label="Pause listing" sub="Hide from the public map" onPress={() => toggleMutation.mutate()} disabled={busy} />
         )}
         {status === 'INACTIVE' && (
-          <ActionRow icon="eye" label="Activate" sub="Show on the public map again" variant="primary" onPress={() => toggleMutation.mutate()} disabled={busy} />
+          <ActionRow icon="eye" label="Resume listing" sub="Show on the public map again" variant="primary" onPress={() => toggleMutation.mutate()} disabled={busy} />
         )}
         {status === 'OCCUPIED' && (
           <ActionRow icon="key" label="Mark as vacant" sub="Remove tenant, relist as Active" variant="primary" onPress={confirmVacate} disabled={busy} />
@@ -257,7 +258,9 @@ export default function ManageListingScreen({ navigation, route }) {
             disabled={busy}
           />
         )}
-        {status === 'ACTIVE' && (
+        {/* A sale has no tenancy to offer — a lease agreement on a listing being
+            sold outright is a contradiction, not a shortcut. */}
+        {status === 'ACTIVE' && property.pricingModel !== 'SALE' && (
           <ActionRow
             icon="document"
             label="Offer lease"
@@ -268,7 +271,7 @@ export default function ManageListingScreen({ navigation, route }) {
         )}
         <ActionRow
           icon="edit"
-          label="Edit details"
+          label="Edit"
           sub="Title, description, and pricing"
           onPress={() => navigation.navigate('EditListing', { propertyId })}
           disabled={busy}
@@ -299,7 +302,7 @@ export default function ManageListingScreen({ navigation, route }) {
   ) : (
     <View style={styles.contactsState}>
       <View style={styles.contactsEmptyIcon}>
-        <Icon name="users" size={18} color={colors.slate400} />
+        <Icon name="users" size={18} color={colors.slate500} />
       </View>
       <Text style={styles.contactsStateText}>No contacts yet</Text>
       <Text style={styles.contactsStateSub}>People who reach out will appear here</Text>
@@ -308,13 +311,11 @@ export default function ManageListingScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.headerBar}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={12} accessibilityRole="button" accessibilityLabel="Go back">
-          <Icon name="chevronLeft" size={22} color={colors.slate800} />
-        </Pressable>
-        <Text style={styles.headerBarTitle}>Manage listing</Text>
-        {busy ? <ActivityIndicator size="small" color={colors.brand600} /> : <View style={styles.headerSpacer} />}
-      </View>
+      <ScreenHeader
+        title="Manage listing"
+        onBack={() => navigation.goBack()}
+        right={busy ? <ActivityIndicator size="small" color={colors.brand600} /> : null}
+      />
       <FlatList
         data={contactStats}
         keyExtractor={(item) => item.id}
@@ -337,9 +338,6 @@ export default function ManageListingScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.slate50, gap: spacing.md, padding: spacing.xl },
-  headerBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, minHeight: 48 },
-  headerBarTitle: { flex: 1, fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
-  headerSpacer: { width: 20 },
   list: { paddingBottom: spacing.xxl },
   hero: { marginHorizontal: spacing.lg, borderRadius: radius.lg, overflow: 'hidden', aspectRatio: 16 / 9, backgroundColor: colors.slate100 },
   heroImage: { width: '100%', height: '100%' },
@@ -358,17 +356,17 @@ const styles = StyleSheet.create({
   tenantBannerName: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, marginTop: 1 },
   tenantBannerSince: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 1 },
   sectionTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, paddingHorizontal: spacing.lg, marginTop: spacing.lg, marginBottom: spacing.sm },
-  sectionHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, paddingHorizontal: spacing.lg, marginBottom: spacing.xs },
+  sectionHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, paddingHorizontal: spacing.lg, marginBottom: spacing.xs },
   actionsCard: { marginHorizontal: spacing.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate100, borderRadius: radius.lg, overflow: 'hidden' },
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, minHeight: 56, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.slate100 },
   actionIcon: { width: 34, height: 34, borderRadius: radius.md, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center' },
   actionText: { flex: 1, minWidth: 0 },
   actionLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm },
-  actionSub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 1 },
+  actionSub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 1 },
   contactsState: { alignItems: 'center', paddingVertical: spacing.xl, paddingHorizontal: spacing.lg, gap: spacing.sm },
   contactsEmptyIcon: { width: 40, height: 40, borderRadius: radius.full, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center' },
   contactsStateText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate500 },
-  contactsStateSub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  contactsStateSub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   errorTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
   retryButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, minHeight: 40, justifyContent: 'center' },
   retryText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },

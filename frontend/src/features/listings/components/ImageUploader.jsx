@@ -63,11 +63,11 @@ export default function ImageUploader({ value = [], onChange, onUploadingChange 
             className="aspect-[4/3] rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-1 hover:border-brand-400 hover:bg-brand-50 transition-colors disabled:opacity-50 cursor-pointer"
           >
             {uploading ? (
-              <span className="text-xs text-slate-400">Uploading...</span>
+              <span className="text-xs text-slate-500">Uploading...</span>
             ) : (
               <>
-                <Plus className="w-6 h-6 text-slate-300" strokeWidth={1.5} />
-                <span className="text-xs text-slate-400">Add photo</span>
+                <Plus className="w-6 h-6 text-slate-500" strokeWidth={1.5} />
+                <span className="text-xs text-slate-500">Add photo</span>
               </>
             )}
           </button>
@@ -84,7 +84,7 @@ export default function ImageUploader({ value = [], onChange, onUploadingChange 
       />
 
       {error && <p className="text-xs text-red-500">{error}</p>}
-      <p className="text-xs text-slate-400">First photo is the cover. Max 10 photos, 5 MB each (JPEG, PNG, WebP).</p>
+      <p className="text-xs text-slate-500">First photo is the cover. Max 10 photos, 5 MB each (JPEG, PNG, WebP).</p>
     </div>
   )
 }

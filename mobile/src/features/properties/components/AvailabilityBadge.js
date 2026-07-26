@@ -10,7 +10,7 @@ function availabilityTag(status, availableFrom) {
   if (status === 'PENDING')
     return { label: 'Awaiting Approval', dot: colors.warning, text: '#B45309', bg: colors.warning50 }
   if (status === 'DRAFT')
-    return { label: 'Draft', dot: colors.slate200, text: colors.slate400, bg: colors.slate50 }
+    return { label: 'Draft', dot: colors.slate200, text: colors.slate500, bg: colors.slate50 }
   if (availableFrom && new Date(availableFrom) > new Date())
     return { label: `Available from ${formatDate(availableFrom)}`, dot: '#3B82F6', text: '#2563EB', bg: '#EFF6FF' }
   return { label: 'Available Now', dot: colors.success, text: colors.brand700, bg: colors.success50 }

@@ -5,6 +5,21 @@ import * as controller from './uploads.controller.js'
 
 const ALLOWED_MIMETYPES = ['image/jpeg', 'image/png', 'image/webp']
 
+// Documents get their own multer instance: a different allowlist and a smaller
+// cap. An agreement draft is a few hundred KB; 5MB of "PDF" is a red flag.
+const DOC_MIMETYPES = ['application/pdf']
+
+const uploadDoc = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!DOC_MIMETYPES.includes(file.mimetype)) {
+      return cb(Object.assign(new Error('Only PDF documents are allowed'), { statusCode: 400 }))
+    }
+    cb(null, true)
+  },
+})
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
@@ -23,5 +38,6 @@ const router = Router()
 router.post('/property-image', authMiddleware, upload.single('image'), controller.uploadPropertyImage)
 router.post('/avatar',         authMiddleware, upload.single('image'), controller.uploadAvatar)
 router.post('/chat-image',     authMiddleware, upload.single('image'), controller.uploadChatImage)
+router.post('/chat-file',      authMiddleware, uploadDoc.single('file'), controller.uploadChatFile)
 
 export default router

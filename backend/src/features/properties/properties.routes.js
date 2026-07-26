@@ -5,7 +5,7 @@ import { requireCompleteProfile } from '../../middlewares/requireCompleteProfile
 import { requireBusinessForType } from '../../middlewares/requireBusiness.middleware.js'
 import { validate } from '../../middlewares/validate.middleware.js'
 import * as controller from './properties.controller.js'
-import { createPropertySchema, updatePropertySchema, pinsQuerySchema, listQuerySchema, countQuerySchema } from './properties.validation.js'
+import { createPropertySchema, updatePropertySchema, pinsQuerySchema, listQuerySchema, countQuerySchema, benchmarkQuerySchema } from './properties.validation.js'
 import { propertyAppointmentRouter } from '../appointments/appointments.routes.js'
 import { propertyReviewRouter } from '../reviews/reviews.routes.js'
 import { propertyInsightRouter } from '../insights/insights.routes.js'
@@ -24,6 +24,10 @@ router.get('/amenities', controller.getAmenities)
 
 // Owner-protected (must be before /:id to prevent 'mine' being matched as an id)
 router.get('/mine',              authMiddleware, controller.getMyProperties)
+// Aggregate only (a band, a median and a sample size — never the listings
+// behind it), and behind auth: it exists for an owner pricing their own
+// listing, not as an open market-data feed.
+router.get('/benchmark',         authMiddleware, validate(benchmarkQuerySchema, 'query'), controller.getBenchmark)
 router.get('/:id',               optionalAuth, controller.getProperty)
 // requireCompleteProfile sits after requireOwner (role first, readiness second)
 // and before validate — it needs no body. Creation only: existing listings and

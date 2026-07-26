@@ -2,6 +2,9 @@ import { api } from '@lib/api'
 
 export const userService = {
   getSettings: () => api.get('/users/settings'),
+  // The account screen in one call — name, city, points, and a count for every
+  // row that has something behind it.
+  accountSummary: () => api.get('/users/account-summary'),
   updateProfile: (data) => api.put('/users/profile', data),
   // Sends a password-reset link to the logged-in user's email (no in-app old/new flow).
   changePassword: () => api.post('/users/change-password'),

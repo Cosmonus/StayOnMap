@@ -27,26 +27,43 @@ export const formatCurrency = (amount) => _currencyFmt.format(amount)
 
 export const formatRent = (amount) => `${formatCurrency(amount)}/mo`
 
-// Reads a listing's primary price through its pricing model. `rent` holds the
-// MONTHLY rent on a RENT listing but the refundable lump sum on a LEASE one
-// (see PricingModel in schema.prisma) — so it must never be blindly suffixed
-// "/mo". Pass the property, not the number, and this can't go wrong.
+// The unit that belongs after a listing's primary price. `rent` holds a MONTHLY
+// rent on a RENT listing, a refundable lump sum on a LEASE one, and an ASKING
+// PRICE on a SALE one (see PricingModel in schema.prisma), so nothing may
+// suffix it blindly. A nightly stay reads per night.
+//
+// Exported because several surfaces render the number and the unit at different
+// type sizes and so can't use formatPrice's single string.
+export const priceUnit = (property) => {
+  if (property?.type === 'SHORT_STAY') return '/night'
+  if (property?.pricingModel === 'SALE') return ''
+  if (property?.pricingModel === 'LEASE') return ' lease'
+  return '/mo'
+}
+
+// Reads a listing's primary price through its pricing model. Pass the property,
+// not the number, and this can't go wrong.
 export const formatPrice = (property) =>
-  property?.pricingModel === 'LEASE'
-    ? `${formatCurrency(Number(property.rent))} lease`
-    : formatRent(Number(property?.rent))
+  `${formatCurrency(Number(property?.rent))}${priceUnit(property)}`
 
 export const formatArea = (sqft) => `${Number(sqft).toLocaleString('en-IN')} sq.ft`
 
 export const formatDate = (dateStr) =>
   new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 
+// Crore tier added 2026-07-26, when listings could be for sale: without it a
+// ₹4.5Cr asking price rendered "₹450L", which nobody in India reads as a price.
 export const formatCompact = (amount) => {
   const n = Number(amount)
+  if (n >= 10000000) return `₹${(n / 10000000).toFixed(2).replace(/\.?0+$/, '')}Cr`
   if (n >= 100000) return `₹${(n / 100000).toFixed(1).replace(/\.0$/, '')}L`
   if (n >= 1000) return `₹${Math.round(n / 1000)}K`
   return formatCurrency(n)
 }
+
+// Compact price plus its unit — what a map pin, a card and a preview all need.
+export const formatCompactPrice = (property) =>
+  `${formatCompact(Number(property?.rent))}${priceUnit(property)}`
 
 export const formatAge = (dateStr) => {
   if (!dateStr) return null

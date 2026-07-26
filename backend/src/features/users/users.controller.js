@@ -15,6 +15,13 @@ export async function updateProfile(req, res, next) {
   } catch (err) { next(err) }
 }
 
+export async function getAccountSummary(req, res, next) {
+  try {
+    const summary = await service.getAccountSummary(req.user.id)
+    ok(res, summary)
+  } catch (err) { next(err) }
+}
+
 export async function getSettings(req, res, next) {
   try {
     const settings = await service.getSettings(req.user.id)

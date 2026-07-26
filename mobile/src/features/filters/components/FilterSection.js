@@ -32,7 +32,7 @@ export default function FilterSection({ label, activeCount, defaultOpen = false,
             </Text>
           )}
           <View style={[styles.chevron, open && styles.chevronOpen]}>
-            <Icon name="chevronDown" size={15} color={colors.slate400} />
+            <Icon name="chevronDown" size={15} color={colors.slate500} />
           </View>
         </View>
       </Pressable>
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.white },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md - 4 },
-  clear: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate400, textDecorationLine: 'underline' },
+  clear: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate500, textDecorationLine: 'underline' },
   chevron: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   chevronOpen: { backgroundColor: colors.slate100, transform: [{ rotate: '180deg' }] },
   body: { paddingBottom: spacing.lg, gap: spacing.md + 4 },

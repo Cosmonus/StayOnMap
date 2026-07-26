@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { adminAuthMiddleware } from '../../middlewares/adminAuth.middleware.js'
 import { validate } from '../../middlewares/validate.middleware.js'
-import { adminLoginSchema, adminChangePasswordSchema, adminPinsQuerySchema, adminPropertiesQuerySchema } from './admin.validation.js'
+import { adminLoginSchema, adminChangePasswordSchema, adminPinsQuerySchema, adminPropertiesQuerySchema, adminPropertyStatusSchema } from './admin.validation.js'
 import { strictLimiter } from '../../middlewares/rateLimit.middleware.js'
 import * as ctrl from './admin.controller.js'
 
@@ -20,7 +20,11 @@ router.patch('/users/:userId/block', ctrl.blockUser)
 router.get('/properties', validate(adminPropertiesQuerySchema, 'query'), ctrl.properties)
 router.get('/properties/pins', validate(adminPinsQuerySchema, 'query'), ctrl.adminPins)
 router.get('/properties/:id', ctrl.propertyById)
-router.patch('/properties/:id/status', ctrl.setPropertyStatus)
+// Approve / pause / reject only — see ADMIN_PROPERTY_STATUSES. There is
+// deliberately no POST or DELETE for a property on the admin router: a
+// listing is created and deleted by its owner, and an admin's power over it
+// is to pause it, not to remove it.
+router.patch('/properties/:id/status', validate(adminPropertyStatusSchema), ctrl.setPropertyStatus)
 router.get('/moderation/queue', ctrl.moderationQueue)
 router.get('/reviews', ctrl.getReviews)
 router.patch('/reviews/:id/status', ctrl.moderateReview)

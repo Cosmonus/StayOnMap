@@ -7,6 +7,7 @@ import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { formatPrice, imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -77,13 +78,20 @@ export default function MyListingsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My listings</Text>
-        <Pressable style={styles.addButton} onPress={() => navigation.navigate('AddListing')}>
-          <Icon name="plus" size={14} color={colors.white} />
-          <Text style={styles.addButtonText}>Add Properties</Text>
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title="My listings"
+        right={(
+          <Pressable
+            style={styles.addButton}
+            onPress={() => navigation.navigate('AddListing')}
+            accessibilityRole="button"
+            accessibilityLabel="Add a listing"
+          >
+            <Icon name="plus" size={16} color={colors.white} />
+            <Text style={styles.addButtonText}>Add</Text>
+          </Pressable>
+        )}
+      />
 
       {isLoading ? (
         <View style={styles.center}><ActivityIndicator color={colors.brand600} /></View>
@@ -127,24 +135,21 @@ export default function MyListingsScreen({ navigation }) {
                   <Text style={styles.cardCity} numberOfLines={1}>{item.city}{item.state ? `, ${item.state}` : ''}</Text>
                 </View>
               </Pressable>
-              <View style={styles.cardActions}>
-                <Pressable
-                  style={styles.cardActionButton}
-                  onPress={() => navigation.navigate('Verification', { propertyId: item.id, propertyTitle: item.title })}
-                >
-                  <Icon name="shieldCheck" size={11} color={colors.slate600} />
-                  <Text style={styles.cardActionText}>Verify</Text>
-                </Pressable>
-                {item.status === 'ACTIVE' && (
-                  <Pressable
-                    style={styles.cardActionButton}
-                    onPress={() => navigation.navigate('CreateLease', { propertyId: item.id, propertyTitle: item.title })}
-                  >
-                    <Icon name="document" size={11} color={colors.slate600} />
-                    <Text style={styles.cardActionText}>Offer Lease</Text>
-                  </Pressable>
-                )}
-              </View>
+              {/* Verify and Offer lease used to sit here as two 25dp-tall
+                  buttons squeezed into a half-width card — under half the 48dp
+                  Android minimum, with 10px labels. Both are full rows one tap
+                  away on ManageListing, which is also where Pause, Edit and
+                  Delete live, so the card leads with the one thing it can do
+                  well: open the listing. */}
+              <Pressable
+                style={styles.cardManage}
+                onPress={() => navigation.navigate('ManageListing', { propertyId: item.id })}
+                accessibilityRole="button"
+                accessibilityLabel={`Manage ${item.title}`}
+              >
+                <Text style={styles.cardManageText}>Manage</Text>
+                <Icon name="chevronRight" size={14} color={colors.slate600} />
+              </Pressable>
             </View>
           )}
         />
@@ -159,9 +164,7 @@ const styles = StyleSheet.create({
   errorTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
   retryButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, minHeight: 40, justifyContent: 'center' },
   retryText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  addButton: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  addButton: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, minHeight: 48, justifyContent: 'center', },
   addButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   list: { padding: spacing.lg, gap: spacing.md },
   card: { flex: 1, backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, overflow: 'hidden', marginBottom: spacing.md },
@@ -169,23 +172,22 @@ const styles = StyleSheet.create({
   cardImage: { width: '100%', height: '100%' },
   statusPillWrap: { position: 'absolute', top: 6, left: 6 },
   statusPill: { borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 2 },
-  statusPillText: { fontFamily: fonts.bodySemiBold, fontSize: 9 },
-  cardBody: { padding: spacing.sm },
-  cardActions: { flexDirection: 'row', gap: 6, paddingHorizontal: spacing.sm, paddingBottom: spacing.sm },
-  cardActionButton: { flex: 1, flexDirection: 'row', gap: 3, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.sm, paddingVertical: 5, alignItems: 'center', justifyContent: 'center' },
-  cardActionText: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.slate600 },
-  cardTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate800 },
+  statusPillText: { fontFamily: fonts.bodySemiBold, fontSize: 11 },
+  cardBody: { padding: spacing.sm, paddingBottom: spacing.xs },
+  cardManage: { flexDirection: 'row', gap: 4, marginHorizontal: spacing.sm, marginBottom: spacing.sm, minHeight: 44, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  cardManageText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
+  cardTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
   cardRent: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand600, marginTop: 2 },
-  cardCity: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 2 },
+  cardCity: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 2 },
   emptyState: { padding: spacing.xxl, borderWidth: 1, borderColor: colors.slate200, borderStyle: 'dashed', borderRadius: radius.lg, alignItems: 'center', width: '100%' },
   emptyIcon: { width: 44, height: 44, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
-  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
+  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
   promptContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
   promptIcon: { width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
   promptTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800, marginBottom: spacing.xs },
-  promptBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, textAlign: 'center', marginBottom: spacing.lg, maxWidth: 260 },
-  promptButton: { backgroundColor: colors.black, borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.md },
+  promptBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, textAlign: 'center', marginBottom: spacing.lg, maxWidth: 260 },
+  promptButton: { backgroundColor: colors.black, borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.md, minHeight: 48, justifyContent: 'center', },
   disabled: { opacity: 0.6 },
   promptButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
 })

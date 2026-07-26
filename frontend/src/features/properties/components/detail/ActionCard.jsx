@@ -1,5 +1,5 @@
 import { Lock, MessageCircleMore, Navigation } from 'lucide-react'
-import { formatRent, formatCurrency } from '@utils/format'
+import { formatPrice, formatCurrency } from '@utils/format'
 import { rentBenchmarkLabel } from './detailUtils'
 import InterestedPeoplePanel from './InterestedPeoplePanel'
 import AppointmentSection from './AppointmentSection'
@@ -12,7 +12,7 @@ function LoginGate({ onLogin }) {
         <Lock className="w-7 h-7 text-brand-600" strokeWidth={1.8} />
       </div>
       <h3 className="text-base font-bold text-slate-800 mb-1">Sign in to contact the owner</h3>
-      <p className="text-sm text-slate-400 mb-5 max-w-[240px] mx-auto">
+      <p className="text-sm text-slate-500 mb-5 max-w-[240px] mx-auto">
         Create a free account to request visits, chat with owners, and save properties.
       </p>
       <button
@@ -22,7 +22,7 @@ function LoginGate({ onLogin }) {
       >
         Sign in or create account
       </button>
-      <p className="text-xs text-slate-400 mt-3">Zero brokerage. Always free for tenants.</p>
+      <p className="text-xs text-slate-500 mt-3">Zero brokerage. Always free for tenants.</p>
     </div>
   )
 }
@@ -40,9 +40,11 @@ export default function ActionCard({ formId, isOwner, property, avail, propertyI
           does, so this sits above the owner/tenant split rather than inside it. */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-2xl font-bold text-slate-900">{formatRent(Number(property.rent))}</p>
+          <p className="text-2xl font-bold text-slate-900">{formatPrice(property)}</p>
           {property.deposit > 0 && (
-            <p className="mt-1 text-xs text-slate-500">Deposit {formatCurrency(Number(property.deposit))}</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {property.pricingModel === 'SALE' ? 'Booking advance' : 'Deposit'} {formatCurrency(Number(property.deposit))}
+            </p>
           )}
           {bench && <p className={`mt-1 text-[11px] font-medium ${bench.className}`}>{bench.text}</p>}
         </div>
@@ -67,7 +69,7 @@ export default function ActionCard({ formId, isOwner, property, avail, propertyI
           <div className={`mt-4 grid gap-2 border-t border-slate-100 pt-4 ${directionsUrl ? 'grid-cols-2' : 'grid-cols-1'}`}>
             <button
               onClick={onStartChat}
-              className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-800 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-800 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               <MessageCircleMore className="w-4 h-4" strokeWidth={2} />
               Chat
@@ -77,7 +79,7 @@ export default function ActionCard({ formId, isOwner, property, avail, propertyI
                 href={directionsUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-800 no-underline transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-800 no-underline transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 <Navigation className="w-4 h-4 text-brand-600" strokeWidth={2} />
                 Directions

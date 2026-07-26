@@ -5,11 +5,13 @@ import { useQuery } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
 import { leaseService } from '@services/lease.service'
 import Icon from '@components/common/Icon'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 import { formatRent } from '@utils/format'
+import { formatTime } from '@utils/time'
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 const DOT_COLOR = { appointment: '#FBBF24', 'lease-start': '#4ADE80', 'lease-end': colors.slate400 }
@@ -24,7 +26,7 @@ function dateKey(d) {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
 }
 
-export default function CalendarScreen() {
+export default function CalendarScreen({ navigation }) {
   const [cursor, setCursor] = useState(() => {
     const d = new Date()
     return { year: d.getFullYear(), month: d.getMonth() }
@@ -53,7 +55,7 @@ export default function CalendarScreen() {
     type: 'appointment',
     label: a.property?.title ?? 'Visit',
     person: a.tenant?.name,
-    detail: a.requestedTime,
+    detail: formatTime(a.requestedTime),
   }))
   leases.forEach((l) => {
     addEvent(l.startDate, { type: 'lease-start', label: l.property?.title ?? 'Lease starts', person: l.tenant?.name, detail: formatRent(l.rentAmount) })
@@ -75,9 +77,12 @@ export default function CalendarScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <ScreenHeader
+        title="Calendar"
+        subtitle="Upcoming appointments and lease dates"
+        onBack={() => navigation.goBack()}
+      />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Calendar</Text>
-        <Text style={styles.subtitle}>Upcoming appointments and lease dates</Text>
 
         {isLoading ? (
           <ActivityIndicator color={colors.brand600} style={{ marginTop: spacing.xl }} />
@@ -193,13 +198,11 @@ const CELL_WIDTH = `${100 / 7}%`
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
-  content: { padding: spacing.lg, paddingBottom: spacing.xxl },
-  title: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  subtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2, marginBottom: spacing.lg },
+  content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
   monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
   monthLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
   weekRow: { flexDirection: 'row' },
-  weekday: { width: CELL_WIDTH, textAlign: 'center', fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate400, paddingVertical: spacing.xs },
+  weekday: { width: CELL_WIDTH, textAlign: 'center', fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate500, paddingVertical: spacing.xs },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: CELL_WIDTH, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
   dayNumber: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate700 },
@@ -217,7 +220,7 @@ const styles = StyleSheet.create({
   handle: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: colors.slate200, marginTop: spacing.sm + 2 },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.md - 2 },
   sheetHeading: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800, flexShrink: 1, marginRight: spacing.sm },
-  emptyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, textAlign: 'center', paddingVertical: spacing.xl },
+  emptyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, textAlign: 'center', paddingVertical: spacing.xl },
   sheetList: { marginBottom: spacing.sm },
   bookingRow: {
     flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,
@@ -226,5 +229,5 @@ const styles = StyleSheet.create({
   bookingDot: { width: 8, height: 8, borderRadius: 4, marginTop: 5 },
   bookingInfo: { flex: 1, minWidth: 0 },
   bookingLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
-  bookingDetail: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
+  bookingDetail: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
 })

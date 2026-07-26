@@ -20,4 +20,15 @@ export const uploadService = {
       timeout: 30000,
     })
   },
+
+  // Documents (PDF). Returns { url, mime, name } — a document is unusable
+  // without a label, and the storage path is a UUID by design.
+  uploadChatFile: async (file) => {
+    const form = new FormData()
+    form.append('file', file)
+    return api.post('/uploads/chat-file', form, {
+      headers: { 'Content-Type': undefined },
+      timeout: 30000,
+    })
+  },
 }

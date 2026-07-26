@@ -26,7 +26,7 @@ export default function ProvenanceChip({ provenance, method }) {
 
   return (
     <span
-      className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${cfg.cls}`}
+      className={`shrink-0 text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${cfg.cls}`}
       // For ESTIMATED the method is the important part — it's what turns
       // "trust us" into something a person can judge for themselves.
       title={method ? `${cfg.title}\n\nHow: ${method}` : cfg.title}

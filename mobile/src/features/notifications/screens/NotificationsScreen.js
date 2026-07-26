@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { notificationService } from '@services/notification.service'
 import { getSocket } from '@lib/socket'
 import Icon from '@components/common/Icon'
+import ScreenHeader from '@components/common/ScreenHeader'
 import ErrorState from '@components/common/ErrorState'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -93,25 +94,11 @@ export default function NotificationsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Pressable
-            onPress={() => navigation.goBack()}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Icon name="chevronLeft" size={20} color={colors.slate800} />
-          </Pressable>
-          <View style={styles.headerTitleRow}>
-            <Icon name="bell" size={20} color={colors.slate800} />
-            <View>
-              <Text style={styles.headerTitle}>Notifications</Text>
-              <Text style={styles.headerSub}>{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}</Text>
-            </View>
-          </View>
-        </View>
-        {unreadCount > 0 && (
+      <ScreenHeader
+        title="Notifications"
+        subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+        onBack={() => navigation.goBack()}
+        right={unreadCount > 0 && (
           <Pressable
             style={styles.markAllButton}
             onPress={() => markAll()}
@@ -122,7 +109,7 @@ export default function NotificationsScreen({ navigation }) {
             <Text style={styles.markAllButtonText}>Mark all read</Text>
           </Pressable>
         )}
-      </View>
+      />
 
       {isError ? (
         <ErrorState title="Couldn't load notifications" onRetry={refetch} />
@@ -140,7 +127,7 @@ export default function NotificationsScreen({ navigation }) {
           ListEmptyComponent={isLoading ? null : (
             <View style={styles.empty}>
               <View style={styles.emptyIcon}>
-                <Icon name="bell" size={24} color={colors.slate400} />
+                <Icon name="bell" size={24} color={colors.slate500} />
               </View>
               <Text style={styles.emptyTitle}>No notifications</Text>
               <Text style={styles.emptyBody}>Appointment updates and messages will show up here.</Text>
@@ -177,16 +164,11 @@ export default function NotificationsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2 },
-  markAllButton: { backgroundColor: colors.brand50, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  markAllButton: { backgroundColor: colors.brand50, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, minHeight: 48, justifyContent: 'center', },
   markAllButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand600 },
   list: { padding: spacing.lg, paddingTop: spacing.xs },
   sectionHeader: {
-    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400,
+    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500,
     textTransform: 'uppercase', letterSpacing: 0.8,
     paddingTop: spacing.md, paddingBottom: spacing.sm, paddingHorizontal: spacing.xs,
   },
@@ -198,10 +180,10 @@ const styles = StyleSheet.create({
   unreadDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.brand500 },
   title: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate700, flexShrink: 1 },
   titleUnread: { fontFamily: fonts.bodySemiBold, color: colors.slate900 },
-  time: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
+  time: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   body: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: spacing.xs, lineHeight: 20 },
   empty: { alignItems: 'center', paddingVertical: spacing.xxl },
   emptyIcon: { width: 52, height: 52, borderRadius: radius.full, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate700 },
-  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: spacing.xs, textAlign: 'center', maxWidth: 260 },
+  emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: spacing.xs, textAlign: 'center', maxWidth: 260 },
 })

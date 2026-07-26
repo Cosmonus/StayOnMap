@@ -31,7 +31,11 @@ export async function listMessages(req, res, next) {
 
 export async function sendMessage(req, res, next) {
   try {
-    const message = await chatService.sendMessage(req.params.conversationId, req.user.id, req.body.body, req.body.attachmentUrl)
+    const message = await chatService.sendMessage(req.params.conversationId, req.user.id, req.body.body, {
+      url: req.body.attachmentUrl,
+      name: req.body.attachmentName,
+      mime: req.body.attachmentMime,
+    })
     created(res, message)
   } catch (err) { next(err) }
 }

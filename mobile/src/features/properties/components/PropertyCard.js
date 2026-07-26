@@ -4,7 +4,7 @@ import { Image } from 'expo-image'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { savedService } from '@services/saved.service'
-import { imgUrl, formatCompact, formatAge, isAvailableToday } from '@utils/format'
+import { imgUrl, formatCompact, priceUnit, formatAge, isAvailableToday } from '@utils/format'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -71,7 +71,7 @@ export default function PropertyCard({ property, isSaved: initialSaved = false, 
         <View style={styles.priceRow}>
           <Text style={styles.price}>
             {formatCompact(Number(property.rent))}
-            <Text style={styles.priceUnit}>{property.pricingModel === 'LEASE' ? ' lease' : '/mo'}</Text>
+            <Text style={styles.priceUnit}>{priceUnit(property)}</Text>
           </Text>
           {property.deposit > 0 && <Text style={styles.deposit}>{formatCompact(Number(property.deposit))} dep.</Text>}
         </View>
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     position: 'absolute', top: spacing.sm, left: spacing.sm,
     backgroundColor: colors.success, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 3,
   },
-  availableBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.white },
+  availableBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.white },
   heartButton: {
     position: 'absolute', top: spacing.sm, right: spacing.sm,
     width: 32, height: 32, borderRadius: radius.full,
@@ -125,8 +125,8 @@ const styles = StyleSheet.create({
   body: { padding: spacing.md },
   priceRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: spacing.xs + 2 },
   price: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
-  priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
-  deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
+  deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: spacing.xs + 2 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.slate100, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 2 },
   chipBrand: { backgroundColor: colors.brand50 },
@@ -134,6 +134,6 @@ const styles = StyleSheet.create({
   chipTextBrand: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.brand700 },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, marginBottom: spacing.xs },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  city: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, flexShrink: 1 },
-  age: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400 },
+  city: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, flexShrink: 1 },
+  age: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
 })

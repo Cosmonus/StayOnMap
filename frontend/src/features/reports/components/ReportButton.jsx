@@ -54,13 +54,13 @@ export default function ReportButton({ propertyId }) {
           <div className="text-center py-6">
             <p className="text-lg font-semibold text-slate-800">Report submitted</p>
             <p className="text-sm text-slate-500 mt-1">Our team will review it within 24–48 hours.</p>
-            <button onClick={() => { setOpen(false); setSubmitted(false) }} className="mt-4 px-6 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors">Close</button>
+            <button onClick={() => { setOpen(false); setSubmitted(false) }} className="min-h-[44px] mt-4 px-6 py-3 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors">Close</button>
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-slate-800">Report this listing</h2>
-              <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+              <button onClick={() => setOpen(false)} className="text-slate-500 hover:text-slate-600 text-xl leading-none">&times;</button>
             </div>
             <div className="space-y-4">
               <Select
@@ -78,7 +78,7 @@ export default function ReportButton({ propertyId }) {
               />
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-                <textarea value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} rows={4} placeholder="Describe the issue in detail (min 20 characters)" className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+                <textarea value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} rows={4} placeholder="Describe the issue in detail (min 20 characters)" className="min-h-[44px] w-full border border-slate-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
                 {form.description.length < MIN_CHARS && (
                   <p className="mt-1 text-xs text-amber-600">
                     {form.description.length === 0
@@ -94,11 +94,11 @@ export default function ReportButton({ propertyId }) {
             </div>
             {mutation.isError && <p className="mt-3 text-sm text-red-600">Failed to submit. Please try again.</p>}
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setOpen(false)} className="flex-1 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition-colors">Cancel</button>
+              <button onClick={() => setOpen(false)} className="min-h-[44px] flex-1 py-3 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition-colors">Cancel</button>
               <button
                 disabled={!form.category || form.description.length < MIN_CHARS || mutation.isPending}
                 onClick={() => mutation.mutate(form)}
-                className="flex-1 py-2 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="min-h-[44px] flex-1 py-3 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {mutation.isPending ? 'Submitting...' : 'Submit Report'}
               </button>

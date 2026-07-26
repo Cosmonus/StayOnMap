@@ -33,6 +33,7 @@ import { defaultLimiter, uploadLimiter, adminLimiter } from './middlewares/rateL
 
 import authRoutes        from './features/auth/auth.routes.js'
 import propertyRoutes    from './features/properties/properties.routes.js'
+import hostRoutes from './features/host/host.routes.js'
 import userRoutes        from './features/users/users.routes.js'
 import uploadRoutes      from './features/uploads/uploads.routes.js'
 import savedRoutes       from './features/saved/saved.routes.js'
@@ -77,6 +78,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date()
 // User-facing routes
 app.use('/api/v1/auth',          authRoutes)
 app.use('/api/v1/properties',    propertyRoutes)
+app.use('/api/v1/host',          hostRoutes)
 app.use('/api/v1/users',         userRoutes)
 app.use('/api/v1/uploads',       uploadLimiter, uploadRoutes)
 app.use('/api/v1/saved',         savedRoutes)

@@ -8,6 +8,13 @@ export async function getMySaved(req, res, next) {
   } catch (err) { next(err) }
 }
 
+export async function getSummary(req, res, next) {
+  try {
+    const summary = await service.getSavedSummary(req.user.id)
+    ok(res, summary)
+  } catch (err) { next(err) }
+}
+
 export async function saveProperty(req, res, next) {
   try {
     const saved = await service.saveProperty(req.user.id, req.params.propertyId)

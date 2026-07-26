@@ -15,11 +15,7 @@ import { haversineMeters } from '../../../lib/geohash.js'
 import { fact, PROVENANCE } from '../envelope.js'
 import { nearbyCount, distanceMatrix, OSM_SOURCE, GOOGLE_PLACES_SOURCE, GOOGLE_DM_SOURCE } from '../providers.js'
 import { poisNear, poiConfidenceFactors, OSM_POI_SOURCE, OSM_POI_SOURCE_ID } from '../poiProvider.js'
-// Straight-line distance underestimates a real walk, because streets are not
-// straight. The detour ratio and pace are assumptions, which is why every fact
-// derived from them is ESTIMATED and carries WALK_METHOD to the user. The
-// constants live in proximity.js so every module phrases a walk the same way.
-import { walkMinutes, formatDistance, WALK_METHOD } from '../proximity.js'
+import { formatDistance } from '../proximity.js'
 
 // Beyond this, "walking distance to the metro" stops being a useful claim.
 const MAX_WALKABLE_METRO_M = 2500
@@ -130,7 +126,11 @@ export default {
   // comes from the network file instead of a hardcoded date, and bus counts
   // change under node/way dedup. Stored envelopes hold all of that, so the
   // bump forces existing cells to recompute.
-  version: 6, // v6 (2026-07-20): railway_station now means MAINLINE only; metro is its own category // v4: humanised distances; v3: destination varies by property type
+  // v7 (2026-07-26): the assumed `walk_time_metro` fact is gone. The bump is
+  // load-bearing, not bookkeeping: envelopes are stored whole, so every cell
+  // already materialised still carries the invented walk time until its module
+  // version moves and forces a recompute (see registry.js's staleness check).
+  version: 7, // v6 (2026-07-20): railway_station now means MAINLINE only; metro is its own category // v4: humanised distances; v3: destination varies by property type
   // Everyone needs to know how to get somewhere — only the destination differs.
   appliesTo: ALL_TYPES,
   // Its DESTINATION depends on the property type, so its envelope must be
@@ -202,20 +202,18 @@ export default {
         displayStyle: 'distance',
       }))
 
-      // Walking time to a station that isn't open is not a mobility fact.
-      if (operating && metro.distanceM <= MAX_WALKABLE_METRO_M) {
-        facts.push(fact({
-          key: 'walk_time_metro',
-          label: 'Walk to metro',
-          value: walkMinutes(metro.distanceM),
-          unit: 'min',
-          display: `about ${walkMinutes(metro.distanceM)} min on foot`,
-          provenance: PROVENANCE.ESTIMATED,
-          source: 'derived',
-          method: WALK_METHOD,
-          at: { lat: metro.lat, lng: metro.lng },
-        }))
-      }
+      // No assumed walk time. This used to emit a `walk_time_metro` fact of
+      // haversine × 1.35 ÷ 4.8 km/h — "about 40 min on foot" for a station
+      // 2.4 km away — which is fiction wherever a rail line, nullah or
+      // unbridged arterial sits in between, and it contradicted three things
+      // at once: the standing refusal in .claude/spatial.md, walkEnrich.js's
+      // own invariant ("No fact ever carries an assumed walk time"), and the
+      // promise on our own homepage ("No invented walk times").
+      //
+      // The distance fact above says "2.4 km" and stands on its own. Walk time
+      // returns through walkEnrich.js, which appends a MEASURED time to that
+      // same fact once the self-hosted router is up — so this slot is not a
+      // gap waiting to be filled by an estimate, it is already spoken for.
 
       if (lineNames.length) {
         facts.push(fact({

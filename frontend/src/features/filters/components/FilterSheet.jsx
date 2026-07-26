@@ -9,22 +9,37 @@
 import { useEffect, useState } from 'react'
 import Modal from '@components/common/Modal'
 import {
-  PARAM_DEFS, FILTER_SECTIONS, DEFAULT_FILTERS, SEARCH_KEYS, TYPE_CATEGORIES, LEASE_CATEGORY_IDS,
+  PARAM_DEFS, FILTER_SECTIONS, DEFAULT_FILTERS, SEARCH_KEYS, TYPE_CATEGORIES, LEASE_CATEGORY_IDS, SALE_CATEGORY_IDS,
   countActiveFilters, staleFilterPatch, modeChangePatch,
 } from '@/config/filters'
 import { useFilterCount } from '../hooks/useFilterCount'
 import PropertyTypeSwitcher from './PropertyTypeSwitcher'
 import DynamicFilterRenderer from './DynamicFilterRenderer'
 
-// Rent vs Lease: two different deals, not two price ranges. Rent is monthly;
-// lease is the Kerala/Karnataka lump sum the owner returns when you leave.
-// One mode at a time — see PricingModel in schema.prisma.
+// Rent, Lease and Buy: three different deals, not three price ranges. Rent is
+// monthly; lease is the Kerala/Karnataka lump sum the owner returns when you
+// leave; buy is an outright purchase. One mode at a time — see PricingModel in
+// schema.prisma.
+//
+// Buy is what makes sale listings reachable at all: the map defaults to
+// pricingModel=RENT, so without this control a for-sale listing could be
+// created, moderated and published and still never appear to anyone.
 const MODES = [
   { value: 'RENT', label: 'Rent', hint: 'Pay monthly' },
   { value: 'LEASE', label: 'Lease', hint: 'Lump sum, refunded on exit' },
+  { value: 'SALE', label: 'Buy', hint: 'Outright purchase' },
 ]
 
 const LEASE_CATEGORIES = TYPE_CATEGORIES.filter((c) => LEASE_CATEGORY_IDS.includes(c.id))
+const SALE_CATEGORIES = TYPE_CATEGORIES.filter((c) => SALE_CATEGORY_IDS.includes(c.id))
+
+// Which property types a mode can even offer. Buy adds land and drops PG and
+// short-stay; lease drops land too.
+function categoriesForMode(mode) {
+  if (mode === 'LEASE') return LEASE_CATEGORIES
+  if (mode === 'SALE') return SALE_CATEGORIES
+  return TYPE_CATEGORIES
+}
 
 export default function FilterSheet({
   isOpen,
@@ -56,16 +71,15 @@ export default function FilterSheet({
   const patch = (p) => setDraft((d) => ({ ...d, ...p }))
 
   const mode = draft.pricingModel || 'RENT'
-  const categories = mode === 'LEASE' ? LEASE_CATEGORIES : TYPE_CATEGORIES
+  const categories = categoriesForMode(mode)
 
   // Switching modes resets the mode-gated rows (the two budget rows share
   // rentMin/rentMax on different scales) and drops any now-ineligible type
   // selection — picking PG then switching to Lease would otherwise filter to
   // "leased PGs", which can't exist.
   function handleModeChange(next) {
-    const types = (draft.types ?? []).filter(
-      (t) => next !== 'LEASE' || LEASE_CATEGORIES.some((c) => c.types.includes(t))
-    )
+    const allowed = categoriesForMode(next)
+    const types = (draft.types ?? []).filter((t) => allowed.some((c) => c.types.includes(t)))
     patch({
       pricingModel: next,
       types,
@@ -105,7 +119,7 @@ export default function FilterSheet({
           <button
             type="button"
             onClick={handleApply}
-            className={`px-6 py-2.5 rounded-xl bg-[#111111] hover:bg-[#2a2a2a] text-white text-sm font-semibold transition-all active:scale-[0.98] ${isFetching ? 'opacity-80' : ''}`}
+            className={`min-h-[44px] px-6 py-3 rounded-xl bg-[#111111] hover:bg-[#2a2a2a] text-white text-sm font-semibold transition-all active:scale-[0.98] ${isFetching ? 'opacity-80' : ''}`}
           >
             {applyLabel}
           </button>
@@ -115,7 +129,7 @@ export default function FilterSheet({
       {showModeToggle && (
         <div className="pt-1 pb-6 border-b border-slate-100">
           <p className="text-[15px] font-semibold text-slate-900 mb-3">Looking to</p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {MODES.map((m) => {
               const active = mode === m.value
               return (
@@ -124,14 +138,14 @@ export default function FilterSheet({
                   type="button"
                   onClick={() => handleModeChange(m.value)}
                   aria-pressed={active}
-                  className={`flex flex-col items-start gap-0.5 px-4 py-3 rounded-2xl border transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-brand-500 ${
+                  className={`flex flex-col items-start gap-0.5 px-4 py-3 rounded-2xl border transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
                     active
                       ? 'border-[#111111] bg-slate-50 text-slate-900'
                       : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'
                   }`}
                 >
                   <span className={`text-sm ${active ? 'font-semibold' : 'font-medium'}`}>{m.label}</span>
-                  <span className="text-[11px] text-slate-400 leading-tight text-left">{m.hint}</span>
+                  <span className="text-[11px] text-slate-500 leading-tight text-left">{m.hint}</span>
                 </button>
               )
             })}

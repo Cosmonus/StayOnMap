@@ -1,11 +1,12 @@
 // Renders property pins and cluster bubbles on the Google Map.
-// Zoomed out → nearby pins merge into "N flats" bubbles.
+// Zoomed out → nearby pins merge into "N homes" bubbles.
 // Zoomed in  → bubbles split back into individual price pills.
 
 import { useEffect, useRef } from 'react'
 import { createHtmlMarker } from '@lib/googleMaps'
 import { useMapStore } from '@store/mapStore'
 import { computeClusters, getExpansionZoom } from '../utils/clustering'
+import { formatCompact, priceUnit } from '@utils/format'
 
 // BHK is the more useful at-a-glance signal for renters scanning the map —
 // shown instead of the property type (Apt/House/Villa etc.)
@@ -83,13 +84,16 @@ function pinStateStyles(color, selected) {
 }
 
 function makePinEl(pin, selected) {
-  const rent  = `₹${(Number(pin.rent) / 1000).toFixed(0)}K`
+  // Through formatCompact/priceUnit, not a hand-rolled ÷1000: a sale pin has to
+  // read "₹4.5Cr", never "₹45000K/mo".
+  const price = formatCompact(Number(pin.rent))
+  const unit  = priceUnit(pin)
   const bhk   = bhkShort(pin)
-  const label = bhk ? `${rent} · ${bhk}` : rent
+  const label = bhk ? `${price} · ${bhk}` : price
   const color = typeColor(pin)
 
   const el = document.createElement('div')
-  el.setAttribute('aria-label', `Property at ${rent}/mo`)
+  el.setAttribute('aria-label', `Property at ${price}${unit}`)
   el.style.cssText = `
     display: inline-flex;
     align-items: center;
@@ -123,7 +127,9 @@ function applySelected(el, selected, pin) {
 
 // ── Cluster bubble (brand-blue pill with count) ───────────────────
 function makeClusterEl(count) {
-  const label = `${count} flat${count !== 1 ? 's' : ''}`
+  // "homes", not "flats" — the map carries plots, PGs, shops and short stays
+  // too, and calling a cluster of them flats is simply wrong.
+  const label = `${count} home${count !== 1 ? 's' : ''}`
   const el = document.createElement('div')
   el.setAttribute('aria-label', `${count} properties`)
   el.style.cssText = `
@@ -137,10 +143,10 @@ function makeClusterEl(count) {
     font-family: 'Plus Jakarta Sans', sans-serif;
     white-space: nowrap;
     cursor: pointer;
-    background: #0284c7;
+    background: #0d8a5f;
     color: #fff;
     border: 2px solid #fff;
-    box-shadow: 0 2px 12px rgba(2,132,199,0.35);
+    box-shadow: 0 2px 12px rgba(13,138,95,0.35);
     transition: transform 150ms ease;
     transform-origin: center bottom;
     will-change: transform;

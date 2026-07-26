@@ -1,7 +1,7 @@
-﻿import { useMemo } from 'react'
-import { Link } from 'react-router-dom'
+﻿import { useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Home } from 'lucide-react'
+import { Home, X } from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { resolvePlace } from '@lib/googleMaps'
 import { useFilterStore } from '@store/filterStore'
@@ -24,23 +24,21 @@ function CardSkeleton() {
   )
 }
 
-function EmptySlotCard({ cta = false }) {
-  if (cta) {
-    return (
-      <Link
-        to="/list"
-        className="aspect-[4/3] rounded-2xl border border-dashed border-brand-300 bg-brand-50/40 flex flex-col items-center justify-center gap-2 text-center px-3 no-underline hover:border-brand-500 transition-colors"
-      >
-        <Home size={24} className="text-brand-600" strokeWidth={1.8} />
-        <p className="text-xs font-semibold text-brand-700 leading-snug">Own a place here?<br />List it free</p>
-      </Link>
-    )
-  }
+// One pad tile, and it's a real link. The grid used to pad a sparse result out
+// to two full rows with "More rentals coming soon" placeholders — so a search
+// returning two listings showed two listings and SEVEN dashed boxes, which
+// reads as an empty shop rather than a tidy grid. A row-completing tile that
+// invites the reader to list is the one filler that isn't a claim about
+// inventory we don't have.
+function ListYourPlaceCard() {
   return (
-    <div className="aspect-[4/3] rounded-2xl border border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-center px-3">
-      <Home size={24} stroke="#cbd5e1" strokeWidth={1.8} />
-      <p className="text-xs text-slate-400 leading-snug">More rentals<br />coming soon</p>
-    </div>
+    <Link
+      to="/list"
+      className="aspect-[4/3] rounded-2xl border border-dashed border-brand-300 bg-brand-50/40 flex flex-col items-center justify-center gap-2 text-center px-3 no-underline hover:border-brand-500 transition-colors"
+    >
+      <Home size={24} className="text-brand-600" strokeWidth={1.8} />
+      <p className="text-xs font-semibold text-brand-700 leading-snug">Own a place here?<br />List it free</p>
+    </Link>
   )
 }
 
@@ -69,7 +67,7 @@ export default function PropertiesPage() {
     retry: 1,
   })
 
-  const bounds = useMemo(() => {
+  const areaBounds = useMemo(() => {
     if (!area || !place) return null
     if (place.viewport) return place.viewport
     // No viewport on the geometry (rare) — a ~2km box around the point beats
@@ -77,6 +75,28 @@ export default function PropertiesPage() {
     const d = 0.02
     return { swLat: place.lat - d, swLng: place.lng - d, neLat: place.lat + d, neLng: place.lng + d }
   }, [area, place])
+
+  // The map's viewport, handed over by "See them as a list". Read once on
+  // mount: it is where the visitor was looking, not a filter, so it must not
+  // be recomputed when they change a filter here.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [mapBounds, setMapBounds] = useState(() => {
+    const n = (key) => Number(searchParams.get(key))
+    const box = { swLat: n('swLat'), swLng: n('swLng'), neLat: n('neLat'), neLng: n('neLng') }
+    const complete = Object.values(box).every((v) => Number.isFinite(v) && v !== 0)
+    return complete ? box : null
+  })
+
+  function clearMapBounds() {
+    setMapBounds(null)
+    const next = new URLSearchParams(searchParams)
+    for (const key of ['swLat', 'swLng', 'neLat', 'neLng']) next.delete(key)
+    setSearchParams(next, { replace: true })
+  }
+
+  // The viewport wins over the geocoded place: panning into one neighbourhood
+  // is more specific than the city the search box resolved to.
+  const bounds = mapBounds ?? areaBounds
 
   // Every active filter (modal included) shapes the grid — same schema-driven
   // params the map's pin fetch uses, plus the searched place's bounds.
@@ -94,7 +114,8 @@ export default function PropertiesPage() {
     // Hold the fetch until the searched place resolves — fetching unbounded
     // first would flash every listing before snapping to the searched area.
     // A failed/unresolvable geocode falls through to an unbounded fetch.
-    enabled: !area || placeResolved,
+    // A handed-over map viewport needs no geocode, so it never waits.
+    enabled: !!mapBounds || !area || placeResolved,
   })
   // isPending (not isLoading) so the geocode wait renders skeletons too —
   // a disabled query is pending but not "loading" in React Query v5 terms.
@@ -107,22 +128,24 @@ export default function PropertiesPage() {
   const proximityLabel = data?.meta?.proximity?.label
   const locationLabel = (area && (place?.name ?? area)) || filters.city || null
 
-  // Pad the grid so the last row is never left lopsided — targets the widest
-  // breakpoint's column count (5, must match 2xl:grid-cols-5 below); narrower
-  // breakpoints may not land on a perfectly complete row, same tradeoff as
-  // the homepage's featured strip. A sparse result pads to at least TWO full
-  // rows so the page reads as a place with room to grow, not an empty hall.
+  // One tile, only when the last row has a gap to fill (5 = 2xl:grid-cols-5
+  // below). Never invents a second row.
   const COLS = 5
-  const emptySlotCount = properties.length < COLS * 2
-    ? COLS * 2 - properties.length
-    : (COLS - (properties.length % COLS)) % COLS
+  const showListYourPlace = properties.length > 0 && properties.length % COLS !== 0
 
-  const pageTitle = locationLabel
-    ? `Rental Properties in ${locationLabel}`
-    : 'Browse Rental Properties'
+  // Buy mode reaches this page through the pricingModel filter, so the title,
+  // the description and the result count all have to stop saying "rental".
+  const forSale = filters.pricingModel === 'SALE'
+  const onLease = filters.pricingModel === 'LEASE'
+  const noun = forSale
+    ? (n) => `${n} place${n !== 1 ? 's' : ''} for sale`
+    : (n) => `${n} home${n !== 1 ? 's' : ''} available`
+
+  const kind = forSale ? 'Properties for Sale' : onLease ? 'Properties on Lease' : 'Rental Properties'
+  const pageTitle = locationLabel ? `${kind} in ${locationLabel}` : `Browse ${kind}`
   const pageDesc = locationLabel
-    ? `Browse broker-free rental properties in ${locationLabel} — no broker fees.`
-    : 'Browse broker-free rental properties across India — no broker fees.'
+    ? `Browse broker-free ${kind.toLowerCase()} in ${locationLabel} — no broker fees.`
+    : `Browse broker-free ${kind.toLowerCase()} across India — no broker fees.`
 
   return (
     <>
@@ -141,8 +164,27 @@ export default function PropertiesPage() {
                 ? 'Loading listings…'
                 : properties.length === 0
                 ? 'No properties match your filters — try clearing the city or furnishing filter.'
-                : `${properties.length} home${properties.length !== 1 ? 's' : ''} available`}
+                : noun(properties.length)}
             </p>
+
+            {/*
+              A viewport constrains the grid invisibly — without this the
+              visitor clears every filter, still sees a short list, and has no
+              way to know why. Same rule as the unjudged note below: an
+              exclusion the user can't see is an exclusion we have to say.
+            */}
+            {mapBounds && (
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 py-1.5 pl-3.5 pr-1.5 text-sm text-slate-600">
+                Showing the area you were viewing on the map
+                <button
+                  onClick={clearMapBounds}
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                  aria-label="Show homes everywhere, not just the area I was viewing"
+                >
+                  <X size={14} strokeWidth={2.5} aria-hidden="true" />
+                </button>
+              </div>
+            )}
 
             {/*
               The listings this filter could not judge either way.
@@ -163,7 +205,7 @@ export default function PropertiesPage() {
           </div>
 
           {isError ? (
-            <div className="py-24 text-center text-slate-400">
+            <div className="py-24 text-center text-slate-500">
               Couldn&apos;t load properties. Please try again.
             </div>
           ) : isLoading ? (
@@ -175,9 +217,7 @@ export default function PropertiesPage() {
               {properties.map((property) => (
                 <PropertyCard key={property.id} property={property} isSaved={property.isSaved} />
               ))}
-              {Array.from({ length: emptySlotCount }).map((_, i) => (
-                <EmptySlotCard key={`empty-${i}`} cta={i === 0} />
-              ))}
+              {showListYourPlace && <ListYourPlaceCard />}
             </div>
           )}
         </div>

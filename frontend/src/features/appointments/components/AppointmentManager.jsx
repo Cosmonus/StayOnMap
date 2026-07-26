@@ -4,7 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Calendar } from 'lucide-react'
 import { appointmentService } from '@services/appointment.service'
 import { toast } from '@components/common/Toaster'
+import { confirm } from '@components/common/ConfirmDialog'
 import { useUiStore } from '@store/uiStore'
+import { formatTime } from '@utils/time'
 
 // ── Helpers ─────────────────────────────────────────────────────────
 const STATUS = {
@@ -54,11 +56,11 @@ const OWNER_FILTERS = [
 function EmptyState({ title = 'No appointments', message }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
+      <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 mb-3">
         <Calendar size={20} strokeWidth={1.8} />
       </div>
       <p className="text-sm font-semibold text-slate-700 mb-0.5">{title}</p>
-      <p className="text-xs text-slate-400 max-w-[240px]">{message}</p>
+      <p className="text-xs text-slate-500 max-w-[240px]">{message}</p>
     </div>
   )
 }
@@ -83,7 +85,7 @@ function OwnerCard({ appt, onAction }) {
           )}
           <div className="min-w-0">
             <p className="text-sm font-semibold text-slate-800 truncate">{personName(appt.tenant)}</p>
-            <p className="text-[11px] text-slate-400">{appt.contactNumber}</p>
+            <p className="text-[11px] text-slate-500">{appt.contactNumber}</p>
           </div>
         </div>
         <StatusDot status={appt.status} />
@@ -100,19 +102,19 @@ function OwnerCard({ appt, onAction }) {
             {appt.property?.title ?? 'Property'}
           </Link>
           {appt.property?.displayId && (
-            <p className="text-[9px] font-mono text-slate-400 tracking-wide">{appt.property.displayId}</p>
+            <p className="text-[11px] font-mono text-slate-500 tracking-wide">{appt.property.displayId}</p>
           )}
-          <p className="text-[11px] text-slate-400">{appt.property?.city}</p>
+          <p className="text-[11px] text-slate-500">{appt.property?.city}</p>
         </div>
         <div className="text-right shrink-0">
           <p className="text-xs font-semibold text-slate-700">{shortDate(appt.requestedDate)}</p>
-          <p className="text-[11px] text-slate-400">{appt.requestedTime}</p>
+          <p className="text-[11px] text-slate-500">{formatTime(appt.requestedTime)}</p>
         </div>
       </div>
 
       {appt.message && (
         <p className="text-xs text-slate-500 mb-3 leading-relaxed">
-          <span className="font-medium text-slate-400">Note: </span>{appt.message}
+          <span className="font-medium text-slate-500">Note: </span>{appt.message}
         </p>
       )}
 
@@ -124,10 +126,10 @@ function OwnerCard({ appt, onAction }) {
 
       {isPending && !rejecting && (
         <div className="flex gap-2">
-          <button onClick={() => onAction(appt.id, 'ACCEPTED')} className="flex-1 py-2 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-colors" style={{ background: '#111111' }}>
+          <button onClick={() => onAction(appt.id, 'ACCEPTED')} className="flex-1 min-h-[44px] py-3 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-colors" style={{ background: '#111111' }}>
             Accept
           </button>
-          <button onClick={() => setRejecting(true)} className="flex-1 py-2 rounded-lg bg-red-50 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors">
+          <button onClick={() => setRejecting(true)} className="flex-1 min-h-[44px] py-3 rounded-lg bg-red-50 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors">
             Reject
           </button>
         </div>
@@ -135,10 +137,10 @@ function OwnerCard({ appt, onAction }) {
 
       {isPending && rejecting && (
         <div className="space-y-2">
-          <textarea rows={2} placeholder="Reason (optional)" value={note} onChange={(e) => setNote(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-red-300 resize-none" />
+          <textarea rows={2} placeholder="Reason (optional)" value={note} onChange={(e) => setNote(e.target.value)} className="min-h-[44px] w-full border border-slate-200 rounded-lg px-3 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-red-300 resize-none" />
           <div className="flex gap-2">
-            <button onClick={() => { setRejecting(false); setNote('') }} className="flex-1 py-2 rounded-lg bg-slate-100 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
-            <button onClick={() => onAction(appt.id, 'REJECTED', note || undefined)} className="flex-1 py-2 rounded-lg bg-red-600 text-xs font-semibold text-white hover:bg-red-700 transition-colors">Confirm</button>
+            <button onClick={() => { setRejecting(false); setNote('') }} className="flex-1 min-h-[44px] py-3 rounded-lg bg-slate-100 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
+            <button onClick={() => onAction(appt.id, 'REJECTED', note || undefined)} className="flex-1 min-h-[44px] py-3 rounded-lg bg-red-600 text-xs font-semibold text-white hover:bg-red-700 transition-colors">Confirm</button>
           </div>
         </div>
       )}
@@ -147,8 +149,12 @@ function OwnerCard({ appt, onAction }) {
 }
 
 // ── Tenant card (my requests — read-only) ───────────────────────────
-function TenantCard({ appt }) {
+function TenantCard({ appt, onCancel }) {
   const thumb = appt.property?.images?.[0]?.url
+  // A request you've made and can't withdraw is a dead end — the renter's only
+  // route out used to be messaging the owner and hoping. CANCELLED was already
+  // a valid status; nothing could set it.
+  const cancellable = ['PENDING', 'ACCEPTED', 'RESCHEDULED'].includes(appt.status)
 
   return (
     <div className="bg-white rounded-xl border border-slate-100 p-4 hover:border-slate-200 transition-colors">
@@ -163,21 +169,21 @@ function TenantCard({ appt }) {
             {appt.property?.title ?? 'Property'}
           </Link>
           {appt.property?.displayId && (
-            <p className="text-[9px] font-mono text-slate-400 tracking-wide">{appt.property.displayId}</p>
+            <p className="text-[11px] font-mono text-slate-500 tracking-wide">{appt.property.displayId}</p>
           )}
-          <p className="text-[11px] text-slate-400">{appt.property?.city}</p>
+          <p className="text-[11px] text-slate-500">{appt.property?.city}</p>
         </div>
         <StatusDot status={appt.status} />
       </div>
 
       <div className="flex items-center gap-4 text-xs text-slate-500 mb-2">
         <span>{shortDate(appt.requestedDate)}</span>
-        <span>{appt.requestedTime}</span>
+        <span>{formatTime(appt.requestedTime)}</span>
       </div>
 
       {appt.message && (
         <p className="text-xs text-slate-500 mb-2 leading-relaxed">
-          <span className="font-medium text-slate-400">Your note: </span>{appt.message}
+          <span className="font-medium text-slate-500">Your note: </span>{appt.message}
         </p>
       )}
 
@@ -185,6 +191,15 @@ function TenantCard({ appt }) {
         <p className="text-xs text-blue-600 leading-relaxed">
           <span className="font-medium text-blue-400">Owner reply: </span>{appt.ownerNote}
         </p>
+      )}
+
+      {cancellable && (
+        <button
+          onClick={() => onCancel(appt)}
+          className="mt-3 w-full min-h-[44px] py-3 rounded-lg bg-slate-50 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+        >
+          Cancel this visit
+        </button>
       )}
     </div>
   )
@@ -216,7 +231,10 @@ export default function AppointmentManager() {
   const mutation = useMutation({
     mutationFn: ({ id, status, ownerNote }) => appointmentService.updateStatus(id, { status, ownerNote }),
     onSuccess: (_, { status }) => {
+      // Both lists: the owner acts on incoming requests, the renter cancels
+      // their own, and only one of the two is mounted at a time.
       qc.invalidateQueries({ queryKey: ['owner-appointments'] })
+      qc.invalidateQueries({ queryKey: ['my-appointments'] })
       toast.success('Updated', `Appointment ${status.toLowerCase()}`)
     },
     onError: (err) => {
@@ -225,6 +243,16 @@ export default function AppointmentManager() {
   })
 
   const handleAction = (id, status, ownerNote) => mutation.mutate({ id, status, ownerNote })
+
+  async function handleCancel(appt) {
+    const ok = await confirm({
+      title: 'Cancel this visit?',
+      message: `Your visit to ${appt.property?.title ?? 'this property'} on ${shortDate(appt.requestedDate)} at ${formatTime(appt.requestedTime)} will be called off, and the owner will be told. You can request another time afterwards.`,
+      confirmLabel: 'Cancel visit',
+      cancelLabel: 'Keep it',
+    })
+    if (ok) mutation.mutate({ id: appt.id, status: 'CANCELLED' })
+  }
 
   const isLoading = hostMode ? loadingOwner : loadingMine
   const filteredOwner = filter === 'all' ? ownerAppts : ownerAppts.filter(a => a.status === filter)
@@ -245,7 +273,7 @@ export default function AppointmentManager() {
       {/* Header */}
       <div>
         <h1 className="text-xl font-bold text-slate-900">Appointments</h1>
-        <p className="text-sm text-slate-400 mt-0.5">
+        <p className="text-sm text-slate-500 mt-0.5">
           {hostMode ? 'Visit requests for your properties' : 'Visits you’ve requested'}
         </p>
       </div>
@@ -292,7 +320,7 @@ export default function AppointmentManager() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {myAppts.map(appt => (
-              <TenantCard key={appt.id} appt={appt} />
+              <TenantCard key={appt.id} appt={appt} onCancel={handleCancel} />
             ))}
           </div>
         )

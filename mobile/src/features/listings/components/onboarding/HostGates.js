@@ -1,40 +1,42 @@
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { authService } from '@services/auth.service'
-import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 import { CATEGORIES } from '../../config/onboarding.js'
 
-export default function TypePicker({ onPick }) {
+// The category grid, now rendered INSIDE step 1 of the wizard
+// (WizardScreens.js's BasicsScreen) rather than as a page of its own —
+// picking a type and answering its first question is one decision.
+export function CategoryCards({ activeKey, onPick }) {
   return (
-    <View style={styles.container}>
-      <Text style={styles.kicker}>Host onboarding</Text>
-      <Text style={styles.title}>Pick what you&apos;re listing</Text>
-      <Text style={styles.subtitle}>
-        Each type has its own guided onboarding — same three phases, different questions and verification.
-      </Text>
-
-      <View style={{ gap: spacing.md }}>
-        {Object.entries(CATEGORIES).map(([key, c]) => {
-          const biz = c.tier === 'biz'
-          return (
-            <Pressable key={key} style={styles.card} onPress={() => onPick(key)} accessibilityRole="button">
-              <View style={[styles.cardIcon, biz && styles.cardIconBiz]}>
-                <Icon name="building" size={22} color={biz ? colors.white : colors.brand600} />
+    <View style={{ gap: spacing.sm }}>
+      {Object.entries(CATEGORIES).map(([key, c]) => {
+        const biz = c.tier === 'biz'
+        const active = key === activeKey
+        return (
+          <Pressable
+            key={key}
+            style={[styles.card, active && styles.cardActive]}
+            onPress={() => onPick(key)}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: active }}
+          >
+            {/* No icon tile: the same generic building glyph on all six cards
+                distinguished nothing and ate a third of the row's width. */}
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.cardTitle, active && styles.cardTitleActive]}>{c.label}</Text>
+              <Text style={styles.cardBody}>{c.long}</Text>
+            </View>
+            {biz && (
+              <View style={styles.tierBadge}>
+                <Text style={styles.tierBadgeText}>BUSINESS</Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.cardTitle}>{c.label}</Text>
-                <Text style={styles.cardBody}>{c.long}</Text>
-              </View>
-              <View style={[styles.tierBadge, biz ? styles.tierBadgeBiz : styles.tierBadgeFree]}>
-                <Text style={[styles.tierBadgeText, biz && styles.tierBadgeTextBiz]}>{biz ? 'BUSINESS' : 'FREE'}</Text>
-              </View>
-            </Pressable>
-          )
-        })}
-      </View>
+            )}
+          </Pressable>
+        )
+      })}
     </View>
   )
 }
@@ -80,20 +82,13 @@ export function BusinessGate({ onUpgraded, onChooseDifferent }) {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
-  kicker: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.brand600, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: spacing.sm },
-  title: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800, marginBottom: spacing.xs },
-  subtitle: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginBottom: spacing.lg, lineHeight: 20 },
-  card: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate200, backgroundColor: colors.white },
-  cardIcon: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center' },
-  cardIconBiz: { backgroundColor: colors.slate800 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 72, paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate200, backgroundColor: colors.white },
+  cardActive: { borderColor: colors.brand600, backgroundColor: colors.brand50 },
   cardTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
-  cardBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
-  tierBadge: { paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.full },
-  tierBadgeFree: { backgroundColor: colors.brand50 },
-  tierBadgeBiz: { backgroundColor: colors.slate800 },
-  tierBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 9, color: colors.brand700, letterSpacing: 0.4 },
-  tierBadgeTextBiz: { color: colors.white },
+  cardTitleActive: { color: colors.brand700 },
+  cardBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2 },
+  tierBadge: { backgroundColor: colors.warning50, paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.full },
+  tierBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.warning700, letterSpacing: 0.4 },
   gateContainer: { alignItems: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.xl },
   gateBadge: { backgroundColor: colors.slate800, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 6, marginBottom: spacing.lg },
   gateBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.white, letterSpacing: 0.6 },
@@ -101,9 +96,9 @@ const styles = StyleSheet.create({
   gateBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, textAlign: 'center', lineHeight: 20, marginBottom: spacing.lg },
   gateError: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.danger, marginBottom: spacing.md },
   gateActions: { flexDirection: 'row', gap: spacing.sm, width: '100%' },
-  gateSecondaryButton: { flex: 1, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center' },
+  gateSecondaryButton: { flex: 1, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center', minHeight: 48, justifyContent: 'center', },
   gateSecondaryText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700 },
-  gatePrimaryButton: { flex: 1, backgroundColor: colors.slate800, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center' },
+  gatePrimaryButton: { flex: 1, backgroundColor: colors.slate800, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center', minHeight: 48, justifyContent: 'center', },
   gatePrimaryText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   disabled: { opacity: 0.6 },
 })

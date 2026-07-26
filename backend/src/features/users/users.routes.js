@@ -7,6 +7,7 @@ const router = Router()
 router.get('/profile',         authMiddleware, controller.getProfile)
 router.put('/profile',         authMiddleware, controller.updateProfile)
 router.get('/settings',        authMiddleware, controller.getSettings)
+router.get('/account-summary', authMiddleware, controller.getAccountSummary)
 router.post('/change-password', authMiddleware, controller.changePassword)
 router.delete('/account',      authMiddleware, controller.deleteAccount)
 

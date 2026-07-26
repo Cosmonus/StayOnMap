@@ -141,8 +141,8 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
   beta: { backgroundColor: colors.brand50, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 2 },
-  betaText: { fontFamily: fonts.bodySemiBold, fontSize: 9, letterSpacing: 1, color: colors.brand700 },
-  hint: { fontFamily: fonts.body, fontSize: fontSizes.xs, lineHeight: 16, color: colors.slate400, marginTop: 2 },
+  betaText: { fontFamily: fonts.bodySemiBold, fontSize: 11, letterSpacing: 1, color: colors.brand700 },
+  hint: { fontFamily: fonts.body, fontSize: fontSizes.xs, lineHeight: 16, color: colors.slate500, marginTop: 2 },
   pendingCard: {
     marginTop: spacing.sm + 2, backgroundColor: colors.white, borderRadius: radius.lg,
     borderWidth: 1, borderColor: colors.slate100, padding: spacing.md,
@@ -150,6 +150,6 @@ const styles = StyleSheet.create({
   pendingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pendingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.brand500 },
   pendingTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
-  pendingBody: { fontFamily: fonts.body, fontSize: 11, lineHeight: 16, color: colors.slate400, marginTop: 6 },
+  pendingBody: { fontFamily: fonts.body, fontSize: 11, lineHeight: 16, color: colors.slate500, marginTop: 6 },
   cards: { marginTop: spacing.sm + 2, gap: spacing.sm + 2 },
 })

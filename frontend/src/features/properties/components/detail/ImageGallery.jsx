@@ -12,7 +12,7 @@ export default function ImageGallery({ images, avail, onOpenLightbox }) {
   if (!list.length) {
     return (
       <div className="aspect-video bg-slate-100 rounded-2xl flex items-center justify-center">
-        <div className="text-center text-slate-300">
+        <div className="text-center text-slate-500">
           <ImageOff className="w-16 h-16 mx-auto mb-2" strokeWidth={1.5} />
           <p className="text-sm">No photos available</p>
         </div>
@@ -73,7 +73,7 @@ export default function ImageGallery({ images, avail, onOpenLightbox }) {
 
         <button
           onClick={() => onOpenLightbox(0)}
-          className="absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-slate-800 shadow-float transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="min-h-[44px] absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-xs font-bold text-slate-800 shadow-float transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         >
           <LayoutGrid className="w-3.5 h-3.5" strokeWidth={2.5} />
           {list.length === 1 ? 'View photo' : `View all ${list.length} photos`}

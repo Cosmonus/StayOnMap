@@ -27,11 +27,107 @@ export async function getOrCreateConversation(tenantId, propertyId, requesterId 
 }
 
 export async function getUserConversations(userId) {
-  return prisma.conversation.findMany({
+  const conversations = await prisma.conversation.findMany({
     where: { OR: [{ tenantId: userId }, { ownerId: userId }] },
     include: conversationInclude(userId),
     orderBy: { lastMessageAt: 'desc' },
   })
+  if (conversations.length === 0) return conversations
+
+  const [visits, replyMinutes] = await Promise.all([
+    visitContextFor(conversations),
+    ownerReplyMinutesFor(conversations),
+  ])
+
+  return conversations.map((c) => ({
+    ...c,
+    visit: visits.get(c.id) ?? null,
+    ownerReplyMinutes: replyMinutes.get(c.ownerId) ?? null,
+  }))
+}
+
+// The appointment this thread is about, if there is one.
+//
+// A conversation is always (property, tenant) and an appointment is always
+// (property, tenant) too, so the join is exact — no guessing. Cancelled and
+// rejected visits are excluded: a banner about a visit that isn't happening is
+// worse than no banner. Two queries for the whole list, not one per row.
+async function visitContextFor(conversations) {
+  const rows = await prisma.appointment.findMany({
+    where: {
+      propertyId: { in: [...new Set(conversations.map((c) => c.propertyId))] },
+      tenantId: { in: [...new Set(conversations.map((c) => c.tenantId))] },
+      status: { in: ['PENDING', 'ACCEPTED', 'RESCHEDULED'] },
+    },
+    select: { propertyId: true, tenantId: true, status: true, requestedDate: true, requestedTime: true, scheduledAt: true },
+    orderBy: { requestedDate: 'desc' },
+  })
+
+  // Keyed on the pair, so an owner's threads with two different tenants about
+  // the same property can never borrow each other's visit.
+  const byPair = new Map()
+  for (const r of rows) {
+    const key = `${r.propertyId}:${r.tenantId}`
+    if (!byPair.has(key)) byPair.set(key, r) // first = latest, from the orderBy
+  }
+
+  const out = new Map()
+  for (const c of conversations) {
+    const visit = byPair.get(`${c.propertyId}:${c.tenantId}`)
+    if (visit) out.set(c.id, visit)
+  }
+  return out
+}
+
+// How long this owner actually takes to reply, in minutes — median, measured
+// from their own message history.
+//
+// MEASURED, not promised: we time the gap between the other party's message and
+// the owner's next one, and report nothing at all below MIN_REPLY_SAMPLES. An
+// invented "replies quickly" badge on an owner who has answered twice would be
+// the platform vouching for something it doesn't know.
+const MIN_REPLY_SAMPLES = 3
+const REPLY_WINDOW_MESSAGES = 40
+
+async function ownerReplyMinutesFor(conversations) {
+  const rows = await prisma.message.findMany({
+    where: { conversationId: { in: conversations.map((c) => c.id) } },
+    select: { conversationId: true, senderId: true, createdAt: true },
+    orderBy: { createdAt: 'desc' },
+    take: conversations.length * REPLY_WINDOW_MESSAGES,
+  })
+
+  const ownerOf = new Map(conversations.map((c) => [c.id, c.ownerId]))
+  const byThread = new Map()
+  for (const m of rows) {
+    if (!byThread.has(m.conversationId)) byThread.set(m.conversationId, [])
+    byThread.get(m.conversationId).push(m)
+  }
+
+  // Gaps collected per OWNER across their threads — one owner's responsiveness
+  // is one fact about them, not a different fact in every conversation.
+  const gapsByOwner = new Map()
+  for (const [conversationId, msgs] of byThread) {
+    const ownerId = ownerOf.get(conversationId)
+    const chron = msgs.slice().reverse() // the query was newest-first
+    for (let i = 1; i < chron.length; i++) {
+      const prev = chron[i - 1]
+      const curr = chron[i]
+      if (curr.senderId !== ownerId || prev.senderId === ownerId) continue
+      const minutes = (new Date(curr.createdAt) - new Date(prev.createdAt)) / 60000
+      if (minutes < 0) continue
+      if (!gapsByOwner.has(ownerId)) gapsByOwner.set(ownerId, [])
+      gapsByOwner.get(ownerId).push(minutes)
+    }
+  }
+
+  const out = new Map()
+  for (const [ownerId, gaps] of gapsByOwner) {
+    if (gaps.length < MIN_REPLY_SAMPLES) continue
+    gaps.sort((a, b) => a - b)
+    out.set(ownerId, Math.round(gaps[Math.floor(gaps.length / 2)]))
+  }
+  return out
 }
 
 export async function getMessages(conversationId, userId, { skip = 0, limit = 50 } = {}) {
@@ -59,7 +155,7 @@ export async function getMessages(conversationId, userId, { skip = 0, limit = 50
   })
 }
 
-export async function sendMessage(conversationId, senderId, body, attachmentUrl) {
+export async function sendMessage(conversationId, senderId, body, attachment = {}) {
   const convo = await prisma.conversation.findUnique({ where: { id: conversationId } })
   if (!convo) throw Object.assign(new Error('Conversation not found'), { statusCode: 404 })
   if (convo.tenantId !== senderId && convo.ownerId !== senderId) {
@@ -68,7 +164,14 @@ export async function sendMessage(conversationId, senderId, body, attachmentUrl)
 
   const [message] = await prisma.$transaction([
     prisma.message.create({
-      data: { conversationId, senderId, body, attachmentUrl },
+      data: {
+        conversationId,
+        senderId,
+        body,
+        attachmentUrl: attachment.url,
+        attachmentName: attachment.name,
+        attachmentMime: attachment.mime,
+      },
       include: { sender: { select: { id: true, name: true, email: true, avatarUrl: true } } },
     }),
     prisma.conversation.update({
@@ -83,7 +186,11 @@ export async function sendMessage(conversationId, senderId, body, attachmentUrl)
   emitToUser(recipientId, 'message:notification', { conversationId, message })
 
   // Persist notification for offline fallback
-  const notifBody = body.length > 0 ? (body.length > 80 ? body.slice(0, 80) + '...' : body) : '📷 Photo'
+  const notifBody = body.length > 0
+    ? (body.length > 80 ? body.slice(0, 80) + '...' : body)
+    : attachment.mime === 'application/pdf'
+      ? `📄 ${attachment.name || 'Document'}`
+      : '📷 Photo'
   notifyUser(recipientId, {
     type: 'MESSAGE',
     title: 'New message',
@@ -122,7 +229,7 @@ export async function deleteMessage(conversationId, messageId, userId) {
 
   await prisma.message.update({
     where: { id: messageId },
-    data: { deletedAt: new Date(), body: '', attachmentUrl: null },
+    data: { deletedAt: new Date(), body: '', attachmentUrl: null, attachmentName: null, attachmentMime: null },
   })
 
   emitToConversation(conversationId, 'message:deleted', { id: messageId, conversationId })
@@ -156,7 +263,7 @@ export async function getUnreadCount(userId) {
 
 function conversationInclude(userId) {
   return {
-    property: { select: { id: true, title: true, rent: true, pricingModel: true, city: true, bhk: true, type: true, address: true, images: { where: { isPrimary: true }, take: 1 } } },
+    property: { select: { id: true, title: true, rent: true, pricingModel: true, city: true, bhk: true, sharing: true, type: true, address: true, landmark: true, images: { where: { isPrimary: true }, take: 1 } } },
     tenant:   { select: { id: true, name: true, email: true, avatarUrl: true } },
     owner:    { select: { id: true, name: true, email: true, avatarUrl: true } },
     messages: { orderBy: { createdAt: 'desc' }, take: 1 },

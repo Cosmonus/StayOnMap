@@ -89,7 +89,7 @@ export default function ShareHomeButton({ lease }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="py-2 px-4 text-sm font-semibold text-brand-700 border border-brand-200 hover:bg-brand-50 rounded-xl transition-colors inline-flex items-center gap-1.5"
+        className="min-h-[44px] py-3 px-4 text-sm font-semibold text-brand-700 border border-brand-200 hover:bg-brand-50 rounded-xl transition-colors inline-flex items-center gap-1.5"
       >
         <PartyPopper className="w-4 h-4" strokeWidth={2} />
         Share: I&apos;m home
@@ -98,12 +98,12 @@ export default function ShareHomeButton({ lease }) {
       <Modal isOpen={open} onClose={() => setOpen(false)} title="You found a home 🎉">
         <div className="space-y-4">
           <canvas ref={canvasRef} width={SIZE} height={SIZE} className="w-full rounded-2xl border border-slate-100" />
-          <p className="text-xs text-slate-400 text-center">
+          <p className="text-xs text-slate-500 text-center">
             Only your area, city and move-in month are on the card — never the address, a photo or a link.
           </p>
           <button
             onClick={share}
-            className="w-full py-2.5 bg-[#111111] text-white text-sm font-semibold rounded-xl hover:bg-[#2a2a2a] transition-colors"
+            className="min-h-[44px] w-full py-3 bg-[#111111] text-white text-sm font-semibold rounded-xl hover:bg-[#2a2a2a] transition-colors"
           >
             Share
           </button>

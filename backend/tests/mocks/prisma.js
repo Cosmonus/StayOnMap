@@ -35,11 +35,30 @@ export const prismaMock = {
     create:       vi.fn(),
     update:       vi.fn(),
     updateMany:   vi.fn(),
+    count:        vi.fn(),
+    groupBy:      vi.fn(),
   },
   lease: {
     findUnique: vi.fn(),
+    findMany:   vi.fn(),
     create:     vi.fn(),
     update:     vi.fn(),
+  },
+  // Host dashboard surfaces (features/host/host.service.js)
+  communityReview: {
+    findMany: vi.fn(),
+    count:    vi.fn(),
+  },
+  savedListing: {
+    count: vi.fn(),
+  },
+  propertyDailyView: {
+    aggregate: vi.fn(),
+    upsert:    vi.fn(),
+  },
+  propertyViewer: {
+    findMany: vi.fn(),
+    upsert:   vi.fn(),
   },
   waitlistEntry: {
     create: vi.fn(),

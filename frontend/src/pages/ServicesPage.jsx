@@ -70,13 +70,13 @@ function ServiceCard({ title, body, icon }) {
         <div className="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
           {icon}
         </div>
-        <span className="font-mono text-[10px] font-semibold tracking-widest text-slate-400">SOON</span>
+        <span className="font-mono text-[11px] font-semibold tracking-widest text-slate-500">SOON</span>
       </div>
       <h3 className="text-lg font-semibold text-slate-900 tracking-tight mt-5">{title}</h3>
       <p className="text-sm text-slate-500 leading-relaxed mt-2">{body}</p>
       <button
         onClick={() => toast.success('Got it', "We'll notify you when this launches.")}
-        className="flex items-center gap-1.5 mt-auto pt-5 text-sm font-medium text-slate-400 hover:text-brand-600 transition-colors"
+        className="flex items-center gap-1.5 mt-auto pt-5 text-sm font-medium text-slate-500 hover:text-brand-600 transition-colors"
       >
         Notify me <span className="text-base leading-none">›</span>
       </button>
@@ -134,7 +134,7 @@ export default function ServicesPage() {
                 <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
                   <Truck size={24} color="#fff" strokeWidth={1.6} />
                 </div>
-                <span className="font-mono text-[10px] font-semibold tracking-widest text-white/50">FIRST TO LAUNCH</span>
+                <span className="font-mono text-[11px] font-semibold tracking-widest text-white/50">FIRST TO LAUNCH</span>
               </div>
               <div className="mt-auto pt-16 md:pt-28 relative z-10">
                 <h3 className="text-2xl font-semibold tracking-tight">Verified movers &amp; packers</h3>
@@ -160,7 +160,7 @@ export default function ServicesPage() {
                 <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 text-brand-600 flex items-center justify-center">
                   <Plus size={22} strokeWidth={1.7} />
                 </div>
-                <span className="font-mono text-[10px] font-semibold tracking-widest text-slate-400">ROADMAP</span>
+                <span className="font-mono text-[11px] font-semibold tracking-widest text-slate-500">ROADMAP</span>
               </div>
               <h3 className="text-lg font-semibold text-slate-900 tracking-tight mt-5">More on the way</h3>
               <p className="text-sm text-slate-500 leading-relaxed mt-2">

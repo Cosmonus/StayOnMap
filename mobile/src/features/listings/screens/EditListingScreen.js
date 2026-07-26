@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
 import Icon from '@components/common/Icon'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -158,7 +159,7 @@ function EditForm({ property, navigation, onSaved }) {
           value={form.title}
           onChangeText={(v) => set('title', v)}
           placeholder="e.g. Spacious 2 BHK in Koramangala"
-          placeholderTextColor={colors.slate400}
+          placeholderTextColor={colors.slate500}
           maxLength={100}
         />
       </Field>
@@ -169,7 +170,7 @@ function EditForm({ property, navigation, onSaved }) {
           value={form.description}
           onChangeText={(v) => set('description', v)}
           placeholder="Describe the property, surroundings, and unique features"
-          placeholderTextColor={colors.slate400}
+          placeholderTextColor={colors.slate500}
           multiline
           numberOfLines={4}
           textAlignVertical="top"
@@ -185,7 +186,7 @@ function EditForm({ property, navigation, onSaved }) {
             value={form[f.key]}
             onChangeText={(v) => set(f.key, v)}
             placeholder={f.placeholder}
-            placeholderTextColor={colors.slate400}
+            placeholderTextColor={colors.slate500}
             keyboardType="numeric"
           />
         </Field>
@@ -198,7 +199,7 @@ function EditForm({ property, navigation, onSaved }) {
           value={form.availableFrom}
           onChangeText={(v) => set('availableFrom', v)}
           placeholder="2026-08-01"
-          placeholderTextColor={colors.slate400}
+          placeholderTextColor={colors.slate500}
           keyboardType="numbers-and-punctuation"
           maxLength={10}
         />
@@ -236,15 +237,11 @@ export default function EditListingScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.headerBar}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={12} accessibilityRole="button" accessibilityLabel="Go back">
-          <Icon name="chevronLeft" size={22} color={colors.slate800} />
-        </Pressable>
-        <View style={styles.headerText}>
-          <Text style={styles.headerTitle}>Edit listing</Text>
-          {property?.title ? <Text style={styles.headerSub} numberOfLines={1}>{property.title}</Text> : null}
-        </View>
-      </View>
+      <ScreenHeader
+        title="Edit listing"
+        subtitle={property?.title}
+        onBack={() => navigation.goBack()}
+      />
 
       {isLoading ? (
         <View style={styles.center}>
@@ -270,18 +267,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl },
-  headerBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, minHeight: 48 },
-  headerText: { flex: 1, minWidth: 0 },
-  headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
-  headerSub: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.md },
   field: { gap: spacing.xs },
   fieldLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate700 },
-  fieldHint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
+  fieldHint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   fieldError: { fontFamily: fonts.body, fontSize: 11, color: colors.danger },
   input: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, minHeight: 48, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800, backgroundColor: colors.white },
   multiline: { minHeight: 100, paddingTop: spacing.sm },
-  sectionHeading: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate400, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: spacing.sm },
+  sectionHeading: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate500, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: spacing.sm },
   saveButton: { backgroundColor: colors.brand600, borderRadius: radius.md, minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: spacing.md },
   saveButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   disabled: { opacity: 0.6 },

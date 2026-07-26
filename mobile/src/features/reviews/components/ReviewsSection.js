@@ -117,7 +117,7 @@ function WriteReviewForm({ propertyId, onCancel, onSuccess }) {
         value={form.body}
         onChangeText={(v) => setForm((f) => ({ ...f, body: v }))}
         placeholder="Share your experience — what was great, what could be better"
-        placeholderTextColor={colors.slate400}
+        placeholderTextColor={colors.slate500}
         multiline
         numberOfLines={4}
       />
@@ -198,7 +198,7 @@ function ReviewCard({ review, propertyId, isOwner, ownerName }) {
             value={draft}
             onChangeText={setDraft}
             placeholder="Write a professional, helpful response…"
-            placeholderTextColor={colors.slate400}
+            placeholderTextColor={colors.slate500}
             multiline
           />
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
@@ -294,15 +294,15 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
   ratingSummary: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerAvg: { fontFamily: fonts.displayBold, fontSize: fontSizes.xxl, color: colors.slate800 },
-  headerCount: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400 },
-  writeButton: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  headerCount: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500 },
+  writeButton: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, minHeight: 48, justifyContent: 'center', },
   writeButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate600 },
   recommendBarRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   recommendBarTrack: { flex: 1, height: 8, backgroundColor: colors.slate100, borderRadius: radius.full, overflow: 'hidden' },
   recommendBarFill: { height: '100%', backgroundColor: colors.success },
   recommendBarText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate600 },
   emptyBox: { paddingVertical: spacing.xl, backgroundColor: colors.slate50, borderRadius: radius.lg, alignItems: 'center', gap: 6 },
-  emptyText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  emptyText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   showAllButton: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md },
   showAllText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate600 },
 
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   formHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   formTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
   cancelLink: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.slate500 },
-  label: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.slate400, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: spacing.xs },
+  label: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: spacing.xs },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.md, borderWidth: 1, borderColor: colors.slate200, backgroundColor: colors.white },
   chipActive: { backgroundColor: colors.brand600, borderColor: colors.brand600 },
@@ -325,9 +325,9 @@ const styles = StyleSheet.create({
   ratingLabel: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate600 },
   input: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate800, backgroundColor: colors.white },
   textarea: { minHeight: 80, textAlignVertical: 'top' },
-  hint: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400 },
+  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   errorText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.danger },
-  submitButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center' },
+  submitButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', minHeight: 48, justifyContent: 'center', },
   submitButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   disabled: { opacity: 0.5 },
 
@@ -336,16 +336,16 @@ const styles = StyleSheet.create({
   reviewAvatar: { width: 32, height: 32, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center' },
   reviewAvatarText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
   reviewerName: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate800 },
-  reviewMeta: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400 },
+  reviewMeta: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   reviewAvgScore: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
   reviewBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate700, lineHeight: 18 },
   recommendRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.xs },
   recommendText: { fontFamily: fonts.bodyMedium, fontSize: 11 },
   ownerReplyBox: { marginTop: spacing.sm, marginLeft: spacing.sm, borderLeftWidth: 2, borderLeftColor: colors.brand100, paddingLeft: spacing.sm },
-  ownerReplyLabel: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.brand700, marginBottom: 2 },
+  ownerReplyLabel: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.brand700, marginBottom: 2 },
   ownerReplyText: { fontFamily: fonts.body, fontSize: 11, color: colors.slate700, lineHeight: 16 },
-  editReplyLink: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.brand600, marginTop: 4 },
-  replyLink: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.slate400, marginTop: spacing.sm },
+  editReplyLink: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.brand600, marginTop: 4 },
+  replyLink: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.slate500, marginTop: spacing.sm },
   replyInput: { minHeight: 56, fontSize: 11 },
   replySubmit: { flex: 1, backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.sm, alignItems: 'center' },
   replySubmitText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.white },

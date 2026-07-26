@@ -112,10 +112,16 @@ describe('mobility — facts from data StayOnMap already owns', () => {
     expect(nearest.at).toEqual({ lat: expect.any(Number), lng: expect.any(Number) })
     expect(nearest.value).toBeLessThan(2500)
 
-    // Walk time is an estimate and must own up to it.
-    const walk = envelope.facts.find((f) => f.key === 'walk_time_metro')
-    expect(walk.provenance).toBe(PROVENANCE.ESTIMATED)
-    expect(walk.method).toMatch(/1\.35/)
+    // No assumed walk time, anywhere. This used to assert the opposite — that a
+    // `walk_time_metro` fact existed and owned up to being ESTIMATED — which
+    // pinned in place the exact thing .claude/spatial.md refuses, walkEnrich.js
+    // promises never to do, and the homepage advertises we don't do ("No
+    // invented walk times"). Disclosing an assumption is not the same as being
+    // allowed to make it: across a rail line, 2.4 km is not a 40-minute walk in
+    // any direction a person can actually take. The distance stands alone;
+    // walkEnrich.js adds a MEASURED time when the router is up.
+    expect(envelope.facts.find((f) => f.key === 'walk_time_metro')).toBeUndefined()
+    expect(envelope.facts.every((f) => f.provenance !== PROVENANCE.ESTIMATED || !/min|walk/i.test(f.display ?? ''))).toBe(true)
   })
 
   it('says a network is under construction rather than implying service', async () => {
@@ -137,10 +143,13 @@ describe('mobility — facts from data StayOnMap already owns', () => {
     expect(envelope.facts.find((f) => f.key === 'walk_time_metro')).toBeUndefined()
   })
 
-  it('does offer a walking time where the network actually runs', async () => {
+  it('gives a running network a plain distance, not an invented walk', async () => {
     const envelope = buildEnvelope(MODULES_BY_KEY.mobility, await MODULES_BY_KEY.mobility.compute(cellFor(CELLS[0])))
-    expect(envelope.facts.find((f) => f.key === 'walk_time_metro')).toBeDefined()
-    expect(envelope.facts.find((f) => f.key === 'nearest_metro').label).not.toMatch(/planned/i)
+    const nearest = envelope.facts.find((f) => f.key === 'nearest_metro')
+    expect(nearest.label).not.toMatch(/planned/i)
+    // A distance a person can picture — "2.4 km", never "about 40 min on foot".
+    expect(nearest.display).toMatch(/\d(\.\d)?\s?(m|km)$/)
+    expect(nearest.display).not.toMatch(/on foot|min/i)
   })
 
   it('says so plainly when a location is outside the covered cities', async () => {

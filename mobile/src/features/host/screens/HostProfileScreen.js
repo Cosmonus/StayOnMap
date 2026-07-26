@@ -1,94 +1,94 @@
-import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native'
+import { View, ScrollView, Alert, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
-import { authService } from '@services/auth.service'
+import { userService } from '@services/user.service'
 import { useUiStore } from '@store/uiStore'
-import MenuItem from '@features/profile/components/MenuItem'
-import Icon from '@components/common/Icon'
+import { AccountGroup, AccountRow, ModeCard } from '@features/profile/components/AccountRow'
+import AccountIdentity from '@features/profile/components/AccountIdentity'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
-import { fonts, fontSizes } from '@theme/typography'
-import { spacing, radius } from '@theme/spacing'
+import { spacing } from '@theme/spacing'
+
+// The host's account screen. Deliberately the SAME screen as the renter's
+// (@features/profile/screens/ProfileScreen) down to the shared row primitives —
+// mobile has to keep them as two files because the entire tab bar swaps with the
+// mode, and two files is exactly how these two drifted into two different looks
+// before.
+//
+// What differs is only what a host can act on from here: their visit requests
+// and listings have their own tabs, so this screen carries identity, the mode,
+// and the settings destinations — nothing invented, nothing that dead-ends.
 
 export default function HostProfileScreen({ navigation }) {
   const { user, signOut } = useAuth()
   const setHostMode = useUiStore((s) => s.setHostMode)
 
-  const { data: profile, isLoading } = useQuery({
-    queryKey: ['me'],
-    queryFn: () => authService.getMe().then((r) => r.data),
+  const { data: account, isLoading, isError, refetch } = useQuery({
+    queryKey: ['account-summary'],
+    queryFn: () => userService.accountSummary().then((r) => r.data),
     enabled: !!user,
-    staleTime: 0,
   })
 
+  const meta = account?.city ? `Hosting in ${account.city}` : null
+
+  function confirmSignOut() {
+    Alert.alert('Log out?', 'You can sign back in any time.', [
+      { text: 'Stay', style: 'cancel' },
+      { text: 'Log out', style: 'destructive', onPress: signOut },
+    ])
+  }
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.card}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{(profile?.name || user?.email || '?')[0].toUpperCase()}</Text>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* Titled like every other screen. The identity card below is content —
+          the first row of the list, sharing its card shape — not a second
+          header competing with this one. */}
+      <ScreenHeader title="Account" />
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.body}>
+          <AccountIdentity
+            account={account && { ...account, meta }}
+            isLoading={isLoading}
+            isError={isError}
+            onRetry={() => refetch()}
+            onPress={() => navigation.navigate('Settings')}
+            fallbackName="StayOnMap host"
+          />
+
+          <ModeCard hostMode onSwitch={() => setHostMode(false)} />
+
+          {/* Web's host nav has a Calendar TAB; mobile's bottom bar is full at
+              five, so the calendar lives on the Dashboard. That made it the one
+              host destination with no fixed home — a host who went looking for
+              it in the menu found nothing. It is reachable from both places
+              now; this row crosses tabs into the Dashboard stack. */}
+          <AccountGroup>
+            <AccountRow
+              label="Calendar"
+              onPress={() => navigation.getParent()?.navigate('Dashboard', { screen: 'Calendar' })}
+            />
+          </AccountGroup>
+
+          <AccountGroup>
+            <AccountRow label="Notifications" onPress={() => navigation.navigate('Notifications')} />
+            <AccountRow label="Settings" onPress={() => navigation.navigate('Settings')} />
+            <AccountRow label="Help" onPress={() => navigation.navigate('Support')} />
+          </AccountGroup>
+
+          {/* Its own group, deliberately: an irreversible action should not sit
+              one row below "Help" where a mis-tap lands on it. */}
+          <AccountGroup>
+            <AccountRow label="Log out" danger onPress={confirmSignOut} />
+          </AccountGroup>
         </View>
-        {isLoading ? (
-          <ActivityIndicator color={colors.brand600} style={{ marginTop: spacing.sm }} />
-        ) : (
-          <>
-            <Text style={styles.name}>{profile?.name || 'StayOnMap host'}</Text>
-            <Text style={styles.email}>{user?.email}</Text>
-            <View style={styles.roleBadge}>
-              <Icon name="home" size={11} color={colors.brand700} />
-              <Text style={styles.roleBadgeText}>HOST</Text>
-            </View>
-          </>
-        )}
-      </View>
-
-      <View style={styles.menu}>
-        <MenuItem icon="bell" label="Notifications" onPress={() => navigation.navigate('Notifications')} />
-        <MenuItem icon="settings" label="Settings" onPress={() => navigation.navigate('Settings')} />
-        <MenuItem icon="info" label="Support" onPress={() => navigation.navigate('Support')} />
-        <MenuItem icon="map" label="Switch to renter" onPress={() => setHostMode(false)} />
-      </View>
-
-      <Pressable style={styles.signOutButton} onPress={signOut} accessibilityRole="button">
-        <Icon name="logout" size={16} color={colors.danger} />
-        <Text style={styles.signOutText}>Sign out</Text>
-      </Pressable>
+      </ScrollView>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.slate50, padding: spacing.lg },
-  card: { alignItems: 'center', paddingVertical: spacing.xl },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: radius.full,
-    backgroundColor: colors.brand100,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  avatarText: { fontFamily: fonts.displayBold, fontSize: fontSizes.xxl, color: colors.brand700 },
-  name: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
-  email: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: spacing.xs },
-  roleBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    marginTop: spacing.sm,
-    backgroundColor: colors.brand50,
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 4,
-  },
-  roleBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
-  menu: { borderTopWidth: 1, borderTopColor: colors.slate100 },
-  signOutButton: {
-    flexDirection: 'row', gap: 6, justifyContent: 'center',
-    marginTop: 'auto',
-    borderWidth: 1,
-    borderColor: colors.slate200,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  signOutText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.danger },
+  container: { flex: 1, backgroundColor: colors.slate50 },
+  scroll: { paddingBottom: spacing.xxl },
+  body: { padding: spacing.md, gap: spacing.sm },
 })

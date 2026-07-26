@@ -6,6 +6,7 @@ import CommuteCalculator from '@features/areas/components/CommuteCalculator'
 import { Sheet, SheetSection, FactCell } from './SheetPrimitives'
 import { ordinal, formatFurnished, bhkLabelFor } from './detailUtils'
 import PropertyLocationMap from './PropertyLocationMap'
+import { formatTime } from '@utils/time'
 
 // The hairline-divided listing sheet — every informational section of the
 // property detail, shared verbatim between the public page and the admin
@@ -104,7 +105,7 @@ export default function DetailSheet({ property, variant, isOwner, directionsUrl 
             {rulesDenied.map(r => (
               <div key={r.label} className="flex items-center gap-2.5">
                 <X className="h-[18px] w-[18px] shrink-0 text-error-500" strokeWidth={2.5} />
-                <span className="text-sm font-semibold text-slate-400">No {r.label.toLowerCase()}</span>
+                <span className="text-sm font-semibold text-slate-500">No {r.label.toLowerCase()}</span>
               </div>
             ))}
           </div>
@@ -123,7 +124,7 @@ export default function DetailSheet({ property, variant, isOwner, directionsUrl 
               {property.rules.curfewTime && (
                 <div className="flex items-center gap-2.5 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
                   <Clock width={15} height={15} color="#d97706" strokeWidth={1.9} className="shrink-0" />
-                  <span className="text-sm font-medium text-amber-800">Curfew at {property.rules.curfewTime}</span>
+                  <span className="text-sm font-medium text-amber-800">Curfew at {formatTime(property.rules.curfewTime)}</span>
                 </div>
               )}
             </div>
@@ -159,7 +160,7 @@ export default function DetailSheet({ property, variant, isOwner, directionsUrl 
               href={directionsUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-xs font-bold text-white no-underline transition-colors hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-xs font-bold text-white no-underline transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1"
             >
               <Navigation className="h-3.5 w-3.5" strokeWidth={2.5} />
               Directions

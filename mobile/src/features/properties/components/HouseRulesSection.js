@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native'
 import Icon from '@components/common/Icon'
+import { formatTime } from '@utils/time'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -27,7 +28,9 @@ export default function HouseRulesSection({ rules }) {
           const allowed = !!rules[key]
           return (
             <View key={key} style={[styles.ruleCard, allowed ? styles.ruleAllowed : styles.ruleDenied]}>
-              <Text style={[styles.ruleLabel, { color: allowed ? colors.slate800 : colors.slate400 }]}>{label}</Text>
+              {/* A disallowed rule is still information a renter has to read —
+                  slate500, matching web's DetailSheet, not a greyed-out 2.5:1. */}
+              <Text style={[styles.ruleLabel, { color: allowed ? colors.slate800 : colors.slate500 }]}>{label}</Text>
               <View style={[styles.ruleDot, { backgroundColor: allowed ? colors.brand600 : colors.slate400 }]}>
                 <Icon name={allowed ? 'check' : 'close'} size={10} color={colors.white} />
               </View>
@@ -45,7 +48,7 @@ export default function HouseRulesSection({ rules }) {
       {!!rules.curfewTime && (
         <View style={styles.calloutAmber}>
           <Icon name="clock" size={14} color="#D97706" />
-          <Text style={styles.calloutAmberText}>Curfew at {rules.curfewTime}</Text>
+          <Text style={styles.calloutAmberText}>Curfew at {formatTime(rules.curfewTime)}</Text>
         </View>
       )}
     </View>

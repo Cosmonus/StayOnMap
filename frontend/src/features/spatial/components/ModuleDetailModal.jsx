@@ -24,7 +24,7 @@ export default function ModuleDetailModal({ envelope, isOpen, onClose, coords })
       {/* The question this module answers. It sits here rather than on the
           card, where it restated the title while the answer sat directly
           beneath it — here there's room for the framing. */}
-      {meta.prompt && <p className="mb-3 text-xs text-slate-400">{meta.prompt}</p>}
+      {meta.prompt && <p className="mb-3 text-xs text-slate-500">{meta.prompt}</p>}
 
       {envelope.assessment && (
         <div className="mb-1">
@@ -41,7 +41,7 @@ export default function ModuleDetailModal({ envelope, isOpen, onClose, coords })
 
       {envelope.facts.length > 0 && (
         <div className="mt-4">
-          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
+          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
             Measurements
           </p>
           <div className="rounded-xl border border-slate-100 px-3.5">

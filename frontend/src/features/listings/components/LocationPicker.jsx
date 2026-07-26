@@ -25,6 +25,9 @@ export default function LocationPicker({ value, onChange }) {
         streetViewControl: false,
         fullscreenControl: false,
         gestureHandling: 'greedy',
+        // A POI info window opening here would swallow the click that is
+        // supposed to place the pin.
+        clickableIcons: false,
       })
       mapRef.current = map
 
@@ -80,7 +83,7 @@ export default function LocationPicker({ value, onChange }) {
         <button
           type="button"
           onClick={search}
-          className="px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
+          className="min-h-[44px] px-4 py-3 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
         >
           Find
         </button>
@@ -88,7 +91,7 @@ export default function LocationPicker({ value, onChange }) {
 
       <div ref={containerRef} className="w-full h-52 rounded-lg overflow-hidden border border-slate-200" />
 
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-slate-500">
         {value
           ? `Pin at ${value.lat.toFixed(5)}, ${value.lng.toFixed(5)} — drag the marker to fine-tune`
           : 'Search your area then click the map or drag the marker to set the exact location'}

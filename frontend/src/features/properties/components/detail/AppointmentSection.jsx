@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
 import AppointmentForm from '@features/appointments/components/AppointmentForm'
+import { formatTime } from '@utils/time'
 
 // ── Appointment section — aware of existing bookings ────────────────────────
 const APPT_DISPLAY = {
@@ -48,7 +49,7 @@ export default function AppointmentSection({ propertyId, windowStart, windowEnd 
         </div>
         {date && (
           <p className={`text-xs ${cfg.text} opacity-80`}>
-            {date}{existing.requestedTime ? ` · ${existing.requestedTime}` : ''}
+            {date}{existing.requestedTime ? ` · ${formatTime(existing.requestedTime)}` : ''}
           </p>
         )}
         {existing.ownerNote && (

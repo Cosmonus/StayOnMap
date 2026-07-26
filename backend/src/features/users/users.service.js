@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma.js'
 import { requestPasswordReset, stripPasswordHash } from '../auth/auth.service.js'
 import { awardPoints } from '../points/points.service.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
+import { getPoints } from '../points/points.service.js'
 
 // Completeness per docs/points-and-sharing.md: name + avatar + city + phone.
 // Deliberately different from requireCompleteProfile's listing gate (which
@@ -70,4 +71,44 @@ export async function deleteAccount(id) {
   await prisma.user.delete({ where: { id } })
   // All owned rows (properties, appointments, reviews, etc.) cascade-delete
   // via the existing onDelete: Cascade relations in schema.prisma.
+}
+
+// The renter's account screen, in one call. Each row carries a COUNT because a
+// bare "Visits" row makes you open it to learn there is nothing there, and the
+// counts are cheap to compute here and expensive to assemble on the client.
+//
+// Every count is of something the renter can act on:
+//   confirmedVisits   a visit an owner has accepted — somewhere to be
+//   activeLeases      a tenancy running right now
+//   reviewableHomes   a place they have actually LIVED IN and not yet reviewed
+export async function getAccountSummary(userId) {
+  const [user, confirmedVisits, activeLeases, livedIn, reviewed, points] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true, city: true, avatarUrl: true, role: true } }),
+    prisma.appointment.count({ where: { tenantId: userId, status: { in: ['ACCEPTED', 'RESCHEDULED'] } } }),
+    prisma.lease.count({ where: { tenantId: userId, status: 'ACTIVE' } }),
+    // A lease that reached ACTIVE means they lived there; TERMINATED/EXPIRED
+    // mean they have moved on and can speak from the whole tenancy. An OFFERED
+    // lease is not a home they have seen the inside of.
+    prisma.lease.findMany({
+      where: { tenantId: userId, status: { in: ['ACTIVE', 'TERMINATED', 'EXPIRED'] } },
+      select: { propertyId: true },
+    }),
+    prisma.communityReview.findMany({ where: { reviewerId: userId }, select: { propertyId: true } }),
+    getPoints(userId),
+  ])
+
+  const reviewedIds = new Set(reviewed.map((r) => r.propertyId))
+  const reviewableHomes = [...new Set(livedIn.map((l) => l.propertyId))].filter((id) => !reviewedIds.has(id)).length
+
+  return {
+    name: user?.name ?? null,
+    email: user?.email ?? null,
+    city: user?.city ?? null,
+    avatarUrl: user?.avatarUrl ?? null,
+    role: user?.role ?? 'TENANT',
+    points,
+    confirmedVisits,
+    activeLeases,
+    reviewableHomes,
+  }
 }

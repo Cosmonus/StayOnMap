@@ -6,15 +6,10 @@ import { appointmentService } from '@services/appointment.service'
 import { chatService } from '@services/chat.service'
 import { useUiStore } from '@store/uiStore'
 import Icon from '@components/common/Icon'
+import { VISIT_SLOTS, formatTime } from '@utils/time'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
-
-const ALL_SLOTS = [
-  '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30',
-  '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
-  '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00',
-]
 
 const UPCOMING_DATES = Array.from({ length: 30 }, (_, i) => {
   const d = new Date()
@@ -23,11 +18,6 @@ const UPCOMING_DATES = Array.from({ length: 30 }, (_, i) => {
   const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
   return { value: iso, label }
 })
-
-function formatSlot(t) {
-  const [h, m] = t.split(':').map(Number)
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
-}
 
 export default function AppointmentForm({ propertyId, windowStart, windowEnd, onSuccess }) {
   const navigation = useNavigation()
@@ -67,7 +57,7 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
     }
   }
 
-  const slots = ALL_SLOTS.filter((t) => (!windowStart || t >= windowStart) && (!windowEnd || t <= windowEnd))
+  const slots = VISIT_SLOTS.filter((t) => (!windowStart || t >= windowStart) && (!windowEnd || t <= windowEnd))
   const isValid = form.requestedDate && form.requestedTime && /^[6-9]\d{9}$/.test(form.contactNumber)
 
   if (submitted) {
@@ -138,14 +128,14 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
             onPress={() => setForm((f) => ({ ...f, requestedTime: t }))}
             hitSlop={{ top: 6, bottom: 6 }}
             accessibilityRole="radio"
-            accessibilityLabel={`Select time ${formatSlot(t)}`}
+            accessibilityLabel={`Select time ${formatTime(t)}`}
             accessibilityState={{ checked: form.requestedTime === t }}
           >
-            <Text style={[styles.chipText, form.requestedTime === t && styles.chipTextActive]}>{formatSlot(t)}</Text>
+            <Text style={[styles.chipText, form.requestedTime === t && styles.chipTextActive]}>{formatTime(t)}</Text>
           </Pressable>
         ))}
       </ScrollView>
-      {windowStart && windowEnd && <Text style={styles.hint}>Owner available {windowStart}–{windowEnd}</Text>}
+      {windowStart && windowEnd && <Text style={styles.hint}>Owner available {formatTime(windowStart)} – {formatTime(windowEnd)}</Text>}
 
       <View style={styles.labelRow}><Icon name="phone" size={12} color={colors.slate500} /><Text style={styles.label}>Mobile number</Text></View>
       <TextInput
@@ -153,7 +143,7 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
         value={form.contactNumber}
         onChangeText={(v) => setForm((f) => ({ ...f, contactNumber: v }))}
         placeholder="10-digit mobile number"
-        placeholderTextColor={colors.slate400}
+        placeholderTextColor={colors.slate500}
         keyboardType="phone-pad"
         maxLength={10}
       />
@@ -164,7 +154,7 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
         value={form.message}
         onChangeText={(v) => setForm((f) => ({ ...f, message: v }))}
         placeholder="Anything the owner should know..."
-        placeholderTextColor={colors.slate400}
+        placeholderTextColor={colors.slate500}
         multiline
         numberOfLines={3}
       />
@@ -203,7 +193,7 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.brand600, borderColor: colors.brand600 },
   chipText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate600 },
   chipTextActive: { color: colors.white },
-  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 2 },
+  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 2 },
   input: {
     borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md,
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4,
@@ -211,7 +201,7 @@ const styles = StyleSheet.create({
   },
   textarea: { minHeight: 72, textAlignVertical: 'top' },
   errorText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.danger },
-  submitButton: { flexDirection: 'row', gap: 6, backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center', justifyContent: 'center', marginTop: spacing.sm },
+  submitButton: { flexDirection: 'row', gap: 6, backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center', justifyContent: 'center', marginTop: spacing.sm, minHeight: 48, },
   submitButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   disabled: { opacity: 0.55 },
   successBox: { backgroundColor: colors.brand50, borderWidth: 1, borderColor: colors.brand200, borderRadius: radius.md, padding: spacing.md },
@@ -221,6 +211,6 @@ const styles = StyleSheet.create({
   chatNudge: { backgroundColor: colors.brand50, borderWidth: 1, borderColor: colors.brand100, borderRadius: radius.md, padding: spacing.md },
   chatNudgeTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
   chatNudgeBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.brand700, opacity: 0.7, marginTop: 2, marginBottom: spacing.sm },
-  primaryButton: { flexDirection: 'row', gap: 6, backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', justifyContent: 'center' },
+  primaryButton: { flexDirection: 'row', gap: 6, backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', justifyContent: 'center', minHeight: 48, },
   primaryButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
 })
