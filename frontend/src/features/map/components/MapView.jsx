@@ -112,6 +112,18 @@ export default function MapView({ contained = false }) {
     let cancelled = false
     resolvePlace(area, city).then((place) => {
       if (cancelled || !place || !mapRef.current) return
+      // A place's own extent beats a fixed zoom — same rule flyTo follows.
+      // Forcing AREA_ZOOM on a city dropped the camera into the city centre
+      // at street zoom, which shows a handful of pins and reads as "it went
+      // somewhere odd" rather than "it framed Bengaluru".
+      if (place.viewport) {
+        const { swLat, swLng, neLat, neLng } = place.viewport
+        mapRef.current.fitBounds(
+          new window.google.maps.LatLngBounds({ lat: swLat, lng: swLng }, { lat: neLat, lng: neLng }),
+          40
+        )
+        return
+      }
       mapRef.current.setZoom(AREA_ZOOM)
       mapRef.current.panTo({ lat: place.lat, lng: place.lng })
     }).catch(() => {})
