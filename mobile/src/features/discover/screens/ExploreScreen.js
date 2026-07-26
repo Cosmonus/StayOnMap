@@ -6,11 +6,14 @@ import MapView from '@features/map/components/MapView'
 import MapSearchBar from '@features/map/components/MapSearchBar'
 import MapFiltersSheet from '@features/map/components/MapFiltersSheet'
 import MapLayerPills from '@features/map/components/MapLayerPills'
+import LocateButton from '@features/map/components/LocateButton'
 import MapLegend from '@features/map/components/MapLegend'
 import AreaInsightCard from '@features/map/components/AreaInsightCard'
 import PinPreviewCard from '../components/PinPreviewCard'
 import Logo from '@components/common/Logo'
 import Icon from '@components/common/Icon'
+import NotificationBell from '@components/common/NotificationBell'
+import { useAuth } from '@features/auth/hooks/useAuth'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
 import { countActiveFilters } from '@config/filters'
@@ -22,6 +25,7 @@ import { spacing, radius } from '@theme/spacing'
 // Map-first (PDF direction 1a). Tapping a pin floats a preview card over
 // the map; tapping empty map area or the same pin again dismisses it.
 export default function ExploreScreen({ navigation }) {
+  const { user } = useAuth()
   const selectedPinId = useMapStore((s) => s.selectedPinId)
   const selectedAreaSlug = useMapStore((s) => s.selectedAreaSlug)
   const clearSelection = useMapStore((s) => s.clearSelection)
@@ -82,6 +86,12 @@ export default function ExploreScreen({ navigation }) {
             >
               <Icon name="search" size={16} color={colors.slate700} />
             </Pressable>
+            {/* The map IS a renter's home screen, so the bell belongs here for
+                the same reason it belongs on the host dashboard: a notification
+                that arrives with nothing on screen to show for it may as well
+                not have arrived. Only for signed-in users — a guest browsing
+                the map has no notifications to have. */}
+            {!!user && <NotificationBell style={styles.bell} />}
             <Pressable
               style={styles.filterButton}
               onPress={() => setFiltersOpen(true)}
@@ -104,7 +114,10 @@ export default function ExploreScreen({ navigation }) {
             <MapSearchBar ref={searchBarRef} />
           </View>
         )}
-        <MapLayerPills />
+        {/* Metro · IT Zones · Traffic · Near me — one row, wrapping together.
+            Near me used to float alone at the bottom-right while the layer
+            toggles sat top-left: four map controls, two corners, no reason. */}
+        <MapLayerPills trailing={<LocateButton />} />
         <MapLegend />
       </View>
 
@@ -145,6 +158,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2,
   },
   filterButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
+  bell: { width: 32, height: 32 },
   filterBadge: {
     minWidth: 16, height: 16, borderRadius: 8, backgroundColor: colors.danger,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,

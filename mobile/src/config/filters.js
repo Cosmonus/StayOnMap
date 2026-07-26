@@ -38,6 +38,12 @@ export const PARAM_DEFS = {
   floorMax:       { kind: 'num',    def: null },
   availableBy:    { kind: 'date',   def: '' },
   leaseDurationMax: { kind: 'num',  def: null },
+  // Buy mode (see the 'sale' section below)
+  possessionStatus: { kind: 'csv',    def: [] },
+  loanEligible:     { kind: 'bool',   def: false },
+  negotiable:       { kind: 'bool',   def: false },
+  conversionStatus: { kind: 'csv',    def: [] },
+  ecAvailable:      { kind: 'bool',   def: false },
   amenities:      { kind: 'csv',    def: [] },
   // Straight-line metres to the nearest metro station, from the spatial layer's
   // per-cell proximity index. Only the three radii the backend allows.
@@ -151,6 +157,12 @@ const HOME_TYPES = [...HOMES, 'SHORT_STAY']
 export const LEASE_TYPES = [...HOMES, 'COMMERCIAL']
 export const LEASE_CATEGORY_IDS = ['apartment', 'house', 'shop']
 
+// Mirrors the backend's SALE_ELIGIBLE_TYPES: anything with a title deed behind
+// it. A PG bed and a nightly stay are operating businesses, not assets someone
+// browsing here buys, so Buy mode never offers them.
+export const SALE_TYPES = [...HOMES, 'COMMERCIAL', 'LAND']
+export const SALE_CATEGORY_IDS = ['apartment', 'house', 'shop', 'land']
+
 export const FILTER_SECTIONS = [
   {
     id: 'budget', label: 'Budget', types: null, defaultOpen: true,
@@ -180,9 +192,59 @@ export const FILTER_SECTIONS = [
           { label: '₹25L+', min: 2500000, max: null },
         ],
       },
+      {
+        // Buy mode's budget row — same rentMin/rentMax ids again, crore scale,
+        // because on a SALE listing `rent` holds the asking price. Exactly one
+        // of these three rows is ever visible (see matchesMode).
+        kind: 'range', label: 'Budget', unit: '₹', idMin: 'rentMin', idMax: 'rentMax',
+        types: SALE_TYPES, modes: ['SALE'],
+        slider: { min: 0, max: 100000000, step: 500000 },
+        chips: [
+          { label: 'Under ₹50L', min: null, max: 5000000 }, { label: '₹50L–1Cr', min: 5000000, max: 10000000 },
+          { label: '₹1–2Cr', min: 10000000, max: 20000000 }, { label: '₹2–5Cr', min: 20000000, max: 50000000 },
+          { label: '₹5Cr+', min: 50000000, max: null },
+        ],
+      },
       // Deposit is meaningless on a lease — the lump sum IS the money at stake.
       { kind: 'chips', label: 'Max deposit', id: 'depositMax', single: true, types: [...HOMES, 'PG'], modes: ['RENT'], options: [{ value: 25000, label: 'Up to ₹25k' }, { value: 50000, label: '₹50k' }, { value: 100000, label: '₹1L' }, { value: 200000, label: '₹2L' }] },
       { kind: 'chips', label: 'Max maintenance / mo', id: 'maintenanceMax', single: true, types: HOMES, options: [{ value: 1000, label: 'Up to ₹1k' }, { value: 2000, label: '₹2k' }, { value: 5000, label: '₹5k' }] },
+    ],
+  },
+  {
+    // Buy-only. The three questions an Indian buyer asks before they ask
+    // anything else — and the two land-record facts that decide whether a plot
+    // is even financeable.
+    id: 'sale', label: 'Buying', types: null, modes: ['SALE'], defaultOpen: true,
+    rows: [
+      {
+        kind: 'chips', label: 'Possession', id: 'possessionStatus', types: SALE_TYPES,
+        options: [
+          { value: 'Ready to move', label: 'Ready to move' },
+          { value: 'Under construction', label: 'Under construction' },
+          { value: 'New launch', label: 'New launch' },
+        ],
+      },
+      {
+        kind: 'toggles', types: SALE_TYPES, items: [
+          { id: 'loanEligible', label: 'Bank loan available', hint: 'B-khata and unconverted land are routinely refused' },
+          { id: 'negotiable', label: 'Price negotiable' },
+        ],
+      },
+      {
+        // Unconverted agricultural land cannot be built on, and a plot with no
+        // encumbrance certificate is one a lawyer will stop at. Land only.
+        kind: 'chips', label: 'Land use', id: 'conversionStatus', types: ['LAND'],
+        options: [
+          { value: 'Converted', label: 'Converted' },
+          { value: 'Not converted', label: 'Not converted' },
+          { value: 'Not applicable', label: 'Already a layout' },
+        ],
+      },
+      {
+        kind: 'toggles', types: ['LAND'], items: [
+          { id: 'ecAvailable', label: 'Encumbrance certificate on hand', hint: 'Shows the title is free of loans and disputes' },
+        ],
+      },
     ],
   },
   {

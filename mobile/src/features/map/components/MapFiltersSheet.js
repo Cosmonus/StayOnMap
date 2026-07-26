@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useResetOnOpen } from '@/hooks/useResetOnOpen'
 import { useFilterStore } from '@store/filterStore'
 import {
-  DEFAULT_FILTERS, SEARCH_KEYS, TYPE_CATEGORIES, LEASE_CATEGORY_IDS,
+  DEFAULT_FILTERS, SEARCH_KEYS, TYPE_CATEGORIES, LEASE_CATEGORY_IDS, SALE_CATEGORY_IDS,
   countActiveFilters, staleFilterPatch, modeChangePatch,
 } from '@config/filters'
 import Icon from '@components/common/Icon'
@@ -21,15 +21,33 @@ import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-// Rent vs Lease: two different deals, not two price ranges. Rent is monthly;
-// lease is the Kerala/Karnataka lump sum the owner returns when you leave.
-// One mode at a time — see PricingModel in schema.prisma.
+// Rent, Lease and Buy: three different deals, not three price ranges. Rent is
+// monthly; lease is the Kerala/Karnataka lump sum the owner returns when you
+// leave; buy is an outright purchase. One mode at a time — see PricingModel in
+// schema.prisma.
+//
+// Buy is what makes sale listings reachable at all: the map defaults to
+// pricingModel=RENT, so without this control a for-sale listing could be
+// created, moderated and published and still never appear to anyone. Mobile
+// could already CREATE one — the wizard has had SALE since 2026-07-26 — so
+// until this landed on 2026-07-27, a plot listed from the app was invisible in
+// the app.
 const MODES = [
   { value: 'RENT', label: 'Rent', hint: 'Pay monthly' },
   { value: 'LEASE', label: 'Lease', hint: 'Lump sum, refunded on exit' },
+  { value: 'SALE', label: 'Buy', hint: 'Outright purchase' },
 ]
 
 const LEASE_CATEGORIES = TYPE_CATEGORIES.filter((c) => LEASE_CATEGORY_IDS.includes(c.id))
+const SALE_CATEGORIES = TYPE_CATEGORIES.filter((c) => SALE_CATEGORY_IDS.includes(c.id))
+
+// Which property types a mode can even offer. Buy adds land and drops PG and
+// short-stay; lease drops land too.
+function categoriesForMode(mode) {
+  if (mode === 'LEASE') return LEASE_CATEGORIES
+  if (mode === 'SALE') return SALE_CATEGORIES
+  return TYPE_CATEGORIES
+}
 
 export default function MapFiltersSheet({ visible, onClose }) {
   const setFilters = useFilterStore((s) => s.setFilters)
@@ -44,16 +62,15 @@ export default function MapFiltersSheet({ visible, onClose }) {
   const patch = (p) => setDraft((d) => ({ ...d, ...p }))
 
   const mode = draft.pricingModel || 'RENT'
-  const categories = mode === 'LEASE' ? LEASE_CATEGORIES : TYPE_CATEGORIES
+  const categories = categoriesForMode(mode)
 
   // Switching modes resets the mode-gated rows (the two budget rows share
   // rentMin/rentMax on different scales) and drops any now-ineligible type
   // selection — picking PG then switching to Lease would otherwise filter to
   // "leased PGs", which can't exist.
   function handleModeChange(next) {
-    const types = (draft.types ?? []).filter(
-      (t) => next !== 'LEASE' || LEASE_CATEGORIES.some((c) => c.types.includes(t))
-    )
+    const allowed = categoriesForMode(next)
+    const types = (draft.types ?? []).filter((t) => allowed.some((c) => c.types.includes(t)))
     patch({
       pricingModel: next,
       types,

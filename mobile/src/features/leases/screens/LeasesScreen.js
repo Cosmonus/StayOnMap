@@ -196,7 +196,7 @@ export default function LeasesScreen({ navigation }) {
   const asTenant = data?.asTenant ?? []
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader
         title="Leases"
         subtitle="Manage rental agreements"

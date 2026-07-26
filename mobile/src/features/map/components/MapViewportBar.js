@@ -1,4 +1,6 @@
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
+import Icon from '@components/common/Icon'
 import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
 import { colors } from '@theme/colors'
@@ -12,10 +14,12 @@ import { spacing, radius } from '@theme/spacing'
 // or three hundred, and an empty area was indistinguishable from a failed fetch.
 //
 // Deliberately NOT a second results panel: the map keeps the whole surface and
-// this only reports. It also carries no "See them as a list" handoff — web has
-// a /properties grid to hand off TO and mobile does not, which is a real
-// platform difference rather than a missing button.
+// this reports, then hands off. Tapping the count opens the same homes as a
+// list (PropertyListScreen), which is web's "See them as a list" — mobile had
+// the count and no destination until 2026-07-27, so forty pins could only be
+// read one tap at a time.
 export default function MapViewportBar() {
+  const navigation = useNavigation()
   const pins = useMapStore((s) => s.pins)
   const bounds = useMapStore((s) => s.bounds)
   const filters = useFilterStore((s) => s.filters)
@@ -41,20 +45,32 @@ export default function MapViewportBar() {
       ? `No ${noun.plural} in this view — try zooming out`
       : null
 
-  return (
-    <View style={styles.wrap} pointerEvents="none">
-      {label ? (
+  // The muted states report and nothing more — there is no list to open when
+  // the count is zero or unknown, so they stay untappable.
+  if (label) {
+    return (
+      <View style={styles.wrap} pointerEvents="none">
         <View style={styles.pillMuted}>
           <Text style={styles.mutedText}>{label}</Text>
         </View>
-      ) : (
-        <View style={styles.pill}>
-          <Text style={styles.count}>{count}{capped ? '+' : ''}</Text>
-          <Text style={styles.suffix}>
-            {count === 1 ? `${noun.one} in this view` : `${noun.plural} in this view`}
-          </Text>
-        </View>
-      )}
+      </View>
+    )
+  }
+
+  return (
+    <View style={styles.wrap}>
+      <Pressable
+        style={styles.pill}
+        onPress={() => navigation.navigate('PropertyList')}
+        accessibilityRole="button"
+        accessibilityLabel={`See ${count}${capped ? ' or more' : ''} ${count === 1 ? noun.one : noun.plural} in this view as a list`}
+      >
+        <Text style={styles.count}>{count}{capped ? '+' : ''}</Text>
+        <Text style={styles.suffix}>
+          {count === 1 ? `${noun.one} in this view` : `${noun.plural} in this view`}
+        </Text>
+        <Icon name="chevronRight" size={16} color="rgba(255,255,255,0.7)" />
+      </Pressable>
     </View>
   )
 }
@@ -68,7 +84,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.slate900,
     borderRadius: radius.full,
     paddingHorizontal: spacing.md,
-    minHeight: 36,
+    minHeight: 44,
     ...shadows.float,
   },
   pillMuted: {

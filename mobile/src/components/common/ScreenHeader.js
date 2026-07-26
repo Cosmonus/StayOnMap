@@ -1,4 +1,5 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Icon from './Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -19,43 +20,66 @@ import { spacing } from '@theme/spacing'
 //    than either choice made consistently.
 //  - Back is 44dp with hitSlop to 48, per mobile/AGENTS.md §6, and pulled left
 //    by one step so the chevron optically aligns with the content below it.
-//  - The header sits INSIDE the screen's SafeAreaView, never above it — the
-//    top inset belongs to the screen, so a pushed screen can't double it.
-export default function ScreenHeader({ title, subtitle, onBack, right, backLabel = 'Go back' }) {
-  return (
-    <View style={styles.header}>
-      {onBack ? (
-        <Pressable
-          onPress={onBack}
-          hitSlop={8}
-          style={styles.back}
-          accessibilityRole="button"
-          accessibilityLabel={backLabel}
-        >
-          <Icon name="chevronLeft" size={22} color={colors.slate800} />
-        </Pressable>
-      ) : null}
+//  - The header OWNS the top safe-area inset and paints it white, so the bar
+//    runs continuously from behind the status bar down to its hairline. This
+//    is why screens no longer pass `edges={['top']}` — two things claiming the
+//    same inset is a double gap, and a screen-coloured inset above a white bar
+//    is the "header is a different colour" everyone notices first.
+//  - White with a hairline, always. The app is white chrome (status bar area,
+//    this header, the tab bar) around a slate50 canvas — the shell every
+//    other phone app uses, so nobody has to learn ours.
+//
+// `below` renders inside the same white block, under the title row and ABOVE
+// the hairline — filter chips, a segmented control, a search field. Anything
+// that filters or switches the content is chrome, not the first row of the
+// list: floated on the canvas it reads as a stray row, and as a list header it
+// scrolls away exactly when you want to change it.
+export default function ScreenHeader({ title, subtitle, onBack, right, below, backLabel = 'Go back' }) {
+  const insets = useSafeAreaInsets()
 
-      <View style={styles.titles}>
-        <Text style={styles.title} numberOfLines={1}>{title}</Text>
-        {!!subtitle && <Text style={styles.subtitle} numberOfLines={2}>{subtitle}</Text>}
+  return (
+    <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
+      <View style={styles.row}>
+        {onBack ? (
+          <Pressable
+            onPress={onBack}
+            hitSlop={8}
+            style={styles.back}
+            accessibilityRole="button"
+            accessibilityLabel={backLabel}
+          >
+            <Icon name="chevronLeft" size={22} color={colors.slate800} />
+          </Pressable>
+        ) : null}
+
+        <View style={styles.titles}>
+          <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          {!!subtitle && <Text style={styles.subtitle} numberOfLines={2}>{subtitle}</Text>}
+        </View>
+
+        {right ? <View style={styles.right}>{right}</View> : null}
       </View>
 
-      {right ? <View style={styles.right}>{right}</View> : null}
+      {below ? <View style={styles.below}>{below}</View> : null}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   header: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.white,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.slate200,
+  },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    minHeight: 56,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
+    minHeight: 44,
   },
+  below: { marginTop: spacing.sm },
   back: {
     width: 44,
     height: 44,

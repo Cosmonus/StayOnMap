@@ -40,7 +40,7 @@ export default function HostProfileScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Titled like every other screen. The identity card below is content —
           the first row of the list, sharing its card shape — not a second
           header competing with this one. */}

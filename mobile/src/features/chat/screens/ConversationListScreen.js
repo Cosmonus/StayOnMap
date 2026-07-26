@@ -62,7 +62,7 @@ export default function ConversationListScreen({ navigation }) {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <ScreenHeader title={title} />
         <View style={styles.centered}><ActivityIndicator color={colors.brand600} /></View>
       </SafeAreaView>
@@ -71,7 +71,7 @@ export default function ConversationListScreen({ navigation }) {
 
   if (isError) {
     return (
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <ScreenHeader title={title} />
         <ErrorState title="Couldn't load conversations" onRetry={refetch} />
       </SafeAreaView>
@@ -80,7 +80,7 @@ export default function ConversationListScreen({ navigation }) {
 
   if (!conversations.length) {
     return (
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <ScreenHeader title={title} />
         <View style={styles.centered}>
         <View style={styles.emptyIcon}>
@@ -100,7 +100,7 @@ export default function ConversationListScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader title={title} />
       <FlatList
         data={conversations}

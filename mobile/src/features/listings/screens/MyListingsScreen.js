@@ -70,14 +70,14 @@ export default function MyListingsScreen({ navigation }) {
 
   if (!isOwner) {
     return (
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <BecomeOwnerPrompt />
       </SafeAreaView>
     )
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader
         title="My listings"
         right={(

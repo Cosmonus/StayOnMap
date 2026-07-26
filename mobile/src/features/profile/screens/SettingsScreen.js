@@ -96,7 +96,7 @@ export default function SettingsScreen({ navigation }) {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.center} edges={['top']}>
+      <SafeAreaView style={styles.center} edges={[]}>
         <ActivityIndicator color={colors.brand600} />
       </SafeAreaView>
     )
@@ -104,7 +104,7 @@ export default function SettingsScreen({ navigation }) {
 
   if (isError) {
     return (
-      <SafeAreaView style={styles.center} edges={['top']}>
+      <SafeAreaView style={styles.center} edges={[]}>
         <Icon name="alertTriangle" size={28} color={colors.slate500} />
         <Text style={styles.errorText}>Could not load your settings.</Text>
         <Pressable
@@ -122,7 +122,7 @@ export default function SettingsScreen({ navigation }) {
   const isOwner = settings?.role === 'OWNER'
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader title="Settings" onBack={() => navigation.goBack()} />
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
@@ -246,6 +246,10 @@ export default function SettingsScreen({ navigation }) {
             was unavailable outright. */}
         <MenuItem icon="document" label="Privacy Policy" onPress={() => navigation.navigate('Legal', { doc: 'privacy' })} />
         <MenuItem icon="document" label="Terms of Service" onPress={() => navigation.navigate('Legal', { doc: 'terms' })} />
+        {/* The Terms incorporate these by reference (§8) and cite them for the
+            permanent broker ban (§14) — naming them with nowhere to go was a
+            legal document pointing at a page that did not exist on mobile. */}
+        <MenuItem icon="shieldCheck" label="Community Rules" onPress={() => navigation.navigate('Rules')} />
 
         <Text style={styles.sectionLabel}>Danger zone</Text>
         <MenuItem

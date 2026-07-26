@@ -16,7 +16,12 @@ export const imgUrl = (url, size = 'card') => {
   return url
 }
 
-const locale = typeof navigator !== 'undefined' ? navigator.language : 'en-IN'
+// Pinned, not navigator.language: prices here are Indian, and only the en-IN
+// grouping renders them the way the country reads them — ₹28,00,000, not
+// ₹2,800,000. A visitor with a US or UK browser saw the wrong grouping on
+// every price on the site while the mobile app (which hardcodes en-IN) showed
+// the right one, so the same listing read differently on the two platforms.
+const locale = 'en-IN'
 
 const _currencyFmt = new Intl.NumberFormat(locale, {
   style: 'currency', currency: 'INR', maximumFractionDigits: 0,
