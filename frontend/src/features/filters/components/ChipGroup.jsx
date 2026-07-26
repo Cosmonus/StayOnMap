@@ -27,12 +27,12 @@ export default function ChipGroup({ label, options, value, single = false, searc
       {label && <p className="text-sm font-medium text-slate-700 mb-2">{label}</p>}
       {searchable && (
         <div className="relative mb-2.5">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search amenities"
-            className="w-full h-9 pl-8 pr-3 rounded-xl border border-slate-200 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full h-9 pl-8 pr-3 rounded-xl border border-slate-200 text-sm text-slate-700 placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           />
         </div>
       )}
@@ -46,7 +46,7 @@ export default function ChipGroup({ label, options, value, single = false, searc
             onClick={() => toggle(o.value)}
           />
         ))}
-        {shown.length === 0 && <p className="text-sm text-slate-400">No matches</p>}
+        {shown.length === 0 && <p className="text-sm text-slate-500">No matches</p>}
       </div>
     </div>
   )

@@ -184,7 +184,7 @@ export default function ContactPage() {
                                   : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-400 hover:bg-white',
                               ].join(' ')}
                             >
-                              <TopicIcon className={`w-4 h-4 shrink-0 ${form.topic === value ? 'text-white' : 'text-slate-400'}`} strokeWidth={1.8} />
+                              <TopicIcon className={`w-4 h-4 shrink-0 ${form.topic === value ? 'text-white' : 'text-slate-500'}`} strokeWidth={1.8} />
                               <span className="text-xs font-semibold leading-tight">{label}</span>
                             </button>
                           ))}
@@ -195,11 +195,11 @@ export default function ContactPage() {
                       <div className="grid sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Your name</label>
-                          <input name="name" value={form.name} onChange={handleChange} required placeholder="Sri Gokul" className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#111111] focus:bg-white focus:ring-2 focus:ring-black/8 transition" />
+                          <input name="name" value={form.name} onChange={handleChange} required placeholder="Sri Gokul" className="min-h-[44px] w-full px-3.5 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#111111] focus:bg-white focus:ring-2 focus:ring-black/8 transition" />
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Email</label>
-                          <input name="email" type="email" value={form.email} onChange={handleChange} required placeholder="you@email.com" className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#111111] focus:bg-white focus:ring-2 focus:ring-black/8 transition" />
+                          <input name="email" type="email" value={form.email} onChange={handleChange} required placeholder="you@email.com" className="min-h-[44px] w-full px-3.5 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#111111] focus:bg-white focus:ring-2 focus:ring-black/8 transition" />
                         </div>
                       </div>
 
@@ -207,19 +207,19 @@ export default function ContactPage() {
                       <div>
                         <div className="flex items-center justify-between mb-1.5">
                           <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Message</label>
-                          <span className={`text-xs tabular-nums transition-colors ${charsLeft < 100 ? 'text-brand-600 font-semibold' : 'text-slate-300'}`}>{charsLeft}</span>
+                          <span className={`text-xs tabular-nums transition-colors ${charsLeft < 100 ? 'text-brand-600 font-semibold' : 'text-slate-500'}`}>{charsLeft}</span>
                         </div>
                         <textarea name="message" value={form.message} onChange={handleChange} required rows={5} placeholder="Tell us what's on your mind..." className="w-full px-3.5 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#111111] focus:bg-white focus:ring-2 focus:ring-black/8 transition resize-none leading-relaxed" />
                       </div>
                     </div>
 
                     <div className="px-6 pb-6">
-                      <button type="submit" disabled={!canSubmit} className={['w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold transition-all duration-150', canSubmit ? 'bg-[#111111] hover:bg-[#2a2a2a] text-white shadow-sm hover:shadow-md' : 'bg-slate-100 text-slate-400 cursor-not-allowed'].join(' ')}>
+                      <button type="submit" disabled={!canSubmit} className={['w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold transition-all duration-150', canSubmit ? 'bg-[#111111] hover:bg-[#2a2a2a] text-white shadow-sm hover:shadow-md' : 'bg-slate-100 text-slate-500 cursor-not-allowed'].join(' ')}>
                         Send message
                         <Send size={14} strokeWidth={2.5} />
                       </button>
                       {!canSubmit && (
-                        <p className="text-center text-xs text-slate-400 mt-2">
+                        <p className="text-center text-xs text-slate-500 mt-2">
                           {!form.topic ? 'Pick a topic above to continue' : 'Fill in all fields to send'}
                         </p>
                       )}
@@ -237,9 +237,9 @@ export default function ContactPage() {
                   <div aria-hidden className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)', backgroundSize: '24px 24px' }} />
                   <div className="relative z-10">
                     <div className="w-12 h-12 rounded-2xl bg-brand-600 flex items-center justify-center text-white font-bold text-lg mb-4">C</div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Built by</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Built by</p>
                     <p className="text-base font-bold mb-2">Cosmonus</p>
-                    <p className="text-xs text-slate-400 leading-relaxed mb-4">
+                    <p className="text-xs text-slate-500 leading-relaxed mb-4">
                       Cosmonus engineers intelligence. StayOnMap is that intelligence running in production — a broker-free rental platform for India.
                     </p>
                     <a
@@ -265,7 +265,7 @@ export default function ContactPage() {
                     ].map(({ icon: ExpectIcon, text }) => (
                       <div key={text} className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
-                          <ExpectIcon className="w-4 h-4 text-slate-400" />
+                          <ExpectIcon className="w-4 h-4 text-slate-500" />
                         </div>
                         <span className="text-xs text-slate-600 font-medium">{text}</span>
                       </div>
@@ -282,7 +282,7 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-slate-900">Chennai, India</p>
-                      <p className="text-xs text-slate-400 leading-relaxed mt-0.5">Building for renters and owners across {CITIES.length} cities and growing.</p>
+                      <p className="text-xs text-slate-500 leading-relaxed mt-0.5">Building for renters and owners across {CITIES.length} cities and growing.</p>
                     </div>
                   </div>
                 </div>
@@ -304,7 +304,7 @@ export default function ContactPage() {
               <p className="text-sm text-slate-500 leading-relaxed mb-6">
                 These cover the most common things people ask us. If your question isn&apos;t here, the form above is always open.
               </p>
-              <Link to="/about" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-white border border-slate-200 text-slate-700 hover:border-slate-400 transition-colors no-underline">
+              <Link to="/about" className="min-h-[44px] inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold bg-white border border-slate-200 text-slate-700 hover:border-slate-400 transition-colors no-underline">
                 About StayOnMap
               </Link>
             </div>
@@ -344,7 +344,7 @@ export default function ContactPage() {
               <h2 className="font-display font-bold text-3xl sm:text-4xl md:text-5xl text-white leading-tight mb-4">
                 Rather browse than write?
               </h2>
-              <p className="text-sm sm:text-base text-slate-400 max-w-lg mx-auto mb-8">
+              <p className="text-sm sm:text-base text-slate-500 max-w-lg mx-auto mb-8">
                 {isLoading ? 'Zero brokerage.' : `${totalActive} verified rentals. Zero brokerage.`} Open the map and start exploring.
               </p>
               <div className="flex items-center justify-center gap-3 flex-wrap">

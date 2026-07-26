@@ -16,14 +16,14 @@ export function LegalPageLayout({ title, lastUpdated, sections, children }) {
           <h1 className="font-display font-bold text-2xl sm:text-3xl text-slate-900 tracking-tight mb-2">
             {title}
           </h1>
-          <p className="text-sm text-slate-400">Last updated: {lastUpdated}</p>
+          <p className="text-sm text-slate-500">Last updated: {lastUpdated}</p>
         </div>
       </section>
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
         {/* Table of contents */}
         <nav className="bg-white rounded-2xl border border-slate-200 p-5 mb-8">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">On this page</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">On this page</p>
           <ol className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5">
             {sections.map(({ id, label }, i) => (
               <li key={id}>
@@ -50,7 +50,7 @@ export function LegalPageLayout({ title, lastUpdated, sections, children }) {
           </div>
           <Link
             to="/contact"
-            className="shrink-0 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold transition-colors no-underline whitespace-nowrap"
+            className="min-h-[44px] shrink-0 px-5 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold transition-colors no-underline whitespace-nowrap"
           >
             Contact us
           </Link>

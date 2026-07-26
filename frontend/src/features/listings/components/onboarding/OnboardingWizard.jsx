@@ -1,38 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Check, Plus } from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { availabilityService } from '@services/availability.service'
 import { toast } from '@components/common/Toaster'
-import TypePicker, { BecomeHostIntro, BusinessGate } from './TypePicker'
-import ProfileGate from './ProfileGate'
-import PhaseInterstitial from './PhaseInterstitial'
+import { BecomeHostIntro, BusinessGate } from './HostGates'
+import { WizardHeader, WizardFooter } from './WizardChrome'
+import ListingFormTabs from '../ListingFormTabs'
+import useDraftAutosave, { EMPTY_DRAFT, clearSavedDraft, readSavedDraft } from './useDraftAutosave'
+import UnfinishedDraftBanner from './UnfinishedDraftBanner'
 import {
-  DescribeScreen, FieldsScreen, LocationScreen, FeaturesScreen, PhotosScreen,
-  TitleScreen, DescriptionScreen, PricingScreen, ContactScreen, ReviewScreen,
-} from './WizardScreens'
-import { CATEGORIES, BUSINESS_GATED_TYPES, DESCRIBE, getScreens, phaseOf, deriveType, missingRequirements, buildPayload } from '../../config/onboarding.js'
+  CATEGORIES, BUSINESS_GATED_TYPES, DESCRIBE, STEPS,
+  deriveType, missingRequirements, buildPayload, suggestTitle, defaultRules,
+} from '../../config/onboarding.js'
+import { confirm } from '@components/common/ConfirmDialog'
 import ListingManager from '../ListingManager'
-import ListingDetailContent from '../ListingDetailContent'
-import { CreateLeaseModal } from '@features/leases/components/LeaseManager'
-
-const EMPTY_DRAFT = {
-  fields: {},
-  amenityNames: [],
-  location: { address: '', city: '', state: '', pincode: '', landmark: '', lat: null, lng: null },
-  images: [],
-  title: '',
-  description: '',
-  // RENT unless the owner picks Lease on the pricing screen (only offered for
-  // LEASE_CATEGORIES). Lives beside `pricing` rather than inside it because
-  // everything in `pricing` is a money string; this is a mode.
-  pricingModel: 'RENT',
-  pricing: {},
-  appointmentWindowStart: '',
-  appointmentWindowEnd: '',
-  instantBook: false,
-  blockedDates: [],
-}
+import EditListingPanel from '../EditListingPanel'
 
 function DoneScreen({ category, onListAnother, onGoToListings }) {
   return (
@@ -43,19 +27,19 @@ function DoneScreen({ category, onListAnother, onGoToListings }) {
         </div>
       </div>
       <h1 className="font-display font-bold text-2xl text-slate-900 tracking-tight">Your listing is submitted</h1>
-      <p className="text-sm text-slate-500 leading-relaxed mt-3.5">
+      <p className="text-sm text-slate-600 leading-relaxed mt-3.5">
         Your {category.label} is pending review — we&apos;ll put it on the map the moment
         it&apos;s approved. Want the Verified badge? Add ownership documents any time from
         your listing page.
       </p>
       <div className="flex items-center justify-center gap-2 my-7">
         {['DRAFT', 'PENDING', 'ACTIVE'].map((s, i) => (
-          <span key={s} className={`text-[11px] font-bold px-3 py-1.5 rounded-full ${i <= 1 ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-400'}`}>{s}</span>
+          <span key={s} className={`text-[11px] font-bold px-3 py-1.5 rounded-full ${i <= 1 ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-500'}`}>{s}</span>
         ))}
       </div>
       <div className="flex items-center justify-center gap-3">
         <button onClick={onListAnother} className="px-5 py-3 rounded-xl border border-slate-200 hover:border-slate-400 text-sm font-semibold text-slate-700 transition-colors">
-          List another type
+          List another
         </button>
         <button onClick={onGoToListings} className="px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition-colors">
           Go to my listings
@@ -65,9 +49,6 @@ function DoneScreen({ category, onListAnother, onGoToListings }) {
   )
 }
 
-// Wraps the become-host/picker/business-gate/flow/done screens in a scrollable,
-// width-capped region — the 'listings' stage renders full-bleed instead (it
-// hosts ListingManager/ListingDetailContent, which expect the full viewport).
 function ScreenShell({ children }) {
   return (
     <div className="flex-1 overflow-y-auto px-4 py-8 md:py-12">
@@ -76,24 +57,66 @@ function ScreenShell({ children }) {
   )
 }
 
-function ListingsOverview({ onAdd, onView, onOfferLease }) {
+// "2 live · 1 pending review · 1 draft" — the states an owner acts on, and only
+// the ones they actually have. A subline listing "0 pending review" invents work
+// that isn't there; "Manage your properties on StayOnMap" (what was here) said
+// nothing at all.
+function statusSummary(listings, hasLocalDraft) {
+  const live = listings.filter((p) => p.status === 'ACTIVE').length
+  const pending = listings.filter((p) => p.status === 'PENDING').length
+  const drafts = listings.filter((p) => p.status === 'DRAFT').length + (hasLocalDraft ? 1 : 0)
+  const rejected = listings.filter((p) => p.status === 'REJECTED').length
+
+  const parts = []
+  if (live) parts.push(`${live} live`)
+  if (pending) parts.push(`${pending} pending review`)
+  if (drafts) parts.push(`${drafts} draft${drafts === 1 ? '' : 's'}`)
+  if (rejected) parts.push(`${rejected} needs changes`)
+  return parts.join(' · ')
+}
+
+function ListingsOverview({
+  onAdd, onEdit, onPreview, onVisitRequests, onSubmitForReview, onDeleteListing, onToggleStatus,
+  localDraft, localDraftLabel, onResumeLocalDraft, onDiscardLocalDraft,
+}) {
+  const { data: listings = [] } = useQuery({
+    queryKey: ['my-listings'],
+    queryFn: () => propertyService.getMyListings().then((r) => r.data),
+  })
+  const summary = statusSummary(listings, !!localDraft)
+
   return (
     <div className="flex flex-col h-full">
-      <div className="shrink-0 flex items-start sm:items-center justify-between gap-3 px-6 md:px-10 py-5 border-b border-slate-200 bg-white">
+      <div className="shrink-0 flex items-start sm:items-center justify-between gap-3 px-6 md:px-10 py-5 bg-white">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Your listings</h1>
-          <p className="text-sm text-slate-400 mt-0.5">Manage your properties on StayOnMap</p>
+          <h1 className="font-display text-2xl font-bold text-slate-900 tracking-tight">My listings</h1>
+          {summary && <p className="text-sm text-slate-600 mt-1">{summary}</p>}
         </div>
         <button
           onClick={onAdd}
-          className="shrink-0 flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-all bg-[#111111]"
+          className="shrink-0 flex items-center gap-2 px-5 py-3 text-sm font-bold text-white rounded-xl hover:bg-[#2a2a2a] transition-colors bg-[#111111] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         >
-          <Plus size={15} strokeWidth={2.2} />
+          <Plus size={15} strokeWidth={2.4} />
           Add listing
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto px-6 md:px-10 py-6">
-        <ListingManager onAdd={onAdd} onViewDetails={onView} onOfferLease={onOfferLease} />
+      <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-8 space-y-4">
+        {localDraft && (
+          <UnfinishedDraftBanner draft={localDraft} onResume={onResumeLocalDraft} />
+        )}
+        <ListingManager
+          onAdd={onAdd}
+          onEdit={onEdit}
+          onPreview={onPreview}
+          onVisitRequests={onVisitRequests}
+          onResume={onSubmitForReview}
+          onDelete={onDeleteListing}
+          onToggleStatus={onToggleStatus}
+          localDraft={localDraft}
+          localDraftLabel={localDraftLabel}
+          onResumeLocalDraft={onResumeLocalDraft}
+          onDiscardLocalDraft={onDiscardLocalDraft}
+        />
       </div>
     </div>
   )
@@ -101,14 +124,165 @@ function ListingsOverview({ onAdd, onView, onOfferLease }) {
 
 export default function OnboardingWizard({ profile }) {
   const qc = useQueryClient()
-  const [stage, setStage] = useState(profile?.role === 'OWNER' ? 'listings' : 'become-host')
-  // Survives the mutation without re-rendering mid-publish; read in onSuccess.
+  const navigate = useNavigate()
+  // `/list?new=1` means "start adding", not "show me my listings". Without it
+  // every Add-listing button outside this component landed an owner on the My
+  // listings overview and made them press Add a second time.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const wantsNewListing = searchParams.get('new') === '1'
+  const [stage, setStage] = useState(
+    // A tenant still meets the become-a-host step first, whatever the URL says —
+    // listing is an explicit role change, not a side effect of a link.
+    profile?.role !== 'OWNER' ? 'become-host' : wantsNewListing ? 'flow' : 'listings',
+  )
   const [categoryKey, setCategoryKey] = useState(null)
-  const [screenIdx, setScreenIdx] = useState(0)
+  const [stepIdx, setStepIdx] = useState(0)
   const [draft, setDraft] = useState(EMPTY_DRAFT)
   const [blockError, setBlockError] = useState('')
-  const [viewListingId, setViewListingId] = useState(null)
-  const [offerLeaseFor, setOfferLeaseFor] = useState(null)
+  const blockErrorRef = useRef(null)
+  const [uploading, setUploading] = useState(false)
+  const [editListingId, setEditListingId] = useState(null)
+  // Set only when someone asked to ADD and an unfinished draft already exists.
+  // While it is set the autosave is paused in both directions — see the comment
+  // on useDraftAutosave's `paused`.
+  const [pendingDraft, setPendingDraft] = useState(() => (wantsNewListing ? readSavedDraft() : null))
+
+  // Consumed once, then dropped from the URL: otherwise "Save & exit" would
+  // return to My listings with ?new=1 still on it, and the next refresh would
+  // reopen the add flow the owner had just left.
+  useEffect(() => {
+    if (!wantsNewListing) return
+    const next = new URLSearchParams(searchParams)
+    next.delete('new')
+    setSearchParams(next, { replace: true })
+  }, [wantsNewListing, searchParams, setSearchParams])
+
+  const savedAt = useDraftAutosave({
+    stage, categoryKey, stepIdx, draft, setCategoryKey, setStepIdx, setDraft,
+    paused: !!pendingDraft,
+  })
+
+  // Re-read on every render of the listings stage rather than held in state:
+  // publishing and discarding both change it, and a stale copy would offer to
+  // resume a listing that is already live.
+  const localDraft = stage === 'listings' ? readSavedDraft() : null
+  const localDraftLabel = localDraft
+    ? (localDraft.draft?.title?.trim()
+        || suggestTitle(localDraft.categoryKey, { fields: localDraft.draft?.fields ?? {}, location: localDraft.draft?.location ?? {} })
+        || CATEGORIES[localDraft.categoryKey]?.label
+        || 'Unfinished listing')
+    : null
+
+  // A server-side DRAFT is a listing that was created but never sent for
+  // review. Its "Resume" is submission, not the wizard — the wizard builds new
+  // listings, it does not load existing ones.
+  const { mutate: submitForReview } = useMutation({
+    mutationFn: (property) => propertyService.publish(property.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-listings'] })
+      toast.success('Sent for review', 'We’ll put it on the map once it’s approved')
+    },
+    onError: (err) => toast.error('Couldn’t submit', err.message ?? 'Please try again'),
+  })
+
+  const { mutate: deleteListing } = useMutation({
+    mutationFn: (property) => propertyService.remove(property.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-listings'] })
+      toast.success('Deleted', 'The listing is gone')
+    },
+    onError: (err) => toast.error('Couldn’t delete', err.message ?? 'Please try again'),
+  })
+
+  // Pause, not delete, is what an owner usually means when a flat is taken or
+  // they're away — ACTIVE↔INACTIVE, enforced server-side by toggleStatus.
+  const { mutate: toggleListingStatus } = useMutation({
+    mutationFn: (property) => propertyService.toggleStatus(property.id),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['my-listings'] })
+      const paused = res?.data?.status === 'INACTIVE'
+      toast.success(
+        paused ? 'Listing paused' : 'Listing live again',
+        paused ? 'Renters can no longer see it. Resume any time.' : 'It’s back on the map.',
+      )
+    },
+    onError: (err) => toast.error('Couldn’t change that', err.message ?? 'Please try again'),
+  })
+
+  async function confirmToggleStatus(property) {
+    if (property.status === 'ACTIVE') {
+      const ok = await confirm({
+        title: 'Pause this listing?',
+        message: `${property.title} will come off the map and stop receiving visit requests. Nothing is deleted — you can resume it whenever you like.`,
+        confirmLabel: 'Pause listing',
+      })
+      if (!ok) return
+    }
+    toggleListingStatus(property)
+  }
+
+  async function confirmDeleteListing(property) {
+    // Say what else goes with it. The row already knows how many people are
+    // waiting, and finding out afterwards that you cancelled three visits is
+    // the kind of surprise a confirm dialog exists to prevent.
+    const waiting = property._count?.appointments ?? 0
+    const ok = await confirm({
+      title: 'Delete this listing?',
+      message: waiting > 0
+        ? `${property.title} will be removed for good, and ${waiting} pending visit ${waiting === 1 ? 'request' : 'requests'} will be cancelled — they'll be told. If you only want it off the map for a while, pause it instead. This can't be undone.`
+        : `${property.title} will be removed for good, along with its photos, messages and reviews. If you only want it off the map for a while, pause it instead. This can't be undone.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    })
+    if (ok) deleteListing(property)
+  }
+
+  async function discardLocalDraft() {
+    const ok = await confirm({
+      title: 'Discard this unfinished listing?',
+      message: 'Everything you entered will be lost. This can’t be undone.',
+      confirmLabel: 'Discard',
+      variant: 'danger',
+    })
+    if (!ok) return
+    clearSavedDraft()
+    setCategoryKey(null)
+    setDraft(EMPTY_DRAFT)
+    setStepIdx(0)
+  }
+
+  // The one way back into a saved draft, used by the banner on My listings and
+  // by the fork inside the add flow. Restores explicitly rather than leaning on
+  // the autosave hook, so it behaves the same whether or not that hook is
+  // currently paused.
+  function resumeLocalDraft() {
+    const saved = pendingDraft ?? readSavedDraft()
+    setBlockError('')
+    setPendingDraft(null)
+    if (saved?.categoryKey) {
+      setCategoryKey(saved.categoryKey)
+      setDraft({ ...EMPTY_DRAFT, ...saved.draft })
+      setStepIdx(saved.stepIdx ?? 0)
+    }
+    setStage('flow')
+  }
+
+  // Starting fresh DISCARDS the saved one — there is a single draft slot, so
+  // this is a real deletion and it asks first.
+  async function startFreshOverDraft() {
+    const ok = await confirm({
+      title: 'Start a new listing?',
+      message: 'Your unfinished listing will be discarded — only one draft is kept at a time.',
+      confirmLabel: 'Discard and start new',
+      variant: 'danger',
+    })
+    if (!ok) return
+    clearSavedDraft()
+    setCategoryKey(null)
+    setDraft(EMPTY_DRAFT)
+    setStepIdx(0)
+    setPendingDraft(null)
+  }
 
   const { data: amenities = [] } = useQuery({
     queryKey: ['amenities'],
@@ -131,69 +305,66 @@ export default function OnboardingWizard({ profile }) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['my-listings'] })
+      clearSavedDraft()
       toast.success('Submitted', 'Your listing is now pending review')
       setStage('done')
     },
     onError: (err) => toast.error('Couldn’t publish', err.message ?? 'Please try again'),
   })
 
+  // Changing the category mid-step-1 resets the answers that only made sense
+  // for the old one — a plot's approval status is not a flat's furnishing.
   function pickCategory(key) {
+    setBlockError('')
     if (BUSINESS_GATED_TYPES.includes(key) && !profile?.isBusiness) {
       setCategoryKey(key)
       setStage('business-gate')
       return
     }
     setCategoryKey(key)
-    setDraft(EMPTY_DRAFT)
-    setScreenIdx(0)
-    setBlockError('')
-    setStage('flow')
+    setDraft((d) => ({ ...d, fields: {}, amenityNames: [], rules: defaultRules(key), terms: {}, pricing: {}, pricingModel: 'RENT' }))
   }
 
   function startNewListing() {
     setCategoryKey(null)
-    setStage('picker')
+    setDraft(EMPTY_DRAFT)
+    setStepIdx(0)
+    setBlockError('')
+    setPendingDraft(readSavedDraft())
+    setStage('flow')
   }
 
-  // Front door for the same rule the backend enforces on POST /properties
-  // (requireCompleteProfile): an incomplete profile must not walk the whole
-  // wizard only to 403 at publish. Gates listing CREATION stages only —
-  // managing existing listings ('listings') stays open, matching the server.
-  const missingProfile = profile?.missingProfileFields ?? []
-  if (missingProfile.length > 0 && stage !== 'listings') {
-    return <ScreenShell><ProfileGate missing={missingProfile} /></ScreenShell>
+  if (stage === 'become-host') {
+    return <ScreenShell><BecomeHostIntro onDone={startNewListing} /></ScreenShell>
   }
-
-  if (stage === 'become-host') return <ScreenShell><BecomeHostIntro onDone={() => setStage('picker')} /></ScreenShell>
 
   if (stage === 'listings') {
-    if (viewListingId) {
+    if (editListingId) {
       return (
         <div className="flex-1 overflow-hidden">
-          <ListingDetailContent propertyId={viewListingId} onBack={() => setViewListingId(null)} />
+          <EditListingPanel propertyId={editListingId} onBack={() => setEditListingId(null)} />
         </div>
       )
     }
     return (
-      <>
-        <ListingsOverview onAdd={startNewListing} onView={setViewListingId} onOfferLease={setOfferLeaseFor} />
-        {offerLeaseFor && (
-          <CreateLeaseModal
-            propertyId={offerLeaseFor.id}
-            propertyTitle={offerLeaseFor.title}
-            isOpen
-            onClose={() => setOfferLeaseFor(null)}
-          />
-        )}
-      </>
-    )
-  }
-
-  if (stage === 'picker') {
-    return (
-      <ScreenShell>
-        <TypePicker onPick={pickCategory} onBack={profile?.role === 'OWNER' ? () => setStage('listings') : undefined} />
-      </ScreenShell>
+      <ListingsOverview
+        onAdd={startNewListing}
+        onEdit={setEditListingId}
+        // Preview opens the listing a renter actually sees, in a new tab, so the
+        // owner keeps their place in the list.
+        onPreview={(property) => window.open(`/property/${property.id}`, '_blank', 'noopener')}
+        // Visit requests live in the Appointments tab (host mode shows the
+        // incoming side) — the listing row links there rather than growing its
+        // own half-copy of it.
+        onVisitRequests={() => navigate('/user?tab=appointments')}
+        onSubmitForReview={submitForReview}
+        onDeleteListing={confirmDeleteListing}
+        onToggleStatus={confirmToggleStatus}
+        localDraft={localDraft}
+        localDraftLabel={localDraftLabel}
+        onResumeLocalDraft={resumeLocalDraft}
+        onDiscardLocalDraft={discardLocalDraft}
+      />
     )
   }
 
@@ -201,8 +372,8 @@ export default function OnboardingWizard({ profile }) {
     return (
       <ScreenShell>
         <BusinessGate
-          onUpgraded={() => pickCategory(categoryKey)}
-          onChooseDifferent={() => { setCategoryKey(null); setStage('picker') }}
+          onUpgraded={() => { setStage('flow'); pickCategory(categoryKey) }}
+          onChooseDifferent={() => { setCategoryKey(null); setStage('flow') }}
         />
       </ScreenShell>
     )
@@ -213,106 +384,125 @@ export default function OnboardingWizard({ profile }) {
       <ScreenShell>
         <DoneScreen
           category={CATEGORIES[categoryKey]}
-          onListAnother={() => { setCategoryKey(null); setStage('picker') }}
+          onListAnother={startNewListing}
           onGoToListings={() => { setCategoryKey(null); setStage('listings') }}
         />
       </ScreenShell>
     )
   }
 
-  const screens = getScreens()
-  const screen = screens[screenIdx]
-  const isPhase = screen.k === 'phase'
-  const phase = phaseOf(screenIdx)
-  const totalScreens = screens.filter((s) => s.k !== 'phase').length
-  const doneCount = screens.slice(0, screenIdx).filter((s) => s.k !== 'phase').length
-  const pct = Math.round((doneCount / totalScreens) * 100)
-  const isLast = screenIdx === screens.length - 1
-  const missing = missingRequirements(categoryKey, draft)
-  const showFinishLater = !isPhase && !['describe', 'review'].includes(screen.k)
-    && missing.some((m) => m.screenK === screen.k)
+  const step = STEPS[stepIdx]
+  const isLast = stepIdx === STEPS.length - 1
+  const goToTab = (k) => goTo(STEPS.findIndex((t) => t.k === k))
+  const missing = categoryKey ? missingRequirements(categoryKey, draft) : []
+  const missingProfile = profile?.missingProfileFields ?? []
 
-  function next() {
-    // The describe choice is the one mid-flow gate — screen branching and type
-    // derivation hang off it, and it's a single tap. Everything else surfaces
-    // at review via missingRequirements.
-    if (screen.k === 'describe' && draft.fields[DESCRIBE[categoryKey].k] === undefined) {
-      setBlockError('Make a selection to continue.')
-      return
-    }
+  function goTo(idx) {
     setBlockError('')
-    if (isLast) { publish(); return }
-    setScreenIdx((i) => i + 1)
+    // Offer a title the moment we have enough to write one, and only into an
+    // empty field — never overwrite what the owner typed.
+    if (STEPS[idx]?.k === 'features' && !draft.title.trim()) {
+      const suggested = suggestTitle(categoryKey, draft)
+      if (suggested) setDraft((d) => ({ ...d, title: suggested, titlePrefilled: true }))
+    }
+    setStepIdx(idx)
   }
 
-  function jumpTo(screenK) {
-    const idx = screens.findIndex((s) => s.k === screenK)
-    if (idx >= 0) { setBlockError(''); setScreenIdx(idx) }
+  // The blocking message renders at the BOTTOM of a scrolling step body while
+  // Next lives in a fixed footer — so on a tall step (the very first one) the
+  // owner pressed Next, nothing appeared to happen, and the reason sat ~570px
+  // below the fold. Bring it into view and focus it.
+  function blockWith(message) {
+    setBlockError(message)
+    requestAnimationFrame(() => {
+      blockErrorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      blockErrorRef.current?.focus({ preventScroll: true })
+    })
+  }
+
+  function next() {
+    if (!categoryKey) { blockWith('Pick what you’re listing to continue.'); return }
+    // The one mid-flow gate: step branching and type derivation hang off it.
+    if (step.k === 'basics' && draft.fields[DESCRIBE[categoryKey].k] === undefined) {
+      blockWith(`${DESCRIBE[categoryKey].q} Make a selection to continue.`)
+      return
+    }
+    if (isLast) { publish(); return }
+    goTo(stepIdx + 1)
   }
 
   function back() {
     setBlockError('')
-    if (screenIdx > 0) { setScreenIdx((i) => i - 1); return }
-    setCategoryKey(null)
-    setStage('picker')
+    if (stepIdx > 0) { setStepIdx(stepIdx - 1); return }
+    setStage(profile?.role === 'OWNER' ? 'listings' : 'become-host')
   }
 
+  const canPublish = isLast && missing.length === 0 && missingProfile.length === 0 && !isPending
+
   return (
-    <ScreenShell>
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <span className="text-sm font-bold text-slate-900">{CATEGORIES[categoryKey].label}</span>
-          <button onClick={() => { setCategoryKey(null); setStage('listings') }} className="text-xs font-semibold text-slate-600 border border-slate-200 rounded-full px-3.5 py-1.5 hover:border-slate-400 transition-colors">
-            Save &amp; exit
-          </button>
-        </div>
+    <div className="flex-1 min-h-0 flex flex-col bg-white">
+      <WizardHeader
+        title={categoryKey ? `Listing a ${CATEGORIES[categoryKey].short.toLowerCase()}` : 'New listing'}
+        savedAt={savedAt}
+        onExit={() => setStage(profile?.role === 'OWNER' ? 'listings' : 'become-host')}
+      />
 
-        <div className="flex items-center gap-4 px-6 py-3 border-b border-slate-100 bg-slate-50">
-          {[1, 2, 3].map((n) => (
-            <div key={n} className="flex-1">
-              <div className={`h-1 rounded-full ${n <= phase ? 'bg-brand-600' : 'bg-slate-200'}`} />
-              <p className={`text-[11px] mt-1.5 ${n === phase ? 'text-brand-700 font-bold' : 'text-slate-400'}`}>
-                {['Tell us about your place', 'Make it stand out', 'Finish & publish'][n - 1]}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <div className="px-8 py-8 min-h-[380px]">
-          {isPhase && <PhaseInterstitial n={screen.n} title={screen.title} blurb={screen.blurb} />}
-          {screen.k === 'describe' && <DescribeScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'fields' && <FieldsScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'location' && <LocationScreen draft={draft} setDraft={setDraft} />}
-          {screen.k === 'features' && <FeaturesScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'photos' && <PhotosScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'title' && <TitleScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'description' && <DescriptionScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'pricing' && <PricingScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'contact' && <ContactScreen categoryKey={categoryKey} draft={draft} setDraft={setDraft} />}
-          {screen.k === 'review' && <ReviewScreen categoryKey={categoryKey} draft={draft} missing={missing} onJump={jumpTo} />}
-        </div>
-
-        {blockError && <p className="px-8 -mt-4 pb-4 text-sm text-red-500">{blockError}</p>}
-        {showFinishLater && (
-          <p className="px-8 -mt-4 pb-4 text-xs text-slate-400">
-            You can finish this later — we&apos;ll flag anything missing at review.
-          </p>
-        )}
-
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50">
-          <button onClick={back} className="text-sm font-bold text-slate-700 underline underline-offset-2">Back</button>
-          <div className="flex items-center gap-4">
-            {!isPhase && <span className="text-xs font-mono text-slate-400">{pct}%</span>}
-            <button
-              onClick={next}
-              disabled={isPending || (isLast && missing.length > 0)}
-              className="px-7 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      {/* Same tab bar the edit flow uses — one design for both, since both are
+          filling in the same listing (see ListingFormTabs.jsx). The Next button
+          stays: on a NEW listing the order is guidance, and the tabs are there
+          for anyone who'd rather jump. */}
+      <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6">
+        <div className="max-w-5xl mx-auto w-full">
+          {pendingDraft ? (
+            <UnfinishedDraftBanner
+              draft={pendingDraft}
+              onResume={resumeLocalDraft}
+              onStartFresh={startFreshOverDraft}
+            />
+          ) : (
+          <ListingFormTabs
+            mode="create"
+            categoryKey={categoryKey}
+            draft={draft}
+            setDraft={setDraft}
+            activeTab={step.k}
+            onTabChange={goToTab}
+            onPickCategory={pickCategory}
+            missing={missing}
+            profile={profile}
+            onUploadingChange={setUploading}
+          />
+          )}
+          {/* tabIndex + ref so the message can be scrolled to AND announced —
+              role="alert" alone leaves a sighted user staring at a Next button
+              that looks broken (see the scroll in next()). */}
+          {blockError && (
+            <p
+              ref={blockErrorRef}
+              tabIndex={-1}
+              role="alert"
+              className="mt-6 text-sm text-red-600 scroll-mt-24 focus:outline-none"
             >
-              {isPhase ? 'Get started →' : isLast ? (isPending ? 'Publishing…' : 'Publish listing') : 'Next →'}
-            </button>
-          </div>
+              {blockError}
+            </p>
+          )}
         </div>
       </div>
-    </ScreenShell>
+
+      {/* No footer while the resume-or-start-fresh choice is open: the two
+          buttons in that card are the only moves, and a "Next" beside them would
+          advance a form nobody has chosen yet. */}
+      {!pendingDraft && (
+        <WizardFooter
+          backLabel={stepIdx === 0 ? 'Cancel' : 'Back'}
+          onBack={back}
+          note={isLast ? 'Editable any time after publishing' : 'Autosaved · safe to close and come back'}
+          nextLabel={isLast ? (isPending ? 'Publishing…' : 'Publish listing') : `Next — ${step.next}`}
+          nextDisabled={uploading || (isLast && !canPublish)}
+          primary={isLast}
+          onNext={next}
+        />
+      )}
+    </div>
   )
 }

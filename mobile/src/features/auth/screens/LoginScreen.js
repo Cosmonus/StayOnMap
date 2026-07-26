@@ -31,10 +31,10 @@ function Field({ label, icon, style, secureTextEntry, ...props }) {
     <View style={{ marginBottom: spacing.md }}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.inputWrap}>
-        <Icon name={icon} size={16} color={colors.slate400} />
+        <Icon name={icon} size={16} color={colors.slate500} />
         <TextInput
           style={[styles.input, style]}
-          placeholderTextColor={colors.slate400}
+          placeholderTextColor={colors.slate500}
           autoCapitalize="none"
           secureTextEntry={secureTextEntry && !reveal}
           {...props}
@@ -49,7 +49,7 @@ function Field({ label, icon, style, secureTextEntry, ...props }) {
             accessibilityLabel={reveal ? 'Hide password' : 'Show password'}
             accessibilityState={{ selected: reveal }}
           >
-            <Icon name={reveal ? 'eyeOff' : 'eye'} size={18} color={colors.slate400} />
+            <Icon name={reveal ? 'eyeOff' : 'eye'} size={18} color={colors.slate500} />
           </Pressable>
         )}
       </View>
@@ -316,14 +316,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white },
   scroll: { padding: spacing.lg, flexGrow: 1, justifyContent: 'center' },
   heading: { fontFamily: fonts.displayBold, fontSize: fontSizes.xxl, color: colors.slate800, marginBottom: spacing.xs },
-  subheading: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginBottom: spacing.lg },
+  subheading: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginBottom: spacing.lg },
   tabSwitcher: { flexDirection: 'row', backgroundColor: colors.slate100, borderRadius: radius.md, padding: 4, marginBottom: spacing.lg },
-  tabButton: { flex: 1, paddingVertical: spacing.sm, borderRadius: radius.sm, alignItems: 'center' },
+  tabButton: { flex: 1, paddingVertical: spacing.sm, borderRadius: radius.sm, alignItems: 'center', minHeight: 48, justifyContent: 'center', },
   tabButtonActive: { backgroundColor: colors.brand600 },
-  tabButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate400 },
+  tabButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate500 },
   tabButtonTextActive: { color: colors.white },
   label: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate600, marginBottom: spacing.xs },
-  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: -spacing.sm + 2, marginBottom: spacing.md },
+  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: -spacing.sm + 2, marginBottom: spacing.md },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
   primaryButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.white },
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginVertical: spacing.md },
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.slate200 },
-  dividerText: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
+  dividerText: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   altSignInRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   altSignInButton: { flexGrow: 1, flexBasis: '45%' },
   secondaryButton: {
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate700 },
   linkText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand600 },
   confirmTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.lg, color: colors.slate800 },
-  confirmBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: spacing.xs, textAlign: 'center' },
+  confirmBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: spacing.xs, textAlign: 'center' },
   roleRow: { flexDirection: 'row', gap: spacing.sm },
   roleButton: {
     flex: 1,

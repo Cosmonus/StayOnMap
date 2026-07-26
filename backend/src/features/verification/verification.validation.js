@@ -33,6 +33,21 @@ export const adminReviewSchema = z.object({
   adminNote: z.string().max(500).optional(),
 })
 
+// GET /admin/verifications had NO query schema, so `page` and `limit` reached
+// Prisma as the strings they arrive as on the wire. `take: "30"` throws
+// ("Expected Int, provided String"), which meant a 500 on EVERY request the
+// admin UI made — it always sends limit=30 — and the client rendered that
+// failure as "No pending verifications". A real pending request sat invisible
+// for weeks, and with it the only route to a VERIFIED_OWNER badge.
+//
+// z.coerce is the fix and the guard: the numbers can never reach Prisma as
+// strings again, whatever a caller sends.
+export const adminVerificationsQuerySchema = z.object({
+  status: z.enum(['PENDING', 'UNDER_REVIEW', 'VERIFIED', 'REJECTED', 'SUSPENDED']).optional(),
+  page:  z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+})
+
 // The property address exactly as printed on the ownership document. Optional
 // (verification predates this field) but bounded: an owner pasting their whole
 // deed into it defeats the comparison it feeds.

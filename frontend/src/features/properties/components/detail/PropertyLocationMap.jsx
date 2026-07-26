@@ -36,7 +36,7 @@ function MapControlButton({ label, onClick, children }) {
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-slate-600 shadow-md ring-1 ring-slate-200 transition-colors hover:bg-slate-50 hover:text-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
+      className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-slate-600 shadow-md ring-1 ring-slate-200 transition-colors hover:bg-slate-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
     >
       {children}
     </button>

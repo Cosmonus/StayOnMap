@@ -60,6 +60,13 @@ export default function MapView({ contained = false }) {
         // inside a 60vh map with no way to scroll past it. Full-screen map
         // surfaces keep 'greedy' (required for one-finger pan).
         gestureHandling: contained ? 'cooperative' : 'greedy',
+        // Google's own POI pins stay decorative. Clicking near one used to open
+        // GOOGLE's info window over our map — a card for a temple or a
+        // restaurant, complete with a link OUT to Google Maps — which competes
+        // with the property pins that are the point of the surface and hands
+        // the visitor to another product mid-search. Same setting the property
+        // detail map already uses.
+        clickableIcons: false,
       })
 
       mapRef.current = map

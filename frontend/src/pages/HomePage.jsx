@@ -208,28 +208,56 @@ function median(values) {
   return sorted.length % 2 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2)
 }
 
-function NearbyCard({ groups, complete }) {
+// This block was written when the platform only rented. Buy mode arrived in the
+// filters and on the wire, and every word here stayed rent-only — so a plot on
+// sale for ₹95L appeared under "Renting right now · Median rent is ₹9,500,000".
+// `rent` is the primary price in ALL THREE modes (see PricingModel in
+// schema.prisma); only its NAME changes, and it has to.
+const MODE_COPY = {
+  RENT: {
+    heading: 'Renting right now', headingIn: (p) => `Renting in ${p}`,
+    median: 'Median rent is', unit: (n) => (n === 1 ? 'home live now' : 'homes live now'),
+    nearby: 'Also renting nearby', nearbyFoot: 'Real counts, real links — every one of these opens a list with homes in it.',
+    emptyPlace: (p) => `Nothing listed in ${p} yet`,
+  },
+  LEASE: {
+    heading: 'On lease right now', headingIn: (p) => `On lease in ${p}`,
+    median: 'Median lease amount is', unit: (n) => (n === 1 ? 'home live now' : 'homes live now'),
+    nearby: 'Also on lease nearby', nearbyFoot: 'Real counts, real links — every one of these opens a list with homes in it.',
+    emptyPlace: (p) => `Nothing on lease in ${p} yet`,
+  },
+  SALE: {
+    heading: 'For sale right now', headingIn: (p) => `For sale in ${p}`,
+    median: 'Median asking price is', unit: (n) => (n === 1 ? 'place for sale' : 'places for sale'),
+    nearby: 'Also for sale nearby', nearbyFoot: 'Real counts, real links — every one of these opens a list with places in it.',
+    emptyPlace: (p) => `Nothing for sale in ${p} yet`,
+  },
+}
+
+const modeCopy = (mode) => MODE_COPY[mode] ?? MODE_COPY.RENT
+
+function NearbyCard({ groups, complete, copy, hrefFor }) {
   if (!groups.length) return null
   return (
     <div className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-5">
-      <p className="text-sm font-semibold text-slate-800">Also renting nearby</p>
+      <p className="text-sm font-semibold text-slate-800">{copy.nearby}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {groups.map(({ city, count }) => (
           <Link
             key={city}
-            to={`/properties?city=${encodeURIComponent(city)}`}
+            to={hrefFor(city)}
             className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 no-underline transition-colors hover:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             {city}
             {/* Counts are only shown when this page holds the whole result
                 set. Past that, a number here would be a floor presented as a
                 total — the exact overstatement this block exists to avoid. */}
-            {complete && <span className="text-slate-400"> · {count}</span>}
+            {complete && <span className="text-slate-500"> · {count}</span>}
           </Link>
         ))}
       </div>
       <p className="mt-auto pt-4 text-xs leading-relaxed text-slate-500">
-        Real counts, real links — every one of these opens a list with homes in it.
+        {copy.nearbyFoot}
       </p>
     </div>
   )
@@ -269,7 +297,20 @@ function RentingHere() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 6)
 
-  const seeAllHref = filters.city ? `/properties?city=${encodeURIComponent(filters.city)}` : '/properties'
+  const copy = modeCopy(filters.pricingModel)
+
+  // "See all" and the nearby chips have to carry the mode across, or a buyer
+  // browsing sales lands on a page of rentals — the filter is in the URL on
+  // /properties, so dropping it here silently changes what they asked for.
+  const modeParam = filters.pricingModel && filters.pricingModel !== 'RENT'
+    ? `pricingModel=${filters.pricingModel}`
+    : ''
+  const hrefWith = (extra) => {
+    const qs = [extra, modeParam].filter(Boolean).join('&')
+    return qs ? `/properties?${qs}` : '/properties'
+  }
+  const seeAllHref = hrefWith(filters.city ? `city=${encodeURIComponent(filters.city)}` : '')
+  const nearbyHref = (city) => hrefWith(`city=${encodeURIComponent(city)}`)
 
   if (isLoading) {
     return (
@@ -288,11 +329,11 @@ function RentingHere() {
   if (isError) {
     return (
       <section className="w-full border-t border-slate-200 bg-white px-4 py-14 md:px-6 md:py-16">
-        <h2 className="font-display text-2xl font-bold text-slate-900">Renting right now</h2>
+        <h2 className="font-display text-2xl font-bold text-slate-900">{copy.heading}</h2>
         <p className="mt-2 text-sm text-slate-500">
           We couldn&apos;t load listings just now.{' '}
-          <Link to="/properties" className="font-semibold text-brand-700 underline-offset-4 hover:underline">
-            Browse all rentals
+          <Link to={seeAllHref} className="font-semibold text-brand-700 underline-offset-4 hover:underline">
+            Browse all listings
           </Link>{' '}
           instead.
         </p>
@@ -304,11 +345,11 @@ function RentingHere() {
     return (
       <section className="w-full border-t border-slate-200 bg-white px-4 py-14 md:px-6 md:py-16">
         <h2 className="font-display text-2xl font-bold text-slate-900">
-          {placeName ? `Nothing listed in ${placeName} yet` : 'No listings match those filters yet'}
+          {placeName ? copy.emptyPlace(placeName) : 'No listings match those filters yet'}
         </h2>
         <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-500">
           {placeName
-            ? 'Try widening the map, or be the first to list a home here.'
+            ? 'Try widening the map, or be the first to list a place here.'
             : 'Try clearing a filter or two — the map above updates as you go.'}
         </p>
       </section>
@@ -320,19 +361,19 @@ function RentingHere() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="font-display text-2xl font-bold leading-tight text-slate-900 md:text-3xl">
-            {placeName ? `Renting in ${placeName}` : 'Renting right now'}
+            {placeName ? copy.headingIn(placeName) : copy.heading}
           </h2>
           <p className="mt-2 text-sm text-slate-500">
             {medianRent && (
               <>
-                Median rent is{' '}
+                {copy.median}{' '}
                 <span className="font-mono font-semibold text-slate-700">{formatCurrency(medianRent)}</span>
                 {' '}across{' '}
               </>
             )}
             {!medianRent && 'Showing '}
             <span className="font-semibold text-slate-700">{total}</span>{' '}
-            {total === 1 ? 'home live now' : 'homes live now'}
+            {copy.unit(total)}
           </p>
         </div>
         <Link
@@ -350,7 +391,7 @@ function RentingHere() {
         {rows.slice(0, 3).map((property) => (
           <PropertyCard key={property.id} property={property} />
         ))}
-        <NearbyCard groups={nearby} complete={complete} />
+        <NearbyCard groups={nearby} complete={complete} copy={copy} hrefFor={nearbyHref} />
       </div>
     </section>
   )

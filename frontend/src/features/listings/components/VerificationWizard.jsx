@@ -61,7 +61,7 @@ function AddressMatchNote({ match }) {
     return <p className="text-xs text-slate-500">{match.notes[0]}</p>
   }
   if (match.verdict === 'match') {
-    return <p className="text-xs text-slate-400">Document address matches the listing{match.pincode.match ? ' (pincode confirmed)' : ''}.</p>
+    return <p className="text-xs text-slate-500">Document address matches the listing{match.pincode.match ? ' (pincode confirmed)' : ''}.</p>
   }
   return null
 }
@@ -125,7 +125,7 @@ export default function VerificationWizard({ propertyId, propertyTitle }) {
     <div className="space-y-6">
       {/* Property title */}
       <div className="bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
-        <p className="text-xs text-slate-400 mb-0.5">Verifying ownership for</p>
+        <p className="text-xs text-slate-500 mb-0.5">Verifying ownership for</p>
         <p className="text-sm font-semibold text-slate-800">{propertyTitle}</p>
       </div>
 
@@ -161,7 +161,7 @@ export default function VerificationWizard({ propertyId, propertyTitle }) {
               <div className="space-y-2">
                 {verification.documents.map(doc => (
                   <div key={doc.id} className="flex items-center gap-3 px-3.5 py-2.5 bg-white border border-slate-100 rounded-lg">
-                    <FileText className="w-4 h-4 text-slate-400 shrink-0" strokeWidth={1.8} />
+                    <FileText className="w-4 h-4 text-slate-500 shrink-0" strokeWidth={1.8} />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-slate-700">{DOC_TYPES.find(d => d.value === doc.type)?.label ?? doc.type}</p>
                       <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-brand-600 hover:underline truncate block max-w-xs">
@@ -191,16 +191,16 @@ export default function VerificationWizard({ propertyId, propertyTitle }) {
               onChange={(e) => setDocAddress(e.target.value)}
               placeholder="Exactly as it appears on the tax bill / deed"
               maxLength={300}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
             />
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               The reviewer compares this against your listing address — a match speeds verification up.
             </p>
           </div>
           <button
             onClick={() => submitMutation.mutate()}
             disabled={submitMutation.isPending}
-            className="w-full py-2.5 bg-[#111111] text-white text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className="min-h-[44px] w-full py-3 bg-[#111111] text-white text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             {submitMutation.isPending ? 'Starting…' : 'Start verification'}
           </button>
@@ -215,7 +215,7 @@ export default function VerificationWizard({ propertyId, propertyTitle }) {
       {canAddDocs && (
         <form onSubmit={handleAddDoc} className="space-y-3 border-t border-slate-100 pt-4">
           <p className="text-sm font-semibold text-slate-700">Add a document</p>
-          <p className="text-xs text-slate-400">Upload your document to Google Drive / Dropbox and paste the public link here.</p>
+          <p className="text-xs text-slate-500">Upload your document to Google Drive / Dropbox and paste the public link here.</p>
 
           <div className="space-y-2">
             <Select value={docType} onChange={setDocType} options={DOC_TYPES} />
@@ -225,7 +225,7 @@ export default function VerificationWizard({ propertyId, propertyTitle }) {
               placeholder="https://drive.google.com/..."
               value={docUrl}
               onChange={e => { setDocUrl(e.target.value); setUrlError('') }}
-              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 ${urlError ? 'border-red-300 focus:ring-red-300/30' : 'border-slate-200'}`}
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 ${urlError ? 'border-red-300 focus:ring-red-300/30' : 'border-slate-200'}`}
             />
             {urlError && <p className="text-xs text-red-500">{urlError}</p>}
           </div>
@@ -233,7 +233,7 @@ export default function VerificationWizard({ propertyId, propertyTitle }) {
           <button
             type="submit"
             disabled={!docUrl || docMutation.isPending}
-            className="w-full py-2 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 disabled:opacity-50 transition-colors"
+            className="min-h-[44px] w-full py-3 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 disabled:opacity-50 transition-colors"
           >
             {docMutation.isPending ? 'Adding…' : 'Add document'}
           </button>
@@ -245,7 +245,7 @@ export default function VerificationWizard({ propertyId, propertyTitle }) {
         <button
           onClick={() => submitMutation.mutate()}
           disabled={submitMutation.isPending}
-          className="w-full py-2.5 bg-[#111111] text-white text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity"
+          className="min-h-[44px] w-full py-3 bg-[#111111] text-white text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity"
         >
           {submitMutation.isPending ? 'Resubmitting…' : 'Resubmit for review'}
         </button>

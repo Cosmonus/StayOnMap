@@ -24,23 +24,21 @@ function CardSkeleton() {
   )
 }
 
-function EmptySlotCard({ cta = false }) {
-  if (cta) {
-    return (
-      <Link
-        to="/list"
-        className="aspect-[4/3] rounded-2xl border border-dashed border-brand-300 bg-brand-50/40 flex flex-col items-center justify-center gap-2 text-center px-3 no-underline hover:border-brand-500 transition-colors"
-      >
-        <Home size={24} className="text-brand-600" strokeWidth={1.8} />
-        <p className="text-xs font-semibold text-brand-700 leading-snug">Own a place here?<br />List it free</p>
-      </Link>
-    )
-  }
+// One pad tile, and it's a real link. The grid used to pad a sparse result out
+// to two full rows with "More rentals coming soon" placeholders — so a search
+// returning two listings showed two listings and SEVEN dashed boxes, which
+// reads as an empty shop rather than a tidy grid. A row-completing tile that
+// invites the reader to list is the one filler that isn't a claim about
+// inventory we don't have.
+function ListYourPlaceCard() {
   return (
-    <div className="aspect-[4/3] rounded-2xl border border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-center px-3">
-      <Home size={24} stroke="#cbd5e1" strokeWidth={1.8} />
-      <p className="text-xs text-slate-400 leading-snug">More rentals<br />coming soon</p>
-    </div>
+    <Link
+      to="/list"
+      className="aspect-[4/3] rounded-2xl border border-dashed border-brand-300 bg-brand-50/40 flex flex-col items-center justify-center gap-2 text-center px-3 no-underline hover:border-brand-500 transition-colors"
+    >
+      <Home size={24} className="text-brand-600" strokeWidth={1.8} />
+      <p className="text-xs font-semibold text-brand-700 leading-snug">Own a place here?<br />List it free</p>
+    </Link>
   )
 }
 
@@ -130,22 +128,24 @@ export default function PropertiesPage() {
   const proximityLabel = data?.meta?.proximity?.label
   const locationLabel = (area && (place?.name ?? area)) || filters.city || null
 
-  // Pad the grid so the last row is never left lopsided — targets the widest
-  // breakpoint's column count (5, must match 2xl:grid-cols-5 below); narrower
-  // breakpoints may not land on a perfectly complete row, same tradeoff as
-  // the homepage's featured strip. A sparse result pads to at least TWO full
-  // rows so the page reads as a place with room to grow, not an empty hall.
+  // One tile, only when the last row has a gap to fill (5 = 2xl:grid-cols-5
+  // below). Never invents a second row.
   const COLS = 5
-  const emptySlotCount = properties.length < COLS * 2
-    ? COLS * 2 - properties.length
-    : (COLS - (properties.length % COLS)) % COLS
+  const showListYourPlace = properties.length > 0 && properties.length % COLS !== 0
 
-  const pageTitle = locationLabel
-    ? `Rental Properties in ${locationLabel}`
-    : 'Browse Rental Properties'
+  // Buy mode reaches this page through the pricingModel filter, so the title,
+  // the description and the result count all have to stop saying "rental".
+  const forSale = filters.pricingModel === 'SALE'
+  const onLease = filters.pricingModel === 'LEASE'
+  const noun = forSale
+    ? (n) => `${n} place${n !== 1 ? 's' : ''} for sale`
+    : (n) => `${n} home${n !== 1 ? 's' : ''} available`
+
+  const kind = forSale ? 'Properties for Sale' : onLease ? 'Properties on Lease' : 'Rental Properties'
+  const pageTitle = locationLabel ? `${kind} in ${locationLabel}` : `Browse ${kind}`
   const pageDesc = locationLabel
-    ? `Browse broker-free rental properties in ${locationLabel} — no broker fees.`
-    : 'Browse broker-free rental properties across India — no broker fees.'
+    ? `Browse broker-free ${kind.toLowerCase()} in ${locationLabel} — no broker fees.`
+    : `Browse broker-free ${kind.toLowerCase()} across India — no broker fees.`
 
   return (
     <>
@@ -164,7 +164,7 @@ export default function PropertiesPage() {
                 ? 'Loading listings…'
                 : properties.length === 0
                 ? 'No properties match your filters — try clearing the city or furnishing filter.'
-                : `${properties.length} home${properties.length !== 1 ? 's' : ''} available`}
+                : noun(properties.length)}
             </p>
 
             {/*
@@ -205,7 +205,7 @@ export default function PropertiesPage() {
           </div>
 
           {isError ? (
-            <div className="py-24 text-center text-slate-400">
+            <div className="py-24 text-center text-slate-500">
               Couldn&apos;t load properties. Please try again.
             </div>
           ) : isLoading ? (
@@ -217,9 +217,7 @@ export default function PropertiesPage() {
               {properties.map((property) => (
                 <PropertyCard key={property.id} property={property} isSaved={property.isSaved} />
               ))}
-              {Array.from({ length: emptySlotCount }).map((_, i) => (
-                <EmptySlotCard key={`empty-${i}`} cta={i === 0} />
-              ))}
+              {showListYourPlace && <ListYourPlaceCard />}
             </div>
           )}
         </div>

@@ -36,6 +36,7 @@ enum PropertyType {
 enum PricingModel {
   RENT
   LEASE
+  SALE
 }
 
 enum FurnishedType {
@@ -299,6 +300,10 @@ model User {
   authSessions        AuthSession[]
 
   lastLoginAt DateTime?
+  // When they last opened their saved list. Powers "since you last looked" —
+  // which has to mean something, so it is measured rather than approximated with
+  // "in the last week".
+  savedSeenAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -585,7 +590,35 @@ model Property {
   dimensions     String? // free text, e.g. "40 x 60 ft"
   roadWidth      Decimal? @db.Decimal(10, 2) // ft
   approvalStatus String? // DTCP | RERA | Panchayat | Unapproved
+  // Superseded by pricingModel SALE/LEASE (2026-07-26) and backfilled from it.
+  // Kept because it is a live public filter and released mobile builds send it.
   saleOrLease    String? // SALE | LEASE — land can be either
+
+  // LAND RECORDS — how the STATE identifies this piece of land. Added
+  // 2026-07-26; before this a plot listing carried no identifier that could be
+  // checked against any government record, which is the first thing a buyer's
+  // lawyer asks for.
+  //
+  // ⚠ surveyNumber / subdivisionNumber / landRecordNumber are NEVER returned on
+  // a public property response (properties.service.js strips them for anyone
+  // but the owner and admin). They are semi-public records, but a survey number
+  // next to an owner's name on an open listing page is a land-fraud kit, and no
+  // Indian portal publishes them. They exist for verification, not for display.
+  //
+  // `landRecordType` is state-specific because the record genuinely is: patta/
+  // chitta in Tamil Nadu, A-khata/B-khata in Karnataka (where B-khata means no
+  // bank loan — a buyer warning, not a formality), 7/12 extract in Maharashtra
+  // and Gujarat, pahani/ROR in Telangana, porcha in West Bengal, and
+  // freehold/leasehold/GPA in Delhi. One field labelled "Patta number" would be
+  // wrong in five of the six states we operate in.
+  surveyNumber       String?
+  subdivisionNumber  String?
+  landRecordType     String? // the state's record kind, see config/landRecords.js
+  landRecordNumber   String?
+  conversionStatus   String? // Converted | Not converted | Not applicable
+  ecAvailable        Boolean? // encumbrance certificate on hand
+  ecYears            Int? // how many years it covers (13 and 30 are the norms)
+  guidelineValue     Decimal? @db.Decimal(12, 2) // government circle/guideline rate
 
   // COMMERCIAL (shop/office/showroom/warehouse)
   commercialType String? // Retail shop | Office | Showroom | Warehouse
@@ -610,17 +643,32 @@ model Property {
   instantBook Boolean?
 
   // Pricing
-  // pricingModel decides how `rent` reads: monthly rent (RENT) or the
-  // refundable lump sum (LEASE). LEASE is only valid for flats/houses/shops —
-  // enforced in properties.validation.js, not by the DB. On a LEASE listing
-  // `deposit` is 0: the lump sum IS the money at stake, there is no second one.
+  // pricingModel decides how `rent` reads — it is the primary price in all
+  // three modes and never means one thing by default:
+  //   RENT  monthly rent
+  //   LEASE the refundable lump sum (deposit is 0 — the sum IS the money at stake)
+  //   SALE  the asking price, with `deposit` holding the booking advance
+  // Which modes a type may use is enforced in properties.validation.js, not by
+  // the DB: LEASE and SALE are flats/houses/shops (+ land for SALE); a PG bed
+  // and a nightly stay can be neither leased nor sold.
   pricingModel       PricingModel @default(RENT)
-  rent               Decimal      @db.Decimal(10, 2)
-  deposit            Decimal      @db.Decimal(10, 2)
+  // Decimal(12,2) since 2026-07-26, not (10,2): a ₹10Cr asking price does not
+  // fit in eight digits, and a Mumbai flat reaching that is ordinary. Every
+  // money column an asking price can flow through was widened together.
+  rent               Decimal      @db.Decimal(12, 2)
+  deposit            Decimal      @db.Decimal(12, 2)
   maintenance        Decimal?     @db.Decimal(10, 2)
   brokerage          Decimal?     @db.Decimal(10, 2)
   electricityCharges Decimal?     @db.Decimal(10, 2)
   waterCharges       Decimal?     @db.Decimal(10, 2)
+
+  // SALE (pricingModel = SALE). The three questions a buyer asks that a rent
+  // listing has no equivalent for. `availableFrom` doubles as the possession
+  // date, which is why possessionStatus sits beside it: "1 March" means
+  // something completely different on a ready flat and an under-construction one.
+  possessionStatus String? // Ready to move | Under construction | New launch
+  priceNegotiable  Boolean?
+  loanEligible     Boolean? // a bank will lend against it (B-khata land often not)
 
   // Availability
   availableFrom  DateTime?
@@ -658,6 +706,8 @@ model Property {
   leases             Lease[]
   availabilityBlocks AvailabilityBlock[]
   priceHistory       PropertyPriceHistory[]
+  dailyViews         PropertyDailyView[]
+  viewers            PropertyViewer[]
 
   // The geohash-7 cell this listing sits in (~153m), derived from lat/lng.
   // Denormalised on purpose: it is the join key between a property and the
@@ -666,6 +716,17 @@ model Property {
   // coordinates predate this column, or whose write path missed it, must read
   // as "unknown cell" rather than silently matching the wrong one.
   geohash String?
+
+  // What the owner's listing page needs to say something true about reach.
+  // Counts a detail-page view by anyone who is NOT the owner — an owner
+  // refreshing their own listing is not interest, and a number that inflates
+  // when you look at it is worse than no number.
+  viewCount Int @default(0)
+
+  // When the owner sent it for review (DRAFT → PENDING). Distinct from
+  // updatedAt, which any later edit moves: "Submitted 4 hours ago" has to mean
+  // submitted, not touched.
+  submittedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -677,6 +738,45 @@ model Property {
   @@index([type])
   @@index([pricingModel])
   @@index([geohash])
+}
+
+// Views per day, per listing. Property.viewCount is a lifetime total and so
+// cannot answer a windowed question — "412 views in the last 30 days" needs
+// history, and this is the cheapest shape that has it: one row per listing per
+// day, upserted on each counted view.
+//
+// Not one row per view event: a listing with real traffic would generate
+// millions of rows to answer a question that only ever needs daily totals.
+model PropertyDailyView {
+  id         String   @id @default(cuid())
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  day        DateTime @db.Date
+  count      Int      @default(0)
+
+  @@unique([propertyId, day])
+  @@index([day])
+}
+
+// How many times one identified person has viewed one listing.
+//
+// Shown to the owner in exactly ONE place: beside a visit request from that
+// same person ("she has viewed it 4 times"), where they have already
+// identified themselves to the owner by asking to come round. It is never
+// exposed as a general "who looked at my listing" feed — that would be
+// surveillance of people who only browsed, and there is no endpoint for it.
+//
+// Anonymous views are not attributable and are counted only in the totals above.
+model PropertyViewer {
+  id           String   @id @default(cuid())
+  property     Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId   String
+  userId       String
+  count        Int      @default(1)
+  lastViewedAt DateTime @default(now())
+
+  @@unique([propertyId, userId])
+  @@index([userId])
 }
 
 model PropertyImage {
@@ -726,6 +826,15 @@ model SavedListing {
   userId     String
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   propertyId String
+  // The asking price the moment they saved it, so the saved list can say
+  // "₹2,000 cheaper than when you saved" — the one thing that makes a saved
+  // list worth returning to rather than a folder of links.
+  //
+  // Stored here rather than derived from PropertyPriceHistory: nothing writes to
+  // that table yet, and even once something does it could not answer this for
+  // saves made before it started. Null on rows saved before 2026-07-26, which
+  // renders as no claim at all.
+  rentAtSave Decimal? @db.Decimal(12, 2)
   createdAt  DateTime @default(now())
 
   @@unique([userId, propertyId])
@@ -1023,7 +1132,12 @@ model Message {
   sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
   body           String
   isRead         Boolean      @default(false)
+  // Attachments were image-only until 2026-07-26. A PDF needs two more facts to
+  // be usable: what to CALL it and what it IS. The storage path stays a UUID
+  // (uploads.service.js) — this is the display name, sanitised, not the path.
   attachmentUrl  String?
+  attachmentName String?
+  attachmentMime String?
   editedAt       DateTime?
   deletedAt      DateTime?
   createdAt      DateTime     @default(now())

@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Heart, Home, MapPin } from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
 import { savedService } from '@services/saved.service'
-import { imgUrl, formatCompact, formatAge, isAvailableToday } from '@utils/format'
+import { imgUrl, formatCompact, priceUnit, formatAge, isAvailableToday } from '@utils/format'
 import TrustBadge from '@components/common/TrustBadge'
 
 // Plain text, no emoji/color — Airbnb's restraint: one muted line under the
@@ -26,7 +26,6 @@ function HeartIcon({ filled }) {
 }
 
 export default function PropertyCard({ property, isSaved: initialSaved = false }) {
-  const navigate = useNavigate()
   const { user } = useAuth()
   const openLoginModal = useUiStore((s) => s.openLoginModal)
   const qc = useQueryClient()
@@ -65,10 +64,22 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
   ].filter(Boolean).join(' · ')
 
   return (
-    <div
-      onClick={() => navigate(`/property/${property.id}`)}
-      className="group cursor-pointer h-full flex flex-col"
-    >
+    <div className="group relative h-full flex flex-col">
+      {/* A REAL link, stretched over the whole card. This card was a
+          `<div onClick={navigate}>`, which cost three things that matter for a
+          marketplace: no cmd/middle-click to open several listings side by side
+          (how people actually compare homes), nothing for a keyboard or screen
+          reader to reach, and nothing for a crawler to follow — the browse grid
+          is the only route to a listing page, so every listing was orphaned.
+          The overlay is used instead of wrapping the card because the card
+          contains buttons (save, photo dots) and an <a> may not contain those;
+          those controls sit above it on z-20. */}
+      <Link
+        to={`/property/${property.id}`}
+        aria-label={property.title}
+        className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+      />
+
       {/* Image — borderless, photo-forward; the only feedback is a soft lift on hover */}
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-100 shadow-sm group-hover:shadow-lg transition-shadow duration-200">
         {images[imgIdx] ? (
@@ -89,12 +100,12 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
         {availableNow && (
           <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500 shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-            <span className="text-[10px] font-bold text-white leading-none">Available Now</span>
+            <span className="text-[11px] font-bold text-white leading-none">Available Now</span>
           </div>
         )}
 
-        {/* Top right: trust badge + heart */}
-        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+        {/* Top right: trust badge + heart — above the stretched link */}
+        <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5">
           {property.trustScore?.badge && property.trustScore.badge !== 'UNRATED' && (
             <TrustBadge badge={property.trustScore.badge} size="sm" />
           )}
@@ -110,13 +121,13 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
         {/* Image counter pill — bottom right */}
         {totalImages > 1 && (
           <div className="absolute bottom-3 right-3 px-2 py-1 rounded-full bg-black/40 backdrop-blur-sm">
-            <span className="text-[10px] font-semibold text-white leading-none">{imgIdx + 1}/{totalImages}</span>
+            <span className="text-[11px] font-semibold text-white leading-none">{imgIdx + 1}/{totalImages}</span>
           </div>
         )}
 
         {/* Dot nav */}
         {totalImages > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
+          <div className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 flex gap-1">
             {images.map((_img, i) => (
               <button
                 key={i}
@@ -134,11 +145,13 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
         <div className="flex items-baseline justify-between gap-2 mb-1">
           <p className="text-xl font-bold text-slate-900 font-mono leading-none">
             {formatCompact(Number(property.rent))}
-            <span className="text-xs font-normal text-slate-400 ml-1">/mo</span>
+            {priceUnit(property) && (
+              <span className="text-xs font-normal text-slate-500 ml-1">{priceUnit(property)}</span>
+            )}
           </p>
           {property.deposit > 0 && (
-            <p className="text-xs text-slate-400 shrink-0">
-              {formatCompact(Number(property.deposit))} dep.
+            <p className="text-xs text-slate-500 shrink-0">
+              {formatCompact(Number(property.deposit))} {property.pricingModel === 'SALE' ? 'advance' : 'dep.'}
             </p>
           )}
         </div>
@@ -155,12 +168,12 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
 
         {/* Location + posted age — pinned to bottom */}
         <div className="flex items-center justify-between gap-2 mt-auto pt-1">
-          <p className="text-xs text-slate-400 flex items-center gap-1 min-w-0">
+          <p className="text-xs text-slate-500 flex items-center gap-1 min-w-0">
             <MapPin size={9} fill="currentColor" stroke="none" className="shrink-0" />
             <span className="truncate">{property.city}</span>
           </p>
           {postedAge && (
-            <span className="text-[10px] text-slate-300 shrink-0">{postedAge}</span>
+            <span className="text-[11px] text-slate-500 shrink-0">{postedAge}</span>
           )}
         </div>
       </div>

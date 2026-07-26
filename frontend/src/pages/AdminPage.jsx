@@ -13,7 +13,7 @@ import {
   Star, Building2, Eye, EyeOff,
 } from 'lucide-react'
 import { adminService } from '@services/admin.service'
-import { formatPrice, formatCurrency, formatCompact } from '@utils/format'
+import { formatPrice, formatCurrency, formatCompact, formatCompactPrice } from '@utils/format'
 import SEOMeta from '@components/common/SEOMeta'
 import { AmenityIcon } from '@components/common/AmenityIcon'
 import { googleMapsReady, createHtmlMarker } from '@lib/googleMaps'
@@ -35,8 +35,11 @@ import RiskAlert        from '@components/common/RiskAlert'
 import PropertyStatusPill from '@components/common/PropertyStatusPill'
 import PropertyDetailBody from '@features/properties/components/detail/PropertyDetailBody'
 import UnifiedSidebar from '@components/layout/UnifiedSidebar'
+import { toast } from '@components/common/Toaster'
+import { confirm } from '@components/common/ConfirmDialog'
 import AdminMonitorSection from '@features/admin/components/AdminMonitorSection'
 import VerificationsSection from '@features/admin/components/VerificationsSection'
+import { formatTime } from '@utils/time'
 
 // ── Shared chart card shell ────────────────────────────────────────────────
 function ChartCard({ title, value, footer, children }) {
@@ -51,7 +54,7 @@ function ChartCard({ title, value, footer, children }) {
       <div className="flex-1 px-4 py-3">{children}</div>
       {footer && (
         <div className="px-5 py-3 border-t border-slate-100 shrink-0">
-          <p className="text-xs text-slate-400">{footer}</p>
+          <p className="text-xs text-slate-500">{footer}</p>
         </div>
       )}
     </div>
@@ -78,7 +81,7 @@ function PropertyDonut({ data }) {
   const other     = Math.max(0, total - active - pending - suspended)
 
   if (total === 0) {
-    return <div className="flex items-center justify-center h-48 text-sm text-slate-300">No properties yet</div>
+    return <div className="flex items-center justify-center h-48 text-sm text-slate-500">No properties yet</div>
   }
 
   const chartData = {
@@ -113,7 +116,7 @@ function PropertyDonut({ data }) {
         <Doughnut data={chartData} options={options} />
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <span className="text-3xl font-bold text-slate-900">{total}</span>
-          <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">Total</span>
+          <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-widest">Total</span>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-2">
@@ -238,7 +241,7 @@ function OverviewSection() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Overview</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Platform health at a glance.</p>
+        <p className="text-sm text-slate-500 mt-0.5">Platform health at a glance.</p>
       </div>
 
       {/* Row 1: Total Users full width */}
@@ -335,12 +338,12 @@ function AdminPasswordField({ label, value, onChange, autoComplete }) {
           value={value}
           onChange={onChange}
           autoComplete={autoComplete}
-          className="w-full px-3 py-2 pr-10 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full px-3 py-2 pr-10 rounded-xl border border-slate-200 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         />
         <button
           type="button"
           onClick={() => setShow((v) => !v)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 rounded"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
           tabIndex={-1}
           aria-label={show ? 'Hide password' : 'Show password'}
         >
@@ -402,7 +405,7 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
         </div>
         <button
           onClick={onClose}
-          className="shrink-0 p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          className="shrink-0 p-1 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
         >
           <X size={16} />
         </button>
@@ -458,7 +461,7 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
                   {priceLabel(property)}
                 </p>
                 {property?.deposit > 0 && (
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-slate-500 mt-1">
                     {property?.type === 'LAND' ? 'Advance' : 'Deposit'}: ₹{Number(property.deposit).toLocaleString('en-IN')}
                   </p>
                 )}
@@ -466,7 +469,7 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
               {property?.maintenance > 0 && (
                 <p className="text-xs text-slate-500 text-right">
                   +₹{Number(property.maintenance).toLocaleString('en-IN')}<br />
-                  <span className="text-slate-400">maintenance</span>
+                  <span className="text-slate-500">maintenance</span>
                 </p>
               )}
             </div>
@@ -497,7 +500,7 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
 
           {!isLoading && property?.address && (
             <div className="flex items-start gap-1.5">
-              <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" strokeWidth={1.8} />
+              <MapPin className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" strokeWidth={1.8} />
               <p className="text-xs text-slate-500 leading-snug">
                 {property.address}{property.city ? `, ${property.city}` : ''}{property.state ? `, ${property.state}` : ''}
               </p>
@@ -509,19 +512,19 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
               <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
                 {property.owner.avatarUrl
                   ? <img src={property.owner.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
-                  : <span className="text-[10px] font-bold text-slate-500">{(property.owner.name || property.owner.email || '?')[0].toUpperCase()}</span>
+                  : <span className="text-[11px] font-bold text-slate-500">{(property.owner.name || property.owner.email || '?')[0].toUpperCase()}</span>
                 }
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-slate-700 truncate">{property.owner.name || property.owner.email?.split('@')[0]}</p>
-                <p className="text-[10px] text-slate-400">Owner</p>
+                <p className="text-[11px] text-slate-500">Owner</p>
               </div>
             </div>
           )}
 
           {amenities.length > 0 && !isLoading && (
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Amenities</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Amenities</p>
               <div className="flex flex-wrap gap-1.5">
                 {amenities.slice(0, 8).map(a => (
                   <span key={a.amenity?.name} className="px-2 py-1 bg-slate-50 border border-slate-100 rounded-lg text-xs text-slate-600 whitespace-nowrap">
@@ -529,7 +532,7 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
                   </span>
                 ))}
                 {amenities.length > 8 && (
-                  <span className="px-2 py-1 text-xs text-slate-400 bg-slate-50 border border-slate-100 rounded-lg">+{amenities.length - 8} more</span>
+                  <span className="px-2 py-1 text-xs text-slate-500 bg-slate-50 border border-slate-100 rounded-lg">+{amenities.length - 8} more</span>
                 )}
               </div>
             </div>
@@ -541,23 +544,28 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
           <div className="px-4 pb-4 space-y-2">
             <button
               onClick={onViewFull}
-              className="w-full py-2.5 text-center text-sm font-semibold text-white bg-[#111111] hover:bg-[#2a2a2a] rounded-xl transition-colors"
+              className="min-h-[44px] w-full py-3 text-center text-sm font-semibold text-white bg-[#111111] hover:bg-[#2a2a2a] rounded-xl transition-colors"
             >
               View Full Details
             </button>
+            {/* Only what this status can actually become. "Approve" used to show
+                on a DRAFT too, which would have published an owner's unfinished
+                listing — the server refuses that now, so offering it was only
+                ever a route to an error. DRAFT / INACTIVE / OCCUPIED are the
+                owner's own states and an admin has no business writing them. */}
             <div className="flex gap-2">
-              {property.status !== 'ACTIVE' && (
-                <button onClick={onApprove} className="flex-1 py-2 text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 rounded-xl border border-green-200 transition-colors">
-                  ✓ Approve
+              {['PENDING', 'SUSPENDED', 'REJECTED'].includes(property.status) && (
+                <button onClick={onApprove} className="min-h-[44px] flex-1 py-3 text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 rounded-xl border border-green-200 transition-colors">
+                  {property.status === 'SUSPENDED' ? '▶ Reinstate' : '✓ Approve'}
                 </button>
               )}
-              {property.status !== 'SUSPENDED' && (
-                <button onClick={onSuspend} className="flex-1 py-2 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-xl border border-orange-200 transition-colors">
-                  ⏸ Suspend
+              {['ACTIVE', 'PENDING', 'OCCUPIED'].includes(property.status) && (
+                <button onClick={onSuspend} className="min-h-[44px] flex-1 py-3 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-xl border border-orange-200 transition-colors">
+                  ⏸ Pause
                 </button>
               )}
-              {property.status !== 'REJECTED' && (
-                <button onClick={onReject} className="flex-1 py-2 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl border border-red-200 transition-colors">
+              {property.status !== 'REJECTED' && property.status !== 'DRAFT' && (
+                <button onClick={onReject} className="min-h-[44px] flex-1 py-3 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl border border-red-200 transition-colors">
                   ✕ Reject
                 </button>
               )}
@@ -567,6 +575,45 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
       </div>
     </div>
   )
+}
+
+// An admin's power over a listing is to pause it, approve it, or reject it —
+// never to create or delete one (that is the owner's, see
+// properties.service.js). Pausing and rejecting take somebody's listing off
+// the map, so both ask for a reason here: the server requires it, the owner is
+// sent it verbatim, and the activity log keeps it.
+//
+// Returns false when dismissed, '' when no reason is needed, else the text.
+const MODERATION_PROMPT = {
+  SUSPENDED: {
+    title: 'Pause this listing?',
+    message: 'It comes off the map immediately and stops receiving visit requests. The owner is told, with your reason.',
+    confirmLabel: 'Pause listing',
+    variant: 'warning',
+    label: 'Why are you pausing it?',
+    placeholder: 'e.g. Photos appear reused from another listing',
+  },
+  REJECTED: {
+    title: 'Reject this listing?',
+    message: 'It won’t go on the map. The owner can edit it and submit again.',
+    confirmLabel: 'Reject listing',
+    variant: 'danger',
+    label: 'Why is it being rejected?',
+    placeholder: 'e.g. Address doesn’t match the ownership document',
+  },
+}
+
+async function askModerationReason(status, title) {
+  const cfg = MODERATION_PROMPT[status]
+  if (!cfg) return ''   // ACTIVE — approving or reinstating needs no justification
+  const reason = await confirm({
+    title: cfg.title,
+    message: title ? `“${title}” — ${cfg.message}` : cfg.message,
+    confirmLabel: cfg.confirmLabel,
+    variant: cfg.variant,
+    reason: { label: cfg.label, placeholder: cfg.placeholder, minLength: 5 },
+  })
+  return reason || false
 }
 
 // ── Section: All Properties — full-screen map ──────────────────────────────
@@ -617,6 +664,7 @@ function AdminPropertiesMap() {
         streetViewControl: false,
         fullscreenControl: false,
         gestureHandling: 'greedy',
+        clickableIcons: false,   // Google's POI info windows fight our pins
         zoomControlOptions: { position: window.google.maps.ControlPosition.RIGHT_BOTTOM },
       })
       mapRef.current = map
@@ -738,13 +786,26 @@ function AdminPropertiesMap() {
       .catch(() => setLoadingPopup(false))
   }, [selectedId])
 
-  function handleStatusAction(status) {
+  async function handleStatusAction(status) {
     if (!popupProperty) return
-    adminService.setPropertyStatus(popupProperty.id, { status })
+    // Pausing and rejecting need a reason: the owner is sent this text and the
+    // activity log keeps it. Reinstating doesn't — nothing to justify.
+    const note = await askModerationReason(status, popupProperty.title)
+    if (note === false) return
+    adminService.setPropertyStatus(popupProperty.id, { status, note: note || undefined })
       .then(() => {
         qc.invalidateQueries({ queryKey: ['admin-analytics'] })
         setPopupProperty(prev => prev ? { ...prev, status } : null)
       })
+      .catch((err) => toast.error('Couldn’t update the listing', err.message ?? 'Please try again'))
+  }
+
+  async function moderateFullDetail(id, status) {
+    const note = await askModerationReason(status, fullDetail?.title)
+    if (note === false) return
+    adminService.setPropertyStatus(id, { status, note: note || undefined })
+      .then(() => { qc.invalidateQueries({ queryKey: ['admin-analytics'] }); setFullDetail(null) })
+      .catch((err) => toast.error('Couldn’t update the listing', err.message ?? 'Please try again'))
   }
 
   // Full detail view
@@ -753,10 +814,9 @@ function AdminPropertiesMap() {
       <PropertyDetailView
         property={fullDetail}
         onBack={() => setFullDetail(null)}
-        onApprove={(id) => adminService.setPropertyStatus(id, { status: 'ACTIVE' })
-          .then(() => { qc.invalidateQueries({ queryKey: ['admin-analytics'] }); setFullDetail(null) })}
-        onReject={(id) => adminService.setPropertyStatus(id, { status: 'REJECTED' })
-          .then(() => { qc.invalidateQueries({ queryKey: ['admin-analytics'] }); setFullDetail(null) })}
+        onApprove={(id) => moderateFullDetail(id, 'ACTIVE')}
+        onReject={(id) => moderateFullDetail(id, 'REJECTED')}
+        onSuspend={(id) => moderateFullDetail(id, 'SUSPENDED')}
       />
     )
   }
@@ -858,7 +918,7 @@ function Avatar({ name, email, avatarUrl, size = 6 }) {
   if (avatarUrl) return <img src={avatarUrl} alt="" className={`${cls} rounded-full object-cover shrink-0`} />
   return (
     <div className={`${cls} rounded-full bg-slate-200 flex items-center justify-center shrink-0`}>
-      <span className="text-[10px] font-bold text-slate-500">{display[0]?.toUpperCase()}</span>
+      <span className="text-[11px] font-bold text-slate-500">{display[0]?.toUpperCase()}</span>
     </div>
   )
 }
@@ -891,14 +951,11 @@ function aggregatePropertyUsers(property) {
 /* ── Simple card for the grid ── */
 function ReviewCard({ property, onSelect }) {
   const img = property.images?.[0]?.url
-  // Compact but pricingModel-aware — a LEASE lump sum must never read "/mo".
+  // Through the shared helper (utils/format.js): this ladder had already grown
+  // four cases by hand and SALE would have been a fifth place to get it wrong.
   const priceText = property.type === 'SHORT_STAY'
     ? `${formatCompact(Number(property.nightlyRate ?? property.rent))}/night`
-    : property.type === 'LAND'
-    ? formatCompact(Number(property.rent))
-    : property.pricingModel === 'LEASE'
-    ? `${formatCompact(Number(property.rent))} lease`
-    : `${formatCompact(Number(property.rent))}/mo`
+    : formatCompactPrice(property)
   const headline = typeHeadline(property)
   const ownerName = property.owner?.name || property.owner?.email?.split('@')[0] || '—'
 
@@ -931,7 +988,7 @@ function ReviewCard({ property, onSelect }) {
         <div>
           <p className="text-sm font-bold text-slate-800 truncate">{property.title}</p>
           {property.displayId && (
-            <p className="text-[10px] font-mono text-slate-400">{property.displayId}</p>
+            <p className="text-[11px] font-mono text-slate-500">{property.displayId}</p>
           )}
           <p className="text-xs text-slate-500 mt-0.5">
             {priceText}
@@ -970,7 +1027,7 @@ function ReviewCard({ property, onSelect }) {
         </div>
 
         {/* View More */}
-        <button className="w-full py-2 text-xs font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-xl transition-colors">
+        <button className="min-h-[44px] w-full py-3 text-xs font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-xl transition-colors">
           View details →
         </button>
       </div>
@@ -994,7 +1051,7 @@ function SectionLabel({ children }) {
 }
 
 /* ── Inline property detail view (3 columns: Property | Users | User Detail) ── */
-function PropertyDetailView({ property, onBack, onApprove, onReject }) {
+function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend }) {
   const [selectedUserId, setSelectedUserId] = useState(null)
 
   useEffect(() => { setSelectedUserId(null) }, [property?.id])
@@ -1047,13 +1104,29 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
             <p className="text-xs text-slate-500 mt-0.5">{property.address}, {property.city}</p>
           </div>
         </div>
+        {/* Actions follow the status. Approve/Reject only made sense on a
+            PENDING listing, which left the moderation surface literally called
+            "Review Listings" with NO way to pause a live one — the whole point
+            of an admin's power over a listing. Pausing is the response to a
+            problem found on something already on the map, which is exactly
+            what an admin is reading this page to decide. */}
         <div className="flex items-center gap-2 shrink-0">
           <PropertyStatusPill status={property.status} />
           {property.status === 'PENDING' && (
             <>
-              <button onClick={() => onApprove(property.id)} className="px-4 py-2 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-colors">Approve</button>
-              <button onClick={() => onReject(property.id)} className="px-4 py-2 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors">Reject</button>
+              <button onClick={() => onApprove(property.id)} className="min-h-[44px] px-4 py-3 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-colors">Approve</button>
+              <button onClick={() => onReject(property.id)} className="min-h-[44px] px-4 py-3 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors">Reject</button>
             </>
+          )}
+          {['ACTIVE', 'PENDING', 'OCCUPIED'].includes(property.status) && (
+            <button onClick={() => onSuspend?.(property.id)} className="min-h-[44px] px-4 py-3 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-xl transition-colors">
+              Pause
+            </button>
+          )}
+          {property.status === 'SUSPENDED' && (
+            <button onClick={() => onApprove(property.id)} className="min-h-[44px] px-4 py-3 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-colors">
+              Reinstate
+            </button>
           )}
         </div>
       </div>
@@ -1180,7 +1253,7 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
                           <span className={`ml-auto px-2 py-0.5 rounded-md text-[11px] font-semibold ${r.status === 'PENDING' ? 'bg-yellow-50 text-yellow-700' : r.status === 'RESOLVED' ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{r.status}</span>
                         </div>
                         <p className="text-sm text-slate-600 leading-relaxed">{r.description}</p>
-                        <p className="text-xs text-slate-400">{fmtDate(r.createdAt)}</p>
+                        <p className="text-xs text-slate-500">{fmtDate(r.createdAt)}</p>
                       </div>
                     ))}
                   </div>
@@ -1197,7 +1270,7 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
                     {userAppointments.map(a => (
                       <div key={a.id} className="p-3.5 rounded-xl border border-slate-100 space-y-2">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-medium text-slate-700">📅 {fmtDate(a.requestedDate)}{a.requestedTime ? ` at ${a.requestedTime}` : ''}</span>
+                          <span className="text-sm font-medium text-slate-700">📅 {fmtDate(a.requestedDate)}{a.requestedTime ? ` at ${formatTime(a.requestedTime)}` : ''}</span>
                           <span className={`shrink-0 px-2 py-0.5 rounded-md text-[11px] font-semibold ${APPT_BADGE[a.status] ?? 'bg-slate-100 text-slate-600'}`}>{a.status}</span>
                         </div>
                         {a.contactNumber && <p className="text-xs text-slate-500">📞 {a.contactNumber}</p>}
@@ -1236,12 +1309,12 @@ function PropertyDetailView({ property, onBack, onApprove, onReject }) {
                               <div className="flex items-center gap-2 mb-1">
                                 <span className={`text-xs font-semibold ${isOwner ? 'text-white/80' : 'text-slate-500'}`}>{senderLabel}</span>
                                 {m.editedAt && !m.deletedAt && (
-                                  <span className={`text-[10px] ${isOwner ? 'text-white/50' : 'text-slate-400'}`}>edited</span>
+                                  <span className={`text-[11px] ${isOwner ? 'text-white/50' : 'text-slate-500'}`}>edited</span>
                                 )}
-                                <span className={`text-[10px] ${isOwner ? 'text-white/50' : 'text-slate-400'}`}>{new Date(m.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                <span className={`text-[11px] ${isOwner ? 'text-white/50' : 'text-slate-500'}`}>{new Date(m.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
                               </div>
                               {m.deletedAt ? (
-                                <p className={`text-sm italic ${isOwner ? 'text-white/70' : 'text-slate-400'}`}>This message was deleted</p>
+                                <p className={`text-sm italic ${isOwner ? 'text-white/70' : 'text-slate-500'}`}>This message was deleted</p>
                               ) : (
                                 <>
                                   {m.attachmentUrl && (
@@ -1306,12 +1379,21 @@ function ReviewListingsSection() {
   }, [deepLinkId, setSearchParams])
 
   const mutation = useMutation({
-    mutationFn: ({ id, status }) => adminService.setPropertyStatus(id, { status }),
+    mutationFn: ({ id, status, note }) => adminService.setPropertyStatus(id, { status, note }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-review-listings'] })
       setSelectedId(null)
     },
+    onError: (err) => toast.error('Couldn’t update the listing', err.message ?? 'Please try again'),
   })
+
+  // Same rule as the map popup: a takedown states its reason, an approval
+  // doesn't need one.
+  async function moderate(id, status, title) {
+    const note = await askModerationReason(status, title)
+    if (note === false) return
+    mutation.mutate({ id, status, note: note || undefined })
+  }
 
   const properties = data?.properties ?? []
 
@@ -1324,8 +1406,9 @@ function ReviewListingsSection() {
       <PropertyDetailView
         property={selectedProperty}
         onBack={() => setSelectedId(null)}
-        onApprove={(id) => mutation.mutate({ id, status: 'ACTIVE' })}
-        onReject={(id) => mutation.mutate({ id, status: 'REJECTED' })}
+        onApprove={(id) => moderate(id, 'ACTIVE', selectedProperty.title)}
+        onReject={(id) => moderate(id, 'REJECTED', selectedProperty.title)}
+        onSuspend={(id) => moderate(id, 'SUSPENDED', selectedProperty.title)}
       />
     )
   }
@@ -1334,7 +1417,7 @@ function ReviewListingsSection() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Review Listings</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Review and approve submitted listings. Click any card for full details.</p>
+        <p className="text-sm text-slate-500 mt-0.5">Review and approve submitted listings. Click any card for full details.</p>
       </div>
 
       {/* Status list comes from the shared config — this used to be an inline
@@ -1390,14 +1473,14 @@ function UsersSection() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Users</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Search and manage platform users.</p>
+        <p className="text-sm text-slate-500 mt-0.5">Search and manage platform users.</p>
       </div>
 
       <input
         value={search}
         onChange={e => setSearch(e.target.value)}
         placeholder="Search by name or email..."
-        className="w-full max-w-sm border border-slate-200 rounded-xl px-4 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+        className="w-full max-w-sm border border-slate-200 rounded-xl px-4 py-2 text-sm bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
       />
 
       {isLoading ? (
@@ -1408,24 +1491,24 @@ function UsersSection() {
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
                 {['User ID', 'Name', 'Email', 'Role', 'City', 'Properties', 'Status', 'Action'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">{h}</th>
+                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {(data?.users ?? []).map(u => (
                 <tr key={u.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 text-[11px] font-mono text-slate-400">{u.displayId ?? '—'}</td>
+                  <td className="px-4 py-3 text-[11px] font-mono text-slate-500">{u.displayId ?? '—'}</td>
                   <td className="px-4 py-3 font-medium text-slate-800">{u.name ?? '—'}</td>
                   <td className="px-4 py-3 text-slate-500 max-w-48 truncate">{u.email}</td>
-                  <td className="px-4 py-3 text-slate-400">
+                  <td className="px-4 py-3 text-slate-500">
                     {u.role}
                     {u.isBusiness && (
-                      <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 uppercase">Biz</span>
+                      <span className="ml-1.5 px-1.5 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-600 uppercase">Biz</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-slate-400">{u.city ?? '—'}</td>
-                  <td className="px-4 py-3 text-slate-400">{u._count?.properties ?? 0}</td>
+                  <td className="px-4 py-3 text-slate-500">{u.city ?? '—'}</td>
+                  <td className="px-4 py-3 text-slate-500">{u._count?.properties ?? 0}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.isBlocked ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
                       {u.isBlocked ? 'Blocked' : 'Active'}
@@ -1442,7 +1525,7 @@ function UsersSection() {
                 </tr>
               ))}
               {(data?.users ?? []).length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-slate-400">No users found.</td></tr>
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-slate-500">No users found.</td></tr>
               )}
             </tbody>
           </table>
@@ -1463,7 +1546,7 @@ function WaitlistSection() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Waitlist</h1>
-        <p className="text-sm text-slate-400 mt-0.5">
+        <p className="text-sm text-slate-500 mt-0.5">
           Signups from cities we haven&apos;t launched in yet — {data?.total ?? 0} total.
         </p>
       </div>
@@ -1476,7 +1559,7 @@ function WaitlistSection() {
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
                 {['Name', 'Email', 'City', 'Signed up'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">{h}</th>
+                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1488,13 +1571,13 @@ function WaitlistSection() {
                   <td className="px-4 py-3">
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">{entry.city}</span>
                   </td>
-                  <td className="px-4 py-3 text-slate-400">
+                  <td className="px-4 py-3 text-slate-500">
                     {new Date(entry.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
                 </tr>
               ))}
               {(data?.entries ?? []).length === 0 && (
-                <tr><td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-400">No waitlist signups yet.</td></tr>
+                <tr><td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-500">No waitlist signups yet.</td></tr>
               )}
             </tbody>
           </table>
@@ -1531,7 +1614,7 @@ function ReportsSection() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Reports</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Moderate user-submitted reports.</p>
+        <p className="text-sm text-slate-500 mt-0.5">Moderate user-submitted reports.</p>
       </div>
 
       <div className="flex gap-2 flex-wrap">
@@ -1557,10 +1640,10 @@ function ReportsSection() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${SEV_COLOR[r.severity]}`}>{r.severity}</span>
                     <span className="text-xs text-slate-500">{r.category?.replace(/_/g, ' ')}</span>
-                    <span className="text-xs text-slate-400">{new Date(r.createdAt).toLocaleDateString('en-IN')}</span>
+                    <span className="text-xs text-slate-500">{new Date(r.createdAt).toLocaleDateString('en-IN')}</span>
                   </div>
                   <p className="text-sm text-slate-700 mt-2 line-clamp-2">{r.description}</p>
-                  {r.property && <p className="text-xs text-slate-400 mt-1">{r.property.title} · {r.property.city}</p>}
+                  {r.property && <p className="text-xs text-slate-500 mt-1">{r.property.title} · {r.property.city}</p>}
                 </div>
                 <div className="w-36 shrink-0">
                   <Select
@@ -1574,7 +1657,7 @@ function ReportsSection() {
             </div>
           ))}
           {(data?.reports ?? []).length === 0 && (
-            <div className="text-center py-12 bg-white border border-slate-100 rounded-2xl text-sm text-slate-400">No reports found.</div>
+            <div className="text-center py-12 bg-white border border-slate-100 rounded-2xl text-sm text-slate-500">No reports found.</div>
           )}
         </div>
       )}
@@ -1635,19 +1718,19 @@ function AdminReviewCard({ r, onAction, busy }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-semibold text-slate-800">{name}</span>
-              <span className="text-xs text-slate-400">{REVIEWER_TYPE_LABEL[r.reviewerType] ?? ''}</span>
+              <span className="text-xs text-slate-500">{REVIEWER_TYPE_LABEL[r.reviewerType] ?? ''}</span>
               {r.recommend != null && (
-                <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                   r.recommend ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
                 }`}>
                   {r.recommend ? '👍 Recommends' : '👎 Not recommended'}
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">{date}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{date}</p>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${REVIEW_STATUS_PILL[r.status] ?? 'bg-slate-100 text-slate-500'}`}>
+            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${REVIEW_STATUS_PILL[r.status] ?? 'bg-slate-100 text-slate-500'}`}>
               {r.status.charAt(0) + r.status.slice(1).toLowerCase()}
             </span>
             <div className="flex items-center gap-1">
@@ -1662,19 +1745,19 @@ function AdminReviewCard({ r, onAction, busy }) {
           <button
             type="button"
             onClick={() => setSearchParams({ tab: 'review-listings', propertyId: r.property.id })}
-            className="w-full flex items-center gap-2 bg-slate-50 hover:bg-brand-50 border border-slate-100 hover:border-brand-200 rounded-xl px-3 py-2 transition-colors group text-left"
+            className="min-h-[44px] w-full flex items-center gap-2 bg-slate-50 hover:bg-brand-50 border border-slate-100 hover:border-brand-200 rounded-xl px-3 py-3 transition-colors group text-left"
           >
-            <Building2 className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-500 shrink-0" strokeWidth={2} />
+            <Building2 className="w-3.5 h-3.5 text-slate-500 group-hover:text-brand-500 shrink-0" strokeWidth={2} />
             <span className="text-xs font-semibold text-slate-700 group-hover:text-brand-700 truncate flex-1">{r.property.title}</span>
-            <span className="text-xs text-slate-400 shrink-0">{r.property.city}</span>
-            <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-brand-400 shrink-0" strokeWidth={2} />
+            <span className="text-xs text-slate-500 shrink-0">{r.property.city}</span>
+            <ChevronRight className="w-3 h-3 text-slate-500 group-hover:text-brand-400 shrink-0" strokeWidth={2} />
           </button>
         )}
 
         {/* Review body */}
         <div>
           <p className={`text-sm text-slate-700 leading-relaxed ${expanded ? '' : 'line-clamp-3'}`}>
-            {r.content || <span className="text-slate-300 italic">No written comment</span>}
+            {r.content || <span className="text-slate-500 italic">No written comment</span>}
           </p>
           {r.content && r.content.length > 160 && (
             <button onClick={() => setExpanded(e => !e)} className="mt-1 text-xs text-brand-600 hover:underline font-medium">
@@ -1690,11 +1773,11 @@ function AdminReviewCard({ r, onAction, busy }) {
               const val = r[key] ?? 0
               return (
                 <div key={key} className="flex items-center gap-2">
-                  <span className="text-[10px] text-slate-400 w-20 shrink-0">{label}</span>
+                  <span className="text-[11px] text-slate-500 w-20 shrink-0">{label}</span>
                   <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                     <div className="h-full bg-amber-400 rounded-full" style={{ width: `${(val / 5) * 100}%` }} />
                   </div>
-                  <span className="text-[10px] font-semibold text-slate-600 w-4 text-right shrink-0">{val}</span>
+                  <span className="text-[11px] font-semibold text-slate-600 w-4 text-right shrink-0">{val}</span>
                 </div>
               )
             })}
@@ -1704,7 +1787,7 @@ function AdminReviewCard({ r, onAction, busy }) {
         {/* Owner response */}
         {r.ownerResponse && (
           <div className="ml-2 border-l-2 border-brand-200 pl-3">
-            <p className="text-[10px] font-bold text-brand-600 uppercase tracking-wide mb-1">Owner response</p>
+            <p className="text-[11px] font-bold text-brand-600 uppercase tracking-wide mb-1">Owner response</p>
             <p className="text-xs text-slate-600 leading-relaxed">{r.ownerResponse}</p>
           </div>
         )}
@@ -1716,21 +1799,21 @@ function AdminReviewCard({ r, onAction, busy }) {
               <button
                 onClick={() => onAction(r.id, 'APPROVED')}
                 disabled={busy}
-                className="flex-1 py-2 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 disabled:opacity-40 transition-colors"
+                className="min-h-[44px] flex-1 py-3 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 disabled:opacity-40 transition-colors"
               >
                 ✓ Approve
               </button>
               <button
                 onClick={() => onAction(r.id, 'FLAGGED')}
                 disabled={busy}
-                className="px-4 py-2 rounded-xl bg-orange-50 text-orange-600 text-sm font-semibold hover:bg-orange-100 disabled:opacity-40 transition-colors"
+                className="min-h-[44px] px-4 py-3 rounded-xl bg-orange-50 text-orange-600 text-sm font-semibold hover:bg-orange-100 disabled:opacity-40 transition-colors"
               >
                 Flag
               </button>
               <button
                 onClick={() => onAction(r.id, 'REJECTED')}
                 disabled={busy}
-                className="flex-1 py-2 rounded-xl bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 disabled:opacity-40 transition-colors"
+                className="min-h-[44px] flex-1 py-3 rounded-xl bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 disabled:opacity-40 transition-colors"
               >
                 ✕ Reject
               </button>
@@ -1739,7 +1822,7 @@ function AdminReviewCard({ r, onAction, busy }) {
             <button
               onClick={() => onAction(r.id, 'REJECTED')}
               disabled={busy}
-              className="flex-1 py-2 rounded-xl border border-slate-200 text-slate-500 text-sm font-medium hover:bg-red-50 hover:text-red-600 hover:border-red-200 disabled:opacity-40 transition-colors"
+              className="min-h-[44px] flex-1 py-3 rounded-xl border border-slate-200 text-slate-500 text-sm font-medium hover:bg-red-50 hover:text-red-600 hover:border-red-200 disabled:opacity-40 transition-colors"
             >
               Revoke approval
             </button>
@@ -1747,7 +1830,7 @@ function AdminReviewCard({ r, onAction, busy }) {
             <button
               onClick={() => onAction(r.id, 'APPROVED')}
               disabled={busy}
-              className="flex-1 py-2 rounded-xl border border-slate-200 text-slate-500 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 disabled:opacity-40 transition-colors"
+              className="min-h-[44px] flex-1 py-3 rounded-xl border border-slate-200 text-slate-500 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 disabled:opacity-40 transition-colors"
             >
               Approve
             </button>
@@ -1779,7 +1862,7 @@ function AdminReviewsSection() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Reviews</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Moderate community reviews before they go live.</p>
+        <p className="text-sm text-slate-500 mt-0.5">Moderate community reviews before they go live.</p>
       </div>
 
       {/* Status tabs */}
@@ -1802,7 +1885,7 @@ function AdminReviewsSection() {
         </div>
       ) : reviews.length === 0 ? (
         <div className="text-center py-20 bg-white border border-slate-100 rounded-2xl">
-          <p className="text-sm text-slate-400">No {status.toLowerCase()} reviews</p>
+          <p className="text-sm text-slate-500">No {status.toLowerCase()} reviews</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -1922,14 +2005,14 @@ function AdminSettingsSection() {
     qc.invalidateQueries({ queryKey: ['admin-amenities'] })
   }
 
-  const inputCls = 'w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500'
+  const inputCls = 'w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500'
   const saveBtnCls = 'px-4 py-2 bg-[#111111] text-white text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed'
 
   return (
     <div className="max-w-xl space-y-6">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Settings</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Manage your profile and platform configuration</p>
+        <p className="text-sm text-slate-500 mt-0.5">Manage your profile and platform configuration</p>
       </div>
 
       {/* Profile card */}
@@ -2007,7 +2090,7 @@ function AdminSettingsSection() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
         <div className="flex items-center justify-between mb-4">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-            Amenities <span className="font-normal text-slate-400">({amenities.length})</span>
+            Amenities <span className="font-normal text-slate-500">({amenities.length})</span>
           </p>
           <button
             type="button"
@@ -2021,7 +2104,7 @@ function AdminSettingsSection() {
         {/* Icon catalogue */}
         {showCatalogue && (
           <div className="mb-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
-            <p className="text-[11px] text-slate-400 mb-2">Click a name to use it in the field below</p>
+            <p className="text-[11px] text-slate-500 mb-2">Click a name to use it in the field below</p>
             <div className="flex flex-wrap gap-1.5">
               {KNOWN_ICONS.filter(n => !existingNames.has(n)).map(name => (
                 <button
@@ -2030,13 +2113,13 @@ function AdminSettingsSection() {
                   onClick={() => { setNewAmenity(name); setShowCatalogue(false) }}
                   className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white border border-slate-200 hover:border-brand-400 hover:bg-brand-50 text-xs text-slate-700 transition-colors"
                 >
-                  <span className="text-slate-400"><AmenityIcon name={name} size={13} /></span>
+                  <span className="text-slate-500"><AmenityIcon name={name} size={13} /></span>
                   {name}
                 </button>
               ))}
             </div>
             {KNOWN_ICONS.filter(n => !existingNames.has(n)).length === 0 && (
-              <p className="text-xs text-slate-400 text-center py-2">All known icons are already added.</p>
+              <p className="text-xs text-slate-500 text-center py-2">All known icons are already added.</p>
             )}
           </div>
         )}
@@ -2046,7 +2129,7 @@ function AdminSettingsSection() {
           <div className="flex gap-2">
             <div className="relative flex-1">
               {newAmenity.trim() && (
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
                   <AmenityIcon name={newAmenity.trim()} size={15} />
                 </span>
               )}
@@ -2054,7 +2137,7 @@ function AdminSettingsSection() {
                 value={newAmenity}
                 onChange={e => setNewAmenity(e.target.value)}
                 placeholder="Amenity name… (or browse icons above)"
-                className={`w-full py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 ${newAmenity.trim() ? 'pl-8 pr-3' : 'px-3'}`}
+                className={`w-full py-2 rounded-xl border border-slate-200 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${newAmenity.trim() ? 'pl-8 pr-3' : 'px-3'}`}
               />
             </div>
             <button type="submit" disabled={adding || !newAmenity.trim()} className={saveBtnCls}>
@@ -2062,7 +2145,7 @@ function AdminSettingsSection() {
             </button>
           </div>
           {newAmenity.trim() && (
-            <p className={`text-[11px] mt-1.5 ${hasMatchingIcon ? 'text-green-600' : 'text-slate-400'}`}>
+            <p className={`text-[11px] mt-1.5 ${hasMatchingIcon ? 'text-green-600' : 'text-slate-500'}`}>
               {hasMatchingIcon ? '✓ Icon matched' : 'No icon match — will use default icon. Try browsing above.'}
             </p>
           )}
@@ -2072,13 +2155,13 @@ function AdminSettingsSection() {
         {amenitiesLoading ? (
           <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-9 bg-slate-100 rounded-xl animate-pulse" />)}</div>
         ) : amenities.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-6">No amenities yet.</p>
+          <p className="text-sm text-slate-500 text-center py-6">No amenities yet.</p>
         ) : (
           <ul className="space-y-1.5">
             {amenities.map(a => (
               <li key={a.id} className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 border border-slate-100">
                 <div className="flex items-center gap-2.5">
-                  <span className="text-slate-400 shrink-0"><AmenityIcon name={a.name} size={15} /></span>
+                  <span className="text-slate-500 shrink-0"><AmenityIcon name={a.name} size={15} /></span>
                   <span className="text-sm text-slate-700">{a.name}</span>
                 </div>
                 <button onClick={() => handleDelete(a.id)} className="text-xs text-red-500 hover:text-red-700 font-medium shrink-0">

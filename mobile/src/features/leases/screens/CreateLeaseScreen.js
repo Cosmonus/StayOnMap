@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { leaseService } from '@services/lease.service'
 import Icon from '@components/common/Icon'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
@@ -42,15 +43,20 @@ export default function CreateLeaseScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <View style={styles.headerTitleRow}>
-          <Icon name="document" size={18} color={colors.slate800} />
-          <Text style={styles.headerTitle}>Offer Lease</Text>
-        </View>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={16} accessibilityRole="button" accessibilityLabel="Close">
-          <Icon name="close" size={18} color={colors.brand600} />
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title="Offer lease"
+        right={(
+          <Pressable
+            onPress={() => navigation.goBack()}
+            hitSlop={8}
+            style={styles.closeButton}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+          >
+            <Icon name="close" size={20} color={colors.slate800} />
+          </Pressable>
+        )}
+      />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <Text style={styles.propertyTitle}>{propertyTitle}</Text>
@@ -63,7 +69,7 @@ export default function CreateLeaseScreen({ route, navigation }) {
             value={form.tenantId}
             onChangeText={(v) => setForm((f) => ({ ...f, tenantId: v }))}
             placeholder="Paste tenant's user ID"
-            placeholderTextColor={colors.slate400}
+            placeholderTextColor={colors.slate500}
             autoCapitalize="none"
           />
           <Text style={styles.hint}>Find the tenant ID in their appointment details</Text>
@@ -71,22 +77,22 @@ export default function CreateLeaseScreen({ route, navigation }) {
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>Start date</Text>
-              <TextInput style={styles.input} value={form.startDate} onChangeText={(v) => setForm((f) => ({ ...f, startDate: v }))} placeholder="YYYY-MM-DD" placeholderTextColor={colors.slate400} />
+              <TextInput style={styles.input} value={form.startDate} onChangeText={(v) => setForm((f) => ({ ...f, startDate: v }))} placeholder="YYYY-MM-DD" placeholderTextColor={colors.slate500} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>End date</Text>
-              <TextInput style={styles.input} value={form.endDate} onChangeText={(v) => setForm((f) => ({ ...f, endDate: v }))} placeholder="YYYY-MM-DD" placeholderTextColor={colors.slate400} />
+              <TextInput style={styles.input} value={form.endDate} onChangeText={(v) => setForm((f) => ({ ...f, endDate: v }))} placeholder="YYYY-MM-DD" placeholderTextColor={colors.slate500} />
             </View>
           </View>
 
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>Monthly rent (₹)</Text>
-              <TextInput style={styles.input} value={form.rentAmount} onChangeText={(v) => setForm((f) => ({ ...f, rentAmount: v }))} placeholder="28000" placeholderTextColor={colors.slate400} keyboardType="numeric" />
+              <TextInput style={styles.input} value={form.rentAmount} onChangeText={(v) => setForm((f) => ({ ...f, rentAmount: v }))} placeholder="28000" placeholderTextColor={colors.slate500} keyboardType="numeric" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>Deposit (₹)</Text>
-              <TextInput style={styles.input} value={form.depositAmount} onChangeText={(v) => setForm((f) => ({ ...f, depositAmount: v }))} placeholder="56000" placeholderTextColor={colors.slate400} keyboardType="numeric" />
+              <TextInput style={styles.input} value={form.depositAmount} onChangeText={(v) => setForm((f) => ({ ...f, depositAmount: v }))} placeholder="56000" placeholderTextColor={colors.slate500} keyboardType="numeric" />
             </View>
           </View>
 
@@ -96,7 +102,7 @@ export default function CreateLeaseScreen({ route, navigation }) {
             value={form.ownerNote}
             onChangeText={(v) => setForm((f) => ({ ...f, ownerNote: v }))}
             placeholder="Any specific terms or notes..."
-            placeholderTextColor={colors.slate400}
+            placeholderTextColor={colors.slate500}
             multiline
             numberOfLines={2}
           />
@@ -118,21 +124,15 @@ export default function CreateLeaseScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  closeButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   container: { flex: 1, backgroundColor: colors.white },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
-    borderBottomWidth: 1, borderBottomColor: colors.slate200,
-  },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
   scroll: { padding: spacing.lg, gap: spacing.xs },
   propertyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600, marginBottom: spacing.sm },
   errorText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.danger, marginBottom: spacing.sm },
   label: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500, marginTop: spacing.sm, marginBottom: 4 },
   input: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm + 2, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800 },
   textarea: { minHeight: 60, textAlignVertical: 'top' },
-  hint: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400, marginTop: 2 },
+  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 2 },
   row: { flexDirection: 'row', gap: spacing.sm },
   submitButton: { minHeight: 44, flexDirection: 'row', gap: 6, backgroundColor: colors.black, borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', justifyContent: 'center', marginTop: spacing.lg },
   submitButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },

@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   modeCardActive: { borderColor: colors.slate800, backgroundColor: colors.slate50 },
   modeLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate500 },
   modeLabelActive: { fontFamily: fonts.bodySemiBold, color: colors.slate800 },
-  modeHint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 2 },
+  modeHint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 2 },
   typeSwitcher: { paddingBottom: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.slate100 },
   footer: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

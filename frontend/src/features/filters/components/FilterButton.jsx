@@ -9,7 +9,7 @@ export default function FilterButton({ activeCount = 0, onClick }) {
       type="button"
       onClick={onClick}
       aria-label="Open filters"
-      className={`relative h-11 md:h-14 flex items-center gap-2 px-4 rounded-full border bg-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 ${
+      className={`relative h-11 md:h-14 flex items-center gap-2 px-4 rounded-full border bg-white text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
         activeCount > 0 ? 'border-[#111111] text-slate-900' : 'border-slate-200 text-slate-700 hover:border-slate-400'
       }`}
     >

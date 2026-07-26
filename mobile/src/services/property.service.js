@@ -19,6 +19,10 @@ export const propertyService = {
   remove: (id) => api.delete(`/properties/${id}`),
   getMyListings: () => api.get('/properties/mine'),
   getAmenities: () => api.get('/properties/amenities'),
+
+  // What comparable live listings ask — a band and a median, never a
+  // recommended price. Backs the listing wizard's Price step.
+  getBenchmark: (params) => api.get('/properties/benchmark', { params }),
   getStats: () => api.get('/properties/stats'),
   toggleStatus: (id) => api.patch(`/properties/${id}/status`),
   publish: (id) => api.patch(`/properties/${id}/publish`),

@@ -9,7 +9,7 @@ export default function MissingDataNote({ missing }) {
 
   return (
     <div className="mt-3 pt-3 border-t border-slate-100">
-      <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
         What we don&apos;t know
       </p>
       <ul className="space-y-1">

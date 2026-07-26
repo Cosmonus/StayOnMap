@@ -32,7 +32,7 @@ function OptionRow({ option, selected, onSelect }) {
       accessibilityState={{ selected }}
     >
       <View style={[styles.optionIcon, selected && styles.optionIconSelected]}>
-        <Icon name={option.icon} size={15} color={selected ? colors.white : colors.slate400} />
+        <Icon name={option.icon} size={15} color={selected ? colors.white : colors.slate500} />
       </View>
       <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>{option.label}</Text>
       {selected && <Icon name="check" size={16} color={colors.brand600} />}
@@ -102,7 +102,7 @@ export default function PrivacySheet({ visible, onClose, settings }) {
 
 const styles = StyleSheet.create({
   sectionLabel: {
-    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400,
+    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500,
     textTransform: 'uppercase', letterSpacing: 0.5,
     marginTop: spacing.lg, marginBottom: spacing.sm,
   },

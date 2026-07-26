@@ -7,6 +7,7 @@ import { ADMIN_FILTERS, buildFilterWhere } from '../properties/filters.registry.
 import { parseBounds, boundsFilter } from '../../utils/geo.js'
 import { getContext, STATUS_FAILED } from '../spatial/spatial.service.js'
 import { intelError } from '../../lib/intelLog.js'
+import { notifyUser } from '../notifications/notifications.service.js'
 
 export async function adminLogin(email, password) {
   const admin = await prisma.admin.findUnique({ where: { email } })
@@ -270,9 +271,69 @@ export async function listAdminProperties({ page = 1, limit = 20, ...query } = {
   return { properties, total, page: pageNum, limit: limitNum }
 }
 
+// What the owner is told, per moderation outcome. The admin's own words carry
+// the reason; this only frames them, because "your listing is gone from the
+// map" with no explanation is the single fastest way to lose an owner.
+const MODERATION_MESSAGE = {
+  SUSPENDED: (title, note) => ({
+    title: 'Listing paused by StayOnMap',
+    body: `“${title}” is no longer visible to renters while we look into it. Reason: ${note} — reply to this to sort it out.`,
+  }),
+  REJECTED: (title, note) => ({
+    title: 'Listing not approved',
+    body: `“${title}” wasn't approved for the map. Reason: ${note} — you can edit it and submit again.`,
+  }),
+  ACTIVE: (title) => ({
+    title: 'Listing back on the map',
+    body: `“${title}” has been reviewed and is visible to renters again.`,
+  }),
+}
+
+// Approve, pause, reject — nothing else. The status set is enforced by
+// adminPropertyStatusSchema; the two guards below are the ones a schema can't
+// express because they depend on the row's current state.
 export async function setPropertyStatus(propertyId, status, note, adminId) {
+  const current = await prisma.property.findUnique({
+    where: { id: propertyId },
+    select: { id: true, status: true, title: true, ownerId: true },
+  })
+  if (!current) throw Object.assign(new Error('Property not found'), { statusCode: 404 })
+
+  // A DRAFT is an owner's unfinished work. Approving one would publish a
+  // listing its owner never submitted, so approval only applies to something
+  // that was actually offered for review — or to reinstating what we paused.
+  if (status === 'ACTIVE' && !['PENDING', 'SUSPENDED', 'REJECTED', 'ACTIVE'].includes(current.status)) {
+    throw Object.assign(
+      new Error(`A ${current.status.toLowerCase()} listing can't be published by an admin — only its owner can submit it for review`),
+      { statusCode: 409 },
+    )
+  }
+
   const property = await prisma.property.update({ where: { id: propertyId }, data: { status } })
-  await prisma.activityLog.create({ data: { adminId, action: 'PROPERTY_STATUS_CHANGED', entity: 'Property', entityId: propertyId, meta: { status, note } } })
+  await prisma.activityLog.create({
+    data: {
+      adminId,
+      action: 'PROPERTY_STATUS_CHANGED',
+      entity: 'Property',
+      entityId: propertyId,
+      meta: { from: current.status, status, note: note ?? null },
+    },
+  })
+
+  // Fire-and-forget, and only when the state actually changed — re-saving the
+  // same status shouldn't tell an owner their listing moved.
+  if (current.status !== status) {
+    const message = MODERATION_MESSAGE[status]?.(current.title, note)
+    if (message) {
+      notifyUser(current.ownerId, {
+        type: 'SYSTEM',
+        ...message,
+        referenceId: propertyId,
+        referenceType: 'Property',
+      }).catch(() => {})
+    }
+  }
+
   return property
 }
 

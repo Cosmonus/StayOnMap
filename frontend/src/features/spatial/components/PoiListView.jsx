@@ -47,7 +47,7 @@ export default function PoiListView({ moduleKey, lat, lng }) {
 
   return (
     <div className="mt-5">
-      <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
+      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
         Nearby places
       </p>
 
@@ -62,7 +62,7 @@ export default function PoiListView({ moduleKey, lat, lng }) {
               type="button"
               aria-pressed={active}
               onClick={() => { setCategory(active ? null : c); setQuery('') }}
-              className={`min-h-[32px] rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 ${
+              className={`min-h-[32px] rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
                 active
                   ? 'border-brand-600 bg-brand-600 text-white'
                   : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-700'
@@ -90,7 +90,7 @@ export default function PoiListView({ moduleKey, lat, lng }) {
               <button
                 type="button"
                 onClick={() => refetch()}
-                className="mt-2 text-xs font-semibold text-brand-600 hover:underline focus:outline-none focus:ring-2 focus:ring-brand-500 rounded"
+                className="mt-2 text-xs font-semibold text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
               >
                 Try again
               </button>
@@ -108,7 +108,7 @@ export default function PoiListView({ moduleKey, lat, lng }) {
             <>
               <label className="relative block">
                 <Search
-                  className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
+                  className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500"
                   aria-hidden="true"
                 />
                 <input
@@ -117,7 +117,7 @@ export default function PoiListView({ moduleKey, lat, lng }) {
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={`Search ${(POI_CATEGORY_LABEL[category] ?? category).toLowerCase()}…`}
                   aria-label={`Search nearby ${POI_CATEGORY_LABEL[category] ?? category}`}
-                  className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-700 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-700 placeholder:text-slate-500 focus:border-brand-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                 />
               </label>
 
@@ -137,7 +137,7 @@ export default function PoiListView({ moduleKey, lat, lng }) {
                         <p className="truncate text-[13px] font-semibold text-slate-800">
                           {p.name ?? `Unnamed ${(POI_CATEGORY_LABEL[p.category] ?? p.category).toLowerCase().replace(/s$/, '')}`}
                           {p.brand && p.brand !== p.name && (
-                            <span className="ml-1.5 font-normal text-slate-400">· {p.brand}</span>
+                            <span className="ml-1.5 font-normal text-slate-500">· {p.brand}</span>
                           )}
                         </p>
                         <p className="mt-0.5 text-[11px] text-slate-500">
@@ -146,7 +146,7 @@ export default function PoiListView({ moduleKey, lat, lng }) {
                             : formatDistance(p.distanceM)}
                         </p>
                         {p.openingHours && (
-                          <p className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-400">
+                          <p className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-500">
                             <Clock className="h-3 w-3 shrink-0" aria-hidden="true" />
                             {/* Only shown when the backend could read the hours
                                 with confidence. Absent means "we don't know" —
@@ -171,7 +171,7 @@ export default function PoiListView({ moduleKey, lat, lng }) {
                         target="_blank"
                         rel="noreferrer"
                         aria-label={`Directions to ${p.name ?? 'this place'}`}
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-500 transition-colors hover:bg-brand-50 hover:text-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-500 transition-colors hover:bg-brand-50 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                       >
                         <Navigation className="h-3.5 w-3.5" aria-hidden="true" />
                       </a>
@@ -181,13 +181,13 @@ export default function PoiListView({ moduleKey, lat, lng }) {
               )}
 
               {data.truncated && (
-                <p className="mt-1.5 text-[10px] text-slate-400">
+                <p className="mt-1.5 text-[11px] text-slate-500">
                   Showing the nearest {data.pois.length} of {data.total}.
                 </p>
               )}
 
               {filtered.some((p) => p.walkMinutes != null) && (
-                <p className="mt-1.5 text-[10px] leading-snug text-slate-400">
+                <p className="mt-1.5 text-[11px] leading-snug text-slate-500">
                   Walk times are estimates: {data.walkMethod}.
                 </p>
               )}

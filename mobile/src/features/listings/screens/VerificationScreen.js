@@ -3,7 +3,9 @@ import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, StyleS
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { verificationService } from '@services/verification.service'
+import Dropdown from '@components/common/Dropdown'
 import Icon from '@components/common/Icon'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
@@ -90,12 +92,8 @@ export default function VerificationScreen({ route }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <ScreenHeader title="Get verified" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.headerTitleRow}>
-          <Icon name="shieldCheck" size={20} color={colors.slate800} />
-          <Text style={styles.headerTitle}>Get Verified</Text>
-        </View>
-
         <View style={styles.propertyBox}>
           <Text style={styles.propertyBoxLabel}>Verifying ownership for</Text>
           <Text style={styles.propertyBoxTitle}>{propertyTitle}</Text>
@@ -181,7 +179,7 @@ export default function VerificationScreen({ route }) {
                 value={docAddress}
                 onChangeText={setDocAddress}
                 placeholder="Exactly as it appears on the tax bill / deed"
-                placeholderTextColor={colors.slate400}
+                placeholderTextColor={colors.slate500}
                 maxLength={300}
                 multiline
               />
@@ -235,25 +233,21 @@ export default function VerificationScreen({ route }) {
             <Text style={styles.sectionTitle}>Add a document</Text>
             <Text style={styles.addDocHint}>Upload your document to Google Drive / Dropbox and paste the public link here.</Text>
 
-            <View style={styles.chipWrap}>
-              {DOC_TYPES.map((d) => (
-                <Pressable
-                  key={d.value}
-                  style={[styles.chip, docType === d.value && styles.chipActive]}
-                  onPress={() => setDocType(d.value)}
-                  hitSlop={{ top: 4, bottom: 4 }}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: docType === d.value }}
-                >
-                  <Text style={[styles.chipText, docType === d.value && styles.chipTextActive]}>{d.label}</Text>
-                </Pressable>
-              ))}
-            </View>
+            {/* A dropdown, matching web's VerificationWizard and the listing
+                wizard: eight long labels ("Homestay / Tourism Permit") wrapped
+                to four rows of chips to pick exactly one. */}
+            <Dropdown
+              label="Document type"
+              value={docType}
+              onChange={setDocType}
+              options={DOC_TYPES}
+              placeholder="Select document type"
+            />
 
             <TextInput
               style={[styles.input, urlError && styles.inputError]}
               placeholder="https://drive.google.com/..."
-              placeholderTextColor={colors.slate400}
+              placeholderTextColor={colors.slate500}
               value={docUrl}
               onChangeText={(v) => { setDocUrl(v); setUrlError('') }}
               autoCapitalize="none"
@@ -289,11 +283,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: spacing.lg, gap: spacing.md },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  headerTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
   boxTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
   propertyBox: { backgroundColor: colors.slate50, borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.slate100 },
-  propertyBoxLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
+  propertyBoxLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   propertyBoxTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, marginTop: 2 },
   statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700 },
@@ -306,7 +298,7 @@ const styles = StyleSheet.create({
   rejectedBox: { backgroundColor: colors.danger50, borderWidth: 1, borderColor: '#FECACA', borderRadius: radius.md, padding: spacing.md },
   rejectedTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: '#B91C1C' },
   rejectedBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: '#DC2626', marginTop: 2 },
-  label: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.slate500, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: spacing.xs },
+  label: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: spacing.xs },
   docRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate100, borderRadius: radius.sm },
   docType: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700, flexShrink: 0 },
   docUrl: { fontFamily: fonts.body, fontSize: 11, color: colors.brand600, flex: 1 },
@@ -318,23 +310,18 @@ const styles = StyleSheet.create({
   addDocForm: { borderTopWidth: 1, borderTopColor: colors.slate100, paddingTop: spacing.md, gap: spacing.sm },
   fieldLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginBottom: 4 },
   addressInput: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800, minHeight: 44, textAlignVertical: 'top' },
-  fieldHint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 4 },
+  fieldHint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 4 },
   // The address-comparison notes. Amber only for the pincode contradiction —
   // the one accusation the comparison is allowed to make.
   matchWarnBox: { backgroundColor: colors.warning50, borderWidth: 1, borderColor: '#FDE68A', borderRadius: radius.md, padding: spacing.md },
   matchWarnTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.warning700 },
   matchWarnText: { fontFamily: fonts.body, fontSize: 11, color: colors.warning700, marginTop: 2 },
-  matchNote: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
-  addDocHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
-  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  chip: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.md, borderWidth: 1, borderColor: colors.slate200 },
-  chipActive: { backgroundColor: colors.brand600, borderColor: colors.brand600 },
-  chipText: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.slate600 },
-  chipTextActive: { color: colors.white },
+  matchNote: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
+  addDocHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   input: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800 },
   inputError: { borderColor: colors.danger },
   errorText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.danger },
-  submitDocButton: { flexDirection: 'row', gap: 6, backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', justifyContent: 'center' },
+  submitDocButton: { flexDirection: 'row', gap: 6, backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', justifyContent: 'center', minHeight: 48, },
   submitDocButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   disabled: { opacity: 0.5 },
 })

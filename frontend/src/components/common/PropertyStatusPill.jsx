@@ -20,7 +20,7 @@ const FALLBACK = { label: 'Unknown', emoji: '❓', bg: 'bg-slate-100', text: 'te
 export default function PropertyStatusPill({ status, size = 'md' }) {
   const cfg = PROPERTY_STATUS_CONFIG[status] ?? FALLBACK
   const cls = size === 'sm'
-    ? 'px-2 py-0.5 rounded-full text-[10px] font-bold gap-1'
+    ? 'px-2 py-0.5 rounded-full text-[11px] font-bold gap-1'
     : 'px-2.5 py-1 rounded-full text-xs font-bold gap-1.5'
   return (
     <span className={`inline-flex items-center ${cls} ${cfg.bg} ${cfg.text}`}>

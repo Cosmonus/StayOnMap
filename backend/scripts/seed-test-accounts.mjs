@@ -147,10 +147,15 @@ async function seedProperties(ownerId, amenityMap) {
           create: amenityNames.filter((n) => amenityMap[n]).map((n) => ({ amenityId: amenityMap[n] })),
         },
         ...(rules && { rules: { create: rules } }),
+        // Zeros, not invented ratings. This block used to seed overallScore 3.8
+        // / safety 4.0 alongside totalReviews 0 — a score nobody gave, on a
+        // platform whose whole pitch is not overstating what it knows. Any
+        // number here is a lie the demo tells for us; recalculateTrustScore()
+        // fills these in for real once a review is approved.
         trustScore: {
           create: {
-            overallScore: 3.8, safetyScore: 4.0, cleanlinessScore: 3.9,
-            neighborhoodScore: 3.7, totalReviews: 0, recommendPercent: 0,
+            overallScore: 0, safetyScore: 0, cleanlinessScore: 0,
+            neighborhoodScore: 0, totalReviews: 0, recommendPercent: 0,
           },
         },
         riskScore: { create: { score: 5, level: 'LOW' } },

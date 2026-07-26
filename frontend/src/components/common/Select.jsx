@@ -1,7 +1,12 @@
 // Custom dropdown — replaces a native <select> (whose open option list can't
 // be styled at all, just renders the OS/browser default). Portal-based, same
 // visual language as CityDropdown.jsx's floating panel.
-// Props: label, error, options [{ value, label }], placeholder, value, onChange(value), disabled
+// Props: label, error, options [{ value, label, hint? }], placeholder, value, onChange(value), disabled
+//
+// `hint` renders as a muted second line inside the panel and nothing in the
+// trigger — it's for choices that need a word of explanation to pick between
+// ("Villa — premium standalone home"), which is why the listing wizard can use
+// this instead of a row of pills.
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
@@ -60,7 +65,10 @@ export default function Select({
           disabled={disabled}
           onClick={() => setOpen((v) => !v)}
           className={[
-            'w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all duration-150',
+            // py-3/rounded-xl so a dropdown lines up with the text inputs
+            // beside it and clears the 44px target minimum (was py-2.5 and
+            // rounded-lg — both off the documented spacing/radius scale).
+            'w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl border text-sm transition-all duration-150',
             disabled
               ? 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
               : open
@@ -70,13 +78,13 @@ export default function Select({
             className,
           ].join(' ')}
         >
-          <span className={`truncate text-left ${selected ? 'text-slate-800' : 'text-slate-400'}`}>
+          <span className={`truncate text-left ${selected ? 'text-slate-800' : 'text-slate-500'}`}>
             {selected ? selected.label : placeholder}
           </span>
           <ChevronDown
             size={14}
             strokeWidth={2.5}
-            className={`shrink-0 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            className={`shrink-0 text-slate-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
           />
         </button>
 
@@ -94,17 +102,20 @@ export default function Select({
                   type="button"
                   onClick={() => handlePick(opt.value)}
                   className={[
-                    'w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm text-left transition-colors',
+                    'w-full flex items-center justify-between gap-3 px-4 py-3 text-sm text-left transition-colors',
                     isSelected ? 'bg-brand-50 text-brand-700 font-semibold' : 'text-slate-700 hover:bg-slate-50 font-medium',
                   ].join(' ')}
                 >
-                  <span className="truncate">{opt.label}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate">{opt.label}</span>
+                    {opt.hint && <span className="block text-xs font-normal text-slate-500 mt-0.5">{opt.hint}</span>}
+                  </span>
                   {isSelected && <Check size={13} strokeWidth={2.5} className="shrink-0" />}
                 </button>
               )
             })}
             {options.length === 0 && (
-              <p className="px-3 py-4 text-xs text-slate-400 text-center">No options</p>
+              <p className="px-3 py-4 text-xs text-slate-500 text-center">No options</p>
             )}
           </div>,
           document.body

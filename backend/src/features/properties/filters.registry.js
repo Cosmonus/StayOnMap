@@ -9,8 +9,10 @@ import { z } from 'zod'
 
 export const PROPERTY_TYPES = ['APARTMENT', 'HOUSE', 'VILLA', 'PG', 'INDEPENDENT_HOUSE', 'COMMERCIAL', 'LAND', 'SHORT_STAY']
 
-// Mirrors the PricingModel enum (prisma/schema.prisma).
-export const PRICING_MODELS = ['RENT', 'LEASE']
+// Mirrors the PricingModel enum (prisma/schema.prisma). SALE added 2026-07-26 —
+// without it here the Buy filter is rejected at the schema before it reaches a
+// where clause, and a sale listing is unreachable no matter what the UI sends.
+export const PRICING_MODELS = ['RENT', 'LEASE', 'SALE']
 
 // ── Query-string coercion helpers ─────────────────────────────────
 // Multi-value filters travel as CSV strings ("1,2,3") — URL-friendly,
@@ -97,11 +99,25 @@ export const FILTERS = {
   carpetAreaMin:  { schema: intIn(1, 100_000), where: (v) => ({ carpetArea: { gte: v } }) },
   frontageMin:    { schema: intIn(1, 1000), where: (v) => ({ frontage: { gte: v } }) },
 
+  // ── For sale ─────────────────────────────────────────────────────
+  // The three questions a buyer asks first. `possessionStatus` is what makes
+  // a possession date readable — "1 March" on a ready flat and on an
+  // under-construction one are different promises.
+  possessionStatus: { schema: csvEnum(['Ready to move', 'Under construction', 'New launch']), where: (v) => ({ possessionStatus: { in: v } }) },
+  loanEligible:     { schema: flag, where: () => ({ loanEligible: true }) },
+  negotiable:       { schema: flag, where: () => ({ priceNegotiable: true }) },
+
   // ── Land ─────────────────────────────────────────────────────────
   landType:       { schema: csvEnum(['Residential', 'Agricultural', 'Commercial', 'Industrial']), where: (v) => ({ landType: { in: v } }) },
   approvalStatus: { schema: csvEnum(['DTCP', 'RERA', 'Panchayat', 'Unapproved']), where: (v) => ({ approvalStatus: { in: v } }) },
   saleOrLease:    { schema: z.enum(['SALE', 'LEASE']), where: (v) => ({ saleOrLease: v }) },
   roadWidthMin:   { schema: intIn(1, 1000), where: (v) => ({ roadWidth: { gte: v } }) },
+  // Land records. The NUMBERS behind these never leave the server (see
+  // properties.service.js) — but whether a plot is converted and whether the
+  // seller holds an encumbrance certificate are exactly what a buyer screens
+  // on, and both are non-identifying.
+  conversionStatus: { schema: csvEnum(['Converted', 'Not converted', 'Not applicable']), where: (v) => ({ conversionStatus: { in: v } }) },
+  ecAvailable:      { schema: flag, where: () => ({ ecAvailable: true }) },
 
   // ── Short stay ───────────────────────────────────────────────────
   placeType:  { schema: csvEnum(['Entire place', 'Private room', 'Shared room']), where: (v) => ({ placeType: { in: v } }) },

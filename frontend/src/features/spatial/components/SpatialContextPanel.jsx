@@ -84,11 +84,11 @@ export default function SpatialContextPanel({ context, coords, children }) {
           <h2 id="spatial-intelligence-heading" className="text-base font-bold text-slate-900">
             Spatial intelligence
           </h2>
-          <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-700">
+          <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-brand-700">
             Beta
           </span>
         </div>
-        <p className="mt-0.5 text-xs leading-snug text-slate-400">
+        <p className="mt-0.5 text-xs leading-snug text-slate-500">
           What the area around this address is actually like — tap any card for
           the full report, where each figure came from, and what we don&apos;t know.
         </p>
@@ -100,7 +100,7 @@ export default function SpatialContextPanel({ context, coords, children }) {
             <span className="h-2 w-2 animate-pulse rounded-full bg-brand-500" aria-hidden="true" />
             <p className="text-xs font-semibold text-slate-700">Working out what&apos;s around this address</p>
           </div>
-          <p className="mt-1.5 text-[11px] leading-snug text-slate-400">
+          <p className="mt-1.5 text-[11px] leading-snug text-slate-500">
             We haven&apos;t described this neighbourhood yet. It usually takes a
             few seconds — reload the page shortly and it&apos;ll be here.
           </p>
@@ -112,7 +112,7 @@ export default function SpatialContextPanel({ context, coords, children }) {
           <p className="text-xs font-semibold text-slate-700">
             We couldn&apos;t load the area report
           </p>
-          <p className="mt-1.5 text-[11px] leading-snug text-slate-400">
+          <p className="mt-1.5 text-[11px] leading-snug text-slate-500">
             Something went wrong on our side — this isn&apos;t a comment on the
             neighbourhood. Reloading usually fixes it.
           </p>
@@ -124,7 +124,7 @@ export default function SpatialContextPanel({ context, coords, children }) {
           <p className="text-xs font-semibold text-slate-700">
             We don&apos;t have enough mapped data around this address yet
           </p>
-          <p className="mt-1.5 text-[11px] leading-snug text-slate-400">
+          <p className="mt-1.5 text-[11px] leading-snug text-slate-500">
             Our area reports are built from open map data, and coverage is
             thinner in some neighbourhoods than others. That says nothing about
             what&apos;s actually here — only about what has been mapped so far.

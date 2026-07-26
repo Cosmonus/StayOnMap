@@ -29,7 +29,7 @@ export default function ChatPropertyCard({ property, onPress, pinned }) {
         <Image source={{ uri: imgUrl(img, 'card') }} style={styles.thumb} contentFit="cover" cachePolicy="memory-disk" transition={200} />
       ) : (
         <View style={[styles.thumb, styles.thumbFallback]}>
-          <Icon name="home" size={22} color={colors.slate400} />
+          <Icon name="home" size={22} color={colors.slate500} />
         </View>
       )}
 
@@ -47,7 +47,7 @@ export default function ChatPropertyCard({ property, onPress, pinned }) {
         </View>
       </View>
 
-      <Icon name="chevronRight" size={16} color={colors.slate400} />
+      <Icon name="chevronRight" size={16} color={colors.slate500} />
     </Pressable>
   )
 }
@@ -65,9 +65,9 @@ const styles = StyleSheet.create({
   thumbFallback: { alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, minWidth: 0 },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
-  location: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 1 },
+  location: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 1 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: 4 },
   rent: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand600 },
   chip: { backgroundColor: colors.slate100, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
-  chipText: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.slate500 },
+  chipText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500 },
 })

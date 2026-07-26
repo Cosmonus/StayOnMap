@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { SearchX } from 'lucide-react'
 import { propertyService } from '@services/property.service'
-import { formatRent } from '@utils/format'
+import { formatPrice } from '@utils/format'
 import Header from '@components/layout/Header'
 import Footer from '@components/layout/Footer'
 import SEOMeta from '@components/common/SEOMeta'
@@ -62,11 +62,11 @@ export default function PropertyPage() {
     return (
       <Shell>
         <SEOMeta title="Property not found" noindex />
-        <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-24">
+        <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-24">
           <SearchX className="w-16 h-16 mb-4 text-slate-200" strokeWidth={1.5} />
           <p className="text-lg font-semibold text-slate-700">Property not found</p>
           <p className="text-sm mt-1">This listing may have been removed or is no longer available.</p>
-          <button onClick={() => navigate(-1)} className="mt-6 px-5 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors">
+          <button onClick={() => navigate(-1)} className="min-h-[44px] mt-6 px-5 py-3 rounded-xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors">
             Go back
           </button>
         </div>
@@ -81,8 +81,10 @@ export default function PropertyPage() {
   const seoTitle = [bhkLabel, formatType(property.type), 'in', property.city]
     .filter(Boolean).join(' ')
   const seoDesc = [
-    bhkLabel, formatType(property.type), 'for rent in', property.area ? `${property.area}, ` : '', property.city,
-    '—', formatRent(property.rent), property.furnished ? `· ${formatFurnished(property.furnished)}` : '',
+    bhkLabel, formatType(property.type),
+    property.pricingModel === 'SALE' ? 'for sale in' : 'for rent in',
+    property.area ? `${property.area}, ` : '', property.city,
+    '—', formatPrice(property), property.furnished ? `· ${formatFurnished(property.furnished)}` : '',
     '· No brokerage ·', BRAND.name,
   ].filter(Boolean).join(' ')
 

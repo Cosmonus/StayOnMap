@@ -62,14 +62,14 @@ export default function DetailTopBar({ property }) {
       <div className="flex items-center gap-2">
         <button
           onClick={handleShare}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200 transition-all"
+          className="min-h-[44px] inline-flex items-center gap-1.5 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200 transition-all"
         >
           <Share2 className="w-4 h-4" strokeWidth={1.8} />
           {copied ? 'Copied!' : 'Share'}
         </button>
         <button
           onClick={() => user ? saveMutation.mutate(!saved) : openLoginModal()}
-          className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all border ${saved ? 'bg-red-50 text-red-600 border-red-200' : 'text-slate-600 hover:bg-white hover:shadow-sm border-transparent hover:border-slate-200'}`}
+          className={`min-h-[44px] inline-flex items-center gap-1.5 px-3 py-3 rounded-xl text-sm font-medium transition-all border ${saved ? 'bg-red-50 text-red-600 border-red-200' : 'text-slate-600 hover:bg-white hover:shadow-sm border-transparent hover:border-slate-200'}`}
         >
           <Heart className="w-4 h-4" fill={saved ? 'currentColor' : 'none'} strokeWidth={1.8} />
           {saved ? 'Saved' : 'Save'}

@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
   icon: { width: 34, height: 34, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center' },
   labels: { flex: 1 },
   label: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate800 },
-  hint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
+  hint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
   track: { width: 44, height: 26, borderRadius: 13, backgroundColor: colors.slate200, padding: 3 },
   trackActive: { backgroundColor: colors.brand600 },
   trackDisabled: { opacity: 0.5 },

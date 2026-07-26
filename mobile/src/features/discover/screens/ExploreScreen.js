@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     minWidth: 16, height: 16, borderRadius: 8, backgroundColor: colors.danger,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
   },
-  filterBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.white },
+  filterBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.white },
   searchWrap: {
     marginHorizontal: spacing.md, marginTop: spacing.sm,
   },

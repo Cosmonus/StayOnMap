@@ -33,7 +33,7 @@ function Row({ row, draft, patch }) {
           single={row.single}
           searchable={row.searchable}
           renderIcon={row.withIcons
-            ? (value, active) => <AmenityIcon name={value} size={13} color={active ? colors.white : colors.slate400} />
+            ? (value, active) => <AmenityIcon name={value} size={13} color={active ? colors.white : colors.slate500} />
             : undefined}
           value={draft[row.id]}
           onChange={(v) => patch({ [row.id]: v })}

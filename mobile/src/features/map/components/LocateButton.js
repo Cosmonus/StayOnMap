@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native'
+import { Pressable, Text, ActivityIndicator, Alert, StyleSheet } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as Location from 'expo-location'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { shadows } from '@theme/shadows'
-import { radius } from '@theme/spacing'
+import { fonts, fontSizes } from '@theme/typography'
+import { spacing, radius } from '@theme/spacing'
 
 const LOCATE_ZOOM = 15
 
@@ -71,21 +72,26 @@ export default function LocateButton({ onLocate, onPermissionGranted }) {
       accessibilityRole="button"
       accessibilityState={{ busy: locating }}
     >
+      {/* Labelled, like web's "Near me" pill. A bare crosshair is a guess:
+          this one asks for a location permission when tapped, and an icon
+          alone gives no warning of that. */}
       {locating ? (
         <ActivityIndicator size="small" color={colors.brand600} />
       ) : (
         <Icon name="locate" size={18} color={colors.slate700} />
       )}
+      <Text style={styles.label}>{locating ? 'Locating…' : 'Near me'}</Text>
     </Pressable>
   )
 }
 
 const styles = StyleSheet.create({
   button: {
-    width: 44, height: 44, borderRadius: radius.full,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    minHeight: 44, paddingHorizontal: spacing.md, borderRadius: radius.full,
     backgroundColor: colors.white,
     borderWidth: 1, borderColor: colors.slate200,
-    alignItems: 'center', justifyContent: 'center',
     ...shadows.float,
   },
+  label: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate700 },
 })

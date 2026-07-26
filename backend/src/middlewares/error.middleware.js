@@ -2,6 +2,15 @@
 
 const isProd = process.env.NODE_ENV === 'production'
 
+const DEFAULT_CODE = {
+  400: 'BAD_REQUEST',
+  401: 'UNAUTHORIZED',
+  403: 'FORBIDDEN',
+  404: 'NOT_FOUND',
+  409: 'CONFLICT',
+  429: 'RATE_LIMITED',
+}
+
 export function errorMiddleware(err, _req, res, _next) {
   console.error(err)
 
@@ -26,8 +35,13 @@ export function errorMiddleware(err, _req, res, _next) {
   // Same rule for the machine-readable code: an uncaught Prisma error carries
   // err.code = 'P2025', which discloses the ORM to clients. Only `expose`
   // (or dev, or a 4xx) lets a specific code through on a 5xx.
+  //
+  // The fallback is status-derived, not a flat 'INTERNAL_ERROR': a service
+  // throwing `Object.assign(new Error(msg), { statusCode: 409 })` sets no
+  // `code`, and labelling that conflict INTERNAL_ERROR tells the client we
+  // broke when in fact they did something we refuse. Clients branch on this.
   const code = status < 500 || !isProd || err.expose
-    ? (err.code || 'INTERNAL_ERROR')
+    ? (err.code || DEFAULT_CODE[status] || (status < 500 ? 'REQUEST_ERROR' : 'INTERNAL_ERROR'))
     : 'INTERNAL_ERROR'
 
   res.status(status).json({

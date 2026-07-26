@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  Check, CheckCheck, Search, MessageCircle, Home, ChevronRight,
-  Paperclip, Send, SquarePen, ChevronLeft, Pencil, Trash2,
+  Check, CheckCheck, Search, MessageCircle, CalendarDays, FileText,
+  Paperclip, Send, SquarePen, ChevronLeft, Pencil, Trash2, ImageIcon,
 } from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
@@ -12,7 +12,7 @@ import { uploadService } from '@services/upload.service'
 import { getSocket, connectSocket } from '@lib/socket'
 import { toast } from '@components/common/Toaster'
 import { confirm } from '@components/common/ConfirmDialog'
-import { formatPrice } from '@utils/format'
+import { formatTime } from '@utils/time'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function timeLabel(date) {
@@ -48,6 +48,37 @@ function displayName(user) {
   return user?.name || user?.email?.split('@')[0] || 'Unknown'
 }
 
+// What the listing is, in the two facts that identify it in a list: size and
+// where. "2 BHK · Koramangala 5th Block" — the landmark, not the full address,
+// because the landmark is how people actually name a place here.
+function propertyLine(property) {
+  if (!property) return ''
+  const size = property.bhk ? `${property.bhk} BHK`
+    : property.sharing ? `${property.sharing}-sharing`
+    : null
+  const where = property.landmark || property.city
+  return [size, where].filter(Boolean).join(' · ')
+}
+
+// MEASURED from the owner's own reply history (chat.service.js returns a median
+// and returns nothing below three samples). Never a promise, never a badge —
+// if we don't know, this renders nothing at all.
+function replyTimeLabel(minutes) {
+  if (minutes == null) return null
+  if (minutes < 15) return 'replies within minutes'
+  if (minutes < 90) return 'replies in about an hour'
+  if (minutes < 60 * 20) return `replies in about ${Math.round(minutes / 60)} hours`
+  const days = Math.round(minutes / 60 / 24)
+  return days <= 1 ? 'replies within a day' : `replies in about ${days} days`
+}
+
+function isImageAttachment(msg) {
+  // Older messages predate attachmentMime and were images by construction —
+  // chat accepted nothing else until 2026-07-26.
+  if (!msg.attachmentUrl) return false
+  return !msg.attachmentMime || msg.attachmentMime.startsWith('image/')
+}
+
 // ── Read receipt ticks ──────────────────────────────────────────────────────
 function ReadReceipt({ isRead }) {
   const cls = `w-3.5 h-3.5 shrink-0 ${isRead ? 'text-white' : 'text-white/50'}`
@@ -70,13 +101,13 @@ function Avatar({ name, url, size = 40, className = '' }) {
 function SearchBar({ value, onChange }) {
   return (
     <div className="relative">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" strokeWidth={2} />
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" strokeWidth={2} />
       <input
         type="text"
         value={value}
         onChange={e => onChange(e.target.value)}
-        placeholder="Search conversations..."
-        className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 placeholder:text-slate-400"
+        placeholder="Search messages"
+        className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus:border-brand-400 placeholder:text-slate-500"
       />
     </div>
   )
@@ -87,8 +118,10 @@ function ConversationList({ conversations, activeId, onSelect, userId, search, o
   const filtered = search
     ? conversations.filter(c => {
         const other = c.tenantId === userId ? c.owner : c.tenant
-        return displayName(other).toLowerCase().includes(search.toLowerCase()) ||
-               c.property?.title?.toLowerCase().includes(search.toLowerCase())
+        const q = search.toLowerCase()
+        return displayName(other).toLowerCase().includes(q) ||
+               c.property?.title?.toLowerCase().includes(q) ||
+               propertyLine(c.property).toLowerCase().includes(q)
       })
     : conversations
 
@@ -96,12 +129,12 @@ function ConversationList({ conversations, activeId, onSelect, userId, search, o
     return (
       <div className="flex flex-col items-center justify-center flex-1 px-8 text-center">
         <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-          <MessageCircle className="w-7 h-7 text-slate-300" strokeWidth={1.5} />
+          <MessageCircle className="w-7 h-7 text-slate-500" strokeWidth={1.5} />
         </div>
         <p className="text-sm font-semibold text-slate-600">
           {hostMode ? 'No messages from renters yet' : 'No conversations yet'}
         </p>
-        <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
           {hostMode
             ? 'When a renter messages you about one of your listings, the conversation will appear here.'
             : 'Start a chat by visiting a property and clicking “Chat with owner”'}
@@ -113,7 +146,7 @@ function ConversationList({ conversations, activeId, onSelect, userId, search, o
   if (filtered.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center flex-1 px-8 text-center">
-        <p className="text-sm text-slate-400">No results for &ldquo;{search}&rdquo;</p>
+        <p className="text-sm text-slate-500">No results for &ldquo;{search}&rdquo;</p>
       </div>
     )
   }
@@ -122,7 +155,6 @@ function ConversationList({ conversations, activeId, onSelect, userId, search, o
     <div className="flex-1 overflow-y-auto">
       {filtered.map(c => {
         const other = c.tenantId === userId ? c.owner : c.tenant
-        const otherRole = c.tenantId === userId ? 'Owner' : 'Tenant'
         const lastMsg = c.messages?.[0]
         const isActive = c.id === activeId
         const unread = c._count?.messages ?? 0
@@ -146,29 +178,29 @@ function ConversationList({ conversations, activeId, onSelect, userId, search, o
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-0.5">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <p className={`text-sm truncate ${isActive || unread > 0 ? 'font-bold text-slate-900' : 'font-semibold text-slate-700'}`}>
-                    {displayName(other)}
-                  </p>
-                  <span className={`text-[9px] font-bold px-1 py-0.5 rounded shrink-0 ${otherRole === 'Owner' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>
-                    {otherRole}
-                  </span>
-                </div>
-                <span className="text-[11px] text-slate-400 shrink-0 ml-2">
+              <div className="flex items-center justify-between gap-2">
+                {/* No role chip here: in a list of threads, WHICH listing this
+                    is about identifies it — Owner/Tenant is the same word on
+                    every row and told you nothing. The role stays in the
+                    thread header, where there's one of it. */}
+                <p className={`text-sm truncate ${isActive || unread > 0 ? 'font-bold text-slate-900' : 'font-semibold text-slate-800'}`}>
+                  {displayName(other)}
+                </p>
+                <span className="text-xs text-slate-500 shrink-0">
                   {lastMsg ? timeLabel(lastMsg.createdAt) : ''}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 truncate">{c.property?.title}</p>
+              <p className="text-xs font-semibold text-brand-700 truncate mt-0.5">{propertyLine(c.property)}</p>
               {lastMsg && (
-                <p className={`text-xs truncate mt-0.5 ${unread > 0 ? 'text-slate-700 font-medium' : 'text-slate-500'}`}>
-                  {lastMsg.senderId === userId ? 'You: ' : ''}{lastMsg.body}
+                <p className={`text-xs truncate mt-0.5 ${unread > 0 ? 'text-slate-800 font-medium' : 'text-slate-600'}`}>
+                  {lastMsg.senderId === userId ? 'You: ' : ''}
+                  {lastMsg.body || (lastMsg.attachmentMime === 'application/pdf' ? 'Sent a document' : 'Sent a photo')}
                 </p>
               )}
             </div>
 
             {unread > 0 && (
-              <span className="min-w-[20px] h-5 px-1.5 flex items-center justify-center text-[10px] font-bold text-white bg-brand-500 rounded-full shrink-0">
+              <span className="min-w-[20px] h-5 px-1.5 flex items-center justify-center text-[11px] font-bold text-white bg-red-500 rounded-full shrink-0">
                 {unread > 9 ? '9+' : unread}
               </span>
             )}
@@ -186,92 +218,82 @@ function ChatHeader({ conversation, userId, typingUser, searchOpen, onToggleSear
   const other = conversation.tenantId === userId ? conversation.owner : conversation.tenant
   const otherRole = conversation.tenantId === userId ? 'Owner' : 'Tenant'
 
+  // "Owner · replies in about an hour" — the role plus, only when we've measured
+  // it, how long they actually take. The second half is absent rather than
+  // optimistic when there isn't enough history.
+  const replyTime = otherRole === 'Owner' ? replyTimeLabel(conversation.ownerReplyMinutes) : null
+  const subtitle = [otherRole, replyTime].filter(Boolean).join(' · ')
+
   return (
-    <div className="shrink-0 h-16 px-6 flex items-center justify-between border-b border-slate-100 bg-white">
-      <div className="flex items-center gap-3">
-        <Avatar name={displayName(other)} url={other.avatarUrl} size={38} />
-        <div>
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-bold text-slate-900">{displayName(other)}</p>
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${otherRole === 'Owner' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>
-              {otherRole}
-            </span>
-          </div>
+    <div className="shrink-0 px-6 py-3 flex items-center justify-between gap-4 border-b border-slate-100 bg-white">
+      <div className="flex items-center gap-3 min-w-0">
+        <Avatar name={displayName(other)} url={other.avatarUrl} size={40} />
+        <div className="min-w-0">
+          <p className="text-base font-bold text-slate-900 truncate">{displayName(other)}</p>
           {typingUser ? (
-            <p className="text-xs text-brand-500 font-medium animate-pulse">Typing...</p>
+            <p className="text-sm text-brand-600 font-medium animate-pulse">Typing…</p>
           ) : (
-            <p className="text-xs text-slate-400">{conversation.property?.title}</p>
+            <p className="text-sm text-slate-500 truncate">{subtitle}</p>
           )}
         </div>
       </div>
 
-      <button
-        onClick={onToggleSearch}
-        className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${searchOpen ? 'bg-brand-100 text-brand-600' : 'hover:bg-slate-100 text-slate-500'}`}
-        title="Search messages"
-      >
-        <Search className="w-[18px] h-[18px]" strokeWidth={2} />
-      </button>
+      <div className="flex items-center gap-2 shrink-0">
+        <button
+          onClick={onToggleSearch}
+          aria-label="Search in this conversation"
+          className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${searchOpen ? 'bg-brand-100 text-brand-700' : 'hover:bg-slate-100 text-slate-500'}`}
+        >
+          <Search className="w-[18px] h-[18px]" strokeWidth={2} />
+        </button>
+        {conversation.property?.id && (
+          <Link
+            to={`/property/${conversation.property.id}`}
+            className="min-h-[44px] px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 no-underline hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors"
+          >
+            View listing
+          </Link>
+        )}
+      </div>
     </div>
   )
 }
 
-// ── Property card shown at top of chat ─────────────────────────────────────
-function ChatPropertyCard({ property }) {
-  if (!property) return null
+// ── The visit this thread is about ──────────────────────────────────────────
+// A chat about a property almost always exists because someone wants to see it,
+// and the two surfaces were disconnected: the appointment lived in one tab and
+// the conversation about it in another. This states which visit is on the table
+// so neither party has to go looking.
+//
+// Renders nothing when there is no live appointment — an empty banner saying
+// "no visit booked" would be noise on every thread that is still just a question.
+function VisitBanner({ visit }) {
+  if (!visit) return null
 
-  const img = property.images?.[0]?.url
-  const bhkLabel = property.bhk ? `${property.bhk} BHK` : null
-  const typeLabel = property.type?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  const when = visit.scheduledAt ?? visit.requestedDate
+  const date = when
+    ? new Date(when).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
+    : null
+  const time = visit.requestedTime ? `, ${formatTime(visit.requestedTime)}` : ''
+
+  const heading = visit.status === 'ACCEPTED' ? 'Visit confirmed'
+    : visit.status === 'RESCHEDULED' ? 'Visit rescheduled'
+    : 'Visit requested'
 
   return (
-    <Link
-      to={`/property/${property.id}`}
-      className="mx-6 mt-4 mb-2 flex items-center gap-3.5 p-3 bg-white rounded-xl border border-slate-100 shadow-xs hover:shadow-sm transition-shadow no-underline group"
-    >
-      {/* Thumbnail */}
-      <div className="w-16 h-16 rounded-lg bg-slate-100 overflow-hidden shrink-0">
-        {img ? (
-          <img src={img} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Home className="w-6 h-6 text-slate-300" fill="currentColor" />
-          </div>
-        )}
-      </div>
-
-      {/* Details */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-slate-800 truncate group-hover:text-brand-600 transition-colors">{property.title}</p>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          {property.city && (
-            <span className="text-xs text-slate-400 truncate">
-              {property.address ? `${property.address}, ` : ''}{property.city}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2 mt-1">
-          {property.rent && (
-            <span className="text-xs font-bold text-brand-600">{formatPrice(property)}</span>
-          )}
-          {bhkLabel && (
-            <span className="text-[10px] font-semibold text-slate-500 px-1.5 py-0.5 bg-slate-100 rounded">{bhkLabel}</span>
-          )}
-          {typeLabel && (
-            <span className="text-[10px] font-semibold text-slate-500 px-1.5 py-0.5 bg-slate-100 rounded">{typeLabel}</span>
-          )}
-        </div>
-      </div>
-
-      {/* Arrow */}
-      <ChevronRight className="w-4 h-4 text-slate-300 shrink-0 group-hover:text-brand-500 transition-colors" strokeWidth={2} />
-    </Link>
+    <div className="shrink-0 flex items-start gap-3 px-6 py-3.5 bg-brand-50">
+      <CalendarDays size={17} strokeWidth={2} className="mt-0.5 shrink-0 text-brand-700" aria-hidden="true" />
+      <p className="text-sm text-brand-900 leading-relaxed">
+        <strong className="font-bold">{heading}</strong>
+        {date && <> — {date}{time}.</>} This thread is about that visit.
+      </p>
+    </div>
   )
 }
 
 // ── Right panel: message area ───────────────────────────────────────────────
 function MessageArea({
-  messages, userId, conversation,
+  messages, userId,
   editingId, editValue, onEditValueChange, onStartEdit, onCancelEdit, onSaveEdit, onDeleteRequest,
 }) {
   const bottomRef = useRef(null)
@@ -280,29 +302,17 @@ function MessageArea({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Determine role for a given senderId
-  function senderRole(senderId) {
-    if (!conversation) return ''
-    if (senderId === conversation.ownerId) return 'Owner'
-    if (senderId === conversation.tenantId) return 'Tenant'
-    return ''
-  }
-
   // Group messages by date
   let lastDate = null
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50/50">
-      {/* Property card at top */}
-      <ChatPropertyCard property={conversation?.property} />
-
+    <div className="flex-1 overflow-y-auto bg-white">
       <div className="px-6 py-5">
       {messages.map((msg, i) => {
         const isMe = msg.senderId === userId
         const msgDate = dateSeparator(msg.createdAt)
         const showDate = msgDate !== lastDate
         lastDate = msgDate
-        const role = senderRole(msg.senderId)
 
         // Check if previous message is from same sender within 2 min
         const prev = messages[i - 1]
@@ -313,32 +323,31 @@ function MessageArea({
           <div key={msg.id}>
             {showDate && (
               <div className="flex items-center justify-center my-5">
-                <span className="px-3 py-1 text-[11px] font-semibold text-slate-400 bg-white rounded-full border border-slate-100 shadow-xs">
+                <span className="px-3 py-1 text-xs font-semibold text-slate-500 bg-slate-50 rounded-full">
                   {msgDate}
                 </span>
               </div>
             )}
 
-            <div className={`group flex items-center ${isMe ? 'justify-end' : 'justify-start'} ${isGrouped ? 'mt-1' : 'mt-4'}`}>
-              {/* Sender avatar (left side only, only on first of group) */}
-              {!isMe && !isGrouped && (
-                <Avatar name={displayName(msg.sender)} url={msg.sender?.avatarUrl} size={32} className="mt-1 mr-2.5 self-start" />
-              )}
-              {!isMe && isGrouped && <div className="w-[32px] mr-2.5 shrink-0" />}
+            {/* No avatars in the thread. A two-person conversation has exactly
+                one other face in it, already in the header — repeating it beside
+                every bubble spent 42px a line on information nobody was
+                missing. Alignment and colour say who spoke. */}
+            <div className={`group flex items-center ${isMe ? 'justify-end' : 'justify-start'} ${isGrouped ? 'mt-1.5' : 'mt-4'}`}>
 
               {/* Hover edit/delete actions — own, non-deleted messages only */}
               {isMe && !msg.deletedAt && editingId !== msg.id && (
                 <div className="hidden group-hover:flex items-center gap-1 mr-1.5">
                   <button
                     onClick={() => onStartEdit(msg)}
-                    className="w-6 h-6 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600"
+                    className="w-6 h-6 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-600"
                     title="Edit message"
                   >
                     <Pencil className="w-3 h-3" strokeWidth={2} />
                   </button>
                   <button
                     onClick={() => onDeleteRequest(msg)}
-                    className="w-6 h-6 rounded-full hover:bg-red-50 flex items-center justify-center text-slate-400 hover:text-red-500"
+                    className="w-6 h-6 rounded-full hover:bg-red-50 flex items-center justify-center text-slate-500 hover:text-red-500"
                     title="Delete message"
                   >
                     <Trash2 className="w-3 h-3" strokeWidth={2} />
@@ -346,23 +355,7 @@ function MessageArea({
                 </div>
               )}
 
-              <div className="max-w-[65%]">
-                {/* Sender name + role + time header */}
-                {!isGrouped && (
-                  <div className={`flex items-center gap-2 mb-1 ${isMe ? 'justify-end' : ''}`}>
-                    <span className="text-xs font-semibold text-slate-600">
-                      {isMe ? 'You' : displayName(msg.sender)}
-                    </span>
-                    {role && (
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                        role === 'Owner' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'
-                      }`}>
-                        {role}
-                      </span>
-                    )}
-                  </div>
-                )}
-
+              <div className="max-w-[70%] min-w-0">
                 {/* Bubble */}
                 {editingId === msg.id ? (
                   <div className="px-3 py-2 rounded-2xl bg-white border border-brand-300 shadow-xs">
@@ -374,41 +367,55 @@ function MessageArea({
                       className="w-full text-sm text-slate-800 resize-none focus:outline-none"
                     />
                     <div className="flex items-center justify-end gap-2 mt-1">
-                      <button onClick={onCancelEdit} className="text-xs font-semibold text-slate-400 hover:text-slate-600 px-2 py-1">Cancel</button>
+                      <button onClick={onCancelEdit} className="text-xs font-semibold text-slate-500 hover:text-slate-600 px-2 py-1">Cancel</button>
                       <button onClick={onSaveEdit} className="text-xs font-semibold text-brand-600 hover:text-brand-700 px-2 py-1">Save</button>
                     </div>
                   </div>
                 ) : (
-                  <div className={`px-4 py-2.5 text-sm leading-relaxed ${isMe
-                    ? 'bg-brand-500 text-white rounded-2xl rounded-br-md'
-                    : 'bg-white text-slate-800 rounded-2xl rounded-bl-md border border-slate-100 shadow-xs'
+                  <div className={`px-4 py-3 text-sm leading-relaxed ${isMe
+                    ? 'bg-brand-700 text-white rounded-2xl rounded-br-md'
+                    : 'bg-slate-100 text-slate-800 rounded-2xl rounded-bl-md'
                   }`}>
                     {msg.deletedAt ? (
-                      <span className={`italic ${isMe ? 'text-white/70' : 'text-slate-400'}`}>This message was deleted</span>
+                      <span className={`italic ${isMe ? 'text-white/70' : 'text-slate-500'}`}>This message was deleted</span>
                     ) : (
                       <>
-                        {msg.attachmentUrl && (
-                          <img src={msg.attachmentUrl} alt="Attachment" className="max-w-[220px] max-h-[220px] rounded-lg object-cover block mb-1" />
+                        {isImageAttachment(msg) && (
+                          <img src={msg.attachmentUrl} alt="Attachment" className="max-w-[220px] max-h-[220px] rounded-lg object-cover block mb-1.5" />
                         )}
-                        {msg.body && <span>{msg.body}</span>}
+                        {msg.attachmentUrl && !isImageAttachment(msg) && (
+                          <a
+                            href={msg.attachmentUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`flex items-center gap-2.5 mb-1.5 px-3 py-2.5 rounded-xl no-underline transition-colors ${
+                              isMe ? 'bg-white/15 hover:bg-white/25 text-white' : 'bg-white hover:bg-slate-50 text-slate-800'
+                            }`}
+                          >
+                            <FileText size={18} strokeWidth={2} className="shrink-0" aria-hidden="true" />
+                            <span className="flex-1 min-w-0">
+                              <span className="block text-sm font-semibold truncate">{msg.attachmentName || 'Document'}</span>
+                              <span className={`block text-xs ${isMe ? 'text-white/70' : 'text-slate-500'}`}>PDF · opens in a new tab</span>
+                            </span>
+                          </a>
+                        )}
+                        {msg.body && (
+                          <span className="block whitespace-pre-wrap break-words">{msg.body}</span>
+                        )}
                       </>
                     )}
-                    <span className="inline-flex items-center gap-1 ml-2 align-bottom translate-y-0.5">
-                      {msg.editedAt && !msg.deletedAt && (
-                        <span className={`text-[10px] ${isMe ? 'opacity-70' : 'text-slate-400'}`}>edited</span>
-                      )}
-                      <span className={`text-[10px] ${isMe ? 'opacity-70' : 'text-slate-400'}`}>{chatTime(msg.createdAt)}</span>
+                    {/* Its own line under the message, not trailing the last
+                        word — a timestamp inlined after the text competed with
+                        it for the same reading position. */}
+                    <span className={`flex items-center gap-1 mt-1 text-xs ${isMe ? 'text-white/70' : 'text-slate-500'}`}>
+                      {msg.editedAt && !msg.deletedAt && <span>edited ·</span>}
+                      <span>{chatTime(msg.createdAt)}</span>
                       {isMe && <ReadReceipt isRead={msg.isRead} />}
                     </span>
                   </div>
                 )}
               </div>
 
-              {/* My avatar (right side, only on first of group) */}
-              {isMe && !isGrouped && (
-                <Avatar name={displayName(msg.sender)} url={msg.sender?.avatarUrl} size={32} className="mt-1 ml-2.5 self-start" />
-              )}
-              {isMe && isGrouped && <div className="w-[32px] ml-2.5 shrink-0" />}
             </div>
           </div>
         )
@@ -424,7 +431,9 @@ function MessageArea({
 function InputBar({ onSend, onTyping, isPending }) {
   const [input, setInput] = useState('')
   const [uploading, setUploading] = useState(false)
-  const fileInputRef = useRef(null)
+  const [attachOpen, setAttachOpen] = useState(false)
+  const imageInputRef = useRef(null)
+  const docInputRef = useRef(null)
   const busy = isPending || uploading
 
   function handleSubmit(e) {
@@ -447,17 +456,28 @@ function InputBar({ onSend, onTyping, isPending }) {
     }
   }
 
-  async function handleFileChange(e) {
+  // One handler, two kinds. `kind` decides which endpoint and therefore which
+  // allowlist applies — an image is re-encoded to WebP, a PDF is stored as-is
+  // with its name (see backend/features/uploads/documents.service.js).
+  async function handleFileChange(e, kind) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
     setUploading(true)
+    setAttachOpen(false)
     try {
-      const res = await uploadService.uploadChatImage(file)
-      onSend({ body: input.trim(), attachmentUrl: res.data.url })
+      const res = kind === 'document'
+        ? await uploadService.uploadChatFile(file)
+        : await uploadService.uploadChatImage(file)
+      onSend({
+        body: input.trim(),
+        attachmentUrl: res.data.url,
+        attachmentName: res.data.name,
+        attachmentMime: res.data.mime,
+      })
       setInput('')
-    } catch {
-      toast.error('Error', 'Failed to upload image')
+    } catch (err) {
+      toast.error('Couldn’t attach', err.message ?? `Failed to upload the ${kind === 'document' ? 'document' : 'image'}`)
     } finally {
       setUploading(false)
     }
@@ -465,17 +485,56 @@ function InputBar({ onSend, onTyping, isPending }) {
 
   return (
     <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-100 bg-white px-5 py-3.5 flex items-end gap-3">
-      {/* Attachment button */}
-      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} className="hidden" />
-      <button
-        type="button"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={busy}
-        className="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-400 shrink-0 mb-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
-        title="Attach an image"
-      >
-        <Paperclip className="w-5 h-5" strokeWidth={2} />
-      </button>
+      {/* Two pickers behind one paperclip. A single input can't do both: the
+          accept lists differ and so do the endpoints. */}
+      <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => handleFileChange(e, 'image')} className="hidden" />
+      <input ref={docInputRef} type="file" accept="application/pdf" onChange={(e) => handleFileChange(e, 'document')} className="hidden" />
+
+      <div className="relative shrink-0 mb-1">
+        <button
+          type="button"
+          onClick={() => setAttachOpen((o) => !o)}
+          disabled={busy}
+          aria-label="Attach a photo or document"
+          aria-expanded={attachOpen}
+          className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-500 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+        >
+          <Paperclip className="w-5 h-5" strokeWidth={2} />
+        </button>
+
+        {attachOpen && (
+          <>
+            {/* Click-away catcher — a menu that only closes by re-tapping the
+                trigger is a menu people leave open. */}
+            <button
+              type="button"
+              aria-hidden="true"
+              tabIndex={-1}
+              onClick={() => setAttachOpen(false)}
+              className="fixed inset-0 z-10 cursor-default"
+            />
+            <div className="absolute bottom-12 left-0 z-20 w-48 bg-white rounded-2xl border border-slate-200 shadow-float overflow-hidden">
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                <ImageIcon size={17} strokeWidth={2} className="text-slate-500" aria-hidden="true" />
+                Photo
+              </button>
+              <button
+                type="button"
+                onClick={() => docInputRef.current?.click()}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 border-t border-slate-100 transition-colors"
+              >
+                <FileText size={17} strokeWidth={2} className="text-slate-500" aria-hidden="true" />
+                Document
+                <span className="ml-auto text-xs text-slate-500">PDF</span>
+              </button>
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Text input */}
       <div className="flex-1 relative">
@@ -483,11 +542,12 @@ function InputBar({ onSend, onTyping, isPending }) {
           value={input}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder={uploading ? 'Uploading image...' : 'Type a message...'}
+          placeholder={uploading ? 'Uploading…' : 'Write a message…'}
           rows={1}
           disabled={uploading}
-          className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 resize-none placeholder:text-slate-400 disabled:opacity-60"
-          style={{ minHeight: '42px', maxHeight: '120px' }}
+          aria-label="Write a message"
+          className="w-full px-4 py-3 text-sm bg-white border border-slate-200 rounded-2xl focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-500 resize-none placeholder:text-slate-500 disabled:opacity-60"
+          style={{ minHeight: '48px', maxHeight: '120px' }}
         />
       </div>
 
@@ -495,9 +555,10 @@ function InputBar({ onSend, onTyping, isPending }) {
       <button
         type="submit"
         disabled={!input.trim() || busy}
-        className="w-10 h-10 rounded-full bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 mb-0.5"
+        aria-label="Send message"
+        className="w-12 h-12 rounded-2xl bg-brand-600 text-white flex items-center justify-center hover:bg-brand-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
       >
-        <Send className="w-4 h-4" fill="currentColor" />
+        <Send className="w-[18px] h-[18px]" strokeWidth={2.2} />
       </button>
     </form>
   )
@@ -509,10 +570,10 @@ function EmptyChat() {
     <div className="flex-1 flex items-center justify-center bg-slate-50/50">
       <div className="text-center">
         <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-5">
-          <MessageCircle className="w-9 h-9 text-slate-300" strokeWidth={1.2} />
+          <MessageCircle className="w-9 h-9 text-slate-500" strokeWidth={1.2} />
         </div>
         <p className="text-base font-bold text-slate-600 mb-1">Select a conversation</p>
-        <p className="text-sm text-slate-400">Choose from your existing chats on the left</p>
+        <p className="text-sm text-slate-500">Choose from your existing chats on the left</p>
       </div>
     </div>
   )
@@ -548,7 +609,8 @@ function ChatWindow({ conversation, conversationId, userId }) {
   })
 
   const { mutate: send, isPending } = useMutation({
-    mutationFn: ({ body, attachmentUrl }) => chatService.sendMessage(conversationId, body, attachmentUrl),
+    mutationFn: ({ body, attachmentUrl, attachmentName, attachmentMime }) =>
+      chatService.sendMessage(conversationId, body, { url: attachmentUrl, name: attachmentName, mime: attachmentMime }),
     onSuccess: (res) => {
       qc.setQueryData(['chat-messages', conversationId], (old = []) => [...old, res.data])
       qc.invalidateQueries({ queryKey: ['conversations'] })
@@ -570,7 +632,7 @@ function ChatWindow({ conversation, conversationId, userId }) {
     mutationFn: (messageId) => chatService.deleteMessage(conversationId, messageId),
     onSuccess: (_res, messageId) => {
       qc.setQueryData(['chat-messages', conversationId], (old = []) =>
-        old.map(m => (m.id === messageId ? { ...m, deletedAt: new Date().toISOString(), body: '', attachmentUrl: null } : m)))
+        old.map(m => (m.id === messageId ? { ...m, deletedAt: new Date().toISOString(), body: '', attachmentUrl: null, attachmentName: null } : m)))
     },
     onError: () => toast.error('Error', 'Failed to delete message'),
   })
@@ -613,7 +675,7 @@ function ChatWindow({ conversation, conversationId, userId }) {
     function onMessageDeleted(data) {
       if (data.conversationId !== conversationId) return
       qc.setQueryData(['chat-messages', conversationId], (old = []) =>
-        old.map(m => (m.id === data.id ? { ...m, deletedAt: new Date().toISOString(), body: '', attachmentUrl: null } : m)))
+        old.map(m => (m.id === data.id ? { ...m, deletedAt: new Date().toISOString(), body: '', attachmentUrl: null, attachmentName: null } : m)))
     }
 
     // Reconnect safety net: catch up on anything missed while disconnected
@@ -676,20 +738,21 @@ function ChatWindow({ conversation, conversationId, userId }) {
         searchOpen={searchOpen}
         onToggleSearch={() => { setSearchOpen(o => !o); setMsgSearch('') }}
       />
+      <VisitBanner visit={conversation?.visit} />
       {searchOpen && (
         <div className="shrink-0 px-6 py-2.5 border-b border-slate-100 bg-white">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" strokeWidth={2} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" strokeWidth={2} />
             <input
               autoFocus
               type="text"
               value={msgSearch}
               onChange={e => setMsgSearch(e.target.value)}
               placeholder="Search messages..."
-              className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 placeholder:text-slate-400"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus:border-brand-400 placeholder:text-slate-500"
             />
             {msgSearch && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-500">
                 {visibleMessages.length} result{visibleMessages.length !== 1 ? 's' : ''}
               </span>
             )}
@@ -699,7 +762,6 @@ function ChatWindow({ conversation, conversationId, userId }) {
       <MessageArea
         messages={visibleMessages}
         userId={userId}
-        conversation={conversation}
         editingId={editingId}
         editValue={editValue}
         onEditValueChange={setEditValue}

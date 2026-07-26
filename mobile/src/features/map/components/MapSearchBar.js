@@ -139,7 +139,7 @@ const MapSearchBar = forwardRef(function MapSearchBar(_props, ref) {
     <View style={styles.wrap}>
       <View style={styles.barRow}>
         <View style={styles.inputWrap}>
-          <Icon name="search" size={16} color={colors.slate400} />
+          <Icon name="search" size={16} color={colors.slate500} />
           <TextInput
             ref={inputRef}
             style={styles.input}
@@ -149,13 +149,13 @@ const MapSearchBar = forwardRef(function MapSearchBar(_props, ref) {
             onBlur={() => setTimeout(() => setFocused(false), 150)}
             onSubmitEditing={handleSubmit}
             placeholder={filters.city ? `Search in ${filters.city}…` : 'Search area, e.g. Koramangala'}
-            placeholderTextColor={colors.slate400}
+            placeholderTextColor={colors.slate500}
             returnKeyType="search"
           />
           {(resolving || loading) && <ActivityIndicator size="small" color={colors.brand600} />}
           {!!query && !resolving && !loading && (
             <Pressable onPress={clear} hitSlop={16} accessibilityRole="button" accessibilityLabel="Clear search">
-              <Icon name="close" size={14} color={colors.slate400} />
+              <Icon name="close" size={14} color={colors.slate500} />
             </Pressable>
           )}
         </View>
@@ -187,7 +187,7 @@ const MapSearchBar = forwardRef(function MapSearchBar(_props, ref) {
             renderItem={({ item }) =>
               item.recent ? (
                 <Pressable style={styles.option} onPress={() => setQuery(item.label)} accessibilityRole="button" accessibilityLabel={`Recent search ${item.label}`}>
-                  <Icon name="clock" size={14} color={colors.slate400} />
+                  <Icon name="clock" size={14} color={colors.slate500} />
                   <Text style={styles.optionText} numberOfLines={1}>{item.label}</Text>
                 </Pressable>
               ) : (
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   option: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2 },
   optionTextWrap: { flex: 1, minWidth: 0 },
   optionText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate700 },
-  optionSubtext: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 1 },
+  optionSubtext: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 1 },
   separator: { height: 1, backgroundColor: colors.slate100, marginHorizontal: spacing.md },
-  emptyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, textAlign: 'center', paddingVertical: spacing.lg },
+  emptyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, textAlign: 'center', paddingVertical: spacing.lg },
 })

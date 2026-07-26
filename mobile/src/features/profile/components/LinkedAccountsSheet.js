@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   },
   rowLabels: { flex: 1, minWidth: 0 },
   rowLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate800 },
-  rowHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
+  rowHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
   pill: { backgroundColor: colors.brand50, borderRadius: radius.full, paddingHorizontal: spacing.sm + 2, paddingVertical: 4 },
   pillText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
   outlineButton: {
@@ -123,5 +123,5 @@ const styles = StyleSheet.create({
   },
   darkButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   disabled: { opacity: 0.5 },
-  empty: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, paddingVertical: spacing.md },
+  empty: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, paddingVertical: spacing.md },
 })

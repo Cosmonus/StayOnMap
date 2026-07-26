@@ -38,7 +38,7 @@ export default function ConfidenceMeter({ confidence }) {
     <div className="mt-3 pt-3 border-t border-slate-100">
       <div className="flex items-center justify-between gap-2 mb-1.5">
         <span className={`text-[11px] font-semibold ${cfg.text}`}>{cfg.label}</span>
-        <span className="text-[10px] text-slate-400 tabular-nums">
+        <span className="text-[11px] text-slate-500 tabular-nums">
           {pct}%
         </span>
       </div>
@@ -54,7 +54,7 @@ export default function ConfidenceMeter({ confidence }) {
         <div className={`h-full rounded-full ${cfg.bar}`} style={{ width: `${pct}%` }} />
       </div>
 
-      {confidence.basis && <p className="text-[10px] text-slate-400 mt-1.5">{confidence.basis}</p>}
+      {confidence.basis && <p className="text-[11px] text-slate-500 mt-1.5">{confidence.basis}</p>}
 
       {/*
         Why the score is lower than the inputs alone would give.
@@ -71,7 +71,7 @@ export default function ConfidenceMeter({ confidence }) {
       {reductions.length > 0 && (
         <ul className="mt-1.5 space-y-1">
           {reductions.map((f) => (
-            <li key={f.key} className="flex gap-1.5 text-[10px] text-amber-700">
+            <li key={f.key} className="flex gap-1.5 text-[11px] text-amber-700">
               <span aria-hidden="true">↓</span>
               <span>{f.reason}</span>
             </li>

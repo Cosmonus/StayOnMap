@@ -63,12 +63,12 @@ export default function ModuleCard({ envelope, coords }) {
         {/* Which question this card answers — a quiet eyebrow, so the answer
             below is the only bold thing competing for the eye. */}
         <div className="flex items-center gap-2">
-          {Icon && <Icon className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} aria-hidden="true" />}
-          <h3 className="min-w-0 flex-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          {Icon && <Icon className="h-4 w-4 shrink-0 text-slate-500" strokeWidth={2} aria-hidden="true" />}
+          <h3 className="min-w-0 flex-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">
             {meta.title}
           </h3>
           <ChevronRight
-            className="h-4 w-4 shrink-0 text-slate-300 transition-colors group-hover:text-brand-600"
+            className="h-4 w-4 shrink-0 text-slate-500 transition-colors group-hover:text-brand-600"
             strokeWidth={2.5}
             aria-hidden="true"
           />
@@ -107,7 +107,7 @@ export default function ModuleCard({ envelope, coords }) {
                       Thomas Mount") drops the value onto its own line instead
                       of crushing the label into a two-word column. */}
                   <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                    <span className="text-[11px] text-slate-400">{f.label}</span>
+                    <span className="text-[11px] text-slate-500">{f.label}</span>
                     <span className="ml-auto text-right text-[11px] font-semibold text-slate-700">
                       {f.display}
                     </span>
@@ -122,7 +122,7 @@ export default function ModuleCard({ envelope, coords }) {
             the report link stay aligned across a grid row of cards. */}
         <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
           {band ? (
-            <span className={`text-[10px] ${band.cls}`}>
+            <span className={`text-[11px] ${band.cls}`}>
               {band.text}
               {hasMissing && <> · what we don&apos;t know</>}
             </span>

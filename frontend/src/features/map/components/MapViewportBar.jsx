@@ -19,7 +19,13 @@ export default function MapViewportBar() {
   const refetchPins     = useMapStore((s) => s.refetchPins)
   const filters         = useFilterStore((s) => s.filters)
 
+  // GET /properties/pins returns at most 200 rows (properties.service.js's
+  // `take: 200`), so on a dense viewport `pins.length` is a floor, not a total.
+  // "200 homes in this view" over a city centre holding 900 is a wrong number
+  // stated confidently — the one thing a metric must never be.
+  const PIN_LIMIT = 200
   const count = pins.length
+  const capped = count >= PIN_LIMIT
 
   // "See them as a list" carries the filters AND the viewport, so the grid
   // opens on the same homes the map was showing. Filters alone weren't enough:
@@ -36,6 +42,12 @@ export default function MapViewportBar() {
   }
   const query = params.toString()
   const listHref = query ? `/properties?${query}` : '/properties'
+
+  // "2 homes in this view" over a pair of plots for sale. `rent` is the primary
+  // price in all three pricing modes, and so is the map — only the noun changes.
+  const noun = filters.pricingModel === 'SALE'
+    ? { one: 'place for sale', plural: 'places for sale' }
+    : { one: 'home', plural: 'homes' }
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-4 pb-4 md:px-5 md:pb-5">
@@ -88,14 +100,14 @@ export default function MapViewportBar() {
               people think the listings failed to load. */}
           {!bounds ? (
             <p className="rounded-full bg-slate-900/90 px-4 py-2 text-sm text-white/90 shadow-lg">
-              Loading homes…
+              Loading {noun.plural}…
             </p>
           ) : count > 0 ? (
             <div className="flex items-center gap-1 rounded-full bg-slate-900 py-1 pl-4 pr-1 text-white shadow-lg">
               <span className="text-sm">
-                <span className="font-mono font-bold">{count}</span>
+                <span className="font-mono font-bold">{count}{capped ? '+' : ''}</span>
                 <span className="ml-1.5 text-white/70">
-                  {count === 1 ? 'home in this view' : 'homes in this view'}
+                  {count === 1 ? `${noun.one} in this view` : `${noun.plural} in this view`}
                 </span>
               </span>
               <Link
@@ -108,7 +120,7 @@ export default function MapViewportBar() {
             </div>
           ) : (
             <p className="rounded-full bg-slate-900/90 px-4 py-2 text-sm text-white/90 shadow-lg">
-              No homes in this view — try zooming out
+              No {noun.plural} in this view — try zooming out
             </p>
           )}
         </div>

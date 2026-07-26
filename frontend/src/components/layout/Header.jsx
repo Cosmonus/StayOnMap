@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Map as MapIcon, Home, ConciergeBell, Menu, User } from 'lucide-react'
+import {
+  Map as MapIcon, Home, ConciergeBell, Menu, User,
+  LayoutDashboard, MessageSquare, CalendarCheck, CalendarDays, Building2,
+  Bell, UserRound, LifeBuoy, LogOut, ArrowLeftRight, Heart, KeyRound,
+} from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
 import { useFilterStore } from '@store/filterStore'
@@ -11,6 +14,8 @@ import { chatService } from '@services/chat.service'
 import { authService } from '@services/auth.service'
 import MapFilterBar from '@features/map/components/MapFilterBar'
 import FilterButton from '@features/filters/components/FilterButton'
+import NotificationBell from '@features/notifications/components/NotificationBell'
+import ActionMenu from '@components/common/ActionMenu'
 
 const NAV_TABS = [
   {
@@ -31,17 +36,31 @@ const NAV_TABS = [
 ]
 
 const HOST_NAV_TABS = [
-  { key: 'dashboard',    label: 'Dashboard',    to: '/user?tab=dashboard' },
-  { key: 'messages',     label: 'Inbox',        to: '/user?tab=messages' },
-  { key: 'appointments', label: 'Appointments', to: '/user?tab=appointments' },
-  { key: 'calendar',     label: 'Calendar',     to: '/user?tab=calendar' },
-  { key: 'my-listing',   label: 'My Listing',   to: '/list' },
+  { key: 'dashboard',    label: 'Dashboard',    to: '/user?tab=dashboard',    icon: <LayoutDashboard size={20} strokeWidth={1.8} /> },
+  { key: 'messages',     label: 'Inbox',        to: '/user?tab=messages',     icon: <MessageSquare size={20} strokeWidth={1.8} /> },
+  { key: 'appointments', label: 'Appointments', to: '/user?tab=appointments', icon: <CalendarCheck size={20} strokeWidth={1.8} /> },
+  { key: 'calendar',     label: 'Calendar',     to: '/user?tab=calendar',     icon: <CalendarDays size={20} strokeWidth={1.8} /> },
+  { key: 'my-listing',   label: 'My Listing',   to: '/list',                  icon: <Building2 size={20} strokeWidth={1.8} /> },
 ]
 
+// One icon per menu row, in both signed-in modes. A dropdown of bare text
+// beneath a tab row that has icons reads as two different products.
+const MENU_ICON = {
+  notifications: <Bell size={17} strokeWidth={1.8} />,
+  account:       <UserRound size={17} strokeWidth={1.8} />,
+  support:       <LifeBuoy size={17} strokeWidth={1.8} />,
+  wishlist:      <Heart size={17} strokeWidth={1.8} />,
+  appointments:  <CalendarCheck size={17} strokeWidth={1.8} />,
+  rented:        <KeyRound size={17} strokeWidth={1.8} />,
+  switch:        <ArrowLeftRight size={17} strokeWidth={1.8} />,
+  logout:        <LogOut size={17} strokeWidth={1.8} />,
+}
+
+// The tab-row unread pill. ActionMenu carries its own copy for menu items.
 function Badge({ count }) {
   if (!count) return null
   return (
-    <span className="min-w-[16px] h-4 px-1 flex items-center justify-center text-[10px] font-bold rounded-full bg-red-500 text-white">
+    <span className="min-w-[16px] h-4 px-1 flex items-center justify-center text-[11px] font-bold rounded-full bg-red-500 text-white">
       {count > 9 ? '9+' : count}
     </span>
   )
@@ -63,69 +82,6 @@ function AvatarCircle({ user, size = 'w-7 h-7' }) {
   )
 }
 
-// Generic dropdown shell — trigger + item list. Reused by all three nav variants
-// instead of three copies of the same open/close/backdrop chrome.
-function DropdownMenu({ trigger, triggerClassName, items }) {
-  const [open, setOpen] = useState(false)
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        aria-label="Open menu"
-        className={triggerClassName ?? 'flex items-center justify-center w-7 h-7 rounded-full hover:bg-slate-100 transition-colors shrink-0'}
-      >
-        {trigger}
-      </button>
-
-      {open && (
-        <>
-          {/* Portal the backdrop to <body>: the <header> uses a CSS transform
-              (its hide-on-scroll animation), which makes it the containing
-              block for fixed descendants — so a nested `fixed inset-0` is
-              trapped inside the ~64px header bar and never covers the map.
-              Portaled to body it truly spans the viewport, so a click anywhere
-              (map included) closes the menu. */}
-          {createPortal(
-            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />,
-            document.body,
-          )}
-          <div className="absolute right-0 top-full mt-2 z-40 w-56 bg-white rounded-xl shadow-panel border border-slate-200 py-2">
-            {items.map((item) =>
-              item.divider ? (
-                <div key={item.key} className={`border-t border-slate-200 my-1 ${item.className ?? ''}`} />
-              ) : item.to ? (
-                <Link
-                  key={item.key}
-                  to={item.to}
-                  onClick={() => setOpen(false)}
-                  className={`flex items-center justify-between gap-2 px-4 py-2.5 text-sm no-underline ${
-                    item.danger ? 'text-red-500 hover:bg-red-50' : 'text-slate-700 hover:bg-slate-100'
-                  } ${item.className ?? ''}`}
-                >
-                  {item.label}
-                  <Badge count={item.badge} />
-                </Link>
-              ) : (
-                <button
-                  key={item.key}
-                  onClick={() => { setOpen(false); item.onClick() }}
-                  className={`w-full flex items-center justify-between gap-2 text-left px-4 py-2.5 text-sm ${
-                    item.danger ? 'text-red-500 hover:bg-red-50' : 'text-slate-700 hover:bg-slate-100'
-                  } ${item.className ?? ''}`}
-                >
-                  {item.label}
-                  <Badge count={item.badge} />
-                </button>
-              )
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
 function NavTabs({ tabs }) {
   return (
     <nav className="hidden md:flex items-center gap-1">
@@ -137,7 +93,7 @@ function NavTabs({ tabs }) {
             active ? 'text-slate-900 font-semibold' : 'text-slate-500 font-medium hover:text-slate-900'
           }`}
         >
-          {icon && <span className={active ? 'text-brand-600' : 'text-slate-400'}>{icon}</span>}
+          {icon && <span className={active ? 'text-brand-600' : 'text-slate-500'}>{icon}</span>}
           {label}
           <Badge count={badge} />
           {active && <span className="absolute -bottom-0.5 left-3 right-3 h-0.5 rounded-full bg-slate-900" />}
@@ -157,7 +113,7 @@ function GuestActions() {
 
   const menuItems = [
     // Only needed on mobile — NavTabs above already shows these at md+.
-    ...NAV_TABS.map((t) => ({ key: t.to, label: t.label, to: t.to, className: 'md:hidden' })),
+    ...NAV_TABS.map((t) => ({ key: t.to, label: t.label, to: t.to, icon: t.icon, className: 'md:hidden' })),
     { key: 'divider', divider: true, className: 'md:hidden' },
     { key: 'login', label: 'Login / Sign up', onClick: openLoginModal },
   ]
@@ -168,7 +124,7 @@ function GuestActions() {
         <NavTabs tabs={tabs} />
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <DropdownMenu trigger={<HamburgerIcon />} items={menuItems} />
+        <ActionMenu trigger={<HamburgerIcon />} items={menuItems} />
         <button onClick={openLoginModal} aria-label="Log in" className="shrink-0">
           <AvatarCircle user={null} />
         </button>
@@ -198,18 +154,17 @@ function TravelerActions({ unreadMessages, onBecomeHost, profile }) {
     // Duplicates the top NavTabs row — NavTabs is desktop-only (`hidden
     // md:flex`), so on mobile the hamburger is the ONLY way to reach these.
     // Hidden at md+ here since NavTabs already covers it there.
-    ...tabs.map((t) => ({ key: t.key ?? t.to, label: t.label, to: t.to, badge: t.badge, className: 'md:hidden' })),
+    ...tabs.map((t) => ({ key: t.key ?? t.to, label: t.label, to: t.to, badge: t.badge, icon: t.icon, className: 'md:hidden' })),
     { key: 'divider-tabs', divider: true, className: 'md:hidden' },
-    { key: 'wishlist',      label: 'Wishlist',      to: '/user?tab=wishlist' },
-    { key: 'appointments',  label: 'Appointments',  to: '/user?tab=appointments' },
-    { key: 'leases',        label: 'Rented',        to: '/user?tab=leases' },
-    { key: 'profile',       label: 'Profile',       to: '/user?tab=settings' },
-    { key: 'notifications', label: 'Notifications', to: '/user?tab=notifications' },
-    { key: 'account',       label: 'Account',       to: '/user?tab=settings' },
-    { key: 'support',       label: 'Support',       to: '/user?tab=support' },
+    { key: 'wishlist',      label: 'Wishlist',      to: '/user?tab=wishlist',      icon: MENU_ICON.wishlist },
+    { key: 'appointments',  label: 'Appointments',  to: '/user?tab=appointments',  icon: MENU_ICON.appointments },
+    { key: 'leases',        label: 'Rented',        to: '/user?tab=leases',        icon: MENU_ICON.rented },
+    { key: 'notifications', label: 'Notifications', to: '/user?tab=notifications', icon: MENU_ICON.notifications },
+    { key: 'account',       label: 'Account',       to: '/user?tab=settings',      icon: MENU_ICON.account },
+    { key: 'support',       label: 'Support',       to: '/user?tab=support',       icon: MENU_ICON.support },
     { key: 'divider',       divider: true },
-    { key: 'become-host',   label: 'Become a host', onClick: onBecomeHost },
-    { key: 'logout',        label: 'Log out', danger: true, onClick: () => { signOut(); navigate('/') } },
+    { key: 'switch-to-host', label: 'Switch to host', onClick: onBecomeHost,        icon: MENU_ICON.switch },
+    { key: 'logout',        label: 'Log out', danger: true, icon: MENU_ICON.logout, onClick: () => { signOut(); navigate('/') } },
   ]
 
   return (
@@ -224,7 +179,14 @@ function TravelerActions({ unreadMessages, onBecomeHost, profile }) {
         >
           Become a host
         </button>
-        <DropdownMenu trigger={<HamburgerIcon />} items={menuItems} />
+        {/* NotificationBell existed, complete with an unread badge and a live
+            `notification:new` socket listener, and NOTHING rendered it — so
+            real-time notifications arrived on web with no indicator anywhere,
+            reachable only by opening a hamburger menu and knowing to look.
+            Hidden below sm where the header is already tight; the hamburger
+            still lists Notifications there. */}
+        <div className="hidden sm:block shrink-0"><NotificationBell /></div>
+        <ActionMenu trigger={<HamburgerIcon />} items={menuItems} />
         <Link to="/user?tab=settings" aria-label="Your account" className="shrink-0">
           <AvatarCircle user={profile} />
         </Link>
@@ -251,14 +213,14 @@ function HostActions({ unreadMessages, onSwitchToTraveling, profile }) {
     // desktop-only (`hidden md:flex`), so on mobile the hamburger is the
     // ONLY way to switch between Dashboard/Inbox/Appointments/Calendar/My
     // Listing.
-    ...tabs.map((t) => ({ key: `tab-${t.key}`, label: t.label, to: t.to })),
+    ...tabs.map((t) => ({ key: `tab-${t.key}`, label: t.label, to: t.to, icon: t.icon })),
     { key: 'divider-tabs', divider: true },
-    { key: 'notifications',      label: 'Notifications',      to: '/user?tab=notifications' },
-    { key: 'account',            label: 'Account',             to: '/user?tab=settings' },
-    { key: 'support',            label: 'Support',             to: '/user?tab=support' },
+    { key: 'notifications',      label: 'Notifications',      to: '/user?tab=notifications', icon: MENU_ICON.notifications },
+    { key: 'account',            label: 'Account',             to: '/user?tab=settings',      icon: MENU_ICON.account },
+    { key: 'support',            label: 'Support',             to: '/user?tab=support',       icon: MENU_ICON.support },
     { key: 'divider',            divider: true },
-    { key: 'switch-to-traveling', label: 'Switch to traveling', onClick: onSwitchToTraveling },
-    { key: 'logout',             label: 'Log out', danger: true, onClick: () => { signOut(); navigate('/') } },
+    { key: 'switch-to-tenant',   label: 'Switch to tenant',    onClick: onSwitchToTraveling, icon: MENU_ICON.switch },
+    { key: 'logout',             label: 'Log out', danger: true, icon: MENU_ICON.logout, onClick: () => { signOut(); navigate('/') } },
   ]
 
   return (
@@ -273,7 +235,14 @@ function HostActions({ unreadMessages, onSwitchToTraveling, profile }) {
         >
           Exit hosting
         </button>
-        <DropdownMenu trigger={<HamburgerIcon />} items={menuItems} />
+        {/* NotificationBell existed, complete with an unread badge and a live
+            `notification:new` socket listener, and NOTHING rendered it — so
+            real-time notifications arrived on web with no indicator anywhere,
+            reachable only by opening a hamburger menu and knowing to look.
+            Hidden below sm where the header is already tight; the hamburger
+            still lists Notifications there. */}
+        <div className="hidden sm:block shrink-0"><NotificationBell /></div>
+        <ActionMenu trigger={<HamburgerIcon />} items={menuItems} />
         <Link to="/user?tab=settings" aria-label="Your account" className="shrink-0">
           <AvatarCircle user={profile} />
         </Link>
@@ -331,8 +300,12 @@ export default function Header() {
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200 transition-transform duration-300 ${hidden ? '-translate-y-full' : 'translate-y-0'}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20 h-16 flex items-center justify-between gap-4">
-        <Link to="/" className="flex items-center gap-2 no-underline shrink-0">
+      <div className={`h-16 flex items-center justify-between gap-4 ${
+        user && hostMode
+          ? 'w-full px-4 sm:px-6 md:px-8'
+          : 'max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20'
+      }`}>
+        <Link to={user && hostMode ? '/user?tab=dashboard' : '/'} className="flex items-center gap-2 no-underline shrink-0">
           <span className="font-display font-bold text-lg sm:text-xl text-slate-900 tracking-tight">
             Stay<span className="text-brand-600">OnMap</span>
           </span>

@@ -47,7 +47,7 @@ export default function SummaryStrip({ envelopes }) {
 
   return (
     <div>
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
         Around this location
       </p>
       <div className="mt-1.5 flex flex-wrap gap-1.5" role="group" aria-label="Nearby place counts">
@@ -59,9 +59,9 @@ export default function SummaryStrip({ envelopes }) {
               type="button"
               onClick={() => jumpTo(chip.moduleKey)}
               aria-label={`${chip.count} ${chip.label} nearby — jump to details`}
-              className="flex min-h-[32px] items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="flex min-h-[32px] items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
-              <Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" strokeWidth={2} aria-hidden="true" />
+              <Icon className="h-3.5 w-3.5 shrink-0 text-slate-500" strokeWidth={2} aria-hidden="true" />
               <span className="font-bold text-slate-800">{chip.count}</span>
               <span>{chip.label}</span>
             </button>
@@ -69,7 +69,7 @@ export default function SummaryStrip({ envelopes }) {
         })}
       </div>
       {sparse && (
-        <p className="mt-1.5 text-[10px] leading-snug text-slate-400">
+        <p className="mt-1.5 text-[11px] leading-snug text-slate-500">
           This area looks lightly mapped in OpenStreetMap — counts are a floor,
           not a total.
         </p>

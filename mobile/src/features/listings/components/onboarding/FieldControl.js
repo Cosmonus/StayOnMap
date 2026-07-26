@@ -1,8 +1,13 @@
 import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native'
+import Dropdown from '@components/common/Dropdown'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
+// `seg` renders as a DROPDOWN, not a row of pills (changed 2026-07-26) —
+// mirrors web's FieldControl.jsx. Multi-select stays chips (the amenity grid on
+// step 4): that's a different question and a different control.
+//
 // Mirrors OnboardingWizard.js's NUMERIC_FIELD_KEYS — used here only to pick
 // a numeric keyboard, not for payload coercion (that stays the single
 // source of truth in OnboardingWizard.js).
@@ -11,26 +16,10 @@ const NUMERIC_KEYS = new Set([
   'carpetArea', 'frontage', 'totalBeds', 'availableBeds', 'noticePeriodDays', 'maxGuests', 'beds',
 ])
 
-function Seg({ value, onChange, opts }) {
-  return (
-    <View style={styles.segRow}>
-      {opts.map(([val, label]) => {
-        const on = value === val
-        return (
-          <Pressable
-            key={val}
-            onPress={() => onChange(val)}
-            style={[styles.segButton, on && styles.segButtonActive]}
-            hitSlop={{ top: 4, bottom: 4 }}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: on }}
-          >
-            <Text style={[styles.segText, on && styles.segTextActive]}>{label}</Text>
-          </Pressable>
-        )
-      })}
-    </View>
-  )
+// The config carries option tuples ([value, label]); DESCRIBE carries a third
+// hint element, which Dropdown renders as a muted second line in its sheet.
+export function toSelectOptions(opts) {
+  return opts.map(([value, label, hint]) => ({ value, label, hint }))
 }
 
 function Count({ value, onChange, label }) {
@@ -70,7 +59,7 @@ function Txt({ value, onChange, ph, suf, numeric }) {
         value={value != null ? String(value) : ''}
         onChangeText={onChange}
         placeholder={ph}
-        placeholderTextColor={colors.slate400}
+        placeholderTextColor={colors.slate500}
         keyboardType={numeric ? 'numeric' : 'default'}
       />
       {!!suf && (
@@ -104,7 +93,7 @@ export default function FieldControl({ field: f, values, onChange }) {
   }
 
   const body =
-    f.t === 'seg' ? <Seg value={values[f.field]} onChange={(v) => onChange(f.field, v)} opts={f.opts} /> :
+    f.t === 'seg' ? <Dropdown label={f.label} value={values[f.field]} onChange={(v) => onChange(f.field, v)} options={toSelectOptions(f.opts)} placeholder="Select…" /> :
     f.t === 'count' ? <Count value={values[f.field]} onChange={(v) => onChange(f.field, v)} label={f.label} /> :
     f.t === 'txt' ? <Txt value={values[f.field]} onChange={(v) => onChange(f.field, v)} ph={f.ph} suf={f.suf} numeric={NUMERIC_KEYS.has(f.field)} /> :
     null
@@ -121,11 +110,6 @@ const styles = StyleSheet.create({
   fieldWrap: { marginBottom: spacing.lg },
   label: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, marginBottom: spacing.sm },
   subLabel: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginBottom: 6 },
-  segRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  segButton: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1, borderColor: colors.slate200, backgroundColor: colors.white },
-  segButtonActive: { backgroundColor: colors.slate800, borderColor: colors.slate800 },
-  segText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate700 },
-  segTextActive: { color: colors.white },
   countRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   countButton: { width: 40, height: 40, borderRadius: radius.full, borderWidth: 1, borderColor: colors.slate200, alignItems: 'center', justifyContent: 'center' },
   countButtonDisabled: { opacity: 0.4 },
@@ -134,7 +118,7 @@ const styles = StyleSheet.create({
   txtWrap: { position: 'relative' },
   txtInput: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800 },
   txtSuffixWrap: { position: 'absolute', right: spacing.md, top: 0, bottom: 0, justifyContent: 'center' },
-  txtSuffix: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate400 },
+  txtSuffix: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate500 },
   twoRow: { flexDirection: 'row', gap: spacing.md },
   twoCol: { flex: 1 },
 })

@@ -66,10 +66,10 @@ const styles = StyleSheet.create({
   // band takes the slack and wraps; the percentage never shrinks or wraps, so a
   // long band label at a large font scale can't push the number off the row.
   band: { flex: 1, fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs },
-  pct: { flexShrink: 0, fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  pct: { flexShrink: 0, fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   track: { height: 4, borderRadius: radius.full, backgroundColor: colors.slate100, marginTop: 6, overflow: 'hidden' },
   fill: { height: 4, borderRadius: radius.full, backgroundColor: colors.brand500 },
-  basis: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400, marginTop: 4 },
+  basis: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 4 },
   factorRow: { flexDirection: 'row', gap: 6, marginTop: 4 },
   // Amber, matching ESTIMATED provenance and web's treatment: this is a caveat
   // on the number above it, not a neutral aside.

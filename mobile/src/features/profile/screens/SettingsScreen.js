@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   View, Text, Pressable, ScrollView, ActivityIndicator,
-  Alert, Linking, StyleSheet,
+  Alert, StyleSheet,
 } from 'react-native'
 import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -19,6 +19,7 @@ import LinkedAccountsSheet from '@features/profile/components/LinkedAccountsShee
 import DevicesSheet from '@features/profile/components/DevicesSheet'
 import PointsCard from '@features/points/components/PointsCard'
 import Icon from '@components/common/Icon'
+import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -104,7 +105,7 @@ export default function SettingsScreen({ navigation }) {
   if (isError) {
     return (
       <SafeAreaView style={styles.center} edges={['top']}>
-        <Icon name="alertTriangle" size={28} color={colors.slate400} />
+        <Icon name="alertTriangle" size={28} color={colors.slate500} />
         <Text style={styles.errorText}>Could not load your settings.</Text>
         <Pressable
           style={styles.retryButton}
@@ -122,18 +123,7 @@ export default function SettingsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.headerRow}>
-        <Pressable
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Icon name="chevronLeft" size={22} color={colors.slate800} />
-        </Pressable>
-        <Text style={styles.heading}>Settings</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <ScreenHeader title="Settings" onBack={() => navigation.goBack()} />
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {/* Profile card */}
@@ -251,8 +241,11 @@ export default function SettingsScreen({ navigation }) {
         )}
 
         <Text style={styles.sectionLabel}>Legal</Text>
-        <MenuItem icon="document" label="Privacy Policy" onPress={() => Linking.openURL('https://www.stayonmap.com/privacy')} />
-        <MenuItem icon="document" label="Terms of Service" onPress={() => Linking.openURL('https://www.stayonmap.com/terms')} />
+        {/* Real screens, not stayonmap.com in a browser. Leaving the app to
+            read the policy meant most people never did, and with no signal it
+            was unavailable outright. */}
+        <MenuItem icon="document" label="Privacy Policy" onPress={() => navigation.navigate('Legal', { doc: 'privacy' })} />
+        <MenuItem icon="document" label="Terms of Service" onPress={() => navigation.navigate('Legal', { doc: 'terms' })} />
 
         <Text style={styles.sectionLabel}>Danger zone</Text>
         <MenuItem
@@ -286,13 +279,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg, marginTop: spacing.sm,
   },
   retryText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.white },
-  headerRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
-  },
-  backButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  headerSpacer: { width: 48 },
-  heading: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate800 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
   profileCard: {
@@ -314,7 +300,7 @@ const styles = StyleSheet.create({
   },
   profileInfo: { flex: 1 },
   profileName: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
-  profileEmail: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2 },
+  profileEmail: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2 },
   roleBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start',
     marginTop: spacing.xs, backgroundColor: colors.brand50, borderRadius: radius.full,
@@ -322,7 +308,7 @@ const styles = StyleSheet.create({
   },
   roleBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
   sectionLabel: {
-    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400,
+    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500,
     textTransform: 'uppercase', letterSpacing: 0.5,
     marginTop: spacing.lg, marginBottom: spacing.xs,
   },
@@ -333,7 +319,7 @@ const styles = StyleSheet.create({
   verifiedIcon: { width: 34, height: 34, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center' },
   verifiedLabels: { flex: 1 },
   verifiedLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate800 },
-  verifiedHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, marginTop: 2 },
+  verifiedHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
   verifiedPill: { backgroundColor: colors.brand50, borderRadius: radius.full, paddingHorizontal: spacing.sm + 2, paddingVertical: 4 },
   verifiedPillText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.brand700 },
 })

@@ -29,7 +29,7 @@ export default function FieldRow({ label, type = 'number', unit, placeholder, va
             keyboardType="number-pad"
             value={value === null || value === undefined ? '' : String(value)}
             placeholder={placeholder}
-            placeholderTextColor={colors.slate400}
+            placeholderTextColor={colors.slate500}
             onChangeText={(t) => {
               const n = Number(t.replace(/[^\d]/g, ''))
               onChange(t === '' || !Number.isFinite(n) ? null : n)
@@ -52,7 +52,7 @@ export default function FieldRow({ label, type = 'number', unit, placeholder, va
           accessibilityRole="button"
           accessibilityLabel={value ? `${label}: ${formatDate(value)}. Change date` : `${label}: choose a date`}
         >
-          <Icon name="calendar" size={14} color={colors.slate400} />
+          <Icon name="calendar" size={14} color={colors.slate500} />
           <Text style={[styles.dateText, !value && styles.datePlaceholder]} numberOfLines={1}>
             {value ? formatDate(value) : placeholder || 'Any date'}
           </Text>
@@ -65,7 +65,7 @@ export default function FieldRow({ label, type = 'number', unit, placeholder, va
             accessibilityRole="button"
             accessibilityLabel={`Clear ${label} date`}
           >
-            <Icon name="close" size={14} color={colors.slate400} />
+            <Icon name="close" size={14} color={colors.slate500} />
           </Pressable>
         )}
       </View>
@@ -89,10 +89,10 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.sm + 2,
   },
   input: { flex: 1, paddingVertical: 9, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate700 },
-  prefix: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400 },
-  suffix: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  prefix: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500 },
+  suffix: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   dateGroup: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   dateText: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate700 },
-  datePlaceholder: { color: colors.slate400 },
+  datePlaceholder: { color: colors.slate500 },
   clearButton: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.slate100 },
 })

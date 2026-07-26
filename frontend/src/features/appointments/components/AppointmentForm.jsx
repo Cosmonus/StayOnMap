@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { Check, LoaderCircle, MessageSquare } from 'lucide-react'
@@ -6,19 +6,31 @@ import { appointmentService } from '@services/appointment.service'
 import { chatService } from '@services/chat.service'
 import { toast } from '@components/common/Toaster'
 import Select from '@components/common/Select'
+import TimeSelect from '@components/common/TimeSelect'
+import { VISIT_SLOTS, formatTime } from '@utils/time'
 
-const ALL_SLOTS = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30',
-  '13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30',
-  '17:00','17:30','18:00','18:30','19:00','19:30','20:00']
+// Nobody can act on a request made for 20 minutes' time, and offering it
+// invites a slot that's stale before the owner opens the notification.
+const LEAD_MINUTES = 30
 
-const UPCOMING_DATES = Array.from({ length: 30 }, (_, i) => {
-  const d = new Date()
-  d.setDate(d.getDate() + i)
-  const iso = d.toISOString().split('T')[0]
-  const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow'
-    : d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
-  return { value: iso, label }
-})
+const pad = (n) => String(n).padStart(2, '0')
+
+// Local date parts, not toISOString(): the ISO string is UTC, so between
+// midnight and 05:30 IST it names YESTERDAY — and the option labelled "Today"
+// then carried yesterday's date.
+function localISO(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+function upcomingDates() {
+  return Array.from({ length: 30 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() + i)
+    const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow'
+      : d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
+    return { value: localISO(d), label }
+  })
+}
 
 export default function AppointmentForm({ propertyId, onSuccess, windowStart, windowEnd }) {
   const navigate = useNavigate()
@@ -59,9 +71,41 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
     }
   }
 
-  const slots = ALL_SLOTS.filter(t =>
+  // Slots the owner actually accepts, minus anything already gone today. The
+  // list used to start at 09:00 regardless of the clock, so at 3pm "Today ·
+  // 9:00 AM" was selectable and the server took it (it doesn't any more —
+  // requestAppointment rejects a past slot — so offering it could now only
+  // produce an error).
+  const withinWindow = VISIT_SLOTS.filter(t =>
     (!windowStart || t >= windowStart) && (!windowEnd || t <= windowEnd)
   )
+
+  const dates = useMemo(upcomingDates, [])
+  const todayISO = dates[0]?.value
+
+  const slotsFor = useCallback((dateISO) => {
+    if (dateISO !== todayISO) return withinWindow
+    const cutoff = new Date(Date.now() + LEAD_MINUTES * 60_000)
+    const hhmm = `${pad(cutoff.getHours())}:${pad(cutoff.getMinutes())}`
+    return withinWindow.filter(t => t > hhmm)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todayISO, windowStart, windowEnd])
+
+  const slots = slotsFor(form.requestedDate)
+
+  // Today drops off the list once its last slot has passed, rather than sitting
+  // there as a date that can only lead to an empty time dropdown.
+  const dateOptions = slotsFor(todayISO).length ? dates : dates.slice(1)
+
+  // A date change can invalidate the chosen time (picking Today late in the
+  // day). Clearing it here beats submitting a combination the server refuses.
+  function pickDate(value) {
+    setForm(f => ({
+      ...f,
+      requestedDate: value,
+      requestedTime: slotsFor(value).includes(f.requestedTime) ? f.requestedTime : '',
+    }))
+  }
 
   const set = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }))
   const setValue = (key) => (value) => setForm(f => ({ ...f, [key]: value }))
@@ -87,7 +131,7 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
           <button
             onClick={handleChat}
             disabled={chatLoading}
-            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-brand-600 text-white text-xs font-bold hover:bg-brand-700 transition-colors disabled:opacity-60"
+            className="min-h-[44px] flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-brand-600 text-white text-xs font-bold hover:bg-brand-700 transition-colors disabled:opacity-60"
           >
             {chatLoading ? (
               <LoaderCircle className="w-3.5 h-3.5 animate-spin" />
@@ -109,26 +153,21 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
           <label className="block text-xs font-medium text-slate-600 mb-1">Preferred Date</label>
           <Select
             value={form.requestedDate}
-            onChange={setValue('requestedDate')}
+            onChange={pickDate}
             placeholder="Select date"
-            options={UPCOMING_DATES}
+            options={dateOptions}
           />
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Preferred Time</label>
-          <Select
+          <TimeSelect
             value={form.requestedTime}
             onChange={setValue('requestedTime')}
-            placeholder="Select time"
-            options={slots.map(t => {
-              const [h, m] = t.split(':').map(Number)
-              const display = `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
-              return { value: t, label: display }
-            })}
+            slots={slots}
           />
           {windowStart && windowEnd && (
-            <p className="text-[10px] text-slate-400 mt-1">
-              Owner available {windowStart.replace(/^0/, '')} – {windowEnd.replace(/^0/, '')}
+            <p className="text-[11px] text-slate-500 mt-1">
+              Owner available {formatTime(windowStart)} – {formatTime(windowEnd)}
             </p>
           )}
         </div>
@@ -140,17 +179,17 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
           placeholder="10-digit mobile number"
           value={form.contactNumber}
           onChange={set('contactNumber')}
-          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         />
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">Message <span className="text-slate-400">(optional)</span></label>
+        <label className="block text-xs font-medium text-slate-600 mb-1">Message <span className="text-slate-500">(optional)</span></label>
         <textarea
           rows={3}
           placeholder="Anything the owner should know..."
           value={form.message}
           onChange={set('message')}
-          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 resize-none"
         />
       </div>
       {mutation.isError && (

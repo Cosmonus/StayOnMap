@@ -11,7 +11,7 @@ export default function Button({
   type = 'button',
   className = '',
 }) {
-  const base = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500'
+  const base = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500'
   const variants = {
     primary: 'bg-brand-600 text-white hover:bg-brand-700',
     secondary: 'bg-white text-brand-600 border border-brand-200 hover:bg-brand-50',

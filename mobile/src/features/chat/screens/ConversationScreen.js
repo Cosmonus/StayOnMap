@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { View, Text, TextInput, Pressable, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, StyleSheet } from 'react-native'
+import { View, Text, TextInput, Pressable, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Linking, StyleSheet } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { Image } from 'expo-image'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as ImagePicker from 'expo-image-picker'
@@ -11,11 +12,19 @@ import { getSocket } from '@lib/socket'
 import { imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
+import ScreenHeader from '@components/common/ScreenHeader'
 import ReadReceipt from '../components/ReadReceipt'
 import ChatPropertyCard from '../components/ChatPropertyCard'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
+
+// Mirrors web's isImageAttachment. Messages older than 2026-07-26 carry no
+// attachmentMime and were images by construction — chat accepted nothing else.
+function isImageAttachment(msg) {
+  if (!msg?.attachmentUrl) return false
+  return !msg.attachmentMime || msg.attachmentMime.startsWith('image/')
+}
 
 function chatTime(date) {
   return new Date(date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
@@ -72,23 +81,7 @@ export default function ConversationScreen({ route, navigation }) {
   const other = otherParam ?? (conversation ? (conversation.tenantId === user?.id ? conversation.owner : conversation.tenant) : null)
   const property = conversation?.property
 
-  useEffect(() => {
-    navigation.setOptions({
-      title: other?.name || other?.email?.split('@')[0] || 'Chat',
-      headerRight: () => (
-        <Pressable
-          style={styles.headerSearchButton}
-          onPress={() => { setSearchOpen((o) => !o); setMsgSearch('') }}
-          accessibilityRole="button"
-          accessibilityLabel={searchOpen ? 'Close message search' : 'Search messages'}
-          accessibilityState={{ expanded: searchOpen }}
-          hitSlop={6}
-        >
-          <Icon name={searchOpen ? 'close' : 'search'} size={20} color={searchOpen ? colors.brand600 : colors.slate500} />
-        </Pressable>
-      ),
-    })
-  }, [navigation, other, searchOpen])
+  const otherName = other?.name || other?.email?.split('@')[0] || 'Chat'
 
   // Debounce the search box 300ms before hitting the backend search endpoint
   useEffect(() => {
@@ -109,7 +102,8 @@ export default function ConversationScreen({ route, navigation }) {
   })
 
   const { mutate: send, isPending } = useMutation({
-    mutationFn: ({ body, attachmentUrl }) => chatService.sendMessage(conversationId, body, attachmentUrl),
+    mutationFn: ({ body, attachmentUrl, attachmentName, attachmentMime }) =>
+      chatService.sendMessage(conversationId, body, { url: attachmentUrl, name: attachmentName, mime: attachmentMime }),
     onSuccess: (res) => {
       qc.setQueryData(['chat-messages', conversationId], (old = []) => [...old, res.data])
       qc.invalidateQueries({ queryKey: ['conversations'] })
@@ -293,20 +287,40 @@ export default function ConversationScreen({ route, navigation }) {
   const resultCount = searchQuery.length > 0 ? listData.length : null
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* This screen was the ONE without a SafeAreaView — it leaned on React
+          Navigation's native header for the top inset. Now it owns it, like
+          every other screen, and the header is the shared one. */}
+      <ScreenHeader
+        title={otherName}
+        onBack={() => navigation.goBack()}
+        right={(
+          <Pressable
+            style={styles.headerSearchButton}
+            onPress={() => { setSearchOpen((o) => !o); setMsgSearch('') }}
+            accessibilityRole="button"
+            accessibilityLabel={searchOpen ? 'Close message search' : 'Search messages'}
+            accessibilityState={{ expanded: searchOpen }}
+            hitSlop={8}
+          >
+            <Icon name={searchOpen ? 'close' : 'search'} size={20} color={searchOpen ? colors.brand600 : colors.slate500} />
+          </Pressable>
+        )}
+      />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
       {searchOpen && (
         <View style={styles.searchBar}>
-          <Icon name="search" size={16} color={colors.slate400} />
+          <Icon name="search" size={16} color={colors.slate500} />
           <TextInput
             style={styles.searchInput}
             value={msgSearch}
             onChangeText={setMsgSearch}
             placeholder="Search messages..."
-            placeholderTextColor={colors.slate400}
+            placeholderTextColor={colors.slate500}
             autoFocus
             accessibilityLabel="Search messages"
           />
@@ -357,8 +371,29 @@ export default function ConversationScreen({ route, navigation }) {
                       <Text style={[styles.bubbleText, isOwn && styles.bubbleTextOwn, styles.bubbleDeletedText]}>This message was deleted</Text>
                     ) : (
                       <>
-                        {item.attachmentUrl && (
+                        {isImageAttachment(item) && (
                           <Image source={{ uri: item.attachmentUrl }} style={styles.attachmentImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
+                        )}
+                        {/* A document, not a photo. Rendering a PDF through
+                            <Image> showed a blank square — chat has accepted
+                            documents from web since 2026-07-26, so this side
+                            has to be able to READ them even though it cannot
+                            send one yet (that needs a native picker). */}
+                        {item.attachmentUrl && !isImageAttachment(item) && (
+                          <Pressable
+                            style={[styles.docChip, isOwn && styles.docChipOwn]}
+                            onPress={() => Linking.openURL(item.attachmentUrl)}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Open ${item.attachmentName || 'document'}`}
+                          >
+                            <Icon name="document" size={18} color={isOwn ? colors.white : colors.slate700} />
+                            <View style={{ flex: 1 }}>
+                              <Text style={[styles.docName, isOwn && styles.docNameOwn]} numberOfLines={1}>
+                                {item.attachmentName || 'Document'}
+                              </Text>
+                              <Text style={[styles.docHint, isOwn && styles.docHintOwn]}>PDF · tap to open</Text>
+                            </View>
+                          </Pressable>
                         )}
                         {!!item.body && <Text style={[styles.bubbleText, isOwn && styles.bubbleTextOwn]}>{item.body}</Text>}
                       </>
@@ -413,7 +448,7 @@ export default function ConversationScreen({ route, navigation }) {
           value={input}
           onChangeText={(v) => { setInput(v); emitTyping() }}
           placeholder="Type a message..."
-          placeholderTextColor={colors.slate400}
+          placeholderTextColor={colors.slate500}
           multiline
           accessibilityLabel="Message text"
         />
@@ -428,32 +463,34 @@ export default function ConversationScreen({ route, navigation }) {
           <Icon name={editingId ? 'check' : 'send'} size={16} color={colors.white} />
         </Pressable>
       </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
+  flex: { flex: 1 },
   pinnedProperty: {
     backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.slate200,
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  headerSearchButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  headerSearchButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
     backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.slate100,
     paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
   },
   searchInput: { flex: 1, minHeight: 40, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800 },
-  searchCount: { fontFamily: fonts.body, fontSize: 11, color: colors.slate400 },
+  searchCount: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   list: { padding: spacing.md, flexGrow: 1 },
   typingRow: { paddingVertical: spacing.xs, paddingHorizontal: spacing.sm },
-  typingText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400, fontStyle: 'italic' },
+  typingText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, fontStyle: 'italic' },
   noResults: { paddingVertical: spacing.xl, alignItems: 'center', transform: [{ scaleY: -1 }] },
-  noResultsText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400 },
+  noResultsText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500 },
   dateRow: { alignItems: 'center', marginVertical: spacing.sm },
   dateLabel: {
-    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate400,
+    fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500,
     backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate100,
     borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 3, overflow: 'hidden',
   },
@@ -472,8 +509,18 @@ const styles = StyleSheet.create({
   bubbleTextOwn: { color: colors.white },
   bubbleDeletedText: { fontStyle: 'italic', opacity: 0.7 },
   attachmentImage: { width: 200, height: 200, borderRadius: radius.md, marginBottom: spacing.xs },
+  docChip: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 48,
+    backgroundColor: colors.white, borderRadius: radius.md,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm, marginBottom: spacing.xs,
+  },
+  docChipOwn: { backgroundColor: 'rgba(255,255,255,0.18)' },
+  docName: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
+  docNameOwn: { color: colors.white },
+  docHint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 1 },
+  docHintOwn: { color: 'rgba(255,255,255,0.75)' },
   bubbleMeta: { flexDirection: 'row', alignItems: 'center', gap: 3, alignSelf: 'flex-end', marginTop: 4 },
-  bubbleTime: { fontFamily: fonts.body, fontSize: 10, color: colors.slate400 },
+  bubbleTime: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
   bubbleTimeOwn: { color: 'rgba(255,255,255,0.75)' },
   editingBanner: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

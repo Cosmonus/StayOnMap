@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react'
 import { createHtmlMarker } from '@lib/googleMaps'
 import { useMapStore } from '@store/mapStore'
 import { computeClusters, getExpansionZoom } from '../utils/clustering'
+import { formatCompact, priceUnit } from '@utils/format'
 
 // BHK is the more useful at-a-glance signal for renters scanning the map —
 // shown instead of the property type (Apt/House/Villa etc.)
@@ -83,13 +84,16 @@ function pinStateStyles(color, selected) {
 }
 
 function makePinEl(pin, selected) {
-  const rent  = `₹${(Number(pin.rent) / 1000).toFixed(0)}K`
+  // Through formatCompact/priceUnit, not a hand-rolled ÷1000: a sale pin has to
+  // read "₹4.5Cr", never "₹45000K/mo".
+  const price = formatCompact(Number(pin.rent))
+  const unit  = priceUnit(pin)
   const bhk   = bhkShort(pin)
-  const label = bhk ? `${rent} · ${bhk}` : rent
+  const label = bhk ? `${price} · ${bhk}` : price
   const color = typeColor(pin)
 
   const el = document.createElement('div')
-  el.setAttribute('aria-label', `Property at ${rent}/mo`)
+  el.setAttribute('aria-label', `Property at ${price}${unit}`)
   el.style.cssText = `
     display: inline-flex;
     align-items: center;

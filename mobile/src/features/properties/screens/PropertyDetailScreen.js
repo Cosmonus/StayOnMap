@@ -24,7 +24,7 @@ import OwnerCard from '../components/OwnerCard'
 import ReviewsSection from '@features/reviews/components/ReviewsSection'
 import ReportButton from '@features/reports/components/ReportButton'
 import Icon from '@components/common/Icon'
-import { imgUrl, formatCompact } from '@utils/format'
+import { imgUrl, formatCompact, priceUnit } from '@utils/format'
 import { colors } from '@theme/colors'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
@@ -65,7 +65,7 @@ function amenityIcon(name) {
 function rentBenchmarkLabel(rent, benchmark) {
   if (!benchmark) return null
   const diff = Math.round(((rent - benchmark.avgRent) / benchmark.avgRent) * 100)
-  if (diff === 0) return { text: 'Right at the average for similar homes nearby', color: colors.slate400 }
+  if (diff === 0) return { text: 'Right at the average for similar homes nearby', color: colors.slate500 }
   const below = diff < 0
   return {
     text: `${Math.abs(diff)}% ${below ? 'below' : 'above'} the average for similar homes nearby`,
@@ -122,7 +122,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
 
   function handleShare() {
     if (!property) return
-    const unit = property.pricingModel === 'LEASE' ? ' lease' : '/mo'
+    const unit = priceUnit(property)
     Share.share({ message: `${property.title} — ${formatCompact(Number(property.rent))}${unit} in ${property.city}` })
   }
 
@@ -236,8 +236,10 @@ export default function PropertyDetailScreen({ route, navigation }) {
           <AvailabilityBadge status={property.status} availableFrom={property.availableFrom} />
 
           <View style={styles.priceRow}>
-            {/* On a LEASE listing `rent` is the refundable lump sum — never "/mo". */}
-            <Text style={styles.price}>{formatCompact(Number(property.rent))}<Text style={styles.priceUnit}>{property.pricingModel === 'LEASE' ? ' lease' : '/mo'}</Text></Text>
+            {/* `rent` is a monthly rent, a refundable lump sum or an asking
+                price depending on pricingModel — priceUnit is the only thing
+                allowed to decide what follows the number. */}
+            <Text style={styles.price}>{formatCompact(Number(property.rent))}<Text style={styles.priceUnit}>{priceUnit(property)}</Text></Text>
             {property.deposit > 0 && <Text style={styles.deposit}>{formatCompact(Number(property.deposit))} deposit</Text>}
           </View>
 
@@ -384,7 +386,7 @@ const styles = StyleSheet.create({
   statusScrim: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: colors.white },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white },
   centerBack: { position: 'absolute', top: spacing.sm, left: spacing.md },
-  emptyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400 },
+  emptyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500 },
   gallery: { height: 260 },
   galleryImageWrap: { width: SCREEN_WIDTH, height: 260 },
   galleryImage: { width: '100%', height: '100%' },
@@ -402,13 +404,13 @@ const styles = StyleSheet.create({
   body: { padding: spacing.lg },
   priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm, marginBottom: spacing.xs },
   price: { fontFamily: fonts.displayBold, fontSize: fontSizes.xxl, color: colors.slate800 },
-  priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400 },
-  deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500 },
+  deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   benchmark: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, marginBottom: spacing.xs },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.lg, color: colors.slate800, marginTop: spacing.xs },
   idChip: { alignSelf: 'flex-start', backgroundColor: colors.slate100, borderRadius: radius.md, paddingHorizontal: 8, paddingVertical: 2, marginTop: 4 },
-  idChipText: { fontFamily: fonts.bodySemiBold, fontSize: 10, color: colors.slate500, letterSpacing: 0.5 },
-  location: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate400, marginTop: 2, marginBottom: spacing.md },
+  idChipText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500, letterSpacing: 0.5 },
+  location: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2, marginBottom: spacing.md },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.slate100, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 6 },
   chipBrand: { backgroundColor: colors.brand50 },

@@ -57,3 +57,26 @@ export const adminChangePasswordSchema = z.object({
     `Admin password must be at least ${ADMIN_MIN_PASSWORD_LENGTH} characters`
   ),
 })
+
+// PATCH /admin/properties/:id/status had NO schema — req.body.status went
+// straight into prisma.property.update(), so a typo 500'd out of Prisma and
+// any PropertyStatus was reachable, including DRAFT (which would yank a live
+// listing back to an unfinished state nobody asked for).
+//
+// The set is deliberately narrower than PropertyStatus. An admin moderates:
+// approve, pause, reject. Creating and deleting a listing belongs to the
+// owner, and DRAFT/INACTIVE/OCCUPIED are the OWNER's states — an admin
+// writing them would be editing someone's listing rather than policing it.
+export const ADMIN_PROPERTY_STATUSES = ['ACTIVE', 'SUSPENDED', 'REJECTED']
+
+// A pause or a rejection has to carry its reason: the owner is told exactly
+// this text, and it is what the activity log preserves afterwards. An
+// unexplained takedown is indistinguishable from a bug to the person it
+// happens to.
+export const adminPropertyStatusSchema = z.object({
+  status: z.enum(ADMIN_PROPERTY_STATUSES),
+  note: z.string().trim().max(500).optional(),
+}).refine(
+  (v) => v.status === 'ACTIVE' || (v.note?.length ?? 0) >= 5,
+  { path: ['note'], message: 'Tell the owner why — this reason is sent to them' },
+)

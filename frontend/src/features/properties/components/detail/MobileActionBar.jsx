@@ -1,5 +1,5 @@
 import { Navigation } from 'lucide-react'
-import { formatRent } from '@utils/format'
+import { formatPrice } from '@utils/format'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
 
@@ -11,7 +11,7 @@ export default function MobileActionBar({ property, directionsUrl }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center gap-3 border-t border-slate-200 bg-white px-4 py-3 shadow-lg lg:hidden">
       <div className="min-w-0 flex-none">
-        <p className="text-lg font-bold text-slate-900">{formatRent(Number(property.rent))}</p>
+        <p className="text-lg font-bold text-slate-900">{formatPrice(property)}</p>
         {!property.brokerage && <p className="text-[11px] font-semibold text-brand-700">Zero brokerage</p>}
       </div>
       {directionsUrl && (

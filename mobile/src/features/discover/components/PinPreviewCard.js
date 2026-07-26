@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import Icon from '@components/common/Icon'
 import TrustBadge from '@components/common/TrustBadge'
 import { propertyService } from '@services/property.service'
-import { formatCompact, imgUrl } from '@utils/format'
+import { formatCompact, priceUnit, imgUrl } from '@utils/format'
 import { previewHighlights } from '@features/spatial/previewHighlights'
 import { colors } from '@theme/colors'
 import { shadows } from '@theme/shadows'
@@ -66,7 +66,7 @@ export default function PinPreviewCard({ propertyId, onPress }) {
   const price = formatCompact(Number(isStay ? (property.nightlyRate ?? property.rent) : property.rent))
   // Nightly for a short stay; on a LEASE listing `rent` is the lump sum, so
   // "/mo" would be exactly the misread pricingModel exists to prevent.
-  const priceUnit = isStay ? '/night' : property.pricingModel === 'LEASE' ? ' lease' : '/mo'
+  const unit = priceUnit(property)
 
   return (
     <SafeAreaView edges={['bottom']} style={styles.wrap} pointerEvents="box-none">
@@ -93,7 +93,7 @@ export default function PinPreviewCard({ propertyId, onPress }) {
           <View style={styles.priceRow}>
             <Text style={styles.price} numberOfLines={1}>
               {price}
-              <Text style={styles.priceUnit}>{priceUnit}</Text>
+              <Text style={styles.priceUnit}>{unit}</Text>
               {deposit > 0 && <Text style={styles.deposit}>  ·  {formatCompact(deposit)} deposit</Text>}
             </Text>
             <TrustBadge badge={property.trustScore?.badge} size="sm" />
@@ -107,7 +107,7 @@ export default function PinPreviewCard({ propertyId, onPress }) {
 
           {highlights.length > 0 && (
             <View style={styles.highlightRow}>
-              <Icon name="mapPin" size={12} color={colors.slate400} />
+              <Icon name="mapPin" size={12} color={colors.slate500} />
               <Text style={styles.highlightText} numberOfLines={1}>
                 {highlights.map((h) => `${h.label} ${h.distance}`).join('  ·  ')}
               </Text>
@@ -149,10 +149,10 @@ const styles = StyleSheet.create({
   body: { padding: spacing.md, gap: 3 },
   priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   price: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800, flexShrink: 1 },
-  priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   title: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate700 },
-  meta: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate400 },
+  meta: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   highlightRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
   highlightText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.slate600, flexShrink: 1 },
   cta: {

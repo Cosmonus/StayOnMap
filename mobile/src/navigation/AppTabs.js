@@ -1,10 +1,14 @@
 import { useEffect } from 'react'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { useQuery } from '@tanstack/react-query'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { useUiStore } from '@store/uiStore'
+import { useAuth } from '@features/auth/hooks/useAuth'
+import { hostService } from '@services/host.service'
+import { chatService } from '@services/chat.service'
 import ExploreScreen from '@features/discover/screens/ExploreScreen'
 import SavedScreen from '@features/saved/screens/SavedScreen'
 import ConversationListScreen from '@features/chat/screens/ConversationListScreen'
@@ -26,11 +30,18 @@ import HostDashboardScreen from '@features/host/screens/HostDashboardScreen'
 import HostProfileScreen from '@features/host/screens/HostProfileScreen'
 import CalendarScreen from '@features/host/screens/CalendarScreen'
 import SupportScreen from '@features/host/screens/SupportScreen'
+import LegalScreen from '@features/legal/screens/LegalScreen'
 
 const Tab = createBottomTabNavigator()
 
 // Each tab is its own native-stack so PropertyDetail/BookViewing can be
 // pushed on top of Explore/Saved/etc. without leaving the tab.
+//
+// EVERY screen sets headerShown: false and draws its own ScreenHeader inside
+// its SafeAreaView. Five screens used to keep React Navigation's native header
+// instead — a different font and bar height from the other twenty, a second top
+// inset on Calendar (which also had a SafeAreaView), and a host "Inbox" tab
+// whose header read "Chat". Don't reintroduce a native header for one screen.
 function makeStack(screens) {
   const Stack = createNativeStackNavigator()
   return function StackScreen() {
@@ -55,29 +66,30 @@ const ExploreStack = makeStack([
 ])
 
 const SavedStack = makeStack([
-  { name: 'SavedHome', component: SavedScreen, options: { title: 'Saved' } },
+  { name: 'SavedHome', component: SavedScreen, options: { headerShown: false } },
   ...BOOKING_SCREENS,
 ])
 
 const ChatStack = makeStack([
-  { name: 'ChatHome', component: ConversationListScreen, options: { title: 'Chat' } },
-  { name: 'Conversation', component: ConversationScreen, options: { title: 'Chat' } },
+  { name: 'ChatHome', component: ConversationListScreen, options: { headerShown: false } },
+  { name: 'Conversation', component: ConversationScreen, options: { headerShown: false } },
 ])
 
 // Renter-only — listing management moved out to host mode's My Listing tab.
 const ProfileStack = makeStack([
-  { name: 'ProfileHome', component: ProfileScreen, options: { title: 'Profile' } },
+  { name: 'ProfileHome', component: ProfileScreen, options: { headerShown: false } },
   { name: 'Appointments', component: AppointmentsScreen, options: { headerShown: false } },
   { name: 'Notifications', component: NotificationsScreen, options: { headerShown: false } },
   { name: 'Leases', component: LeasesScreen, options: { headerShown: false } },
   { name: 'Settings', component: SettingsScreen, options: { headerShown: false } },
   { name: 'Support', component: SupportScreen, options: { headerShown: false } },
+  { name: 'Legal', component: LegalScreen, options: { headerShown: false } },
 ])
 
 // ── Host mode — new stacks ──────────────────────────────────────────────
 const DashboardStack = makeStack([
   { name: 'DashboardHome', component: HostDashboardScreen, options: { headerShown: false } },
-  { name: 'Calendar', component: CalendarScreen, options: { title: 'Calendar' } },
+  { name: 'Calendar', component: CalendarScreen, options: { headerShown: false } },
 ])
 
 const HostAppointmentsStack = makeStack([
@@ -89,6 +101,7 @@ const HostProfileStack = makeStack([
   { name: 'Notifications', component: NotificationsScreen, options: { headerShown: false } },
   { name: 'Settings', component: SettingsScreen, options: { headerShown: false } },
   { name: 'Support', component: SupportScreen, options: { headerShown: false } },
+  { name: 'Legal', component: LegalScreen, options: { headerShown: false } },
 ])
 
 const MyListingStack = makeStack([
@@ -110,15 +123,50 @@ const RENTER_TABS = [
 
 // No Explore/Saved — mobile's map is renter-only, matching web's host nav
 // having no Map/Properties tabs either.
-// The Profile tab uses a mode-unique route name ('HostProfile') even though it
-// shows the label "Profile" — see the switch-landing note in AppTabs below.
+//
+// Route names are NOT the labels here: 'HostProfile' is mode-unique for the
+// switch-landing reason below, and 'Appointments'/'MyListing' read as "Visits"
+// and "Listings" because that is what a host calls them. Renaming the routes
+// themselves would break every navigate() call and the push deep links.
 const HOST_TABS = [
   ['Dashboard', DashboardStack, 'grid'],
+  ['MyListing', MyListingStack, 'building', 'Listings'],
+  ['Appointments', HostAppointmentsStack, 'clock', 'Visits'],
   ['Inbox', ChatStack, 'chat'],
-  ['Appointments', HostAppointmentsStack, 'clock'],
-  ['MyListing', MyListingStack, 'building'],
-  ['HostProfile', HostProfileStack, 'profile', 'Profile'],
+  ['HostProfile', HostProfileStack, 'profile', 'Account'],
 ]
+
+// The two counts a host needs to see without opening anything: unanswered visit
+// requests, and unread messages from renters.
+//
+// Both ride on queries the host screens fetch anyway (same keys, so no extra
+// request), and both are 0 → undefined, because React Navigation renders a
+// literal "0" badge otherwise — a bright dot announcing nothing.
+function useHostBadges(hostMode) {
+  const { user } = useAuth()
+  const enabled = hostMode && !!user
+
+  const { data: dashboard } = useQuery({
+    queryKey: ['host-dashboard'],
+    queryFn: () => hostService.dashboard().then((r) => r.data),
+    enabled,
+  })
+
+  const { data: conversations = [] } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: () => chatService.conversations().then((r) => r.data),
+    enabled,
+  })
+
+  const visits = (dashboard?.needsYouToday ?? []).filter((i) => i.kind === 'VISIT_REQUEST').length
+  // Host-side threads only — the same partition the Inbox itself applies. The
+  // whole-account /chat/unread total would count the renter hat's messages too.
+  const unread = conversations
+    .filter((c) => c.ownerId === user?.id)
+    .reduce((n, c) => n + (c._count?.messages ?? 0), 0)
+
+  return { Appointments: visits || undefined, Inbox: unread || undefined }
+}
 
 export default function AppTabs() {
   const hostMode = useUiStore((s) => s.hostMode)
@@ -126,6 +174,7 @@ export default function AppTabs() {
   const setHostEntryTab = useUiStore((s) => s.setHostEntryTab)
 
   const TABS = hostMode ? HOST_TABS : RENTER_TABS
+  const badges = useHostBadges(hostMode)
 
   // hostEntryTab is read once as initialRouteName below (only relevant while
   // hostMode is true); reset it back to the default right after so a plain
@@ -150,9 +199,15 @@ export default function AppTabs() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.brand600,
-        tabBarInactiveTintColor: colors.slate400,
+        tabBarInactiveTintColor: colors.slate500,
         tabBarLabelStyle: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs },
         tabBarStyle: { borderTopColor: colors.slate200 },
+        tabBarBadgeStyle: {
+          backgroundColor: colors.danger,
+          color: colors.white,
+          fontFamily: fonts.bodySemiBold,
+          fontSize: 11,
+        },
       }}
     >
       {TABS.map(([name, Component, iconName, label]) => (
@@ -162,6 +217,7 @@ export default function AppTabs() {
           component={Component}
           options={{
             tabBarLabel: label ?? name,
+            tabBarBadge: badges[name],
             tabBarIcon: ({ color, size }) => <Icon name={iconName} color={color} size={size} />,
           }}
         />

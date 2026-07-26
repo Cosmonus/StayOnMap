@@ -15,6 +15,7 @@ import PropertyPin from './PropertyPin'
 import ClusterMarker from './ClusterMarker'
 import MetroLines from './MetroLines'
 import LocateButton from './LocateButton'
+import MapViewportBar from './MapViewportBar'
 import { spacing } from '@theme/spacing'
 
 const IT_CORRIDOR_COLORS = { major: '#2563eb', moderate: '#60a5fa' }
@@ -238,9 +239,17 @@ export default function MapView({ onPinPress, onDeselect }) {
         })}
       </NativeMapView>
 
+      {/* Both hide behind a pin preview or an area card — the card IS the
+          answer to "what is here", so the count and the locate button would
+          only be stacking on top of it. */}
       {!selectedPinId && !selectedAreaSlug && (
-        <SafeAreaView edges={['bottom']} style={styles.locateWrap} pointerEvents="box-none">
-          <LocateButton onLocate={flyTo} onPermissionGranted={() => setUserLocationEnabled(true)} />
+        <SafeAreaView edges={['bottom']} style={styles.bottomOverlay} pointerEvents="box-none">
+          <View style={styles.countRow} pointerEvents="none">
+            <MapViewportBar />
+          </View>
+          <View style={styles.locateRow} pointerEvents="box-none">
+            <LocateButton onLocate={flyTo} onPermissionGranted={() => setUserLocationEnabled(true)} />
+          </View>
         </SafeAreaView>
       )}
     </View>
@@ -248,5 +257,7 @@ export default function MapView({ onPinPress, onDeselect }) {
 }
 
 const styles = StyleSheet.create({
-  locateWrap: { position: 'absolute', right: spacing.md, bottom: spacing.md },
+  bottomOverlay: { position: 'absolute', left: 0, right: 0, bottom: spacing.md, gap: spacing.sm },
+  countRow: { alignItems: 'center', paddingHorizontal: spacing.md },
+  locateRow: { alignItems: 'flex-end', paddingHorizontal: spacing.md },
 })

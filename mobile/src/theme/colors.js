@@ -38,6 +38,9 @@ export const colors = {
   danger50: '#fef2f2',
   warning: '#F59E0B',
   warning50: '#fffbeb',
+  // Tailwind amber-100 — the hairline that keeps a warning50 card from bleeding
+  // into a white surface. Web uses amber-50/amber-100 as the same pair.
+  warning100: '#fef3c7',
   // Tailwind amber-700, the same value web uses. `warning` above is tuned to
   // sit on `warning50` inside a chip; at ~2.1:1 on white it is too light for
   // body text, and the caveat lines under a confidence meter are body text.

@@ -88,6 +88,13 @@ export async function getStats(req, res, next) {
   } catch (err) { next(err) }
 }
 
+export async function getBenchmark(req, res, next) {
+  try {
+    const benchmark = await service.getPriceBenchmark(req.query)
+    ok(res, benchmark)
+  } catch (err) { next(err) }
+}
+
 export async function getAmenities(req, res, next) {
   try {
     const amenities = await service.getAllAmenities()
