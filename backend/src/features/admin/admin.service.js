@@ -33,8 +33,9 @@ export async function getDashboardAnalytics() {
   const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1)
 
   const [
-    totalUsers, newUsersToday, newUsersThisWeek,
+    totalUsers, ownerUsers, newUsersToday, newUsersThisWeek,
     totalProperties, activeProperties, pendingProperties, suspendedProperties,
+    occupiedProperties, propertyTypesRaw, leasesSigned,
     totalReports, openReports, criticalReports,
     totalAppointments, pendingAppointments,
     verificationsPending,
@@ -42,12 +43,19 @@ export async function getDashboardAnalytics() {
     monthlyUsersRaw,
   ] = await Promise.all([
     prisma.user.count(),
+    prisma.user.count({ where: { role: 'OWNER' } }),
     prisma.user.count({ where: { createdAt: { gte: todayStart } } }),
     prisma.user.count({ where: { createdAt: { gte: weekStart } } }),
     prisma.property.count(),
     prisma.property.count({ where: { status: 'ACTIVE' } }),
     prisma.property.count({ where: { status: 'PENDING' } }),
     prisma.property.count({ where: { status: 'SUSPENDED' } }),
+    // "Marked as tenant" is the owner's markTenant action (status OCCUPIED +
+    // currentTenantId). Vacating clears it, so this is a CURRENT count; the
+    // all-time record of tenancies made through the platform is signed leases.
+    prisma.property.count({ where: { status: 'OCCUPIED' } }),
+    prisma.property.groupBy({ by: ['type'], _count: { _all: true } }),
+    prisma.lease.count({ where: { signedAt: { not: null } } }),
     prisma.propertyReport.count(),
     prisma.propertyReport.count({ where: { status: 'PENDING' } }),
     prisma.propertyReport.count({ where: { severity: 'CRITICAL', status: 'PENDING' } }),
@@ -71,8 +79,15 @@ export async function getDashboardAnalytics() {
   const monthly = monthlyUsersRaw.map(r => ({ month: r.month, count: Number(r.count) }))
 
   const result = {
-    users: { total: totalUsers, newToday: newUsersToday, newThisWeek: newUsersThisWeek, monthly },
-    properties: { total: totalProperties, active: activeProperties, pending: pendingProperties, suspended: suspendedProperties },
+    // OWNER implies tenant capability (no BOTH role), so "renters" here means
+    // renter-only accounts — the two add up to the total.
+    users: { total: totalUsers, owners: ownerUsers, renters: totalUsers - ownerUsers, newToday: newUsersToday, newThisWeek: newUsersThisWeek, monthly },
+    properties: {
+      total: totalProperties, active: activeProperties, pending: pendingProperties,
+      suspended: suspendedProperties, occupied: occupiedProperties,
+      byType: propertyTypesRaw.map(r => ({ type: r.type, count: r._count._all })),
+    },
+    tenancy: { occupiedNow: occupiedProperties, leasesSigned },
     reports: { total: totalReports, open: openReports, critical: criticalReports },
     appointments: { total: totalAppointments, pending: pendingAppointments },
     verificationsPending,
@@ -107,10 +122,78 @@ export async function listUsers({ search, isBlocked, page = 1, limit = 20 }) {
   return { users, total, page: pageNum, limit: limitNum }
 }
 
+// One account, two hats (see .claude/architecture.md): the same user can act
+// as a renter AND an owner, and the client-side split (chat, notifications,
+// appointments) means an admin reading "what has this person done?" needs the
+// same partition. Explicit select — the old bare `include` shipped every User
+// column to the browser, passwordHash included.
 export async function getUserDetail(userId) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { properties: { select: { id: true, title: true, status: true, city: true } }, appointments: { take: 5, orderBy: { createdAt: 'desc' } }, reports: { take: 5, orderBy: { createdAt: 'desc' } } },
+    select: {
+      id: true, displayId: true, email: true, name: true, phone: true, city: true,
+      avatarUrl: true, role: true, isVerified: true, isBlocked: true,
+      isBusiness: true, businessSince: true, lastLoginAt: true, createdAt: true,
+
+      // Owner hat — their listings and the tenancies they granted
+      properties: {
+        select: { id: true, title: true, status: true, city: true, type: true, rent: true, pricingModel: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+      },
+      ownerLeases: {
+        select: {
+          id: true, status: true, rentAmount: true, startDate: true, endDate: true,
+          property: { select: { id: true, title: true } },
+          tenant: { select: { id: true, name: true, email: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      },
+
+      // Tenant hat — what they did as a renter
+      appointments: {
+        select: {
+          id: true, status: true, requestedDate: true, requestedTime: true, createdAt: true,
+          property: { select: { id: true, title: true, city: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      },
+      reports: {
+        select: {
+          id: true, category: true, severity: true, status: true, createdAt: true,
+          property: { select: { id: true, title: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      },
+      reviews: {
+        select: {
+          id: true, status: true, recommend: true, body: true, createdAt: true,
+          property: { select: { id: true, title: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      },
+      tenantLeases: {
+        select: {
+          id: true, status: true, rentAmount: true, startDate: true, endDate: true,
+          property: { select: { id: true, title: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      },
+
+      // True totals — the lists above are capped, these are not
+      _count: {
+        select: {
+          properties: true, appointments: true, reviews: true, reports: true,
+          tenantLeases: true, ownerLeases: true,
+          tenantConversations: true, ownerConversations: true,
+          savedListings: true,
+        },
+      },
+    },
   })
   if (!user) throw Object.assign(new Error('User not found'), { statusCode: 404 })
   return user

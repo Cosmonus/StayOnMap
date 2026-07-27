@@ -16,6 +16,7 @@ import {
 } from '../../config/onboarding.js'
 import { confirm } from '@components/common/ConfirmDialog'
 import ListingManager from '../ListingManager'
+import MarkTenantModal from '../MarkTenantModal'
 import EditListingPanel from '../EditListingPanel'
 
 function DoneScreen({ category, onListAnother, onGoToListings }) {
@@ -114,6 +115,7 @@ function VisibilityNotice({ visibility }) {
 function ListingsOverview({
   profile,
   onAdd, onEdit, onPreview, onVisitRequests, onSubmitForReview, onDeleteListing, onToggleStatus,
+  onMarkTenant, onVacate,
   localDraft, localDraftLabel, onResumeLocalDraft, onDiscardLocalDraft,
 }) {
   const { data: listings = [] } = useQuery({
@@ -150,6 +152,8 @@ function ListingsOverview({
           onResume={onSubmitForReview}
           onDelete={onDeleteListing}
           onToggleStatus={onToggleStatus}
+          onMarkTenant={onMarkTenant}
+          onVacate={onVacate}
           localDraft={localDraft}
           localDraftLabel={localDraftLabel}
           onResumeLocalDraft={onResumeLocalDraft}
@@ -253,6 +257,52 @@ export default function OnboardingWizard({ profile }) {
     },
     onError: (err) => toast.error('Couldn’t change that', err.message ?? 'Please try again'),
   })
+
+  // Rented through the platform — ACTIVE → OCCUPIED with the tenant recorded,
+  // and back again when they leave. Web parity with mobile's ManageListing
+  // (2026-07-27); the picker only offers people who contacted the listing.
+  const [markTenantFor, setMarkTenantFor] = useState(null)
+
+  const { mutate: markTenant, isPending: markTenantBusy } = useMutation({
+    mutationFn: ({ propertyId, tenantId }) => propertyService.markTenant(propertyId, tenantId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-listings'] })
+      setMarkTenantFor(null)
+      toast.success('Marked as rented', 'The listing is off the map while it’s occupied.')
+    },
+    onError: (err) => toast.error('Couldn’t mark it rented', err.message ?? 'Please try again'),
+  })
+
+  const { mutate: vacateListing } = useMutation({
+    mutationFn: (property) => propertyService.vacate(property.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-listings'] })
+      toast.success('Marked as vacant', 'It’s back on the map for renters to find.')
+    },
+    onError: (err) => toast.error('Couldn’t mark it vacant', err.message ?? 'Please try again'),
+  })
+
+  async function pickTenant(tenant) {
+    const property = markTenantFor
+    if (!property) return
+    const name = tenant.name || tenant.email?.split('@')[0] || 'This person'
+    const ok = await confirm({
+      title: 'Mark as rented?',
+      message: `${name} will be recorded as the tenant of ${property.title}, and the listing set to Occupied — it comes off the public map. Mark it vacant later to relist it.`,
+      confirmLabel: 'Mark as rented',
+    })
+    if (ok) markTenant({ propertyId: property.id, tenantId: tenant.id })
+  }
+
+  async function confirmVacate(property) {
+    const tenantName = property.currentTenant?.name ?? 'the current tenant'
+    const ok = await confirm({
+      title: 'Mark as vacant?',
+      message: `${tenantName} will no longer be recorded as the tenant, and ${property.title} goes back on the map as Active.`,
+      confirmLabel: 'Mark as vacant',
+    })
+    if (ok) vacateListing(property)
+  }
 
   async function confirmToggleStatus(property) {
     if (property.status === 'ACTIVE') {
@@ -394,25 +444,35 @@ export default function OnboardingWizard({ profile }) {
       )
     }
     return (
-      <ListingsOverview
-        profile={profile}
-        onAdd={startNewListing}
-        onEdit={setEditListingId}
-        // Preview opens the listing a renter actually sees, in a new tab, so the
-        // owner keeps their place in the list.
-        onPreview={(property) => window.open(`/property/${property.id}`, '_blank', 'noopener')}
-        // Visit requests live in the Appointments tab (host mode shows the
-        // incoming side) — the listing row links there rather than growing its
-        // own half-copy of it.
-        onVisitRequests={() => navigate('/user?tab=appointments')}
-        onSubmitForReview={submitForReview}
-        onDeleteListing={confirmDeleteListing}
-        onToggleStatus={confirmToggleStatus}
-        localDraft={localDraft}
-        localDraftLabel={localDraftLabel}
-        onResumeLocalDraft={resumeLocalDraft}
-        onDiscardLocalDraft={discardLocalDraft}
-      />
+      <>
+        <ListingsOverview
+          profile={profile}
+          onAdd={startNewListing}
+          onEdit={setEditListingId}
+          // Preview opens the listing a renter actually sees, in a new tab, so the
+          // owner keeps their place in the list.
+          onPreview={(property) => window.open(`/property/${property.id}`, '_blank', 'noopener')}
+          // Visit requests live in the Appointments tab (host mode shows the
+          // incoming side) — the listing row links there rather than growing its
+          // own half-copy of it.
+          onVisitRequests={() => navigate('/user?tab=appointments')}
+          onSubmitForReview={submitForReview}
+          onDeleteListing={confirmDeleteListing}
+          onToggleStatus={confirmToggleStatus}
+          onMarkTenant={setMarkTenantFor}
+          onVacate={confirmVacate}
+          localDraft={localDraft}
+          localDraftLabel={localDraftLabel}
+          onResumeLocalDraft={resumeLocalDraft}
+          onDiscardLocalDraft={discardLocalDraft}
+        />
+        <MarkTenantModal
+          property={markTenantFor}
+          busy={markTenantBusy}
+          onClose={() => setMarkTenantFor(null)}
+          onPick={pickTenant}
+        />
+      </>
     )
   }
 

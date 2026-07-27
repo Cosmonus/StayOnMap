@@ -247,6 +247,8 @@ export async function getPropertiesByOwner(ownerId) {
       amenities: { include: { amenity: true } },
       trustScore: true,
       riskScore: true,
+      // Who lives there now — the OCCUPIED row shows this and offers "vacate"
+      currentTenant: { select: { id: true, name: true, avatarUrl: true } },
       _count: {
         select: {
           // PENDING only, not every appointment ever made: this drives the
