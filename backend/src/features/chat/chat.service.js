@@ -213,6 +213,16 @@ export async function editMessage(conversationId, messageId, userId, body) {
   }
   if (message.senderId !== userId) throw Object.assign(new Error('Access denied'), { statusCode: 403 })
   if (message.deletedAt) throw Object.assign(new Error('Cannot edit a deleted message'), { statusCode: 409 })
+  // Once the other person has read it, the words are theirs too — editing then
+  // rewrites what they already saw, and the only trace is a small "edited"
+  // label they have no reason to re-read. Deleting stays allowed: it leaves
+  // "This message was deleted", so they can see that something was withdrawn.
+  //
+  // Enforced here, not just hidden in the clients: both hide the button, but
+  // the button is not the rule.
+  if (message.isRead) {
+    throw Object.assign(new Error('This message has already been read and can no longer be edited'), { statusCode: 409 })
+  }
 
   const updated = await prisma.message.update({
     where: { id: messageId },

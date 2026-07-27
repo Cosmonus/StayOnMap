@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { View, Text, TextInput, Pressable, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Linking, StyleSheet } from 'react-native'
+import { View, Text, TextInput, Pressable, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Linking, Modal, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Image } from 'expo-image'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -113,6 +113,7 @@ export default function ConversationScreen({ route, navigation }) {
   const [msgSearch, setMsgSearch] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [editingId, setEditingId] = useState(null)
+  const [lightbox, setLightbox] = useState(null)
   const [uploading, setUploading] = useState(false)
   const typingTimer = useRef(null)
   const typingDebounce = useRef(null)
@@ -289,10 +290,16 @@ export default function ConversationScreen({ route, navigation }) {
     ])
   }
 
+  // Edit is offered only until they have read it. After that the words are
+  // theirs too, and rewriting them leaves nothing behind but a small "edited"
+  // label the reader has no reason to look at again. Delete stays on the menu
+  // either way — it leaves "This message was deleted", which is visible.
+  // editMessage() in chat.service.js returns 409 for the same reason, so this
+  // is the affordance matching the rule, not the rule itself.
   function handleLongPressOwn(item) {
     if (item.deletedAt) return
     Alert.alert('Message options', undefined, [
-      { text: 'Edit', onPress: () => { setEditingId(item.id); setInput(item.body) } },
+      ...(item.isRead ? [] : [{ text: 'Edit', onPress: () => { setEditingId(item.id); setInput(item.body) } }]),
       { text: 'Delete', style: 'destructive', onPress: () => confirmDelete(item.id) },
       { text: 'Cancel', style: 'cancel' },
     ])
@@ -444,7 +451,15 @@ export default function ConversationScreen({ route, navigation }) {
                     ) : (
                       <>
                         {isImageAttachment(item) && (
-                          <Image source={{ uri: item.attachmentUrl }} style={styles.attachmentImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
+                          // Thumbnail in the bubble, full resolution on tap. It
+                          // used to load the FULL image to paint it at 200pt.
+                          <Pressable
+                            onPress={() => setLightbox(item.attachmentUrl)}
+                            accessibilityRole="imagebutton"
+                            accessibilityLabel="Open photo full size"
+                          >
+                            <Image source={{ uri: imgUrl(item.attachmentUrl) }} style={styles.attachmentImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
+                          </Pressable>
                         )}
                         {/* A document, not a photo. Rendering a PDF through
                             <Image> showed a blank square — chat has accepted
@@ -536,6 +551,35 @@ export default function ConversationScreen({ route, navigation }) {
         </Pressable>
       </View>
       </KeyboardAvoidingView>
+
+      {/* Full resolution, over everything. onRequestClose is what makes the
+          Android hardware back button dismiss it (mobile/AGENTS.md §2) —
+          without it the photo traps you. `detail` asks imgUrl for the _full
+          variant; the bubble showed the _thumb. */}
+      <Modal
+        visible={!!lightbox}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLightbox(null)}
+        statusBarTranslucent
+      >
+        <Pressable
+          style={styles.lightbox}
+          onPress={() => setLightbox(null)}
+          accessibilityRole="button"
+          accessibilityLabel="Close photo"
+        >
+          {!!lightbox && (
+            <Image
+              source={{ uri: imgUrl(lightbox, 'detail') }}
+              style={styles.lightboxImage}
+              contentFit="contain"
+              cachePolicy="memory-disk"
+              transition={150}
+            />
+          )}
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -591,6 +635,11 @@ const styles = StyleSheet.create({
   bubbleTextOwn: { color: colors.white },
   bubbleDeletedText: { fontStyle: 'italic', opacity: 0.7 },
   attachmentImage: { width: 200, height: 200, borderRadius: radius.md, marginBottom: spacing.xs },
+  // Black rather than the app's surfaces: a photo viewer wants the frame to
+  // disappear, and this is the one place the light-only rule does not apply
+  // because there is no chrome to be light.
+  lightbox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.94)', alignItems: 'center', justifyContent: 'center' },
+  lightboxImage: { width: '100%', height: '100%' },
   docChip: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 48,
     backgroundColor: colors.white, borderRadius: radius.md,
