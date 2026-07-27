@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { MapPin } from 'lucide-react'
 import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import { useUiStore } from '@store/uiStore'
 import { toast } from '@components/common/Toaster'
 import Select from '@components/common/Select'
 import { CITY_LIST_LABEL, CITY_NAMES } from '@/config/cities'
@@ -38,7 +39,9 @@ export default function OAuthCompletePage() {
       authService.getMe()
         .then((r) => {
           loginSuccess({ token: result.token, refreshToken: result.refresh, user: r.data })
-          navigate('/', { replace: true })
+          // Same landing rule as the login modal: a surviving host mode
+          // (loginSuccess drops it for non-owners) goes to the dashboard.
+          navigate(useUiStore.getState().hostMode ? '/user?tab=dashboard' : '/', { replace: true })
         })
         .catch(() => setError('Sign-in was not completed. Please try again.'))
       // getMe needs the token before AuthContext has it:

@@ -30,7 +30,6 @@ export function AuthProvider({ children }) {
       })
       .catch(() => {
         AsyncStorage.removeItem('user_token')
-        useUiStore.getState().setHostMode(false)
       })
       .finally(() => setLoading(false))
   }, [])
@@ -39,6 +38,11 @@ export function AuthProvider({ children }) {
     await AsyncStorage.setItem('user_token', token)
     // Older backend responses have no refreshToken — sessions are additive.
     if (refreshToken) await AsyncStorage.setItem('user_refresh_token', refreshToken)
+    // The chosen mode survives logout (2026-07-27) but belongs to the person:
+    // a non-owner account signing in on this device never lands in host tabs.
+    // For an owner in host mode, AppTabs mounts HOST_TABS → Dashboard first;
+    // renter mode mounts RENTER_TABS → Explore (the map) first.
+    if (loggedInUser.role !== 'OWNER') useUiStore.getState().setHostMode(false)
     setUser(loggedInUser)
     if (!hadUser.current) {
       connectSocket()
@@ -58,7 +62,8 @@ export function AuthProvider({ children }) {
     await AsyncStorage.removeItem('user_token')
     setUser(null)
     hadUser.current = false
-    useUiStore.getState().setHostMode(false)
+    // hostMode deliberately survives sign-out — a host logging back in lands
+    // back in host view; only the explicit mode switch changes it.
     unregisterPushNotifications().catch(() => {})
     disconnectSocket()
   }
