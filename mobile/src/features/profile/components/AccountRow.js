@@ -4,6 +4,7 @@ import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
+import { shadows } from '@theme/shadows'
 
 // The account screen's building blocks, shared by the renter's Account tab and
 // the host's Profile tab. Mobile keeps those as two screens (the whole tab bar
@@ -50,23 +51,40 @@ export function AccountRow({ label, count, onPress, danger, last }) {
   )
 }
 
-// Which hat they are wearing, and the way out of it. A statement first and a
-// button second: someone opening this screen wondering why their tabs changed
-// needs to SEE the mode, not hunt for a toggle labelled with the other one.
-export function ModeCard({ hostMode, onSwitch }) {
+// Which hat they are wearing, and the way to change it — one control, not two
+// readings of the same fact.
+//
+// This was a card in the list that said "Renting" on the left and "Switch to
+// hosting" on the right, so the screen named BOTH modes at once and you had to
+// work out which one you were in. A segmented control shows the state as the
+// selection, which is the one thing everybody already knows how to read.
+//
+// It belongs in ScreenHeader's `below` slot, not in the list: it switches what
+// the whole app shows, so it is chrome. As the first row of a scrolling list it
+// would scroll away exactly when someone wants it.
+export function ModeSwitch({ hostMode, onChange }) {
   return (
-    <Pressable
-      style={styles.modeCard}
-      onPress={onSwitch}
-      accessibilityRole="button"
-      accessibilityLabel={hostMode ? 'Switch to renting' : 'Switch to hosting'}
-    >
-      <View style={styles.modeLeft}>
-        <View style={styles.modeDot} />
-        <Text style={styles.modeLabel}>{hostMode ? 'Hosting' : 'Renting'}</Text>
-      </View>
-      <Text style={styles.modeAction}>{hostMode ? 'Switch to renting' : 'Switch to hosting'}</Text>
-    </Pressable>
+    <View style={styles.segment}>
+      {[false, true].map((isHost) => {
+        const selected = hostMode === isHost
+        const label = isHost ? 'Hosting' : 'Renting'
+        return (
+          <Pressable
+            key={label}
+            style={[styles.segmentItem, selected && styles.segmentItemActive]}
+            onPress={() => { if (!selected) onChange(isHost) }}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+            accessibilityLabel={label}
+            accessibilityHint={selected ? undefined : `Switches the app to ${label.toLowerCase()}`}
+          >
+            <Text style={[styles.segmentText, selected && styles.segmentTextActive]} numberOfLines={1}>
+              {label}
+            </Text>
+          </Pressable>
+        )
+      })}
+    </View>
   )
 }
 
@@ -88,13 +106,28 @@ const styles = StyleSheet.create({
   rowLabel: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.slate800 },
   rowLabelDanger: { color: colors.danger },
   rowCount: { fontFamily: fonts.body, color: colors.slate500 },
-  modeCard: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md,
-    minHeight: 52, paddingHorizontal: spacing.md,
-    backgroundColor: colors.brand50, borderWidth: 1, borderColor: colors.brand600, borderRadius: radius.lg,
+  // Brand jade, not neutral grey: which hat you are wearing changes the whole
+  // app, so it should look like the app, and the mint track reads as the
+  // control's own surface rather than another white card.
+  //
+  // The fill is brand-700, NOT brand-600. It is the only brand value that
+  // carries white text at AA (6.28:1; brand-600 is 4.36:1) — see the Color
+  // System note in .claude/ui-ux.md.
+  //
+  // 48 sits on the segment, not the track, so the TAPPABLE area clears
+  // Android's 48dp minimum (mobile/AGENTS.md §6) rather than the track clearing
+  // it while each half sits under.
+  segment: {
+    flexDirection: 'row',
+    backgroundColor: colors.brand50,
+    borderRadius: radius.md,
+    padding: spacing.xs,
   },
-  modeLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  modeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.brand600 },
-  modeLabel: { fontFamily: fonts.displayBold, fontSize: fontSizes.base, color: colors.brand700 },
-  modeAction: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand700 },
+  segmentItem: {
+    flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center',
+    borderRadius: radius.sm,
+  },
+  segmentItemActive: { backgroundColor: colors.brand700, ...shadows.xs },
+  segmentText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.brand700 },
+  segmentTextActive: { fontFamily: fonts.bodySemiBold, color: colors.white },
 })

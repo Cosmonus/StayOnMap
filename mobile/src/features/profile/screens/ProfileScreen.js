@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { userService } from '@services/user.service'
 import { useUiStore } from '@store/uiStore'
-import { AccountGroup, AccountRow, ModeCard } from '@features/profile/components/AccountRow'
+import { AccountGroup, AccountRow, ModeSwitch } from '@features/profile/components/AccountRow'
 import AccountIdentity from '@features/profile/components/AccountIdentity'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
@@ -49,7 +49,10 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <ScreenHeader title="Profile" />
+      <ScreenHeader
+        title="Profile"
+        below={<ModeSwitch hostMode={hostMode} onChange={setHostMode} />}
+      />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.body}>
           <AccountIdentity
@@ -60,8 +63,6 @@ export default function ProfileScreen({ navigation }) {
             onPress={() => navigation.navigate('Settings')}
             fallbackName="StayOnMap user"
           />
-
-          <ModeCard hostMode={hostMode} onSwitch={() => setHostMode(!hostMode)} />
 
           {/* What you have going on, then the app's own settings. Two groups
               rather than one list of eight: the first is about your tenancy,
