@@ -22,6 +22,13 @@ export default function App() {
   // go. It is an overlay, not a route: the navigator mounts and starts its own
   // data fetching underneath while it plays, so the brand moment costs nothing
   // in time-to-interactive.
+  //
+  // It leaves as soon as the session is rehydrated — see BrandSplash. It used
+  // to run a fixed 1220ms and had no idea what the app was doing, which was
+  // wrong in both directions: it sat there after the app was ready, and on a
+  // slow /auth/me it left too early and handed over to RootNavigator's
+  // loading gate. One green screen that waits for real work beats two that
+  // take turns.
   const [brandSplashDone, setBrandSplashDone] = useState(false)
   const finishBrandSplash = useCallback(() => setBrandSplashDone(true), [])
 
@@ -72,12 +79,15 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <RootNavigator />
+            {/* Inside AuthProvider so it can read `loading` and stay up for
+                exactly as long as the session takes to rehydrate. Still the
+                last sibling, so it paints above the navigator without a Modal
+                — a Modal here would fight the status bar and the hardware
+                back handler. */}
+            {!brandSplashDone && <BrandSplash onFinish={finishBrandSplash} />}
           </AuthProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
-      {/* Last child so it paints above the navigator without a Modal — a Modal
-          here would fight the status bar and the hardware back handler. */}
-      {!brandSplashDone && <BrandSplash onFinish={finishBrandSplash} />}
     </GestureHandlerRootView>
   )
 }
