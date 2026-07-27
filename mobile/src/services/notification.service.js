@@ -13,6 +13,8 @@ export const notificationService = {
   markOne: (id) => api.patch(`/notifications/${id}/read`),
   // Scoped for the same reason the list is: clearing the host inbox must not
   // silently mark the renter's unread ones read.
-  markAll: (audience) => api.patch('/notifications/read-all', null, scope(audience)),
-  markAllByType: (type, audience) => api.patch('/notifications/read-all', null, scope(audience, { type })),
+  // {} not null — axios serializes null to the string "null", which Express's
+  // strict JSON parser 400s; same fix as web's notification.service.
+  markAll: (audience) => api.patch('/notifications/read-all', {}, scope(audience)),
+  markAllByType: (type, audience) => api.patch('/notifications/read-all', {}, scope(audience, { type })),
 }
