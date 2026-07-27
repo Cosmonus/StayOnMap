@@ -15,4 +15,9 @@ export const fontSizes = {
   xl: 20,
   xxl: 24,
   display: 28,
+  // "Display L" in `.claude/ui-ux.md`'s size ladder — mobile's ladder stopped
+  // at 28 because nothing needed larger until the launch screen, where the
+  // wordmark carries the whole viewport on its own. Same 40 web uses, so the
+  // two ladders stay one ladder.
+  displayLarge: 40,
 }

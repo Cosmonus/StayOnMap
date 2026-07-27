@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { userService } from '@services/user.service'
 import { useUiStore } from '@store/uiStore'
-import { AccountGroup, AccountRow, ModeCard } from '@features/profile/components/AccountRow'
+import { AccountGroup, AccountRow, ModeSwitch } from '@features/profile/components/AccountRow'
 import AccountIdentity from '@features/profile/components/AccountIdentity'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
@@ -44,7 +44,10 @@ export default function HostProfileScreen({ navigation }) {
       {/* Titled like every other screen. The identity card below is content —
           the first row of the list, sharing its card shape — not a second
           header competing with this one. */}
-      <ScreenHeader title="Account" />
+      <ScreenHeader
+        title="Account"
+        below={<ModeSwitch hostMode onChange={setHostMode} />}
+      />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.body}>
           <AccountIdentity
@@ -56,7 +59,6 @@ export default function HostProfileScreen({ navigation }) {
             fallbackName="StayOnMap host"
           />
 
-          <ModeCard hostMode onSwitch={() => setHostMode(false)} />
 
           {/* Web's host nav has a Calendar TAB; mobile's bottom bar is full at
               five, so the calendar lives on the Dashboard. That made it the one

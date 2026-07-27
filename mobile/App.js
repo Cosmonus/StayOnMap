@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AppState } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
@@ -10,12 +10,28 @@ import { useFonts } from 'expo-font'
 import { queryClient } from '@lib/queryClient'
 import { getSocket } from '@lib/socket'
 import { AuthProvider } from '@features/auth/context/AuthContext'
+import BrandSplash from '@components/common/BrandSplash'
 import RootNavigator from '@navigation/RootNavigator'
 import { navigateToReference } from '@navigation/navigationRef'
 
 SplashScreen.preventAutoHideAsync().catch(() => {})
 
 export default function App() {
+  // The branded launch screen (the wordmark, on the same brand green the
+  // native splash just painted) that takes over the instant that splash lets
+  // go. It is an overlay, not a route: the navigator mounts and starts its own
+  // data fetching underneath while it plays, so the brand moment costs nothing
+  // in time-to-interactive.
+  //
+  // It leaves as soon as the session is rehydrated — see BrandSplash. It used
+  // to run a fixed 1220ms and had no idea what the app was doing, which was
+  // wrong in both directions: it sat there after the app was ready, and on a
+  // slow /auth/me it left too early and handed over to RootNavigator's
+  // loading gate. One green screen that waits for real work beats two that
+  // take turns.
+  const [brandSplashDone, setBrandSplashDone] = useState(false)
+  const finishBrandSplash = useCallback(() => setBrandSplashDone(true), [])
+
   // require() the 5 weight files directly — importing from the package index
   // made Metro bundle every weight in both families (~27 TTFs, several MB of
   // APK for fonts nothing renders). Keys must match theme/typography.js.
@@ -63,6 +79,12 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <RootNavigator />
+            {/* Inside AuthProvider so it can read `loading` and stay up for
+                exactly as long as the session takes to rehydrate. Still the
+                last sibling, so it paints above the navigator without a Modal
+                — a Modal here would fight the status bar and the hardware
+                back handler. */}
+            {!brandSplashDone && <BrandSplash onFinish={finishBrandSplash} />}
           </AuthProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

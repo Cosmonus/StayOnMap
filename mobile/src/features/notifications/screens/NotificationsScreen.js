@@ -7,6 +7,8 @@ import { getSocket } from '@lib/socket'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ErrorState from '@components/common/ErrorState'
+import { referenceDestination, navigateToReference } from '@navigation/navigationRef'
+import { useUiStore } from '@store/uiStore'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -48,6 +50,9 @@ function dateGroup(date) {
 // mounted component (like web's NotificationBell) is already listening.
 export default function NotificationsScreen({ navigation }) {
   const qc = useQueryClient()
+  // Where a notification leads depends on the mode: the same Conversation is
+  // the "Inbox" tab for a host and "Chat" for a renter (AppTabs.js).
+  const hostMode = useUiStore((s) => s.hostMode)
 
   const { data: notifications = [], isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['notifications'],
@@ -133,29 +138,44 @@ export default function NotificationsScreen({ navigation }) {
               <Text style={styles.emptyBody}>Appointment updates and messages will show up here.</Text>
             </View>
           )}
-          renderItem={({ item: n }) => (
-            <Pressable
-              style={[styles.row, !n.isRead && styles.rowUnread]}
-              onPress={() => { if (!n.isRead) markOne(n.id) }}
-              accessibilityRole="button"
-              accessibilityLabel={`${n.isRead ? '' : 'Unread. '}${n.title}. ${n.body}`}
-              accessibilityHint={n.isRead ? undefined : 'Marks this notification as read'}
-            >
-              <View style={styles.rowIcon}>
-                <Icon name={TYPE_ICON[n.type] ?? 'bell'} size={16} color={colors.brand600} />
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <View style={styles.rowTop}>
-                  <View style={styles.titleRow}>
-                    {!n.isRead && <View style={styles.unreadDot} />}
-                    <Text style={[styles.title, !n.isRead && styles.titleUnread]} numberOfLines={2}>{n.title}</Text>
-                  </View>
-                  <Text style={styles.time}>{timeAgo(n.createdAt)}</Text>
+          renderItem={({ item: n }) => {
+            // A notification that names a thing should OPEN that thing. Tapping
+            // one only marked it read, which made the whole list a dead end —
+            // and an inconsistent one, since the same notification tapped from
+            // the Android tray did navigate. Both go through
+            // referenceDestination() now.
+            const opens = referenceDestination(n, hostMode) !== null
+            return (
+              <Pressable
+                style={[styles.row, !n.isRead && styles.rowUnread]}
+                onPress={() => {
+                  if (!n.isRead) markOne(n.id)
+                  if (opens) navigateToReference(n)
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`${n.isRead ? '' : 'Unread. '}${n.title}. ${n.body}`}
+                accessibilityHint={opens ? 'Opens this' : n.isRead ? undefined : 'Marks this notification as read'}
+              >
+                <View style={styles.rowIcon}>
+                  <Icon name={TYPE_ICON[n.type] ?? 'bell'} size={16} color={colors.brand600} />
                 </View>
-                <Text style={styles.body} numberOfLines={3}>{n.body}</Text>
-              </View>
-            </Pressable>
-          )}
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={styles.rowTop}>
+                    <View style={styles.titleRow}>
+                      {!n.isRead && <View style={styles.unreadDot} />}
+                      <Text style={[styles.title, !n.isRead && styles.titleUnread]} numberOfLines={2}>{n.title}</Text>
+                    </View>
+                    <Text style={styles.time}>{timeAgo(n.createdAt)}</Text>
+                  </View>
+                  <Text style={styles.body} numberOfLines={3}>{n.body}</Text>
+                </View>
+                {/* Only where there is somewhere to go — a chevron on every row
+                    would promise a destination the report and verification
+                    types genuinely do not have. */}
+                {opens && <Icon name="chevronRight" size={16} color={colors.slate500} />}
+              </Pressable>
+            )
+          }}
         />
       )}
     </SafeAreaView>
