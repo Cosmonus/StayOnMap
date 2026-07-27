@@ -75,9 +75,23 @@ const SavedStack = makeStack([
   ...BOOKING_SCREENS,
 ])
 
+// A thread opens INSIDE whichever tab opened it — the same reason
+// BOOKING_SCREENS is spread into every stack that can open a listing.
+//
+// The alternative, a cross-tab `navigate('Inbox', { screen: 'Conversation' })`,
+// pushes the thread onto the Inbox tab's own stack. That tab then stays parked
+// on a conversation the user never opened from there, so tapping "Inbox" shows
+// one thread instead of the inbox — and hitting back from it lands on the chat
+// list rather than the screen they actually came from.
+const CONVERSATION_SCREEN = {
+  name: 'Conversation',
+  component: ConversationScreen,
+  options: { headerShown: false },
+}
+
 const ChatStack = makeStack([
   { name: 'ChatHome', component: ConversationListScreen, options: { headerShown: false } },
-  { name: 'Conversation', component: ConversationScreen, options: { headerShown: false } },
+  CONVERSATION_SCREEN,
 ])
 
 // Renter-only — listing management moved out to host mode's My Listing tab.
@@ -100,6 +114,10 @@ const DashboardStack = makeStack([
 
 const HostAppointmentsStack = makeStack([
   { name: 'AppointmentsHome', component: AppointmentsScreen, options: { headerShown: false }, initialParams: { initialTab: 'incoming' } },
+  // "Chat" on a visit request. Only the incoming (owner) card has that button,
+  // and only this stack passes initialTab: 'incoming' — so the renter's copy of
+  // AppointmentsScreen, over in ProfileStack, has no way to reach it.
+  CONVERSATION_SCREEN,
 ])
 
 const HostProfileStack = makeStack([

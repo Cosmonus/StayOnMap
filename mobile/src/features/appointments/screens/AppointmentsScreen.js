@@ -10,7 +10,6 @@ import { formatTime } from '@utils/time'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ErrorState from '@components/common/ErrorState'
-import { useUiStore } from '@store/uiStore'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -331,7 +330,6 @@ export default function AppointmentsScreen({ navigation, route }) {
   // via the renter/host mode toggle itself, so a second toggle in here
   // would just duplicate that.
   const isIncoming = route?.params?.initialTab === 'incoming'
-  const hostMode = useUiStore((s) => s.hostMode)
   const [filter, setFilter] = useState('all')
 
   const { data: ownerAppts = [], isLoading: loadingOwner, isError: errorOwner, refetch: refetchOwner } = useQuery({
@@ -365,12 +363,16 @@ export default function AppointmentsScreen({ navigation, route }) {
       // waiting for the conversations list to load and finding itself in it.
       const convo = await chatService.startWithTenant(appt.property.id, appt.tenant.id).then((r) => r.data)
       qc.invalidateQueries({ queryKey: ['conversations'] })
-      // The chat tab is 'Inbox' in host mode and 'Chat' in renter mode — the
-      // same branch every other cross-tab jump makes (navigationRef.js,
-      // AppointmentForm). Hardcoding either name breaks in the other mode.
-      navigation.getParent()?.navigate(hostMode ? 'Inbox' : 'Chat', {
-        screen: 'Conversation',
-        params: { conversationId: convo.id, other: appt.tenant, otherRole: 'Tenant' },
+      // Pushed onto THIS stack, not the chat tab's (AppTabs.js's
+      // CONVERSATION_SCREEN). A `getParent().navigate('Inbox', { screen:
+      // 'Conversation' })` left the Inbox tab holding a thread the host never
+      // opened from there, so the next "Inbox" tap showed that one
+      // conversation and never the list. Back from here returns to the visit
+      // queue, which is where they were.
+      navigation.navigate('Conversation', {
+        conversationId: convo.id,
+        other: appt.tenant,
+        otherRole: 'Tenant',
       })
     } catch {
       Alert.alert('Couldn’t open the chat', 'Please try again in a moment.')
