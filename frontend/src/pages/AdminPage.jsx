@@ -77,18 +77,19 @@ function PropertyDonut({ data }) {
   const active    = data?.properties?.active    ?? 0
   const pending   = data?.properties?.pending   ?? 0
   const suspended = data?.properties?.suspended ?? 0
+  const occupied  = data?.properties?.occupied  ?? 0
   const total     = data?.properties?.total     ?? 0
-  const other     = Math.max(0, total - active - pending - suspended)
+  const other     = Math.max(0, total - active - pending - suspended - occupied)
 
   if (total === 0) {
     return <div className="flex items-center justify-center h-48 text-sm text-slate-500">No properties yet</div>
   }
 
   const chartData = {
-    labels: ['Active', 'Pending', 'Suspended', 'Other'],
+    labels: ['Active', 'Occupied', 'Pending', 'Suspended', 'Other'],
     datasets: [{
-      data: [active, pending, suspended, other],
-      backgroundColor: ['#22c55e', '#eab308', '#ef4444', '#cbd5e1'],
+      data: [active, occupied, pending, suspended, other],
+      backgroundColor: ['#22c55e', '#6366f1', '#eab308', '#ef4444', '#cbd5e1'],
       borderWidth: 0,
       hoverOffset: 4,
     }],
@@ -105,6 +106,7 @@ function PropertyDonut({ data }) {
 
   const legend = [
     { label: 'Active',    value: active,    color: '#22c55e' },
+    { label: 'Occupied',  value: occupied,  color: '#6366f1' },
     { label: 'Pending',   value: pending,   color: '#eab308' },
     { label: 'Suspended', value: suspended, color: '#ef4444' },
     { label: 'Other',     value: other,     color: '#cbd5e1' },
@@ -197,6 +199,24 @@ function TotalUsersChart({ monthly = [] }) {
   )
 }
 
+// Full names for the type breakdown — TYPE_SHORT below is for map pins, where
+// space is the constraint; a dashboard card has room to say the whole word.
+const TYPE_LABEL = {
+  APARTMENT: 'Apartment', HOUSE: 'House', VILLA: 'Villa', PG: 'PG',
+  INDEPENDENT_HOUSE: 'Independent house', COMMERCIAL: 'Shop / Commercial',
+  LAND: 'Land / Plot', SHORT_STAY: 'Short stay',
+}
+
+function StatTile({ label, value, hint }) {
+  return (
+    <div className="bg-white border border-slate-100 rounded-2xl px-4 py-3.5">
+      <p className="text-2xl font-bold text-slate-900">{(value ?? 0).toLocaleString('en-IN')}</p>
+      <p className="text-xs font-semibold text-slate-600 mt-0.5">{label}</p>
+      {hint && <p className="text-[11px] text-slate-500 mt-0.5">{hint}</p>}
+    </div>
+  )
+}
+
 function MetricBar({ label, value, max, color = 'bg-brand-500' }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0
   return (
@@ -237,11 +257,25 @@ function OverviewSection() {
   const now = new Date()
   const monthRange = `${new Date(now.getFullYear(), now.getMonth() - 11, 1).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })} – ${now.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}`
 
+  const byType = [...(data?.properties?.byType ?? [])].sort((a, b) => b.count - a.count)
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Overview</h1>
         <p className="text-sm text-slate-500 mt-0.5">Platform health at a glance.</p>
+      </div>
+
+      {/* Headline numbers. "Tenants placed" is the owner's mark-tenant action
+          (status OCCUPIED) — a CURRENT count, since vacating clears it; signed
+          leases are the all-time record of tenancies made through StayOnMap. */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <StatTile label="Users"          value={data?.users?.total} />
+        <StatTile label="Owners"         value={data?.users?.owners} />
+        <StatTile label="Renters only"   value={data?.users?.renters} />
+        <StatTile label="Properties"     value={data?.properties?.total} />
+        <StatTile label="Tenants placed" value={data?.tenancy?.occupiedNow} hint="currently occupied" />
+        <StatTile label="Leases signed"  value={data?.tenancy?.leasesSigned} hint="all time" />
       </div>
 
       {/* Row 1: Total Users full width */}
@@ -267,8 +301,8 @@ function OverviewSection() {
         <TotalUsersChart monthly={data?.users?.monthly ?? []} />
       </ChartCard>
 
-      {/* Row 2: Property distribution + Platform health */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      {/* Row 2: Property distribution + type breakdown + platform health */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
         <ChartCard
           title="Property Distribution"
@@ -276,6 +310,26 @@ function OverviewSection() {
           footer="Breakdown by current status"
         >
           <PropertyDonut data={data} />
+        </ChartCard>
+
+        <ChartCard
+          title="Property Types"
+          footer="All 6 categories, every status included"
+        >
+          {byType.length === 0 ? (
+            <div className="flex items-center justify-center h-48 text-sm text-slate-500">No properties yet</div>
+          ) : (
+            <div className="space-y-3 pt-1">
+              {byType.map(t => (
+                <MetricBar
+                  key={t.type}
+                  label={TYPE_LABEL[t.type] ?? t.type.replace(/_/g, ' ')}
+                  value={t.count}
+                  max={Math.max(1, propTotal)}
+                />
+              ))}
+            </div>
+          )}
         </ChartCard>
 
         <ChartCard

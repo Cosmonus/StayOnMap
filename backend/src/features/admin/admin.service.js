@@ -35,6 +35,7 @@ export async function getDashboardAnalytics() {
   const [
     totalUsers, ownerUsers, newUsersToday, newUsersThisWeek,
     totalProperties, activeProperties, pendingProperties, suspendedProperties,
+    occupiedProperties, propertyTypesRaw, leasesSigned,
     totalReports, openReports, criticalReports,
     totalAppointments, pendingAppointments,
     verificationsPending,
@@ -49,6 +50,12 @@ export async function getDashboardAnalytics() {
     prisma.property.count({ where: { status: 'ACTIVE' } }),
     prisma.property.count({ where: { status: 'PENDING' } }),
     prisma.property.count({ where: { status: 'SUSPENDED' } }),
+    // "Marked as tenant" is the owner's markTenant action (status OCCUPIED +
+    // currentTenantId). Vacating clears it, so this is a CURRENT count; the
+    // all-time record of tenancies made through the platform is signed leases.
+    prisma.property.count({ where: { status: 'OCCUPIED' } }),
+    prisma.property.groupBy({ by: ['type'], _count: { _all: true } }),
+    prisma.lease.count({ where: { signedAt: { not: null } } }),
     prisma.propertyReport.count(),
     prisma.propertyReport.count({ where: { status: 'PENDING' } }),
     prisma.propertyReport.count({ where: { severity: 'CRITICAL', status: 'PENDING' } }),
@@ -75,7 +82,12 @@ export async function getDashboardAnalytics() {
     // OWNER implies tenant capability (no BOTH role), so "renters" here means
     // renter-only accounts — the two add up to the total.
     users: { total: totalUsers, owners: ownerUsers, renters: totalUsers - ownerUsers, newToday: newUsersToday, newThisWeek: newUsersThisWeek, monthly },
-    properties: { total: totalProperties, active: activeProperties, pending: pendingProperties, suspended: suspendedProperties },
+    properties: {
+      total: totalProperties, active: activeProperties, pending: pendingProperties,
+      suspended: suspendedProperties, occupied: occupiedProperties,
+      byType: propertyTypesRaw.map(r => ({ type: r.type, count: r._count._all })),
+    },
+    tenancy: { occupiedNow: occupiedProperties, leasesSigned },
     reports: { total: totalReports, open: openReports, critical: criticalReports },
     appointments: { total: totalAppointments, pending: pendingAppointments },
     verificationsPending,
