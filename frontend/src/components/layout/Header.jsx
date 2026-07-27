@@ -36,13 +36,27 @@ const NAV_TABS = [
   },
 ]
 
+// Text-only in the tab row (2026-07-27, operator decision) — five icons plus
+// five labels was double-encoding. The hamburger duplicates still carry one:
+// see TAB_MENU_ICON below.
 const HOST_NAV_TABS = [
-  { key: 'dashboard',    label: 'Dashboard',    to: '/user?tab=dashboard',    icon: <LayoutDashboard size={20} strokeWidth={1.8} /> },
-  { key: 'messages',     label: 'Inbox',        to: '/user?tab=messages',     icon: <MessageSquare size={20} strokeWidth={1.8} /> },
-  { key: 'appointments', label: 'Appointments', to: '/user?tab=appointments', icon: <CalendarCheck size={20} strokeWidth={1.8} /> },
-  { key: 'calendar',     label: 'Calendar',     to: '/user?tab=calendar',     icon: <CalendarDays size={20} strokeWidth={1.8} /> },
-  { key: 'my-listing',   label: 'My Listing',   to: '/list',                  icon: <Building2 size={20} strokeWidth={1.8} /> },
+  { key: 'dashboard',    label: 'Dashboard',    to: '/user?tab=dashboard' },
+  { key: 'messages',     label: 'Inbox',        to: '/user?tab=messages' },
+  { key: 'appointments', label: 'Appointments', to: '/user?tab=appointments' },
+  { key: 'calendar',     label: 'Calendar',     to: '/user?tab=calendar' },
+  { key: 'my-listing',   label: 'My Listing',   to: '/list' },
 ]
+
+// The host tabs' hamburger duplicates keep an icon each, at the menu's own
+// 17px, so every row of the menu stays one visual system — they used to
+// inherit the tab row's 20px icons and sat visibly larger than the rows below.
+const TAB_MENU_ICON = {
+  dashboard:    <LayoutDashboard size={17} strokeWidth={1.8} />,
+  messages:     <MessageSquare size={17} strokeWidth={1.8} />,
+  appointments: <CalendarCheck size={17} strokeWidth={1.8} />,
+  calendar:     <CalendarDays size={17} strokeWidth={1.8} />,
+  'my-listing': <Building2 size={17} strokeWidth={1.8} />,
+}
 
 // One icon per menu row, in both signed-in modes. A dropdown of bare text
 // beneath a tab row that has icons reads as two different products.
@@ -217,7 +231,7 @@ function HostActions({ unreadMessages, unreadOtherMode, onSwitchToTraveling, pro
     // desktop-only (`hidden md:flex`), so on mobile the hamburger is the
     // ONLY way to switch between Dashboard/Inbox/Appointments/Calendar/My
     // Listing.
-    ...tabs.map((t) => ({ key: `tab-${t.key}`, label: t.label, to: t.to, icon: t.icon })),
+    ...tabs.map((t) => ({ key: `tab-${t.key}`, label: t.label, to: t.to, icon: TAB_MENU_ICON[t.key] })),
     { key: 'divider-tabs', divider: true },
     { key: 'notifications',      label: 'Notifications',      to: '/user?tab=notifications', icon: MENU_ICON.notifications },
     { key: 'account',            label: 'Account',             to: '/user?tab=settings',      icon: MENU_ICON.account },
