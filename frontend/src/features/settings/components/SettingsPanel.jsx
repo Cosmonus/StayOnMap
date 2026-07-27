@@ -10,6 +10,7 @@ import { CITY_NAMES } from '@/config/cities'
 import Select from '@components/common/Select'
 import LinkedAccountsCard from './LinkedAccountsCard'
 import DevicesCard from './DevicesCard'
+import PointsCard from '@features/points/components/PointsCard'
 
 const ICONS = { user: User, camera: Camera, globe: Globe, eye: Eye, eyeOff: EyeOff, lock: Lock, bell: Bell, save: Save, shield: Shield, trash: Trash2 }
 
@@ -233,6 +234,10 @@ export default function SettingsPanel() {
           {saving ? 'Saving...' : 'Save'}
         </button>
       </div>
+
+      {/* Points moved here 2026-07-27 when the renter dashboard overview was
+          deleted — Settings is where mobile already shows the same card. */}
+      <PointsCard />
 
       {/* ── Row 1: Profile + Social ──────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

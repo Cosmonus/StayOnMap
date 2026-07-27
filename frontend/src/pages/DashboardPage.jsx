@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Check } from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import SEOMeta from '@components/common/SEOMeta'
-import { propertyService } from '@services/property.service'
 import { authService } from '@services/auth.service'
 import { notificationService } from '@services/notification.service'
 import { appointmentService } from '@services/appointment.service'
@@ -23,73 +21,6 @@ import MapRightPanel from '@features/map/components/MapRightPanel'
 import AppointmentManager from '@features/appointments/components/AppointmentManager'
 import LeaseManager from '@features/leases/components/LeaseManager'
 import SettingsPanel from '@features/settings/components/SettingsPanel'
-import PointsCard from '@features/points/components/PointsCard'
-
-// ── Section: Overview ──────────────────────────────────────────────────────
-function OverviewSection({ listings, isOwner, onListProperty }) {
-  const stats = isOwner
-    ? [
-        { label: 'My listings',    value: listings.length,                                       color: 'text-slate-800' },
-        { label: 'Active',         value: listings.filter(l => l.status === 'ACTIVE').length,   color: 'text-slate-800' },
-        { label: 'Pending review', value: listings.filter(l => l.status === 'PENDING').length,  color: 'text-slate-500' },
-        { label: 'Drafts',         value: listings.filter(l => l.status === 'DRAFT').length,    color: 'text-slate-500' },
-      ]
-    : [
-        { label: 'Listings',  value: '0',      color: 'text-slate-500' },
-        { label: 'Role',      value: 'Tenant', color: 'text-slate-500' },
-        { label: 'Visits',    value: '—',      color: 'text-slate-500' },
-      ]
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Welcome back — here&apos;s your overview.</p>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {stats.map(({ label, value, color }) => (
-          <div key={label} className="bg-white rounded-2xl border border-slate-100 p-5">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{label}</p>
-            <p className={`text-3xl font-bold ${color}`}>{value}</p>
-          </div>
-        ))}
-      </div>
-
-      <PointsCard />
-
-      <div>
-        <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Quick actions</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            onClick={onListProperty}
-            className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 hover:border-slate-300 transition-all text-left"
-          >
-            <div className="w-10 h-10 rounded-xl bg-[#111111] flex items-center justify-center shrink-0">
-              <Plus size={18} strokeWidth={1.8} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-800">List a property</p>
-              <p className="text-xs text-slate-500">Add a new rental to StayOnMap</p>
-            </div>
-          </button>
-          <Link
-            to="?tab=properties"
-            className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 hover:border-slate-300 transition-all no-underline"
-          >
-            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-600">
-              <Check size={18} strokeWidth={1.8} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-800">Browse properties</p>
-              <p className="text-xs text-slate-500">Explore rentals on the map</p>
-            </div>
-          </Link>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ── Section: Placeholder ───────────────────────────────────────────────────
 // Support was a ComingSoon stub: an icon, a heading, one sentence, and no way
@@ -353,23 +284,30 @@ export default function DashboardPage() {
   })
   const isOwner = profile?.role === 'OWNER'
 
-  const { data: listings = [] } = useQuery({
-    queryKey: ['my-listings'],
-    queryFn: () => propertyService.getMyListings().then(r => r.data),
-    enabled: !!user,
-  })
+  // The renter-mode overview was DELETED 2026-07-27 — it was a second, staler
+  // dashboard (static "Role: Tenant" tiles) living beside HostDashboard, and
+  // platform metrics belong to the admin panel, not a user. Where ?tab=dashboard
+  // goes instead depends on why you're here: a tenant who clicked "Become a
+  // host" (hostMode on, no OWNER role yet — Header sends them to this URL)
+  // belongs in the host intro at /list; a renter with an old link or the bare
+  // /user URL belongs at their saved homes. Waits for the profile so a
+  // host-mode owner isn't bounced while their role is still loading.
+  useEffect(() => {
+    if (section !== 'dashboard' || !profile) return
+    if (hostMode && isOwner) return
+    navigate(hostMode ? '/list' : '/user?tab=wishlist', { replace: true })
+  }, [section, profile, hostMode, isOwner, navigate])
 
   const isFullBleed = section === 'properties' || section === 'messages'
 
   function renderSection() {
     switch (section) {
       case 'dashboard':
-        // Host mode asks a different question than renter mode: "is anyone
-        // waiting on me?" rather than "what have I saved?". Same tab, two
-        // surfaces — the mode toggle is what chooses (see .claude/architecture.md).
+        // Host mode only — the renter side has no dashboard (see the redirect
+        // above). Null while the profile loads or the redirect is in flight.
         return hostMode && isOwner
           ? <HostDashboard onAddListing={() => navigate('/list?new=1')} />
-          : <OverviewSection listings={listings} isOwner={isOwner} onListProperty={() => navigate('/list?new=1')} />
+          : null
       case 'properties':
         return (
           <div className="relative w-full h-full overflow-hidden">
