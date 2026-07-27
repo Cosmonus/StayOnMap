@@ -82,14 +82,23 @@ export default function NotificationsScreen({ navigation }) {
     return () => socket.off('notification:new', onNew)
   }, [qc, audience])
 
+  // Both invalidate the per-hat unread counts too — useOtherHatWaiting's
+  // mode-switch dot reads ['notification-unread'], and without this it kept
+  // showing until its own refetch long after everything was marked read.
   const { mutate: markOne } = useMutation({
     mutationFn: (id) => notificationService.markOne(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+      qc.invalidateQueries({ queryKey: ['notification-unread'] })
+    },
   })
 
   const { mutate: markAll } = useMutation({
     mutationFn: () => notificationService.markAll(audience),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+      qc.invalidateQueries({ queryKey: ['notification-unread'] })
+    },
   })
 
   const unreadCount = notifications.filter((n) => !n.isRead).length
