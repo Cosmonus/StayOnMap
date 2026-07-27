@@ -123,7 +123,7 @@ export default function LoginModal() {
     >
       <div
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-3xl rounded-3xl overflow-hidden flex"
+        className="relative w-full max-w-3xl rounded-3xl overflow-hidden flex"
         style={{ maxHeight: '90vh', boxShadow: '0 40px 100px rgba(0,0,0,0.45)' }}
       >
         {/* Left panel */}
@@ -183,19 +183,24 @@ export default function LoginModal() {
           </div>
         </div>
 
-        {/* Right panel */}
-        <div className="flex-1 bg-white flex flex-col overflow-y-auto">
-          {/* Close */}
-          <div className="flex justify-end p-4 pb-0">
-            <button
-              onClick={handleClose}
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-slate-100"
-            >
-              <X size={14} color="#64748b" strokeWidth={2.5} />
-            </button>
-          </div>
+        {/* Close — pinned to the dialog, not inside the scrolling panel, so
+            it neither scrolls away with a long form nor pushes it down. */}
+        <button
+          onClick={handleClose}
+          aria-label="Close"
+          className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full flex items-center justify-center transition-colors bg-white/80 hover:bg-slate-100"
+        >
+          <X size={15} color="#64748b" strokeWidth={2.5} />
+        </button>
 
-          <div className="px-8 pb-8 pt-2 flex flex-col flex-1 justify-center">
+        {/* Right panel. The old shell put justify-center INSIDE the scroll
+            container — when the form outgrows the dialog (the signup tab on a
+            short screen), justify-center overflows it both ways and the TOP
+            half becomes unreachable by scrolling. Auto margins center when
+            short and collapse to zero when tall, which is the difference. */}
+        <div className="flex-1 bg-white overflow-y-auto">
+          <div className="min-h-full flex flex-col px-5 py-8 sm:px-8">
+            <div className="my-auto w-full">
             <h3 className="text-xl font-bold text-slate-800 mb-1">
               {tab === 'login' ? 'Welcome back' : tab === 'otp' ? 'Sign in with a code' : tab === 'forgot' ? 'Reset password' : waitlisted ? 'Almost there' : 'Create account'}
             </h3>
@@ -464,6 +469,7 @@ export default function LoginModal() {
                 </p>
               </form>
             )}
+            </div>
           </div>
         </div>
       </div>
