@@ -24,8 +24,15 @@ import { spacing, radius } from '@theme/spacing'
 //
 // A generic PropertyCard was used here before. It is right for a search result
 // and wrong for this list: it repeats what the renter already decided on
-// (photos, badges, amenities) and has nowhere to put the one thing they came
-// back for.
+// (badges, amenities) and has nowhere to put the one thing they came back for.
+//
+// The layout is a CARD as of 2026-07-27 — the same chrome as My listings
+// (white, radius.lg, hairline, padding md, photo inset with its own radius.md)
+// so the app has one card, not one per screen. What did NOT come back with it
+// is PropertyCard's content: the signal below still gets the last word in the
+// card, which is the whole reason this screen isn't a grid of search results.
+// A saved home is one a renter has already looked at, so the photo is worth
+// the space; what it must never do is crowd out the signal.
 
 const FURNISHED = { FULLY: 'Furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
 
@@ -53,14 +60,14 @@ function SavedRow({ item, onPress }) {
   const url = p.images?.[0]?.url
 
   return (
-    <Pressable style={styles.row} onPress={onPress} accessibilityRole="button" accessibilityLabel={p.title}>
-      <View style={styles.thumb}>
+    <Pressable style={styles.card} onPress={onPress} accessibilityRole="button" accessibilityLabel={p.title}>
+      <View style={styles.cardImageWrap}>
         {url
-          ? <Image source={{ uri: imgUrl(url) }} style={styles.thumbImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
-          : <Icon name="image" size={22} color={colors.slate500} />}
+          ? <Image source={{ uri: imgUrl(url, 'card') }} style={styles.cardImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
+          : <Icon name="image" size={26} color={colors.slate500} />}
       </View>
 
-      <View style={{ flex: 1, minWidth: 0 }}>
+      <View style={styles.cardBody}>
         <Text style={styles.price}>
           {formatCurrency(Number(p.rent))}
           <Text style={styles.priceUnit}>{priceUnit(p)}</Text>
@@ -69,7 +76,7 @@ function SavedRow({ item, onPress }) {
         <Text style={styles.meta} numberOfLines={1}>{metaLine(p)}</Text>
 
         {/* At most one chip. Stacking "visit booked" over "price dropped" over
-            "no longer available" turns a row into a noticeboard, so the most
+            "no longer available" turns a card into a noticeboard, so the most
             actionable one wins. */}
         {!item.isAvailable ? (
           <Chip tone="muted">No longer available</Chip>
@@ -188,12 +195,18 @@ const styles = StyleSheet.create({
   exploreButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 48, backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.lg },
   exploreButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   list: { padding: spacing.md, paddingBottom: spacing.xxl },
-  row: {
-    flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start',
-    backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm,
+  // Same card as My listings — see MyListingsScreen's `card`. Keep the two in
+  // step; two different white cards in one app is how a design system rots.
+  card: {
+    backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100,
+    padding: spacing.md, marginBottom: spacing.md,
   },
-  thumb: { width: 88, height: 88, borderRadius: radius.md, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  thumbImage: { width: '100%', height: '100%' },
+  cardImageWrap: {
+    aspectRatio: 16 / 10, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.slate100,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cardImage: { width: '100%', height: '100%' },
+  cardBody: { paddingTop: spacing.sm },
   price: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate900 },
   priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500 },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800, marginTop: 2 },

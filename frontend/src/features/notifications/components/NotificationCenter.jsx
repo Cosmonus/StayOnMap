@@ -1,9 +1,29 @@
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Calendar, CircleCheck, Clipboard, CircleX, RefreshCw, Flag, SquarePen,
-  ShieldCheck, TriangleAlert, MessageCircle, Bell, Check,
+  ShieldCheck, TriangleAlert, MessageCircle, Bell, Check, ChevronRight,
 } from 'lucide-react'
 import { notificationService } from '@services/notification.service'
+
+// Where a notification's { referenceType, referenceId } leads, or null when
+// there is nowhere honest to send someone. Mirrors mobile's
+// referenceDestination() in navigation/navigationRef.js — same six reference
+// types the backend emits, same two deliberate omissions.
+//
+// PropertyReport and OwnershipVerification carry the report's and the
+// verification's own id. No route takes either, and sending someone to a
+// property would mean inventing an id we were never given, so those rows stay
+// unlinked rather than pretending.
+function referenceHref({ referenceType, referenceId }) {
+  switch (referenceType) {
+    case 'Conversation': return '/user?tab=messages'
+    case 'Appointment': return '/user?tab=appointments'
+    case 'Lease': return '/user?tab=leases'
+    case 'Property': return `/property/${referenceId}`
+    default: return null
+  }
+}
 
 // ── Icon configs (same as NotificationBell) ─────────────────────────────────
 const TYPE_CONFIG = {
@@ -136,12 +156,21 @@ export default function NotificationCenter() {
 }
 
 function NotificationRow({ n, onMark }) {
+  const navigate = useNavigate()
   const cfg = TYPE_CONFIG[n.type] ?? FALLBACK
   const CfgIcon = cfg.icon
+  // A notification that names a thing should OPEN that thing. Clicking one only
+  // marked it read, so the list was a dead end — and web push made that worse
+  // by always landing on this very list (push.service.js's
+  // url: '/user?tab=notifications').
+  const href = referenceHref(n)
 
   return (
     <button
-      onClick={() => { if (!n.isRead) onMark(n.id) }}
+      onClick={() => {
+        if (!n.isRead) onMark(n.id)
+        if (href) navigate(href)
+      }}
       className={`w-full text-left px-5 py-4 rounded-2xl mb-2 flex items-start gap-4 transition-colors ${
         !n.isRead ? `${cfg.bg} hover:brightness-95` : 'bg-white border border-slate-100 hover:bg-slate-50'
       }`}
@@ -162,6 +191,10 @@ function NotificationRow({ n, onMark }) {
         </div>
         <p className="text-sm text-slate-500 mt-1 leading-relaxed">{n.body}</p>
       </div>
+
+      {/* Only where there is somewhere to go — a chevron on every row would
+          promise a destination the report and verification types don't have. */}
+      {href && <ChevronRight className="w-4 h-4 text-slate-500 shrink-0 mt-3" strokeWidth={1.8} aria-hidden="true" />}
     </button>
   )
 }
