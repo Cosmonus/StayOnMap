@@ -31,6 +31,28 @@ export default {
       // (android/app/src/debug/AndroidManifest.xml) for the dev overlay, and
       // that variant is merged only into debug.
       blockedPermissions: ['android.permission.SYSTEM_ALERT_WINDOW'],
+      // https App Links, so stayonmap.com/property/123 opens the app instead of
+      // the browser. The custom scheme (stayonmap://property/:id) already
+      // worked; this is the half that needs Google's blessing.
+      //
+      // `autoVerify` makes Android fetch
+      // https://www.stayonmap.com/.well-known/assetlinks.json on install and
+      // check that its SHA-256 matches the signing key. WWW ONLY — the apex
+      // 302s and drops the path, so it can never satisfy verification.
+      //
+      // Failure here is SILENT: a fingerprint mismatch just means links keep
+      // opening in the browser, with no error anywhere. Confirm with
+      // `adb shell pm get-app-links com.stayonmap.app` after installing a
+      // build, and expect `verified` — anything else means the file and the
+      // key disagree.
+      intentFilters: [
+        {
+          action: 'VIEW',
+          autoVerify: true,
+          category: ['BROWSABLE', 'DEFAULT'],
+          data: [{ scheme: 'https', host: 'www.stayonmap.com', pathPrefix: '/property' }],
+        },
+      ],
       // The foreground S is 46% of the 108dp canvas, giving it a ~57% bounding
       // diagonal — clear of the 66dp (61%) circle Android guarantees is visible
       // on every launcher shape. It was 62% tall, i.e. TALLER than that
