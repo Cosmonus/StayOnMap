@@ -22,14 +22,43 @@ export default function Select({
   className = '',
 }) {
   const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 })
+  const [pos, setPos] = useState(null)
   const triggerRef = useRef(null)
   const panelRef = useRef(null)
 
+  // Fixed-position panels must fit the viewport they're pinned to: a panel
+  // that extends past the bottom of a short screen cannot be scrolled to — it
+  // simply isn't there (this hid the signup city list on small windows). So:
+  // flip upward when below is cramped, cap the height to the space that
+  // actually exists, clamp inside the horizontal edges, and recompute on any
+  // scroll/resize (capture phase, so a scrolling modal panel counts too) —
+  // the old one-shot position went stale the moment the page moved under it.
   useEffect(() => {
-    if (open && triggerRef.current) {
-      const r = triggerRef.current.getBoundingClientRect()
-      setPos({ top: r.bottom + 6, left: r.left, width: r.width })
+    if (!open) { setPos(null); return }
+
+    function computePos() {
+      const el = triggerRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+      const GAP = 6, MARGIN = 8, PANEL_MAX = 256
+      const below = vh - r.bottom - GAP - MARGIN
+      const above = r.top - GAP - MARGIN
+      const openUp = below < 160 && above > below
+      const maxHeight = Math.max(120, Math.min(PANEL_MAX, openUp ? above : below))
+      const left = Math.max(MARGIN, Math.min(r.left, vw - r.width - MARGIN))
+      setPos(openUp
+        ? { left, width: r.width, maxHeight, bottom: vh - r.top + GAP }
+        : { left, width: r.width, maxHeight, top: r.bottom + GAP })
+    }
+
+    computePos()
+    window.addEventListener('resize', computePos)
+    window.addEventListener('scroll', computePos, true)
+    return () => {
+      window.removeEventListener('resize', computePos)
+      window.removeEventListener('scroll', computePos, true)
     }
   }, [open])
 
@@ -88,11 +117,13 @@ export default function Select({
           />
         </button>
 
-        {open && createPortal(
+        {open && pos && createPortal(
           <div
             ref={panelRef}
-            style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999 }}
-            className="bg-white rounded-xl shadow-float border border-slate-200 overflow-hidden max-h-64 overflow-y-auto"
+            // zIndex above the login modal's 9999 — a tie leaves paint order
+            // to DOM position, which is how the city list vanished behind it.
+            style={{ position: 'fixed', ...pos, zIndex: 10000 }}
+            className="bg-white rounded-xl shadow-float border border-slate-200 overflow-y-auto"
           >
             {options.map((opt) => {
               const isSelected = opt.value === value
