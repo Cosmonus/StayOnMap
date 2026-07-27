@@ -14,17 +14,21 @@ import { radius } from '@theme/spacing'
 // reachable only by opening the account tab and scrolling to a menu row, so a
 // real-time notification arrived with nothing on screen to show for it.
 //
-// Shares the `['notifications']` query key with NotificationsScreen, so the
-// badge costs no extra request once that screen has been opened, and marking
-// something read there updates the badge without a refetch.
+// Shares the `['notifications', audience]` query key with NotificationsScreen,
+// so the badge costs no extra request once that screen has been opened, and
+// marking something read there updates the badge without a refetch. The
+// audience is part of the key because the count has to match the list it opens
+// — a bell that counts both hats over a list that shows one is the same lie the
+// chat badge told.
 export default function NotificationBell({ style }) {
   const navigation = useNavigation()
   const { user } = useAuth()
   const hostMode = useUiStore((s) => s.hostMode)
+  const audience = hostMode ? 'OWNER' : 'TENANT'
 
   const { data: notifications = [] } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => notificationService.list().then((r) => r.data),
+    queryKey: ['notifications', audience],
+    queryFn: () => notificationService.list(audience).then((r) => r.data),
     enabled: !!user,
     // Same cadence as the tab badges — often enough to feel live, rare enough
     // that a backgrounded app isn't polling every few seconds.

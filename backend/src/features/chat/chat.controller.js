@@ -63,7 +63,9 @@ export async function searchMessages(req, res, next) {
 
 export async function unreadCount(req, res, next) {
   try {
-    const count = await chatService.getUnreadCount(req.user.id)
-    ok(res, { count })
+    // { count, asTenant, asOwner } — `count` is the whole-account total the
+    // released clients already read; the split is what lets a mode-filtered
+    // inbox badge itself honestly.
+    ok(res, await chatService.getUnreadCount(req.user.id))
   } catch (err) { next(err) }
 }

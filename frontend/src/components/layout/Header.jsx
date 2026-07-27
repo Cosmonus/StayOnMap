@@ -11,6 +11,7 @@ import { useUiStore } from '@store/uiStore'
 import { useFilterStore } from '@store/filterStore'
 import { countActiveFilters } from '@/config/filters'
 import { chatService } from '@services/chat.service'
+import { notificationService } from '@services/notification.service'
 import { authService } from '@services/auth.service'
 import MapFilterBar from '@features/map/components/MapFilterBar'
 import FilterButton from '@features/filters/components/FilterButton'
@@ -134,7 +135,7 @@ function GuestActions() {
 }
 
 // ── Traveler — logged in, not hosting ───────────────────────────────────────
-function TravelerActions({ unreadMessages, onBecomeHost, profile }) {
+function TravelerActions({ unreadMessages, unreadOtherMode, onBecomeHost, profile }) {
   const { pathname, search } = useLocation()
   const { signOut } = useAuth()
   const navigate = useNavigate()
@@ -163,7 +164,10 @@ function TravelerActions({ unreadMessages, onBecomeHost, profile }) {
     { key: 'account',       label: 'Account',       to: '/user?tab=settings',      icon: MENU_ICON.account },
     { key: 'support',       label: 'Support',       to: '/user?tab=support',       icon: MENU_ICON.support },
     { key: 'divider',       divider: true },
-    { key: 'switch-to-host', label: 'Switch to host', onClick: onBecomeHost,        icon: MENU_ICON.switch },
+    // Badged with the OTHER hat's unread, because the tab badge beside it now
+    // counts only this one. Without it, a message waiting on your host side is
+    // invisible from here and you'd have to switch modes on a hunch.
+    { key: 'switch-to-host', label: 'Switch to host', onClick: onBecomeHost,        icon: MENU_ICON.switch, badge: unreadOtherMode },
     { key: 'logout',        label: 'Log out', danger: true, icon: MENU_ICON.logout, onClick: () => { signOut(); navigate('/') } },
   ]
 
@@ -196,7 +200,7 @@ function TravelerActions({ unreadMessages, onBecomeHost, profile }) {
 }
 
 // ── Host mode — persistent, replaces the traveler nav everywhere ───────────
-function HostActions({ unreadMessages, onSwitchToTraveling, profile }) {
+function HostActions({ unreadMessages, unreadOtherMode, onSwitchToTraveling, profile }) {
   const { pathname, search } = useLocation()
   const { signOut } = useAuth()
   const navigate = useNavigate()
@@ -219,7 +223,9 @@ function HostActions({ unreadMessages, onSwitchToTraveling, profile }) {
     { key: 'account',            label: 'Account',             to: '/user?tab=settings',      icon: MENU_ICON.account },
     { key: 'support',            label: 'Support',             to: '/user?tab=support',       icon: MENU_ICON.support },
     { key: 'divider',            divider: true },
-    { key: 'switch-to-tenant',   label: 'Switch to tenant',    onClick: onSwitchToTraveling, icon: MENU_ICON.switch },
+    // See the matching note in TravelerActions: this badge is the renter-side
+    // unread, which host mode's Inbox deliberately does not list.
+    { key: 'switch-to-tenant',   label: 'Switch to tenant',    onClick: onSwitchToTraveling, icon: MENU_ICON.switch, badge: unreadOtherMode },
     { key: 'logout',             label: 'Log out', danger: true, icon: MENU_ICON.logout, onClick: () => { signOut(); navigate('/') } },
   ]
 
@@ -261,12 +267,34 @@ export default function Header() {
   const mapFilterCount = useFilterStore((s) => countActiveFilters(s.filters))
   const isMapPage = pathname === '/' || pathname.startsWith('/properties')
 
-  const { data: unreadMessages = 0 } = useQuery({
+  // Per HAT, not per account. ChatPanel shows host mode only the threads you
+  // own and renter mode only the ones you started, so the whole-account total
+  // badged "Inbox · 1" for a message sitting in a thread host mode does not
+  // list — the badge pointed at an empty inbox and the message was reachable
+  // only by guessing that you had to switch modes.
+  const { data: unread } = useQuery({
     queryKey: ['chat-unread'],
-    queryFn: () => chatService.unreadCount().then((r) => r.data?.count ?? 0),
+    queryFn: () => chatService.unreadCount().then((r) => r.data),
     enabled: !!user,
     refetchInterval: 30000,
   })
+  // Notifications are per hat too, and the switch is the only place that can
+  // say so — a visit request for your flat is invisible from renter mode, and
+  // nothing else on screen would suggest looking.
+  const { data: unreadNotifs } = useQuery({
+    queryKey: ['notification-unread'],
+    queryFn: () => notificationService.unread().then((r) => r.data),
+    enabled: !!user,
+    refetchInterval: 60000,
+  })
+
+  const unreadMessages = (hostMode ? unread?.asOwner : unread?.asTenant) ?? 0
+  // What is waiting in the mode you are NOT in — messages and notifications
+  // together, because the switch answers one question: is there anything over
+  // there?
+  const unreadOtherMode =
+    ((hostMode ? unread?.asTenant : unread?.asOwner) ?? 0) +
+    ((hostMode ? unreadNotifs?.asTenant : unreadNotifs?.asOwner) ?? 0)
 
   const { data: profile } = useQuery({
     queryKey: ['me'],
@@ -314,9 +342,9 @@ export default function Header() {
         {!user ? (
           <GuestActions />
         ) : hostMode ? (
-          <HostActions unreadMessages={unreadMessages} onSwitchToTraveling={handleSwitchToTraveling} profile={profile ?? user} />
+          <HostActions unreadMessages={unreadMessages} unreadOtherMode={unreadOtherMode} onSwitchToTraveling={handleSwitchToTraveling} profile={profile ?? user} />
         ) : (
-          <TravelerActions unreadMessages={unreadMessages} onBecomeHost={handleBecomeHost} profile={profile ?? user} />
+          <TravelerActions unreadMessages={unreadMessages} unreadOtherMode={unreadOtherMode} onBecomeHost={handleBecomeHost} profile={profile ?? user} />
         )}
       </div>
 

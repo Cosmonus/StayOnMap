@@ -1,0 +1,454 @@
+import { useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  Check, CheckCheck, Search, MessageCircle, CalendarDays, FileText, Pencil, Trash2, Home,
+} from 'lucide-react'
+import { chatService } from '@services/chat.service'
+import { getSocket } from '@lib/socket'
+import { toast } from '@components/common/Toaster'
+import { confirm } from '@components/common/ConfirmDialog'
+import { formatTime } from '@utils/time'
+import Avatar from './Avatar'
+import InputBar from './InputBar'
+import { chatTime, dateSeparator, displayName, isImageAttachment, replyTimeLabel } from './chatFormat'
+
+function ReadReceipt({ isRead }) {
+  const cls = `w-3.5 h-3.5 shrink-0 ${isRead ? 'text-white' : 'text-white/50'}`
+  return isRead ? <CheckCheck className={cls} strokeWidth={2.5} /> : <Check className={cls} strokeWidth={2.5} />
+}
+
+// `counterpartRole` is the word for the OTHER person — "Owner" on the tenant
+// surface, "Renter" on the owner's. It is passed in rather than derived here so
+// this component never has to know which hat it is serving.
+function ThreadHeader({ conversation, other, counterpartRole, replyMinutes, typingUser, searchOpen, onToggleSearch }) {
+  if (!conversation) return null
+
+  // "Owner · replies in about an hour" — the role plus, only when we've measured
+  // it, how long they actually take. Absent rather than optimistic when there
+  // isn't enough history, and absent entirely on the owner surface.
+  const subtitle = [counterpartRole, replyTimeLabel(replyMinutes)].filter(Boolean).join(' · ')
+
+  return (
+    <div className="shrink-0 px-4 sm:px-6 py-3 flex items-center justify-between gap-2 sm:gap-4 border-b border-slate-100 bg-white">
+      <div className="flex items-center gap-3 min-w-0">
+        <Avatar name={displayName(other)} url={other?.avatarUrl} size={40} />
+        <div className="min-w-0">
+          <p className="text-base font-bold text-slate-900 truncate">{displayName(other)}</p>
+          {typingUser ? (
+            <p className="text-sm text-brand-600 font-medium animate-pulse">Typing…</p>
+          ) : (
+            <p className="text-sm text-slate-500 truncate">{subtitle}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        <button
+          onClick={onToggleSearch}
+          aria-label="Search in this conversation"
+          className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${searchOpen ? 'bg-brand-100 text-brand-700' : 'hover:bg-slate-100 text-slate-500'}`}
+        >
+          <Search className="w-[18px] h-[18px]" strokeWidth={2} />
+        </button>
+        {/* "View listing" is ~120px of a 375px header that also holds an
+            avatar, a name and a search button. Below sm it becomes the same
+            control as an icon, keeping its 44px target and its label for
+            screen readers. */}
+        {conversation.property?.id && (
+          <Link
+            to={`/property/${conversation.property.id}`}
+            aria-label="View listing"
+            className="min-h-[44px] flex items-center justify-center w-11 sm:w-auto sm:px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 no-underline hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors"
+          >
+            <Home className="w-[18px] h-[18px] sm:hidden" strokeWidth={2} aria-hidden="true" />
+            <span className="hidden sm:inline">View listing</span>
+          </Link>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// A chat about a property almost always exists because someone wants to see it,
+// and the two surfaces were disconnected: the appointment lived in one tab and
+// the conversation about it in another. This states which visit is on the table
+// so neither party has to go looking.
+//
+// Renders nothing when there is no live appointment — an empty banner saying
+// "no visit booked" would be noise on every thread that is still just a question.
+function VisitBanner({ visit }) {
+  if (!visit) return null
+
+  const when = visit.scheduledAt ?? visit.requestedDate
+  const date = when
+    ? new Date(when).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
+    : null
+  const time = visit.requestedTime ? `, ${formatTime(visit.requestedTime)}` : ''
+
+  const heading = visit.status === 'ACCEPTED' ? 'Visit confirmed'
+    : visit.status === 'RESCHEDULED' ? 'Visit rescheduled'
+    : 'Visit requested'
+
+  return (
+    <div className="shrink-0 flex items-start gap-3 px-4 sm:px-6 py-3.5 bg-brand-50">
+      <CalendarDays size={17} strokeWidth={2} className="mt-0.5 shrink-0 text-brand-700" aria-hidden="true" />
+      <p className="text-sm text-brand-900 leading-relaxed">
+        <strong className="font-bold">{heading}</strong>
+        {date && <> — {date}{time}.</>} This thread is about that visit.
+      </p>
+    </div>
+  )
+}
+
+function MessageArea({
+  messages, userId,
+  editingId, editValue, onEditValueChange, onStartEdit, onCancelEdit, onSaveEdit, onDeleteRequest,
+}) {
+  const bottomRef = useRef(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  let lastDate = null
+
+  return (
+    <div className="flex-1 overflow-y-auto bg-white">
+      <div className="px-4 sm:px-6 py-5">
+      {messages.map((msg, i) => {
+        const isMe = msg.senderId === userId
+        const msgDate = dateSeparator(msg.createdAt)
+        const showDate = msgDate !== lastDate
+        lastDate = msgDate
+
+        const prev = messages[i - 1]
+        const isGrouped = prev && prev.senderId === msg.senderId &&
+          (new Date(msg.createdAt) - new Date(prev.createdAt)) < 120000
+
+        return (
+          <div key={msg.id}>
+            {showDate && (
+              <div className="flex items-center justify-center my-5">
+                <span className="px-3 py-1 text-xs font-semibold text-slate-500 bg-slate-50 rounded-full">
+                  {msgDate}
+                </span>
+              </div>
+            )}
+
+            {/* No avatars in the thread. A two-person conversation has exactly
+                one other face in it, already in the header — repeating it beside
+                every bubble spent 42px a line on information nobody was
+                missing. Alignment and colour say who spoke. */}
+            <div className={`group flex items-center ${isMe ? 'justify-end' : 'justify-start'} ${isGrouped ? 'mt-1.5' : 'mt-4'}`}>
+
+              {isMe && !msg.deletedAt && editingId !== msg.id && (
+                <div className="hidden group-hover:flex items-center gap-1 mr-1.5">
+                  <button
+                    onClick={() => onStartEdit(msg)}
+                    className="w-6 h-6 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-600"
+                    title="Edit message"
+                  >
+                    <Pencil className="w-3 h-3" strokeWidth={2} />
+                  </button>
+                  <button
+                    onClick={() => onDeleteRequest(msg)}
+                    className="w-6 h-6 rounded-full hover:bg-red-50 flex items-center justify-center text-slate-500 hover:text-red-500"
+                    title="Delete message"
+                  >
+                    <Trash2 className="w-3 h-3" strokeWidth={2} />
+                  </button>
+                </div>
+              )}
+
+              <div className="max-w-[70%] min-w-0">
+                {editingId === msg.id ? (
+                  <div className="px-3 py-2 rounded-2xl bg-white border border-brand-300 shadow-xs">
+                    <textarea
+                      autoFocus
+                      value={editValue}
+                      onChange={(e) => onEditValueChange(e.target.value)}
+                      rows={2}
+                      className="w-full text-sm text-slate-800 resize-none focus:outline-none"
+                    />
+                    <div className="flex items-center justify-end gap-2 mt-1">
+                      <button onClick={onCancelEdit} className="text-xs font-semibold text-slate-500 hover:text-slate-600 px-2 py-1">Cancel</button>
+                      <button onClick={onSaveEdit} className="text-xs font-semibold text-brand-600 hover:text-brand-700 px-2 py-1">Save</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={`px-4 py-3 text-sm leading-relaxed ${isMe
+                    ? 'bg-brand-700 text-white rounded-2xl rounded-br-md'
+                    : 'bg-slate-100 text-slate-800 rounded-2xl rounded-bl-md'
+                  }`}>
+                    {msg.deletedAt ? (
+                      <span className={`italic ${isMe ? 'text-white/70' : 'text-slate-500'}`}>This message was deleted</span>
+                    ) : (
+                      <>
+                        {isImageAttachment(msg) && (
+                          <img src={msg.attachmentUrl} alt="Attachment" className="max-w-[220px] max-h-[220px] rounded-lg object-cover block mb-1.5" />
+                        )}
+                        {msg.attachmentUrl && !isImageAttachment(msg) && (
+                          <a
+                            href={msg.attachmentUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`flex items-center gap-2.5 mb-1.5 px-3 py-2.5 rounded-xl no-underline transition-colors ${
+                              isMe ? 'bg-white/15 hover:bg-white/25 text-white' : 'bg-white hover:bg-slate-50 text-slate-800'
+                            }`}
+                          >
+                            <FileText size={18} strokeWidth={2} className="shrink-0" aria-hidden="true" />
+                            <span className="flex-1 min-w-0">
+                              <span className="block text-sm font-semibold truncate">{msg.attachmentName || 'Document'}</span>
+                              <span className={`block text-xs ${isMe ? 'text-white/70' : 'text-slate-500'}`}>PDF · opens in a new tab</span>
+                            </span>
+                          </a>
+                        )}
+                        {msg.body && (
+                          <span className="block whitespace-pre-wrap break-words">{msg.body}</span>
+                        )}
+                      </>
+                    )}
+                    {/* Its own line under the message, not trailing the last
+                        word — a timestamp inlined after the text competed with
+                        it for the same reading position. */}
+                    <span className={`flex items-center gap-1 mt-1 text-xs ${isMe ? 'text-white/70' : 'text-slate-500'}`}>
+                      {msg.editedAt && !msg.deletedAt && <span>edited ·</span>}
+                      <span>{chatTime(msg.createdAt)}</span>
+                      {isMe && <ReadReceipt isRead={msg.isRead} />}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+        )
+      })}
+
+      <div ref={bottomRef} />
+      </div>
+    </div>
+  )
+}
+
+function EmptyThread({ prompt }) {
+  return (
+    <div className="flex-1 flex items-center justify-center bg-slate-50/50">
+      <div className="text-center">
+        <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-5">
+          <MessageCircle className="w-9 h-9 text-slate-500" strokeWidth={1.2} />
+        </div>
+        <p className="text-base font-bold text-slate-600 mb-1">Select a conversation</p>
+        <p className="text-sm text-slate-500">{prompt}</p>
+      </div>
+    </div>
+  )
+}
+
+// The right pane: one open thread, end to end. Everything here — sending,
+// editing, deleting, typing, read receipts, live socket updates — is identical
+// for both hats, because a message is a message. What the caller supplies is
+// who the other person IS to them (`counterpartRole`) and whether a measured
+// reply time is worth showing (`replyMinutes`, tenant surface only).
+export default function MessageThread({
+  conversation, conversationId, userId, counterpartRole, replyMinutes, emptyPrompt,
+}) {
+  const qc = useQueryClient()
+  const [typing, setTyping] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [msgSearch, setMsgSearch] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [editingId, setEditingId] = useState(null)
+  const [editValue, setEditValue] = useState('')
+  const typingTimer = useRef(null)
+
+  // Debounce the search box 300ms before hitting the backend search endpoint
+  useEffect(() => {
+    const t = setTimeout(() => setSearchQuery(msgSearch.trim()), 300)
+    return () => clearTimeout(t)
+  }, [msgSearch])
+
+  const { data: messages = [] } = useQuery({
+    queryKey: ['chat-messages', conversationId],
+    queryFn: () => chatService.messages(conversationId).then(r => r.data),
+    enabled: !!conversationId,
+  })
+
+  const { data: searchResults = [] } = useQuery({
+    queryKey: ['chat-search', conversationId, searchQuery],
+    queryFn: () => chatService.searchMessages(conversationId, searchQuery).then(r => r.data.slice().reverse()),
+    enabled: !!conversationId && searchQuery.length > 0,
+  })
+
+  const { mutate: send, isPending } = useMutation({
+    mutationFn: ({ body, attachmentUrl, attachmentName, attachmentMime }) =>
+      chatService.sendMessage(conversationId, body, { url: attachmentUrl, name: attachmentName, mime: attachmentMime }),
+    onSuccess: (res) => {
+      qc.setQueryData(['chat-messages', conversationId], (old = []) => [...old, res.data])
+      qc.invalidateQueries({ queryKey: ['conversations'] })
+    },
+    onError: () => toast.error('Error', 'Failed to send message'),
+  })
+
+  const { mutate: editMsg } = useMutation({
+    mutationFn: ({ messageId, body }) => chatService.editMessage(conversationId, messageId, body).then(r => r.data),
+    onSuccess: (updated) => {
+      qc.setQueryData(['chat-messages', conversationId], (old = []) => old.map(m => (m.id === updated.id ? updated : m)))
+      setEditingId(null)
+      setEditValue('')
+    },
+    onError: () => toast.error('Error', 'Failed to edit message'),
+  })
+
+  const { mutate: deleteMsg } = useMutation({
+    mutationFn: (messageId) => chatService.deleteMessage(conversationId, messageId),
+    onSuccess: (_res, messageId) => {
+      qc.setQueryData(['chat-messages', conversationId], (old = []) =>
+        old.map(m => (m.id === messageId ? { ...m, deletedAt: new Date().toISOString(), body: '', attachmentUrl: null, attachmentName: null } : m)))
+    },
+    onError: () => toast.error('Error', 'Failed to delete message'),
+  })
+
+  useEffect(() => {
+    const socket = getSocket()
+    if (!socket || !conversationId) return
+
+    socket.emit('join:conversation', conversationId)
+
+    function onNewMessage(msg) {
+      if (msg.senderId !== userId) {
+        qc.setQueryData(['chat-messages', conversationId], (old = []) => {
+          if (old.some(m => m.id === msg.id)) return old
+          return [...old, msg]
+        })
+      }
+    }
+
+    function onTypingEvent(data) {
+      if (data.userId !== userId && data.conversationId === conversationId) {
+        setTyping(true)
+        clearTimeout(typingTimer.current)
+        typingTimer.current = setTimeout(() => setTyping(false), 2000)
+      }
+    }
+
+    function onMessageRead(data) {
+      if (data.conversationId !== conversationId || data.readerId === userId) return
+      qc.setQueryData(['chat-messages', conversationId], (old = []) =>
+        old.map(m => (m.senderId === userId ? { ...m, isRead: true } : m)))
+      qc.invalidateQueries({ queryKey: ['conversations'] })
+    }
+
+    function onMessageEdited(msg) {
+      if (msg.conversationId !== conversationId) return
+      qc.setQueryData(['chat-messages', conversationId], (old = []) => old.map(m => (m.id === msg.id ? msg : m)))
+    }
+
+    function onMessageDeleted(data) {
+      if (data.conversationId !== conversationId) return
+      qc.setQueryData(['chat-messages', conversationId], (old = []) =>
+        old.map(m => (m.id === data.id ? { ...m, deletedAt: new Date().toISOString(), body: '', attachmentUrl: null, attachmentName: null } : m)))
+    }
+
+    // Reconnect safety net: catch up on anything missed while disconnected
+    function onConnect() {
+      qc.invalidateQueries({ queryKey: ['chat-messages', conversationId] })
+    }
+
+    socket.on('message:new', onNewMessage)
+    socket.on('typing', onTypingEvent)
+    socket.on('message:read', onMessageRead)
+    socket.on('message:edited', onMessageEdited)
+    socket.on('message:deleted', onMessageDeleted)
+    socket.on('connect', onConnect)
+
+    return () => {
+      socket.emit('leave:conversation', conversationId)
+      socket.off('message:new', onNewMessage)
+      socket.off('typing', onTypingEvent)
+      socket.off('message:read', onMessageRead)
+      socket.off('message:edited', onMessageEdited)
+      socket.off('message:deleted', onMessageDeleted)
+      socket.off('connect', onConnect)
+    }
+  }, [conversationId, userId, qc])
+
+  const typingDebounce = useRef(null)
+  function emitTyping() {
+    if (typingDebounce.current) return
+    const socket = getSocket()
+    if (socket) socket.emit('typing', { conversationId })
+    typingDebounce.current = setTimeout(() => { typingDebounce.current = null }, 2000)
+  }
+
+  function startEdit(msg) { setEditingId(msg.id); setEditValue(msg.body) }
+  function cancelEdit() { setEditingId(null); setEditValue('') }
+  function saveEdit() {
+    const body = editValue.trim()
+    if (!body || !editingId) return
+    editMsg({ messageId: editingId, body })
+  }
+  async function requestDelete(msg) {
+    const confirmed = await confirm({
+      title: 'Delete message?',
+      message: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+    })
+    if (confirmed) deleteMsg(msg.id)
+  }
+
+  if (!conversationId) return <EmptyThread prompt={emptyPrompt} />
+
+  const visibleMessages = searchQuery.length > 0 ? searchResults : messages
+  const other = conversation?.tenantId === userId ? conversation?.owner : conversation?.tenant
+
+  return (
+    // min-h-0 so MessageArea's `flex-1 overflow-y-auto` scrolls instead of
+    // stretching this column past its parent — see the note in ChatSurface.
+    <div className="flex-1 flex flex-col min-w-0 min-h-0">
+      <ThreadHeader
+        conversation={conversation}
+        other={other}
+        counterpartRole={counterpartRole}
+        replyMinutes={replyMinutes}
+        typingUser={typing}
+        searchOpen={searchOpen}
+        onToggleSearch={() => { setSearchOpen(o => !o); setMsgSearch('') }}
+      />
+      <VisitBanner visit={conversation?.visit} />
+      {searchOpen && (
+        <div className="shrink-0 px-4 sm:px-6 py-2.5 border-b border-slate-100 bg-white">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" strokeWidth={2} />
+            <input
+              autoFocus
+              type="text"
+              value={msgSearch}
+              onChange={e => setMsgSearch(e.target.value)}
+              placeholder="Search messages..."
+              className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus:border-brand-400 placeholder:text-slate-500"
+            />
+            {msgSearch && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-500">
+                {visibleMessages.length} result{visibleMessages.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+      <MessageArea
+        messages={visibleMessages}
+        userId={userId}
+        editingId={editingId}
+        editValue={editValue}
+        onEditValueChange={setEditValue}
+        onStartEdit={startEdit}
+        onCancelEdit={cancelEdit}
+        onSaveEdit={saveEdit}
+        onDeleteRequest={requestDelete}
+      />
+      <InputBar onSend={send} onTyping={emitTyping} isPending={isPending} />
+    </div>
+  )
+}

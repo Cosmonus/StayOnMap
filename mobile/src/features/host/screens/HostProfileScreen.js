@@ -6,6 +6,7 @@ import { userService } from '@services/user.service'
 import { useUiStore } from '@store/uiStore'
 import { AccountGroup, AccountRow, ModeSwitch } from '@features/profile/components/AccountRow'
 import AccountIdentity from '@features/profile/components/AccountIdentity'
+import { useOtherHatWaiting } from '@features/profile/useOtherHatWaiting'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { spacing } from '@theme/spacing'
@@ -23,6 +24,7 @@ import { spacing } from '@theme/spacing'
 export default function HostProfileScreen({ navigation }) {
   const { user, signOut } = useAuth()
   const setHostMode = useUiStore((s) => s.setHostMode)
+  const waiting = useOtherHatWaiting()
 
   const { data: account, isLoading, isError, refetch } = useQuery({
     queryKey: ['account-summary'],
@@ -46,7 +48,7 @@ export default function HostProfileScreen({ navigation }) {
           header competing with this one. */}
       <ScreenHeader
         title="Account"
-        below={<ModeSwitch hostMode onChange={setHostMode} />}
+        below={<ModeSwitch hostMode onChange={setHostMode} waiting={waiting} />}
       />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.body}>

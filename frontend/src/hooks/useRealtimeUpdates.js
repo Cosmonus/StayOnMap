@@ -25,15 +25,18 @@ export function useRealtimeUpdates() {
     const socket = connectSocket()
 
     function onMessageNotification() {
-      // Optimistic bump so the badge moves the same instant the message
-      // lands, then refetch for the server's truth.
-      qc.setQueryData(['chat-unread'], (n) => (typeof n === 'number' ? n + 1 : n))
+      // Refetch rather than bump optimistically: the badge is now per-hat
+      // (renter vs host, see chat.service.js's getUnreadCount) and this event
+      // carries no way to tell which side of the thread the reader is on, so
+      // an optimistic +1 could only land on the wrong one half the time.
       qc.invalidateQueries({ queryKey: ['chat-unread'] })
       qc.invalidateQueries({ queryKey: ['conversations'] })
     }
 
     function onNotification() {
       qc.invalidateQueries({ queryKey: ['notifications'] })
+      // The per-hat unread counts behind the mode-switch badge.
+      qc.invalidateQueries({ queryKey: ['notification-unread'] })
     }
 
     socket.on('message:notification', onMessageNotification)

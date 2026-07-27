@@ -430,6 +430,7 @@ export async function deleteProperty(id, ownerId) {
       type: 'SYSTEM',
       title: 'A listing you were visiting was removed',
       body: `The owner has taken “${property.title}” off StayOnMap, so your visit is cancelled.`,
+      audience: 'TENANT',
     }).catch(() => {})
   }
 

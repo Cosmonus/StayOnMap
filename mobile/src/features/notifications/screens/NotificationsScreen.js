@@ -54,9 +54,16 @@ export default function NotificationsScreen({ navigation }) {
   // the "Inbox" tab for a host and "Chat" for a renter (AppTabs.js).
   const hostMode = useUiStore((s) => s.hostMode)
 
+  // Notifications follow the renter/host toggle, like the inbox and the
+  // appointments queue: a visit request for your flat and a lease offer you
+  // received are two different jobs, and mixing them made a host scroll past
+  // their own tenancy to find the one they came for. Mirrors web's
+  // NotificationCenter.
+  const audience = hostMode ? 'OWNER' : 'TENANT'
+
   const { data: notifications = [], isLoading, isError, refetch, isRefetching } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => notificationService.list().then((r) => r.data),
+    queryKey: ['notifications', audience],
+    queryFn: () => notificationService.list(audience).then((r) => r.data),
     refetchInterval: 60000,
   })
 
@@ -64,11 +71,16 @@ export default function NotificationsScreen({ navigation }) {
     const socket = getSocket()
     if (!socket) return
     function onNew(notif) {
-      qc.setQueryData(['notifications'], (old = []) => [notif, ...(old ?? [])])
+      // A notification for the OTHER hat must not be spliced in here — it would
+      // sit under a heading that can't be right for it and vanish on the next
+      // refetch. An unclassified one (audience null, written before the column
+      // existed) belongs to both.
+      if (notif.audience && notif.audience !== audience) return
+      qc.setQueryData(['notifications', audience], (old = []) => [notif, ...(old ?? [])])
     }
     socket.on('notification:new', onNew)
     return () => socket.off('notification:new', onNew)
-  }, [qc])
+  }, [qc, audience])
 
   const { mutate: markOne } = useMutation({
     mutationFn: (id) => notificationService.markOne(id),
@@ -76,7 +88,7 @@ export default function NotificationsScreen({ navigation }) {
   })
 
   const { mutate: markAll } = useMutation({
-    mutationFn: () => notificationService.markAll(),
+    mutationFn: () => notificationService.markAll(audience),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   })
 

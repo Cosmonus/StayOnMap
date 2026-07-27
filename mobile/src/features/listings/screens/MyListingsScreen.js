@@ -52,6 +52,42 @@ function BecomeOwnerPrompt() {
   )
 }
 
+// Mirrors web's VisibilityNotice (OnboardingWizard.jsx). One account-level
+// privacy switch takes EVERY listing off the public map at once, while the row
+// still reads ACTIVE and the admin panel still counts it — so the only place
+// that disagrees is the map, and nothing said why.
+const VISIBILITY_NOTICE = {
+  HIDDEN: {
+    title: 'Your listings are hidden from everyone',
+    body: 'Listing visibility is set to Hidden, so even a live listing never appears on the map or in search results.',
+  },
+  LOGGED_IN: {
+    title: 'Only signed-in people can see your listings',
+    body: 'Listing visibility is set to Logged-in only, so your listings don’t appear for visitors who haven’t signed in.',
+  },
+}
+
+function VisibilityNotice({ visibility, onOpenSettings }) {
+  const notice = VISIBILITY_NOTICE[visibility]
+  if (!notice) return null
+
+  return (
+    <Pressable
+      style={styles.notice}
+      onPress={onOpenSettings}
+      accessibilityRole="button"
+      accessibilityLabel={`${notice.title}. Open settings to change it.`}
+    >
+      <View style={styles.noticeText}>
+        <Text style={styles.noticeTitle}>{notice.title}</Text>
+        <Text style={styles.noticeBody}>{notice.body}</Text>
+        <Text style={styles.noticeLink}>Change this in Settings</Text>
+      </View>
+      <Icon name="chevronRight" size={16} color="#B45309" />
+    </Pressable>
+  )
+}
+
 export default function MyListingsScreen({ navigation }) {
   const { user } = useAuth()
 
@@ -109,6 +145,14 @@ export default function MyListingsScreen({ navigation }) {
           numColumns={2}
           columnWrapperStyle={{ gap: spacing.md }}
           contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            <VisibilityNotice
+              visibility={profile?.listingVisibility}
+              // Settings lives in the host account tab, not this stack — the
+              // same cross-tab hop the dashboard uses to reach Calendar.
+              onOpenSettings={() => navigation.getParent()?.navigate('HostProfile', { screen: 'Settings' })}
+            />
+          }
           ListEmptyComponent={
             <Pressable style={styles.emptyState} onPress={() => navigation.navigate('AddListing')}>
               <View style={styles.emptyIcon}>
@@ -167,6 +211,11 @@ const styles = StyleSheet.create({
   addButton: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, minHeight: 48, justifyContent: 'center', },
   addButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   list: { padding: spacing.lg, gap: spacing.md },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.warning50, borderWidth: 1, borderColor: '#FDE68A', borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.md },
+  noticeText: { flex: 1, minWidth: 0 },
+  noticeTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: '#78350F' },
+  noticeBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#92400E', marginTop: 2 },
+  noticeLink: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: '#B45309', marginTop: spacing.xs },
   // The card pads its own contents and the photo is inset inside that padding,
   // rather than the photo bleeding to the card's edges. `overflow: 'hidden'`
   // is gone with it — it existed only to clip a full-bleed image to the card's

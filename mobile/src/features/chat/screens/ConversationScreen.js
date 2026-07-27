@@ -10,6 +10,7 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
 import { getSocket } from '@lib/socket'
 import { imgUrl } from '@utils/format'
+import { formatTime } from '@utils/time'
 import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
 import ScreenHeader from '@components/common/ScreenHeader'
@@ -54,6 +55,51 @@ function SenderAvatar({ sender }) {
       <Text style={styles.senderAvatarInitial}>{displayName(sender)[0]?.toUpperCase()}</Text>
     </View>
   )
+}
+
+// A chat about a property almost always exists because someone wants to see it,
+// and the two surfaces were disconnected: the appointment lived in one tab and
+// the conversation about it in another. Web has said this in the thread since
+// the visit context shipped; mobile did not, which is why a rescheduled visit
+// looked like it had gone nowhere.
+//
+// Renders nothing when there is no live appointment — an empty "no visit
+// booked" strip would be noise on every thread that is still just a question.
+function VisitBanner({ visit }) {
+  if (!visit) return null
+
+  const when = visit.scheduledAt ?? visit.requestedDate
+  const date = when
+    ? new Date(when).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
+    : null
+  const time = visit.requestedTime ? `, ${formatTime(visit.requestedTime)}` : ''
+
+  const heading = visit.status === 'ACCEPTED' ? 'Visit confirmed'
+    : visit.status === 'RESCHEDULED' ? 'Visit rescheduled'
+    : 'Visit requested'
+
+  return (
+    <View style={styles.visitBanner}>
+      <Icon name="calendar" size={16} color={colors.brand700} />
+      <Text style={styles.visitBannerText}>
+        <Text style={styles.visitBannerHeading}>{heading}</Text>
+        {date ? ` — ${date}${time}.` : '.'} This thread is about that visit.
+      </Text>
+    </View>
+  )
+}
+
+// MEASURED from the owner's own reply history (chat.service.js returns a median
+// and nothing below three samples). Shown only to the RENTER: an owner does not
+// need to be told how fast they themselves answer. Mirrors web's
+// chatFormat.js replyTimeLabel.
+function replyTimeLabel(minutes) {
+  if (minutes == null) return null
+  if (minutes < 15) return 'replies within minutes'
+  if (minutes < 90) return 'replies in about an hour'
+  if (minutes < 60 * 20) return `replies in about ${Math.round(minutes / 60)} hours`
+  const days = Math.round(minutes / 60 / 24)
+  return days <= 1 ? 'replies within a day' : `replies in about ${days} days`
 }
 
 export default function ConversationScreen({ route, navigation }) {
@@ -296,6 +342,11 @@ export default function ConversationScreen({ route, navigation }) {
           every other screen, and the header is the shared one. */}
       <ScreenHeader
         title={otherName}
+        // "Owner · replies in about an hour" — the role, plus how long they
+        // actually take when we have measured it. Absent rather than optimistic
+        // below three samples, and absent entirely on the host side.
+        subtitle={[otherRole, otherRole === 'Owner' ? replyTimeLabel(conversation?.ownerReplyMinutes) : null]
+          .filter(Boolean).join(' · ') || undefined}
         onBack={() => navigation.goBack()}
         right={(
           <Pressable
@@ -310,10 +361,16 @@ export default function ConversationScreen({ route, navigation }) {
           </Pressable>
         )}
       />
+      {/* The house pattern from mobile/AGENTS.md §7, which this screen was the
+          only one of eight to deviate from. `behavior="height"` on Android
+          fights adjustResize: the window has already shrunk for the keyboard,
+          and KAV then applies a computed height on top, so the thread collapses
+          or a gap opens above the input. The stale keyboardVerticalOffset went
+          with it — 90 was sized for React Navigation's native header, which
+          this screen stopped using when it moved to ScreenHeader. */}
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
       {searchOpen && (
         <View style={styles.searchBar}>
@@ -342,6 +399,9 @@ export default function ConversationScreen({ route, navigation }) {
         </View>
       )}
 
+      {/* Which listing, then what is happening about it. */}
+      <VisitBanner visit={conversation?.visit} />
+
       {isLoading ? (
         <View style={styles.center}><ActivityIndicator color={colors.brand600} /></View>
       ) : isError ? (
@@ -351,6 +411,15 @@ export default function ConversationScreen({ route, navigation }) {
           data={listData}
           keyExtractor={(m) => m.id}
           inverted
+          // `style` is what makes this scroll, and it is NOT interchangeable
+          // with contentContainerStyle. Without flex:1 on the list ITSELF, a
+          // FlatList in a flex column sizes to its CONTENT: the viewport grows
+          // with the thread, so there is never anything to scroll past and the
+          // messages simply overflow. Short threads hid it; anything over a
+          // screenful froze. `flexGrow: 1` on the content container is a
+          // different job — it keeps a SHORT inverted thread pinned to the
+          // bottom — and cannot substitute.
+          style={styles.flex}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => {
             const isOwn = item.senderId === user?.id
@@ -474,6 +543,13 @@ export default function ConversationScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   flex: { flex: 1 },
+  visitBanner: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
+    backgroundColor: colors.brand50,
+  },
+  visitBannerText: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.brand900, lineHeight: 20 },
+  visitBannerHeading: { fontFamily: fonts.bodySemiBold },
   // Tinted, not white: this strip is a link to the listing the whole
   // conversation is about, and as a plain white block between a white header
   // and a white message canvas it read as a slab rather than something to tap.

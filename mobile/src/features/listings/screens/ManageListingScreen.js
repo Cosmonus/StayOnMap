@@ -133,6 +133,20 @@ export default function ManageListingScreen({ navigation, route }) {
     )
   }
 
+  // Pausing takes a live listing off the map, so it asks first — same wording
+  // and same one-sided rule as web (`OnboardingWizard`'s confirmToggleStatus):
+  // resuming is harmless and goes straight through.
+  function confirmPause() {
+    Alert.alert(
+      'Pause this listing?',
+      `“${property?.title ?? 'This listing'}” will come off the map and stop receiving visit requests. Nothing is deleted — you can resume it whenever you like.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Pause listing', onPress: () => toggleMutation.mutate() },
+      ]
+    )
+  }
+
   function confirmVacate() {
     Alert.alert(
       'Mark as vacant?',
@@ -241,7 +255,7 @@ export default function ManageListingScreen({ navigation, route }) {
           />
         )}
         {status === 'ACTIVE' && (
-          <ActionRow icon="eye" label="Pause listing" sub="Hide from the public map" onPress={() => toggleMutation.mutate()} disabled={busy} />
+          <ActionRow icon="eye" label="Pause listing" sub="Hide from the public map" onPress={confirmPause} disabled={busy} />
         )}
         {status === 'INACTIVE' && (
           <ActionRow icon="eye" label="Resume listing" sub="Show on the public map again" variant="primary" onPress={() => toggleMutation.mutate()} disabled={busy} />

@@ -330,6 +330,7 @@ export async function setPropertyStatus(propertyId, status, note, adminId) {
         ...message,
         referenceId: propertyId,
         referenceType: 'Property',
+        audience: 'OWNER',
       }).catch(() => {})
     }
   }

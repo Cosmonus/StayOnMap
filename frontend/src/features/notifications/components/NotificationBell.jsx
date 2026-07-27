@@ -4,9 +4,12 @@ import {
   Calendar, CircleCheck, Clipboard, CircleX, RefreshCw, Flag, SquarePen,
   ShieldCheck, TriangleAlert, MessageCircle, Bell, Check, ChevronRight,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { notificationService } from '@services/notification.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import { useUiStore } from '@store/uiStore'
 import { connectSocket, getSocket } from '@lib/socket'
+import { referenceHref } from '../referenceHref'
 
 // ── Icon configs per notification type ──────────────────────────────────────
 const TYPE_CONFIG = {
@@ -103,13 +106,22 @@ function dateGroup(date) {
 }
 
 // ── Single notification card ────────────────────────────────────────────────
-function NotificationCard({ n, onMark }) {
+function NotificationCard({ n, onMark, onNavigate }) {
   const cfg = TYPE_CONFIG[n.type] ?? FALLBACK
   const CfgIcon = cfg.icon
+  // A notification that names a thing should OPEN that thing. This card only
+  // marked itself read, so the bell — the one surface you see the moment
+  // something happens — was a dead end: an owner rescheduled your visit, the
+  // badge lit up, and tapping it did nothing at all. The full-page list has
+  // navigated since it was written; the bell never did.
+  const href = referenceHref(n)
 
   return (
     <button
-      onClick={() => { if (!n.isRead) onMark(n.id) }}
+      onClick={() => {
+        if (!n.isRead) onMark(n.id)
+        if (href) onNavigate(href)
+      }}
       className={`w-full text-left px-4 py-3.5 flex items-start gap-3.5 hover:bg-slate-50/80 transition-colors ${!n.isRead ? cfg.bg : ''}`}
     >
       {/* Icon circle */}
@@ -138,10 +150,28 @@ export default function NotificationBell({ onViewAll }) {
   const ref = useRef(null)
   const qc = useQueryClient()
   const { user } = useAuth()
+  const navigate = useNavigate()
+
+  // Header renders <NotificationBell /> with no onViewAll, so "View all
+  // notifications" was a button that closed the panel and did nothing else.
+  function viewAll() {
+    setOpen(false)
+    if (onViewAll) onViewAll()
+    else navigate('/user?tab=notifications')
+  }
+
+  function go(href) {
+    setOpen(false)
+    navigate(href)
+  }
+
+  // Per hat, like the list behind it — so the bell's count is the count of
+  // what the mode you're in can actually show you.
+  const audience = useUiStore((s) => (s.hostMode ? 'OWNER' : 'TENANT'))
 
   const { data: notifications = [] } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => notificationService.list().then(r => r.data),
+    queryKey: ['notifications', audience],
+    queryFn: () => notificationService.list(audience).then(r => r.data),
     refetchInterval: 60000,
   })
 
@@ -151,20 +181,31 @@ export default function NotificationBell({ onViewAll }) {
     const socket = getSocket()
     if (!socket) return
     function onNew(notif) {
-      qc.setQueryData(['notifications'], (old = []) => [notif, ...(old ?? [])])
+      // A notification for the OTHER hat must not be spliced into this list —
+      // it would show under a heading that can't be right for it, and vanish on
+      // the next refetch. An unclassified one (audience null, written before
+      // the column existed) belongs to both.
+      if (notif.audience && notif.audience !== audience) return
+      qc.setQueryData(['notifications', audience], (old = []) => [notif, ...(old ?? [])])
     }
     socket.on('notification:new', onNew)
     return () => socket.off('notification:new', onNew)
-  }, [user?.id, qc])
+  }, [user?.id, qc, audience])
 
   const { mutate: markOne } = useMutation({
     mutationFn: (id) => notificationService.markOne(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+      qc.invalidateQueries({ queryKey: ['notification-unread'] })
+    },
   })
 
   const { mutate: markAll } = useMutation({
-    mutationFn: () => notificationService.markAll(),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    mutationFn: () => notificationService.markAll(audience),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+      qc.invalidateQueries({ queryKey: ['notification-unread'] })
+    },
   })
 
   const unreadCount = notifications.filter(n => !n.isRead).length
@@ -242,7 +283,7 @@ export default function NotificationBell({ onViewAll }) {
                   </div>
                 ) : (
                   <div key={entry.data.id} className="border-b border-slate-50 last:border-b-0">
-                    <NotificationCard n={entry.data} onMark={markOne} />
+                    <NotificationCard n={entry.data} onMark={markOne} onNavigate={go} />
                   </div>
                 )
               )
@@ -252,7 +293,7 @@ export default function NotificationBell({ onViewAll }) {
           {/* Footer */}
           {notifications.length > 0 && (
             <button
-              onClick={() => { onViewAll?.(); setOpen(false) }}
+              onClick={viewAll}
               className="w-full px-5 py-3 border-t border-slate-100 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5"
             >
               View all notifications

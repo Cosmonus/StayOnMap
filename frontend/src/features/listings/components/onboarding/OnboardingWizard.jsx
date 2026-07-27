@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Check, Plus } from 'lucide-react'
 import { propertyService } from '@services/property.service'
@@ -75,7 +75,44 @@ function statusSummary(listings, hasLocalDraft) {
   return parts.join(' · ')
 }
 
+// One account-level privacy switch (Settings → Privacy → Listing visibility)
+// takes EVERY listing off the public map at once, and nothing said so anywhere:
+// the row still reads ACTIVE, the admin panel still counts it, and only the map
+// disagrees. An owner comparing the two has no way to find the cause, so the
+// listing page states it where the listings are.
+const VISIBILITY_NOTICE = {
+  HIDDEN: {
+    title: 'Your listings are hidden from everyone',
+    body: 'Listing visibility is set to Hidden, so even a live listing never appears on the map or in search results.',
+  },
+  LOGGED_IN: {
+    title: 'Only signed-in people can see your listings',
+    body: 'Listing visibility is set to Logged-in only, so your listings don’t appear for visitors who haven’t signed in.',
+  },
+}
+
+function VisibilityNotice({ visibility }) {
+  const notice = VISIBILITY_NOTICE[visibility]
+  if (!notice) return null
+
+  return (
+    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-amber-900">{notice.title}</p>
+        <p className="text-sm text-amber-800 mt-1">{notice.body}</p>
+      </div>
+      <Link
+        to="/user?tab=settings"
+        className="shrink-0 inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl bg-white border border-amber-300 text-sm font-semibold text-amber-900 no-underline hover:bg-amber-100 transition-colors"
+      >
+        Change this
+      </Link>
+    </div>
+  )
+}
+
 function ListingsOverview({
+  profile,
   onAdd, onEdit, onPreview, onVisitRequests, onSubmitForReview, onDeleteListing, onToggleStatus,
   localDraft, localDraftLabel, onResumeLocalDraft, onDiscardLocalDraft,
 }) {
@@ -101,6 +138,7 @@ function ListingsOverview({
         </button>
       </div>
       <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-8 space-y-4">
+        <VisibilityNotice visibility={profile?.listingVisibility} />
         {localDraft && (
           <UnfinishedDraftBanner draft={localDraft} onResume={onResumeLocalDraft} />
         )}
@@ -162,10 +200,17 @@ export default function OnboardingWizard({ profile }) {
     paused: !!pendingDraft,
   })
 
-  // Re-read on every render of the listings stage rather than held in state:
-  // publishing and discarding both change it, and a stale copy would offer to
-  // resume a listing that is already live.
-  const localDraft = stage === 'listings' ? readSavedDraft() : null
+  // Held in state and refreshed on every stage change — NOT read during render.
+  // Reading it during render looks fresher but breaks the discard: clearing the
+  // draft only touches localStorage, so something must change state for React to
+  // render again. Resetting the wizard fields isn't enough — arriving on /list
+  // straight from a reload they are already null/EMPTY_DRAFT/0, every setState
+  // bails out, and the deleted draft stays on screen until the next reload.
+  // Publishing and resuming both move the stage, so this stays current for them.
+  const [localDraft, setLocalDraft] = useState(null)
+  useEffect(() => {
+    setLocalDraft(stage === 'listings' ? readSavedDraft() : null)
+  }, [stage])
   const localDraftLabel = localDraft
     ? (localDraft.draft?.title?.trim()
         || suggestTitle(localDraft.categoryKey, { fields: localDraft.draft?.fields ?? {}, location: localDraft.draft?.location ?? {} })
@@ -246,9 +291,11 @@ export default function OnboardingWizard({ profile }) {
     })
     if (!ok) return
     clearSavedDraft()
+    setLocalDraft(null)
     setCategoryKey(null)
     setDraft(EMPTY_DRAFT)
     setStepIdx(0)
+    toast.success('Draft deleted', 'Your unfinished listing is gone')
   }
 
   // The one way back into a saved draft, used by the banner on My listings and
@@ -348,6 +395,7 @@ export default function OnboardingWizard({ profile }) {
     }
     return (
       <ListingsOverview
+        profile={profile}
         onAdd={startNewListing}
         onEdit={setEditListingId}
         // Preview opens the listing a renter actually sees, in a new tab, so the

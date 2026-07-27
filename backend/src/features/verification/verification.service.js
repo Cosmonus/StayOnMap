@@ -76,6 +76,6 @@ export async function adminReviewVerification(verificationId, adminId, { status,
     }
   }
   const property = await prisma.property.findUnique({ where: { id: verification.propertyId }, select: { title: true } })
-  await notifyUser(verification.ownerId, { type: 'VERIFICATION_UPDATE', title: `Verification ${status.toLowerCase()}`, body: adminNote ?? `Your ownership verification has been ${status.toLowerCase()}.`, referenceId: verification.id, referenceType: 'OwnershipVerification', emailMeta: { propertyTitle: property?.title ?? 'your property', status, adminNote } })
+  await notifyUser(verification.ownerId, { type: 'VERIFICATION_UPDATE', title: `Verification ${status.toLowerCase()}`, body: adminNote ?? `Your ownership verification has been ${status.toLowerCase()}.`, referenceId: verification.id, referenceType: 'OwnershipVerification', audience: 'OWNER', emailMeta: { propertyTitle: property?.title ?? 'your property', status, adminNote } })
   return verification
 }

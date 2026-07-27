@@ -6,6 +6,7 @@ import { userService } from '@services/user.service'
 import { useUiStore } from '@store/uiStore'
 import { AccountGroup, AccountRow, ModeSwitch } from '@features/profile/components/AccountRow'
 import AccountIdentity from '@features/profile/components/AccountIdentity'
+import { useOtherHatWaiting } from '@features/profile/useOtherHatWaiting'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { spacing } from '@theme/spacing'
@@ -26,6 +27,7 @@ export default function ProfileScreen({ navigation }) {
   const { user, signOut } = useAuth()
   const hostMode = useUiStore((s) => s.hostMode)
   const setHostMode = useUiStore((s) => s.setHostMode)
+  const waiting = useOtherHatWaiting()
 
   const { data: account, isLoading, isError, refetch } = useQuery({
     queryKey: ['account-summary'],
@@ -51,7 +53,7 @@ export default function ProfileScreen({ navigation }) {
     <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader
         title="Profile"
-        below={<ModeSwitch hostMode={hostMode} onChange={setHostMode} />}
+        below={<ModeSwitch hostMode={hostMode} onChange={setHostMode} waiting={waiting} />}
       />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.body}>

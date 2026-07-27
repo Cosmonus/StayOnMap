@@ -53,11 +53,36 @@ export function referenceDestination({ referenceId, referenceType }, hostMode) {
   }
 }
 
+// Notifications belong to a HAT (Notification.audience), and each mode shows
+// only its own — so a notification must be opened in the mode it was addressed
+// to, not in whichever mode the app happens to be sitting in. An owner tapping
+// "New appointment request" from renter mode would otherwise land on the
+// renter's appointment list, which does not contain it.
+//
+// Switching the mode is the honest move rather than a no-op: it is the same
+// thing the user would have had to do by hand, and every surface behind it
+// (tab bar, inbox, notification list) then agrees about what they're looking
+// at. `audience` is absent on old rows and on pushes from before it existed —
+// then we stay where we are, which is the previous behaviour.
 export function navigateToReference(reference) {
   if (!navigationRef.isReady()) {
     pendingReference = reference
     return
   }
-  const destination = referenceDestination(reference, useUiStore.getState().hostMode)
+  const { hostMode, setHostMode } = useUiStore.getState()
+  const wants = reference?.audience === 'OWNER' ? true : reference?.audience === 'TENANT' ? false : hostMode
+
+  // Switching modes REMOUNTS the tab navigator (AppTabs keys on hostMode), and
+  // the two modes share no route name — so navigating in the same tick would
+  // address the tab set that is about to be thrown away. Park the reference and
+  // let the newly mounted AppTabs flush it, which is the same mechanism a
+  // cold-start tap already uses.
+  if (wants !== hostMode) {
+    pendingReference = reference
+    setHostMode(wants)
+    return
+  }
+
+  const destination = referenceDestination(reference, wants)
   if (destination) navigationRef.navigate(...destination)
 }
