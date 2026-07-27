@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { X, Phone, MapPin, Eye, EyeOff, MailCheck } from 'lucide-react'
 import { authService } from '@services/auth.service'
 import { useAuth } from '../hooks/useAuth'
@@ -38,6 +39,7 @@ function InputField({ label, type = 'text', value, onChange, placeholder, childr
 export default function LoginModal() {
   const isOpen  = useUiStore((s) => s.loginModalOpen)
   const onClose = useUiStore((s) => s.closeLoginModal)
+  const navigate = useNavigate()
   const { loginSuccess } = useAuth()
   const [tab, setTab]           = useState('login')
   const [name, setName]         = useState('')
@@ -64,15 +66,22 @@ export default function LoginModal() {
 
   function handleClose() { reset(); onClose() }
 
+  // Where a sign-in lands follows the persisted mode: host mode → the
+  // dashboard (loginSuccess already dropped the mode for a non-owner account,
+  // so a surviving hostMode means an owner); renter mode → no redirect, the
+  // map or wherever the modal was opened. Runs AFTER loginSuccess.
+  function landAfterLogin() {
+    reset(); onClose()
+    if (useUiStore.getState().hostMode) navigate('/user?tab=dashboard')
+  }
+
   async function handleLogin(e) {
     e.preventDefault()
     setLoading(true); setError('')
     try {
       const res = await authService.login({ email, password })
       loginSuccess(res.data)
-      // No redirect — login lands on the map (or wherever the modal was opened).
-      // The dashboard is host-mode territory, entered via "Become a host".
-      reset(); onClose()
+      landAfterLogin()
     } catch (err) {
       setError(err?.message ?? 'Invalid email or password')
       setLoading(false)
@@ -106,7 +115,7 @@ export default function LoginModal() {
         return
       }
       loginSuccess(res.data)
-      reset(); onClose()
+      landAfterLogin()
     } catch (err) {
       setError(err?.message ?? 'Could not create account')
       setLoading(false)
@@ -247,7 +256,7 @@ export default function LoginModal() {
                 setEmail={setEmail}
                 onUsePassword={() => switchTab('login')}
                 onSignup={() => switchTab('signup')}
-                onDone={handleClose}
+                onDone={landAfterLogin}
               />
             ) : tab === 'forgot' ? (
               resetSent ? (

@@ -24,7 +24,6 @@ export function AuthProvider({ children }) {
         // anything else and let the next check recover.
         if (err?.statusCode === 401 || err?.statusCode === 403) {
           localStorage.removeItem('user_token')
-          useUiStore.getState().setHostMode(false)
         }
       })
       .finally(() => setLoading(false))
@@ -34,18 +33,23 @@ export function AuthProvider({ children }) {
     localStorage.setItem('user_token', token)
     if (refreshToken) localStorage.setItem('user_refresh_token', refreshToken)
     setUser(loggedInUser)
+    // The chosen view survives logout (operator decision 2026-07-27) — but it
+    // belongs to the PERSON, so it's reconciled against whoever just signed
+    // in: a non-owner account never lands in a host shell it can't use.
+    if (loggedInUser.role !== 'OWNER') useUiStore.getState().setHostMode(false)
     toast.success('Welcome', `Signed in as ${loggedInUser.name || loggedInUser.email}`)
   }
 
   function signOut() {
     // Revoke this device's session server-side — best-effort, the tokens are
-    // being dropped locally either way.
+    // being dropped locally either way. hostMode deliberately survives: a host
+    // who logs back in should be back in host view, not silently demoted —
+    // only the explicit "Switch to tenant" changes the view.
     const refreshToken = localStorage.getItem('user_refresh_token')
     if (refreshToken) authService.logout({ refreshToken }).catch(() => {})
     localStorage.removeItem('user_token')
     localStorage.removeItem('user_refresh_token')
     setUser(null)
-    useUiStore.getState().setHostMode(false)
     toast.info('Signed out', 'You have been logged out')
   }
 
