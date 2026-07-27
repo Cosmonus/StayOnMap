@@ -167,14 +167,18 @@ const styles = StyleSheet.create({
   addButton: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, minHeight: 48, justifyContent: 'center', },
   addButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   list: { padding: spacing.lg, gap: spacing.md },
-  card: { flex: 1, backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, overflow: 'hidden', marginBottom: spacing.md },
-  cardImageWrap: { aspectRatio: 16 / 10, backgroundColor: colors.slate100 },
+  // The card pads its own contents and the photo is inset inside that padding,
+  // rather than the photo bleeding to the card's edges. `overflow: 'hidden'`
+  // is gone with it — it existed only to clip a full-bleed image to the card's
+  // top corners, and the image now carries its own radius.
+  card: { flex: 1, backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, padding: spacing.md, marginBottom: spacing.md },
+  cardImageWrap: { aspectRatio: 16 / 10, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.slate100 },
   cardImage: { width: '100%', height: '100%' },
-  statusPillWrap: { position: 'absolute', top: 6, left: 6 },
+  statusPillWrap: { position: 'absolute', top: spacing.xs, left: spacing.xs },
   statusPill: { borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 2 },
   statusPillText: { fontFamily: fonts.bodySemiBold, fontSize: 11 },
-  cardBody: { padding: spacing.sm, paddingBottom: spacing.xs },
-  cardManage: { flexDirection: 'row', gap: 4, marginHorizontal: spacing.sm, marginBottom: spacing.sm, minHeight: 44, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  cardBody: { paddingTop: spacing.sm },
+  cardManage: { flexDirection: 'row', gap: 4, marginTop: spacing.sm, minHeight: 44, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   cardManageText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
   cardTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
   cardRent: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand600, marginTop: 2 },
