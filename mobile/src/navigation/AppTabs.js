@@ -193,6 +193,31 @@ function useHostBadges(hostMode) {
   return { Appointments: visits || undefined, Inbox: unread || undefined }
 }
 
+// Tapping "Listings" must always land on the LIST.
+//
+// The add-a-listing wizard is pushed onto this tab's stack — by the Add button
+// on the list, and by the dashboard's "Add listing", which jumps tabs to get
+// here — and a stack remembers what was pushed. So walking away mid-wizard via
+// the tab bar left "Listings" reopening a half-filled form instead of your
+// listings, with nothing on screen to say the list was one back-press away.
+//
+// Only the wizard is dismissed. ManageListing, EditListing and the rest are
+// PLACES, and keeping your spot in them is exactly what a tab should do; a
+// wizard is a task. Dismissing it costs nothing either, because
+// listings/.../draftStore.js persists every change — which is what "Safe to
+// close — we keep your draft" already promises the owner. Tapping Add resumes
+// on the same step.
+const TAB_LISTENERS = {
+  MyListing: ({ navigation, route }) => ({
+    tabPress: () => {
+      const stack = route.state
+      if (!stack?.routes?.length) return
+      const top = stack.routes[stack.index ?? stack.routes.length - 1]
+      if (top?.name === 'AddListing') navigation.navigate('MyListing', { screen: 'MyListingsHome' })
+    },
+  }),
+}
+
 export default function AppTabs() {
   const hostMode = useUiStore((s) => s.hostMode)
   const hostEntryTab = useUiStore((s) => s.hostEntryTab)
@@ -243,6 +268,7 @@ export default function AppTabs() {
           key={name}
           name={name}
           component={Component}
+          listeners={TAB_LISTENERS[name]}
           options={{
             tabBarLabel: label ?? name,
             tabBarBadge: badges[name],

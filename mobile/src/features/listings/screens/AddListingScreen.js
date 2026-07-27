@@ -15,6 +15,11 @@ export default function AddListingScreen({ navigation }) {
     queryFn: () => authService.getMe().then((r) => r.data),
   })
 
+  // Leaving this wizard via the tab bar is handled in AppTabs.js (see
+  // TAB_LISTENERS) — the Listings tab dismisses it so the tab always comes
+  // back to the list. Nothing is lost; draftStore.js has already persisted
+  // every change.
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {isLoading ? (
