@@ -57,34 +57,44 @@ export default {
       [
         'expo-splash-screen',
         {
-          // ./assets/splash-icon.png IS INTENTIONALLY 100% TRANSPARENT.
-          // Do not "fix" it by dropping a logo back in.
+          // The adaptive icon's FOREGROUND — the white S, on transparent — so
+          // the very first frame carries the same mark as the icon the user
+          // just tapped, instead of a blank green field.
           //
-          // There is exactly ONE launch screen and it is the wordmark —
-          // components/common/BrandSplash.js. It has to be JS, because this
-          // plugin can only place an image and Android 12+ masks that image
-          // into a 192dp circle: "StayOnMap" baked in here would be clipped to
-          // "ayOnMa", and shrunk to fit the circle it would be illegible. So
-          // the native splash paints a flat brand colour and nothing else, and
-          // the wordmark animates in the instant JS is up.
+          // A 100%-transparent PNG used to sit here specifically to suppress
+          // the mark, which bought an empty screen for the whole pre-JS
+          // launch. Blank was the complaint; the mark is the fix.
           //
-          // Omitting `image` entirely does NOT give a blank splash — Android 12+
-          // then falls back to the launcher icon, putting the S back on screen.
-          // A transparent drawable is what actually suppresses it. imageWidth is
-          // vestigial with no pixels to size, and kept only so a future logo has
-          // a sane starting value.
+          // Reusing the icon foreground rather than a bespoke asset is
+          // deliberate twice over: it already carries the safe-area padding
+          // Android's circular splash mask needs, and it cannot drift from the
+          // launcher icon because it IS the launcher icon.
+          //
+          // Do NOT drop `image` to get this "for free" from Android's
+          // launcher-icon fallback: expo's prebuild still writes
+          // `windowSplashScreenAnimatedIcon="@drawable/splashscreen_logo"`
+          // into styles.xml while generating no such drawable, and the
+          // resource link fails.
+          //
+          // Do not put the WORDMARK here. This plugin can only place an image,
+          // and Android 12+ masks it into a circle: "StayOnMap" would clip to
+          // "ayOnMa", and shrunk to fit it would be illegible. That is what
+          // components/common/BrandSplash.js is for — the mark greets you, the
+          // name arrives the instant JS is up. The icon-then-wordmark order is
+          // not two brand moments competing; it is the mark resolving into the
+          // name, and it is why the first frame is no longer empty.
           //
           // backgroundColor is brand-600, NOT brand-50. brand-50 is #edfaf7 —
-          // 97% luminance, indistinguishable from white on a phone — so with a
-          // transparent image the entire pre-JS launch read as a blank white
-          // screen, which is precisely what a user reported. brand-600 is
-          // unmistakably the brand from the first frame, and it is also
-          // GetStartedScreen's background, so the whole launch is one colour.
+          // 97% luminance, indistinguishable from white on a phone — so the
+          // entire pre-JS launch read as a blank white screen, which is
+          // precisely what a user reported. brand-600 is unmistakably the
+          // brand, and it is also GetStartedScreen's background, so the whole
+          // launch is one colour.
           //
           // It MUST stay in sync with BrandSplash.js's root background AND
           // GetStartedScreen's container — three surfaces pretending to be one,
           // and any drift shows up as a flash on every cold start.
-          image: './assets/splash-icon.png',
+          image: './assets/android-icon-foreground.png',
           imageWidth: 288,
           backgroundColor: '#0d8a5f',
         },
