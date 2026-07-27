@@ -9,6 +9,8 @@ import { getSocket } from '@lib/socket'
 import { toast } from '@components/common/Toaster'
 import { confirm } from '@components/common/ConfirmDialog'
 import { formatTime } from '@utils/time'
+import { imgUrl } from '@utils/format'
+import Modal from '@components/common/Modal'
 import Avatar from './Avatar'
 import InputBar from './InputBar'
 import { chatTime, dateSeparator, displayName, isImageAttachment, replyTimeLabel } from './chatFormat'
@@ -104,17 +106,25 @@ function VisitBanner({ visit }) {
 function MessageArea({
   messages, userId,
   editingId, editValue, onEditValueChange, onStartEdit, onCancelEdit, onSaveEdit, onDeleteRequest,
+  onOpenImage,
 }) {
-  const bottomRef = useRef(null)
+  const scrollRef = useRef(null)
 
+  // Scroll THIS container, not the message into view. scrollIntoView walks up
+  // and scrolls every scrollable ancestor it needs to — including the document
+  // — so sending a message dragged the whole page up and tucked the
+  // conversation list under the fixed header. Setting scrollTop on the
+  // container that actually owns the overflow cannot move anything else.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
   }, [messages])
 
   let lastDate = null
 
   return (
-    <div className="flex-1 overflow-y-auto bg-white">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto bg-white">
       <div className="px-4 sm:px-6 py-5">
       {messages.map((msg, i) => {
         const isMe = msg.senderId === userId
@@ -144,13 +154,19 @@ function MessageArea({
 
               {isMe && !msg.deletedAt && editingId !== msg.id && (
                 <div className="hidden group-hover:flex items-center gap-1 mr-1.5">
-                  <button
-                    onClick={() => onStartEdit(msg)}
-                    className="w-6 h-6 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-600"
-                    title="Edit message"
-                  >
-                    <Pencil className="w-3 h-3" strokeWidth={2} />
-                  </button>
+                  {/* Edit disappears once they have read it — see editMessage()
+                      in chat.service.js, which returns 409 for the same reason.
+                      Delete stays: it leaves a visible tombstone, so nothing is
+                      rewritten behind the reader's back. */}
+                  {!msg.isRead && (
+                    <button
+                      onClick={() => onStartEdit(msg)}
+                      className="w-6 h-6 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-600"
+                      title="Edit message"
+                    >
+                      <Pencil className="w-3 h-3" strokeWidth={2} />
+                    </button>
+                  )}
                   <button
                     onClick={() => onDeleteRequest(msg)}
                     className="w-6 h-6 rounded-full hover:bg-red-50 flex items-center justify-center text-slate-500 hover:text-red-500"
@@ -186,7 +202,22 @@ function MessageArea({
                     ) : (
                       <>
                         {isImageAttachment(msg) && (
-                          <img src={msg.attachmentUrl} alt="Attachment" className="max-w-[220px] max-h-[220px] rounded-lg object-cover block mb-1.5" />
+                          // Thumbnail inline, full resolution on click. It used
+                          // to load the FULL image and paint it at 220px, so a
+                          // thread of photos downloaded megabytes to show
+                          // postage stamps.
+                          <button
+                            type="button"
+                            onClick={() => onOpenImage(msg.attachmentUrl)}
+                            className="block mb-1.5 rounded-lg overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                            title="Open full size"
+                          >
+                            <img
+                              src={imgUrl(msg.attachmentUrl)}
+                              alt="Attachment"
+                              className="max-w-[220px] max-h-[220px] rounded-lg object-cover block"
+                            />
+                          </button>
                         )}
                         {msg.attachmentUrl && !isImageAttachment(msg) && (
                           <a
@@ -226,7 +257,6 @@ function MessageArea({
         )
       })}
 
-      <div ref={bottomRef} />
       </div>
     </div>
   )
@@ -261,6 +291,7 @@ export default function MessageThread({
   const [searchQuery, setSearchQuery] = useState('')
   const [editingId, setEditingId] = useState(null)
   const [editValue, setEditValue] = useState('')
+  const [lightbox, setLightbox] = useState(null)
   const typingTimer = useRef(null)
 
   // Debounce the search box 300ms before hitting the backend search endpoint
@@ -447,8 +478,23 @@ export default function MessageThread({
         onCancelEdit={cancelEdit}
         onSaveEdit={saveEdit}
         onDeleteRequest={requestDelete}
+        onOpenImage={setLightbox}
       />
       <InputBar onSend={send} onTyping={emitTyping} isPending={isPending} />
+
+      {/* Full resolution, on the shared Modal primitive rather than a bespoke
+          lightbox — the thread in .claude/frontend.md is that every dialog is
+          this component. `detail` asks imgUrl for the _full variant; the bubble
+          shows the _thumb. */}
+      <Modal isOpen={!!lightbox} onClose={() => setLightbox(null)} size="full">
+        {lightbox && (
+          <img
+            src={imgUrl(lightbox, 'detail')}
+            alt="Attachment, full size"
+            className="mx-auto block max-h-[80vh] w-auto max-w-full rounded-lg"
+          />
+        )}
+      </Modal>
     </div>
   )
 }
