@@ -342,11 +342,11 @@ export default function Header() {
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200 transition-transform duration-300 ${hidden ? '-translate-y-full' : 'translate-y-0'}`}>
-      <div className={`h-16 flex items-center justify-between gap-4 ${
-        user && hostMode
-          ? 'w-full px-4 sm:px-6 md:px-8'
-          : 'max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-20'
-      }`}>
+      {/* One container for every mode (2026-07-27): guest/traveler used a
+          centered max-w-7xl with wider padding while host ran edge-to-edge,
+          so the wordmark and avatar jumped sideways on every mode switch and
+          login. Full-width with the host paddings is now the shape for all. */}
+      <div className="h-16 flex items-center justify-between gap-4 w-full px-4 sm:px-6 md:px-8">
         <Link to={user && hostMode ? '/user?tab=dashboard' : '/'} className="flex items-center gap-2 no-underline shrink-0">
           <span className="font-display font-bold text-lg sm:text-xl text-slate-900 tracking-tight">
             Stay<span className="text-brand-600">OnMap</span>
