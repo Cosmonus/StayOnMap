@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ImageOff, MoreHorizontal, Eye, Pause, Play, Trash2 } from 'lucide-react'
+import { ImageOff, MoreHorizontal, Eye, Pause, Play, Trash2, UserCheck } from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { formatPrice, formatAge } from '@utils/format'
 import PropertyStatusPill from '@components/common/PropertyStatusPill'
@@ -100,7 +100,9 @@ function RowStats({ property, inline = false }) {
     ? (property.updatedAt ? `Saved ${savedAtLabel(property.updatedAt)}` : 'Not saved yet')
     : status === 'PENDING'
       ? (property.submittedAt ? `Submitted ${sinceLabel(property.submittedAt)}` : 'Awaiting review')
-      : `${views} ${views === 1 ? 'view' : 'views'} · ${saved} saved`
+      : status === 'OCCUPIED'
+        ? `Rented to ${property.currentTenant?.name ?? 'a tenant'}${property.occupiedSince ? ` since ${new Date(property.occupiedSince).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}` : ''}`
+        : `${views} ${views === 1 ? 'view' : 'views'} · ${saved} saved`
 
   // On a phone the price belongs on the same line as its context, not in a
   // right-hand column there is no room for.
@@ -133,7 +135,7 @@ function RowStats({ property, inline = false }) {
 //   menu      everything else, with Delete last, red, and behind a tap
 // Delete sitting inline and identical to View was a Fitts's-law accident
 // waiting to happen: the most destructive control was the easiest to hit.
-function rowActions({ property, onEdit, onPreview, onVisitRequests, onResume, onDelete, onToggleStatus }) {
+function rowActions({ property, onEdit, onPreview, onVisitRequests, onResume, onDelete, onToggleStatus, onMarkTenant, onVacate }) {
   const pendingVisits = property._count?.appointments ?? 0
   const del = { key: 'delete', label: 'Delete listing', icon: <Trash2 size={16} strokeWidth={1.8} />, danger: true, onClick: () => onDelete(property) }
   const edit = { label: 'Edit', onClick: () => onEdit(property.id) }
@@ -178,6 +180,17 @@ function rowActions({ property, onEdit, onPreview, onVisitRequests, onResume, on
     }
   }
 
+  // Rented through the platform (markTenant, mobile parity 2026-07-27). Off
+  // the map while occupied, so nothing to view or pause — the one thing that
+  // moves it forward is relisting it when the tenant leaves.
+  if (property.status === 'OCCUPIED') {
+    return {
+      primary: { label: 'Mark as vacant', variant: 'primary', onClick: () => onVacate(property) },
+      secondary: edit,
+      menu: [del],
+    }
+  }
+
   const paused = property.status === 'INACTIVE'
   // The listing as a renter sees it. Same destination as the PENDING row's
   // "Preview", different word on purpose: a live listing is being VIEWED, one
@@ -191,6 +204,14 @@ function rowActions({ property, onEdit, onPreview, onVisitRequests, onResume, on
     icon: paused ? <Play size={16} strokeWidth={1.8} /> : <Pause size={16} strokeWidth={1.8} />,
     onClick: () => onToggleStatus(property),
   }
+  // ACTIVE only — the server refuses to mark a paused listing occupied
+  // (markTenant requires ACTIVE), so a paused row doesn't offer it.
+  const markRented = paused ? null : {
+    key: 'rented',
+    label: 'Mark as rented',
+    icon: <UserCheck size={16} strokeWidth={1.8} />,
+    onClick: () => onMarkTenant(property),
+  }
 
   // People waiting on the owner outrank everything else on the row. "Offer a
   // lease" was removed from here (2026-07-26): a lease offer needs a tenant,
@@ -199,14 +220,14 @@ function rowActions({ property, onEdit, onPreview, onVisitRequests, onResume, on
     return {
       primary: { label: `Visit requests · ${pendingVisits}`, variant: 'primary', onClick: onVisitRequests },
       secondary: edit,
-      menu: [view, pause, { key: 'div', divider: true }, del],
+      menu: [view, pause, markRented, { key: 'div', divider: true }, del].filter(Boolean),
     }
   }
 
   return {
     primary: { label: 'View listing', onClick: () => onPreview(property) },
     secondary: edit,
-    menu: [pause, { key: 'div', divider: true }, del],
+    menu: [pause, markRented, { key: 'div', divider: true }, del].filter(Boolean),
   }
 }
 
@@ -298,6 +319,7 @@ function LocalDraftRow({ draft, label, onResume, onDiscard }) {
 
 export default function ListingManager({
   onAdd, onEdit, onPreview, onVisitRequests, onResume, onDelete, onToggleStatus,
+  onMarkTenant, onVacate,
   localDraft, localDraftLabel, onResumeLocalDraft, onDiscardLocalDraft,
 }) {
   const { data: listings = [], isLoading } = useQuery({
@@ -337,6 +359,8 @@ export default function ListingManager({
           onResume={onResume}
           onDelete={onDelete}
           onToggleStatus={onToggleStatus}
+          onMarkTenant={onMarkTenant}
+          onVacate={onVacate}
         />
       ))}
       {localDraft && (
