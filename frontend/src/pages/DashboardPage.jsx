@@ -289,13 +289,17 @@ export default function DashboardPage() {
   // platform metrics belong to the admin panel, not a user. Where ?tab=dashboard
   // goes instead depends on why you're here: a tenant who clicked "Become a
   // host" (hostMode on, no OWNER role yet — Header sends them to this URL)
-  // belongs in the host intro at /list; a renter with an old link or the bare
-  // /user URL belongs at their saved homes. Waits for the profile so a
-  // host-mode owner isn't bounced while their role is still loading.
+  // belongs in the host intro at /list; renter mode goes to the MAP — the
+  // renter's first page. The map, not the wishlist: "Exit hosting" flips the
+  // mode while this tab is still mounted, so this effect races the header's
+  // own navigate('/') — the two must agree on the destination or whichever
+  // fires last wins (this one sent people to the wishlist until 2026-07-27).
+  // Waits for the profile so a host-mode owner isn't bounced while their role
+  // is still loading.
   useEffect(() => {
     if (section !== 'dashboard' || !profile) return
     if (hostMode && isOwner) return
-    navigate(hostMode ? '/list' : '/user?tab=wishlist', { replace: true })
+    navigate(hostMode ? '/list' : '/', { replace: true })
   }, [section, profile, hostMode, isOwner, navigate])
 
   const isFullBleed = section === 'properties' || section === 'messages'
