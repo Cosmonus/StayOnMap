@@ -173,7 +173,7 @@ export async function getPropertyById(id, userId = null) {
 
   // Seed trust score on first view if it doesn't exist yet
   if (!property.trustScore) {
-    try { property.trustScore = await recalculateTrustScore(id) } catch (_e) { /* best-effort */ }
+    try { property.trustScore = await recalculateTrustScore(id) } catch { /* best-effort */ }
   }
 
   // Attach ownerTrustScore separately (prisma.ownerTrustScore may be undefined until prisma generate is run)
