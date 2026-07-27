@@ -212,6 +212,7 @@ export async function mailStatus() {
     configured: devEcho() || senderReady(),
     usedToday: await getUsed(),
     dailyCap: env.mailDailyCap,
+    criticalReserve: CRITICAL_RESERVE,
   }
 }
 

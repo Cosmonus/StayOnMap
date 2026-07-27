@@ -153,6 +153,55 @@ function SystemHealthSection({ data }) {
   )
 }
 
+// ── Section 1b: Email quota ────────────────────────────────────────────────
+// Every email — OTP codes, resets, appointment mail — spends one of the same
+// MAIL_DAILY_CAP daily sends, and the last few are held back for critical
+// email. This card is the "how much is left today" answer at a glance; the
+// Email health card above only says whether the channel works at all.
+
+const PROVIDER_NAME = { zeptomail: 'ZeptoMail', resend: 'Resend', brevo: 'Brevo', smtp: 'SMTP', 'dev-echo': 'Dev echo' }
+
+function EmailQuotaSection({ mail }) {
+  if (!mail) return null
+
+  const used     = mail.usedToday ?? 0
+  const cap      = mail.dailyCap ?? 0
+  const reserve  = mail.criticalReserve ?? 0
+  const routine  = Math.max(0, cap - reserve - used)   // left for non-critical email
+  const pct      = cap > 0 ? Math.min(100, Math.round((used / cap) * 100)) : 0
+  // Amber once routine headroom is under a quarter of the cap; red once
+  // routine email is already being dropped (only the reserve remains).
+  const barColor = routine === 0 ? 'bg-red-500' : used >= cap * 0.75 ? 'bg-amber-400' : 'bg-brand-500'
+
+  return (
+    <div>
+      <SectionHeading
+        title="Email quota today"
+        description="One shared daily cap across all email — sign-in codes, resets, appointment and lease mail. Resets at midnight UTC."
+      />
+      <Card>
+        <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
+          <p className="text-sm font-semibold text-slate-800">
+            {PROVIDER_NAME[mail.provider] ?? mail.provider}
+            {mail.provider === 'dev-echo' && <span className="ml-2 text-xs font-normal text-slate-500">prints to the server console — nothing is counted</span>}
+          </p>
+          <p className="text-sm font-bold text-slate-900 font-mono">
+            {used.toLocaleString('en-IN')} / {cap.toLocaleString('en-IN')} sent
+          </p>
+        </div>
+        <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
+          <div className={`h-full ${barColor} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+        </div>
+        <p className="text-xs text-slate-500">
+          {routine > 0
+            ? `${routine.toLocaleString('en-IN')} left for routine email · last ${reserve} held for critical sends (sign-in codes, password resets)`
+            : `Routine email is being dropped — only the ${reserve}-send critical reserve (sign-in codes, password resets) remains until midnight UTC`}
+        </p>
+      </Card>
+    </div>
+  )
+}
+
 // ── Section 2: Action Queue ────────────────────────────────────────────────
 
 function ActionQueueSection({ pending }) {
@@ -485,6 +534,7 @@ export default function AdminMonitorSection() {
       {data && (
         <>
           <SystemHealthSection data={data} />
+          <EmailQuotaSection mail={data.system?.mail} />
           <ActionQueueSection pending={data.pendingModeration} />
           <ListingPipelineSection propertyByStatus={data.propertyByStatus} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
