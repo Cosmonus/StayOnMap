@@ -105,16 +105,23 @@ function MessageArea({
   messages, userId,
   editingId, editValue, onEditValueChange, onStartEdit, onCancelEdit, onSaveEdit, onDeleteRequest,
 }) {
-  const bottomRef = useRef(null)
+  const scrollRef = useRef(null)
 
+  // Scroll THIS container, not the message into view. scrollIntoView walks up
+  // and scrolls every scrollable ancestor it needs to — including the document
+  // — so sending a message dragged the whole page up and tucked the
+  // conversation list under the fixed header. Setting scrollTop on the
+  // container that actually owns the overflow cannot move anything else.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
   }, [messages])
 
   let lastDate = null
 
   return (
-    <div className="flex-1 overflow-y-auto bg-white">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto bg-white">
       <div className="px-4 sm:px-6 py-5">
       {messages.map((msg, i) => {
         const isMe = msg.senderId === userId
@@ -226,7 +233,6 @@ function MessageArea({
         )
       })}
 
-      <div ref={bottomRef} />
       </div>
     </div>
   )
