@@ -201,6 +201,20 @@ function devEcho() {
   return env.nodeEnv === 'development' && !senderReady()
 }
 
+// Admin System Monitor readout — which delivery path is live and how much of
+// today's quota is spent. Read-only; never triggers a send. This exists
+// because the monitor used to infer email health from SMTP_HOST alone, which
+// reports "not configured" on a production box that is happily sending via
+// ZeptoMail's REST API.
+export async function mailStatus() {
+  return {
+    provider: devEcho() ? 'dev-echo' : provider(),
+    configured: devEcho() || senderReady(),
+    usedToday: await getUsed(),
+    dailyCap: env.mailDailyCap,
+  }
+}
+
 // Pre-flight: would a send of this kind go out right now? Lets a caller bail
 // BEFORE doing any account-specific work — OTP login uses this so a
 // quota-exhausted response is identical for registered and unregistered

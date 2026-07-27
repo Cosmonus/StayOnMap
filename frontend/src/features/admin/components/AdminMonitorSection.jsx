@@ -89,16 +89,40 @@ const HEALTH_CONFIG = [
   {
     key: 'email',
     label: 'Email Notifications',
-    purpose: 'Sends appointment confirmations, lease offers, and password change alerts to users.',
-    getOk:  d => d.system?.emailEnabled,
-    getLabel: d => d.system?.emailEnabled ? 'Active (Resend)' : 'Not configured — no emails sent',
+    purpose: 'Sends OTP codes, appointment confirmations, lease offers, and password change alerts. Quota is the shared daily send cap.',
+    // The real mailer state, not an SMTP_HOST guess — this card said
+    // "Not configured" on a prod box happily sending via ZeptoMail.
+    getOk:  d => d.system?.mail ? d.system.mail.configured : d.system?.emailEnabled,
+    getLabel: d => {
+      const m = d.system?.mail
+      if (!m) return d.system?.emailEnabled ? 'Active' : 'Not configured — no emails sent'
+      if (!m.configured) return 'Not configured — no emails sent'
+      if (m.provider === 'dev-echo') return 'Dev echo — prints to the server console'
+      const name = { zeptomail: 'ZeptoMail', resend: 'Resend', brevo: 'Brevo', smtp: 'SMTP' }[m.provider] ?? m.provider
+      return `Active (${name}) · ${m.usedToday}/${m.dailyCap} sent today`
+    },
   },
   {
-    key: 'push',
-    label: 'Push Notifications',
-    purpose: 'Delivers real-time alerts to users\' devices even when they\'re not on the site.',
-    getOk:  d => d.system?.pushEnabled,
-    getLabel: d => d.system?.pushEnabled ? 'Active (VAPID)' : 'Not configured — no push alerts',
+    key: 'web-push',
+    label: 'Web Push',
+    purpose: 'Browser alerts via VAPID + service worker, delivered even when the site is closed.',
+    getOk:  d => d.system?.webPush ? d.system.webPush.enabled : d.system?.pushEnabled,
+    getLabel: d => {
+      const w = d.system?.webPush
+      if (!w) return d.system?.pushEnabled ? 'Active (VAPID)' : 'Not configured — no push alerts'
+      if (!w.enabled) return 'Not configured — no push alerts'
+      return `Active (VAPID) · ${w.subscriptions} ${w.subscriptions === 1 ? 'browser' : 'browsers'} subscribed`
+    },
+  },
+  {
+    key: 'mobile-push',
+    label: 'Mobile Push',
+    purpose: 'App notifications via the Expo push service. Needs no server key — reach is however many devices registered a token.',
+    getOk:  () => true,
+    getLabel: d => {
+      const devices = d.system?.mobilePush?.devices ?? 0
+      return `Expo · ${devices} ${devices === 1 ? 'device' : 'devices'} registered`
+    },
   },
 ]
 
