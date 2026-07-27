@@ -5,25 +5,8 @@ import {
   ShieldCheck, TriangleAlert, MessageCircle, Bell, Check, ChevronRight,
 } from 'lucide-react'
 import { notificationService } from '@services/notification.service'
-
-// Where a notification's { referenceType, referenceId } leads, or null when
-// there is nowhere honest to send someone. Mirrors mobile's
-// referenceDestination() in navigation/navigationRef.js — same six reference
-// types the backend emits, same two deliberate omissions.
-//
-// PropertyReport and OwnershipVerification carry the report's and the
-// verification's own id. No route takes either, and sending someone to a
-// property would mean inventing an id we were never given, so those rows stay
-// unlinked rather than pretending.
-function referenceHref({ referenceType, referenceId }) {
-  switch (referenceType) {
-    case 'Conversation': return '/user?tab=messages'
-    case 'Appointment': return '/user?tab=appointments'
-    case 'Lease': return '/user?tab=leases'
-    case 'Property': return `/property/${referenceId}`
-    default: return null
-  }
-}
+import { useUiStore } from '@store/uiStore'
+import { referenceHref } from '../referenceHref'
 
 // ── Icon configs (same as NotificationBell) ─────────────────────────────────
 const TYPE_CONFIG = {
@@ -67,20 +50,31 @@ function dateGroup(date) {
 
 export default function NotificationCenter() {
   const qc = useQueryClient()
+  // Notifications follow the renter/host toggle, like the inbox and the
+  // appointments view: a visit request for your flat and a lease offer you
+  // received are two different jobs, and mixing them meant a host scrolling
+  // past their own tenancy to find the one they were looking for.
+  const audience = useUiStore((s) => (s.hostMode ? 'OWNER' : 'TENANT'))
 
   const { data: notifications = [], isLoading } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => notificationService.list().then(r => r.data),
+    queryKey: ['notifications', audience],
+    queryFn: () => notificationService.list(audience).then(r => r.data),
   })
 
   const { mutate: markOne } = useMutation({
     mutationFn: (id) => notificationService.markOne(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+      qc.invalidateQueries({ queryKey: ['notification-unread'] })
+    },
   })
 
   const { mutate: markAll } = useMutation({
-    mutationFn: () => notificationService.markAll(),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    mutationFn: () => notificationService.markAll(audience),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+      qc.invalidateQueries({ queryKey: ['notification-unread'] })
+    },
   })
 
   const unreadCount = notifications.filter(n => !n.isRead).length

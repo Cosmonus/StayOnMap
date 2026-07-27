@@ -62,12 +62,18 @@ export function AccountRow({ label, count, onPress, danger, last }) {
 // It belongs in ScreenHeader's `below` slot, not in the list: it switches what
 // the whole app shows, so it is chrome. As the first row of a scrolling list it
 // would scroll away exactly when someone wants it.
-export function ModeSwitch({ hostMode, onChange }) {
+// `waiting` is the count of unread things in the OTHER hat — messages and
+// notifications, both of which each mode now shows only its own of. Without a
+// mark here, a visit request for your flat is invisible from renting and
+// nothing on screen suggests switching. A dot, not a number: this says "there
+// is something over there", and the count itself belongs on the tab you land on.
+export function ModeSwitch({ hostMode, onChange, waiting = 0 }) {
   return (
     <View style={styles.segment}>
       {[false, true].map((isHost) => {
         const selected = hostMode === isHost
         const label = isHost ? 'Hosting' : 'Renting'
+        const marked = !selected && waiting > 0
         return (
           <Pressable
             key={label}
@@ -75,12 +81,13 @@ export function ModeSwitch({ hostMode, onChange }) {
             onPress={() => { if (!selected) onChange(isHost) }}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
-            accessibilityLabel={label}
+            accessibilityLabel={marked ? `${label}, has unread` : label}
             accessibilityHint={selected ? undefined : `Switches the app to ${label.toLowerCase()}`}
           >
             <Text style={[styles.segmentText, selected && styles.segmentTextActive]} numberOfLines={1}>
               {label}
             </Text>
+            {marked && <View style={styles.segmentDot} />}
           </Pressable>
         )
       })}
@@ -124,9 +131,11 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
   },
   segmentItem: {
-    flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center',
+    flex: 1, minHeight: 48, flexDirection: 'row', gap: spacing.xs,
+    alignItems: 'center', justifyContent: 'center',
     borderRadius: radius.sm,
   },
+  segmentDot: { width: 7, height: 7, borderRadius: radius.full, backgroundColor: colors.danger },
   segmentItemActive: { backgroundColor: colors.brand700, ...shadows.xs },
   segmentText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.brand700 },
   segmentTextActive: { fontFamily: fonts.bodySemiBold, color: colors.white },

@@ -12,7 +12,10 @@ export default function HostOnboardingPage() {
   return (
     <>
       <SEOMeta title="List your property" noindex />
-      <div className="h-screen flex flex-col bg-slate-50 pt-16">
+      {/* h-dvh for the same reason as DashboardPage: `100vh` on a phone doesn't
+          shrink for the URL bar or move for the keyboard, so the wizard's fixed
+          footer — the Next button — sat under the browser chrome. */}
+      <div className="h-dvh flex flex-col bg-slate-50 pt-16">
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="w-8 h-8 rounded-full border-2 border-brand-600 border-t-transparent animate-spin" />

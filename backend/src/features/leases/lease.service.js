@@ -46,6 +46,7 @@ export async function createLease(ownerId, propertyId, data) {
     body:          `${property.title} — review and sign your lease`,
     referenceId:   lease.id,
     referenceType: 'Lease',
+    audience:      'TENANT',
   })
 
   return lease
@@ -90,6 +91,7 @@ export async function signLease(leaseId, tenantId, { tenantNote }) {
     body:          `Tenant has signed the lease for ${updated.property?.title ?? 'your property'}`,
     referenceId:   lease.id,
     referenceType: 'Lease',
+    audience:      'OWNER',
   })
 
   // The tenant completed a tenancy through the platform — the moment the whole
@@ -117,6 +119,7 @@ export async function rejectLease(leaseId, tenantId, { tenantNote }) {
     body:          `Tenant declined the lease for ${updated.property?.title ?? 'your property'}`,
     referenceId:   lease.id,
     referenceType: 'Lease',
+    audience:      'OWNER',
   })
 
   return updated
@@ -146,6 +149,7 @@ export async function terminateLease(leaseId, ownerId, { ownerNote }) {
     body:          `Your lease for ${updated.property?.title ?? 'the property'} has been terminated`,
     referenceId:   lease.id,
     referenceType: 'Lease',
+    audience:      'TENANT',
   })
 
   return updated

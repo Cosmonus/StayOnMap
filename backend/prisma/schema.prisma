@@ -205,6 +205,12 @@ enum ContactVisibility {
   NOBODY // contact info hidden from all users
 }
 
+// The hat a notification is addressed to — see Notification.audience.
+enum NotificationAudience {
+  TENANT
+  OWNER
+}
+
 enum NotificationType {
   APPOINTMENT_REQUEST
   APPOINTMENT_STATUS
@@ -1097,10 +1103,25 @@ model Notification {
   referenceId   String?
   referenceType String?
 
+  // Which HAT this is addressed to. The same account is a tenant and an owner,
+  // and the two are separate everywhere else in the product (inbox, nav,
+  // appointments) — a lease offer you received and a visit request for your
+  // flat are not one stream. Set by the caller of notifyUser(), never derived:
+  // the type alone can't say (APPOINTMENT_STATUS goes to the tenant on a
+  // reschedule and to the owner on a cancellation; MESSAGE goes to whichever
+  // side of the thread didn't send it).
+  //
+  // NULLABLE on purpose. Rows written before this column existed have no
+  // honest value, and defaulting them to either hat would hide real
+  // notifications from the other one. NULL means "unclassified" and shows in
+  // BOTH modes — the only behaviour that can't lose someone's notification.
+  audience      NotificationAudience?
+
   createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([isRead])
+  @@index([userId, audience])
 }
 
 // ─────────────────────────────────────────────────────────────────

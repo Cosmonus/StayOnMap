@@ -32,7 +32,7 @@ export async function submitReport(reporterId, propertyId, data) {
 
   const property = await prisma.property.findUnique({ where: { id: propertyId }, select: { ownerId: true } })
   if (property && !data.isAnonymous) {
-    await notifyUser(property.ownerId, { type: 'REPORT_SUBMITTED', title: 'A concern was raised about your property', body: 'A user has reported a concern. Our team will review it.', referenceId: report.id, referenceType: 'PropertyReport' })
+    await notifyUser(property.ownerId, { type: 'REPORT_SUBMITTED', title: 'A concern was raised about your property', body: 'A user has reported a concern. Our team will review it.', referenceId: report.id, referenceType: 'PropertyReport', audience: 'OWNER' })
   }
 
   return report
@@ -112,7 +112,7 @@ export async function adminModerateReport(reportId, adminId, { action, note }) {
   if (action === 'WARN_OWNER') {
     const property = await prisma.property.findUnique({ where: { id: report.propertyId }, select: { ownerId: true } })
     if (property) {
-      await notifyUser(property.ownerId, { type: 'TRUST_ALERT', title: 'Admin Warning', body: note || 'You have received a warning from the admin regarding your property.', referenceId: reportId, referenceType: 'PropertyReport' })
+      await notifyUser(property.ownerId, { type: 'TRUST_ALERT', title: 'Admin Warning', body: note || 'You have received a warning from the admin regarding your property.', referenceId: reportId, referenceType: 'PropertyReport', audience: 'OWNER' })
     }
   }
 

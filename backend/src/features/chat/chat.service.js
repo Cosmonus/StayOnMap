@@ -197,6 +197,10 @@ export async function sendMessage(conversationId, senderId, body, attachment = {
     body: notifBody,
     referenceId: conversationId,
     referenceType: 'Conversation',
+    // The hat is the side of the thread they're on — the same partition the
+    // inbox and its badge use, so a message notification lands in the mode that
+    // can actually open the conversation.
+    audience: convo.ownerId === recipientId ? 'OWNER' : 'TENANT',
   }).catch(() => {})
 
   return message
@@ -251,14 +255,20 @@ export async function searchMessages(conversationId, userId, q) {
   })
 }
 
+// Split by HAT, because the inbox itself is (see getUserConversations' callers:
+// host mode lists threads where you're the owner, renter mode where you're the
+// tenant). A single whole-account total badged the host's Inbox for a message
+// in a thread host mode does not show — the badge said 1 and the list was
+// empty, with no way to find the message but to flip modes.
+//
+// `count` stays the whole-account total so released clients keep working.
 export async function getUnreadCount(userId) {
-  return prisma.message.count({
-    where: {
-      conversation: { OR: [{ tenantId: userId }, { ownerId: userId }] },
-      senderId: { not: userId },
-      isRead: false,
-    },
-  })
+  const unread = { senderId: { not: userId }, isRead: false }
+  const [asTenant, asOwner] = await Promise.all([
+    prisma.message.count({ where: { ...unread, conversation: { tenantId: userId } } }),
+    prisma.message.count({ where: { ...unread, conversation: { ownerId: userId } } }),
+  ])
+  return { count: asTenant + asOwner, asTenant, asOwner }
 }
 
 function conversationInclude(userId) {

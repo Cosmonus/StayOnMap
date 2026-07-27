@@ -17,6 +17,19 @@ function istSlotInstant(dateISO, hhmm) {
   ) - IST_OFFSET_MIN * 60_000)
 }
 
+// "Tue, 29 Jul · 4:30 PM". Explicit timeZone for the same reason istSlotInstant
+// exists: the box is UTC, and a slot printed in the process timezone is 5.5
+// hours wrong.
+function istSlotLabel(instant) {
+  const d = new Date(instant)
+  if (Number.isNaN(d.getTime())) return null
+  return d.toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    weekday: 'short', day: 'numeric', month: 'short',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+  }).replace(',', '') + ' IST'
+}
+
 export async function requestAppointment(tenantId, propertyId, data) {
   // A visit can't be requested for a time that has already happened. Nothing
   // checked this, so "Today · 9:00 AM" booked at 3pm was accepted and sent to
@@ -44,7 +57,7 @@ export async function requestAppointment(tenantId, propertyId, data) {
   if (existing) throw Object.assign(new Error('You already have a pending request for this property'), { statusCode: 409 })
 
   const appt = await prisma.appointment.create({ data: { ...data, tenantId, propertyId, ownerId: property.ownerId, requestedDate: new Date(data.requestedDate) } })
-  await notifyUser(property.ownerId, { type: 'APPOINTMENT_REQUEST', title: 'New Appointment Request', body: 'A tenant has requested to visit your property.', referenceId: appt.id, referenceType: 'Appointment' })
+  await notifyUser(property.ownerId, { type: 'APPOINTMENT_REQUEST', title: 'New Appointment Request', body: 'A tenant has requested to visit your property.', referenceId: appt.id, referenceType: 'Appointment', audience: 'OWNER' })
 
   // Auto-create chat conversation and send appointment summary
   try {
@@ -119,6 +132,9 @@ export async function updateAppointmentStatus(appointmentId, userId, { status, s
       body: `The renter cancelled their visit to “${appt.property?.title ?? 'your property'}”.`,
       referenceId: appt.id,
       referenceType: 'Appointment',
+      // Same type as the reschedule below, opposite hat — which is exactly why
+      // audience can't be derived from `type`.
+      audience: 'OWNER',
     })
     // The thread already carries the request, so it should carry the withdrawal
     // — otherwise the owner reads an open request that no longer exists.
@@ -129,12 +145,35 @@ export async function updateAppointmentStatus(appointmentId, userId, { status, s
     return updated
   }
 
+  // A reschedule IS the new time — saying only "rescheduled" tells the renter
+  // that something changed and withholds the one fact that changed. Both the
+  // notification and the chat line below carry the slot now.
+  const newSlot = status === 'RESCHEDULED' && updated.scheduledAt ? istSlotLabel(updated.scheduledAt) : null
+
+  // NOT APPOINTMENT_RESCHEDULED: both clients have an icon config for that name
+  // (amber, RefreshCw) but it is not a value of the NotificationType enum in
+  // schema.prisma, so emitting it would throw inside notifyUser — which is
+  // awaited — and 500 the reschedule itself. Adding the enum value needs a
+  // migration; until that runs in production, RESCHEDULED stays under
+  // APPOINTMENT_STATUS, which renders fine.
   const notifType = status === 'ACCEPTED' ? 'APPOINTMENT_ACCEPTED' : status === 'REJECTED' ? 'APPOINTMENT_REJECTED' : 'APPOINTMENT_STATUS'
   const emailMeta = (status === 'ACCEPTED' || status === 'REJECTED')
     ? { propertyTitle: appt.property?.title ?? 'your requested property', ownerNote }
     : undefined
 
-  await notifyUser(appt.tenantId, { type: notifType, title: `Appointment ${status.toLowerCase()}`, body: ownerNote ?? `Your appointment request has been ${status.toLowerCase()}.`, referenceId: appt.id, referenceType: 'Appointment', emailMeta })
+  const defaultBody = newSlot
+    ? `The owner moved your visit to ${newSlot}.`
+    : `Your appointment request has been ${status.toLowerCase()}.`
+
+  await notifyUser(appt.tenantId, {
+    type: notifType,
+    title: `Appointment ${status.toLowerCase()}`,
+    body: ownerNote ? (newSlot ? `${defaultBody}\n\n${ownerNote}` : ownerNote) : defaultBody,
+    referenceId: appt.id,
+    referenceType: 'Appointment',
+    audience: 'TENANT',
+    emailMeta,
+  })
 
   // When accepting, auto-reject other pending appointments for the same property on the same date
   if (status === 'ACCEPTED') {
@@ -154,6 +193,7 @@ export async function updateAppointmentStatus(appointmentId, userId, { status, s
           body: 'Another visit was scheduled for this date. Please request a different date.',
           referenceId: c.id,
           referenceType: 'Appointment',
+          audience: 'TENANT',
         }).catch(() => {})
       ))
     }
@@ -161,8 +201,9 @@ export async function updateAppointmentStatus(appointmentId, userId, { status, s
 
   // Send status update to chat
   try {
-    const emoji = status === 'ACCEPTED' ? '✅' : status === 'REJECTED' ? '❌' : '📋'
+    const emoji = status === 'ACCEPTED' ? '✅' : status === 'REJECTED' ? '❌' : status === 'RESCHEDULED' ? '🔄' : '📋'
     let chatMsg = `${emoji} Appointment ${status.toLowerCase()}`
+    if (newSlot) chatMsg += `\nNew time: ${newSlot}`
     if (ownerNote) chatMsg += `\n\n${ownerNote}`
     const convo = await getOrCreateConversation(appt.tenantId, appt.propertyId)
     await sendMessage(convo.id, appt.ownerId, chatMsg)

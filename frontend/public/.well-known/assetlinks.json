@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.stayonmap.app",
+      "sha256_cert_fingerprints": [
+        "1C:CA:6F:5C:4C:F9:C1:EC:EE:03:C5:54:BF:95:DB:5A:47:9B:07:47:E2:B2:AC:24:82:87:87:1E:8C:8D:86:96"
+      ]
+    }
+  }
+]

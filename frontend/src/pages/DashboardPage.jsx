@@ -316,15 +316,34 @@ export default function DashboardPage() {
   const section = searchParams.get('tab') ?? 'dashboard'
   // Subscribe to the single field, not the store — see .claude/frontend.md.
   const hostMode = useUiStore((st) => st.hostMode)
+  const setHostMode = useUiStore((st) => st.setHostMode)
   const qc = useQueryClient()
+
+  // `?mode=` comes from a push notification's click URL, which the service
+  // worker opens (push.service.js sets it from the notification's audience).
+  // Notifications are per hat now, so landing in the wrong mode means landing
+  // on a list that deliberately excludes the very thing you tapped. Read once
+  // and dropped from the URL so a later manual mode switch isn't undone by a
+  // refresh.
+  const mode = searchParams.get('mode')
+  useEffect(() => {
+    if (mode !== 'host' && mode !== 'tenant') return
+    const wants = mode === 'host'
+    if (wants !== hostMode) setHostMode(wants)
+    const next = new URLSearchParams(searchParams)
+    next.delete('mode')
+    navigate({ search: next.toString() }, { replace: true })
+  }, [mode, hostMode, setHostMode, searchParams, navigate])
 
   useEffect(() => {
     if (section !== 'messages') return
     qc.invalidateQueries({ queryKey: ['chat-unread'] })
-    notificationService.markAllByType('MESSAGE').then(() => {
+    // Only THIS hat's message notifications: the inbox you just opened shows
+    // one side's threads, so it can't have caught you up on the other's.
+    notificationService.markAllByType('MESSAGE', hostMode ? 'OWNER' : 'TENANT').then(() => {
       qc.invalidateQueries({ queryKey: ['notifications'] })
     }).catch(() => {})
-  }, [section, qc])
+  }, [section, qc, hostMode])
 
   const { data: profile } = useQuery({
     queryKey: ['me'],
@@ -380,7 +399,12 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 pt-16">
+    // h-dvh, not h-screen. `100vh` on a phone is the LARGE viewport — it does
+    // not shrink for the browser's URL bar and does not move for the keyboard —
+    // so the bottom of this column (the chat input) sat under the browser
+    // chrome, and with the keyboard open it was off-screen entirely. index.css
+    // already uses 100dvh on the body for the same reason.
+    <div className="flex flex-col h-dvh bg-slate-50 pt-16">
       <SEOMeta title="Dashboard" noindex />
       <main className={`flex-1 overflow-hidden ${isFullBleed ? '' : 'px-4 md:px-8 py-4 md:py-8 overflow-y-auto'}`}>
         {renderSection()}

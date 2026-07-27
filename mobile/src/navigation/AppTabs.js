@@ -6,6 +6,7 @@ import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { useUiStore } from '@store/uiStore'
+import { flushPendingReference } from '@navigation/navigationRef'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { hostService } from '@services/host.service'
 import { chatService } from '@services/chat.service'
@@ -161,36 +162,43 @@ const HOST_TABS = [
   ['HostProfile', HostProfileStack, 'profile', 'Account'],
 ]
 
-// The two counts a host needs to see without opening anything: unanswered visit
-// requests, and unread messages from renters.
+// What each mode needs to see without opening anything: a host's unanswered
+// visit requests and messages from renters, a renter's replies from owners.
 //
-// Both ride on queries the host screens fetch anyway (same keys, so no extra
+// The unread count is PER HAT, matching the partition the inbox itself applies
+// (ConversationListScreen): host mode counts threads you own, renter mode
+// threads you started. A whole-account total badges one mode for a message the
+// other mode holds — the badge says 1, the list is empty, and the only way to
+// find the message is to guess you have to switch modes.
+//
+// Both ride on queries the screens fetch anyway (same keys, so no extra
 // request), and both are 0 → undefined, because React Navigation renders a
 // literal "0" badge otherwise — a bright dot announcing nothing.
-function useHostBadges(hostMode) {
+function useTabBadges(hostMode) {
   const { user } = useAuth()
-  const enabled = hostMode && !!user
 
   const { data: dashboard } = useQuery({
     queryKey: ['host-dashboard'],
     queryFn: () => hostService.dashboard().then((r) => r.data),
-    enabled,
+    enabled: hostMode && !!user,
   })
 
   const { data: conversations = [] } = useQuery({
     queryKey: ['conversations'],
     queryFn: () => chatService.conversations().then((r) => r.data),
-    enabled,
+    enabled: !!user,
   })
 
   const visits = (dashboard?.needsYouToday ?? []).filter((i) => i.kind === 'VISIT_REQUEST').length
-  // Host-side threads only — the same partition the Inbox itself applies. The
-  // whole-account /chat/unread total would count the renter hat's messages too.
   const unread = conversations
-    .filter((c) => c.ownerId === user?.id)
+    .filter((c) => (hostMode ? c.ownerId === user?.id : c.tenantId === user?.id))
     .reduce((n, c) => n + (c._count?.messages ?? 0), 0)
 
-  return { Appointments: visits || undefined, Inbox: unread || undefined }
+  // Keyed by ROUTE name, and the two modes name the chat tab differently
+  // (HOST_TABS' 'Inbox' vs RENTER_TABS' 'Chat').
+  return hostMode
+    ? { Appointments: visits || undefined, Inbox: unread || undefined }
+    : { Chat: unread || undefined }
 }
 
 // Tapping "Listings" must always land on the LIST.
@@ -224,7 +232,7 @@ export default function AppTabs() {
   const setHostEntryTab = useUiStore((s) => s.setHostEntryTab)
 
   const TABS = hostMode ? HOST_TABS : RENTER_TABS
-  const badges = useHostBadges(hostMode)
+  const badges = useTabBadges(hostMode)
 
   // hostEntryTab is read once as initialRouteName below (only relevant while
   // hostMode is true); reset it back to the default right after so a plain
@@ -232,6 +240,11 @@ export default function AppTabs() {
   useEffect(() => {
     if (hostMode && hostEntryTab !== 'Dashboard') setHostEntryTab('Dashboard')
   }, [hostMode, hostEntryTab, setHostEntryTab])
+
+  // A notification addressed to the OTHER hat parks itself and flips the mode
+  // (navigationRef.js), which remounts this navigator — this is where it lands.
+  // Runs after every remount, and does nothing when nothing is parked.
+  useEffect(() => { flushPendingReference() }, [hostMode])
 
   // Landing tab on a host/renter switch is driven entirely by initialRouteName
   // (Dashboard for host, Explore — the first renter tab — for renter). This only

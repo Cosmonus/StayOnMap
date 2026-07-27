@@ -12,16 +12,30 @@ import { sendExpoPushToUser } from '../../services/expoPush.service.js'
 const EMAIL_TYPES = new Set(['APPOINTMENT_ACCEPTED', 'APPOINTMENT_REJECTED', 'VERIFICATION_UPDATE'])
 const PUSH_TYPES  = new Set(['APPOINTMENT_ACCEPTED', 'APPOINTMENT_REJECTED', 'LEASE_OFFERED', 'LEASE_SIGNED', 'LEASE_REJECTED', 'MESSAGE'])
 
-export async function notifyUser(userId, { type, title, body, referenceId, referenceType, emailMeta }) {
-  const notification = await prisma.notification.create({ data: { userId, type, title, body, referenceId, referenceType } })
+// `audience` says which hat the recipient is wearing — TENANT or OWNER. Every
+// caller passes it explicitly; it cannot be derived from `type` (see the
+// Notification.audience comment in schema.prisma). Omitting it is allowed and
+// means "unclassified", which shows in both modes — a fallback for safety, not
+// a default to lean on: a new notification that skips it lands in both inboxes.
+export async function notifyUser(userId, { type, title, body, referenceId, referenceType, audience, emailMeta }) {
+  const notification = await prisma.notification.create({ data: { userId, type, title, body, referenceId, referenceType, audience } })
   emitToUser(userId, 'notification:new', notification)
 
   // Delivery (push + email) is fire-and-forget — the caller's request must
   // never wait on the mailer (same pattern as chat.service.js's sendMessage).
   // Only the DB notification row above is awaited.
+  // The audience rides along. A push is delivered to the device, not to a mode
+  // — so without it, tapping an owner notification while the app sits in renter
+  // mode lands on the renter's list, which by design does not contain it. Both
+  // clients switch to the notification's own hat before they navigate.
   if (PUSH_TYPES.has(type)) {
-    sendPushToUser(userId, { title, body, url: '/user?tab=notifications' }).catch(() => {})
-    sendExpoPushToUser(userId, { title, body, data: { referenceId, referenceType } }).catch(() => {})
+    const mode = audience === 'OWNER' ? 'host' : audience === 'TENANT' ? 'tenant' : null
+    sendPushToUser(userId, {
+      title,
+      body,
+      url: `/user?tab=notifications${mode ? `&mode=${mode}` : ''}`,
+    }).catch(() => {})
+    sendExpoPushToUser(userId, { title, body, data: { referenceId, referenceType, audience } }).catch(() => {})
   }
 
   if (EMAIL_TYPES.has(type) && emailMeta) {
@@ -47,8 +61,36 @@ async function deliverEmail(userId, type, emailMeta) {
   }
 }
 
-export async function getUserNotifications(userId) {
-  return prisma.notification.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 50 })
+// An unclassified row (audience NULL — written before the column existed)
+// belongs to neither hat and is therefore shown to both. Filtering it out of
+// both would make it unreachable.
+function audienceFilter(audience) {
+  if (audience !== 'TENANT' && audience !== 'OWNER') return {}
+  return { OR: [{ audience }, { audience: null }] }
+}
+
+// No `audience` → every notification, which is what released mobile builds
+// (and the "all" view) ask for. The filter is opt-in so an older client can
+// never end up with a silently narrowed list.
+export async function getUserNotifications(userId, audience) {
+  return prisma.notification.findMany({
+    where: { userId, ...audienceFilter(audience) },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  })
+}
+
+// Unread per hat, so a mode can say what is waiting in the OTHER one. Without
+// this the split hides things: a visit request for your flat is invisible from
+// renter mode, and nothing on screen suggests switching. Unclassified rows
+// (audience null) count toward both, matching where they're shown.
+export async function getUnreadCounts(userId) {
+  const unread = { userId, isRead: false }
+  const [asTenant, asOwner] = await Promise.all([
+    prisma.notification.count({ where: { ...unread, ...audienceFilter('TENANT') } }),
+    prisma.notification.count({ where: { ...unread, ...audienceFilter('OWNER') } }),
+  ])
+  return { asTenant, asOwner }
 }
 
 export async function markRead(notificationId, userId) {
@@ -57,8 +99,11 @@ export async function markRead(notificationId, userId) {
   return prisma.notification.update({ where: { id: notificationId }, data: { isRead: true } })
 }
 
-export async function markAllRead(userId, type) {
-  const where = { userId, isRead: false }
+// Scoped by audience for the same reason the list is: "Mark all as read" in the
+// host inbox must not silently clear the renter's unread ones, which the reader
+// cannot even see from there.
+export async function markAllRead(userId, type, audience) {
+  const where = { userId, isRead: false, ...audienceFilter(audience) }
   if (type) where.type = type
   await prisma.notification.updateMany({ where, data: { isRead: true } })
 }

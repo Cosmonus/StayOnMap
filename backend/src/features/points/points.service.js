@@ -77,6 +77,9 @@ export async function awardPoints(userId, action, referenceId = '') {
         type: 'SYSTEM',
         title: `You reached ${after.name}`,
         body: `${total} points — thanks for helping other renters find a home they can trust.`,
+        // Points reward helping the NEXT renter (docs/points-and-sharing.md);
+        // they are a renter-side thing even when the person also hosts.
+        audience: 'TENANT',
       }).catch(() => {})
     }
 
