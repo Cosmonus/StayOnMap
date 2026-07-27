@@ -31,6 +31,11 @@ export default {
       // (android/app/src/debug/AndroidManifest.xml) for the dev overlay, and
       // that variant is merged only into debug.
       blockedPermissions: ['android.permission.SYSTEM_ALERT_WINDOW'],
+      // The foreground S is 46% of the 108dp canvas, giving it a ~57% bounding
+      // diagonal — clear of the 66dp (61%) circle Android guarantees is visible
+      // on every launcher shape. It was 62% tall, i.e. TALLER than that
+      // guaranteed circle, so round-mask launchers cropped the terminals and
+      // the letter filled the badge edge to edge.
       adaptiveIcon: {
         backgroundColor: '#0d8a5f',
         foregroundImage: './assets/android-icon-foreground.png',
@@ -52,13 +57,36 @@ export default {
       [
         'expo-splash-screen',
         {
-          // A square, padded green "S" — NOT the old wide wordmark, which
-          // Android 12+ masks into a circle and clips at the sides. imageWidth
-          // was 500 (wider than the screen); 288 sizes the mark to sit inside
-          // the circular splash with room to spare.
+          // ./assets/splash-icon.png IS INTENTIONALLY 100% TRANSPARENT.
+          // Do not "fix" it by dropping a logo back in.
+          //
+          // There is exactly ONE launch screen and it is the wordmark —
+          // components/common/BrandSplash.js. It has to be JS, because this
+          // plugin can only place an image and Android 12+ masks that image
+          // into a 192dp circle: "StayOnMap" baked in here would be clipped to
+          // "ayOnMa", and shrunk to fit the circle it would be illegible. So
+          // the native splash paints a flat brand colour and nothing else, and
+          // the wordmark animates in the instant JS is up.
+          //
+          // Omitting `image` entirely does NOT give a blank splash — Android 12+
+          // then falls back to the launcher icon, putting the S back on screen.
+          // A transparent drawable is what actually suppresses it. imageWidth is
+          // vestigial with no pixels to size, and kept only so a future logo has
+          // a sane starting value.
+          //
+          // backgroundColor is brand-600, NOT brand-50. brand-50 is #edfaf7 —
+          // 97% luminance, indistinguishable from white on a phone — so with a
+          // transparent image the entire pre-JS launch read as a blank white
+          // screen, which is precisely what a user reported. brand-600 is
+          // unmistakably the brand from the first frame, and it is also
+          // GetStartedScreen's background, so the whole launch is one colour.
+          //
+          // It MUST stay in sync with BrandSplash.js's root background AND
+          // GetStartedScreen's container — three surfaces pretending to be one,
+          // and any drift shows up as a flash on every cold start.
           image: './assets/splash-icon.png',
           imageWidth: 288,
-          backgroundColor: '#edfaf7',
+          backgroundColor: '#0d8a5f',
         },
       ],
       [
