@@ -14,6 +14,10 @@ export const notificationService = {
   markOne:        (id) => api.patch(`/notifications/${id}/read`),
   // Scoped for the same reason the list is: clearing the host inbox must not
   // silently mark the renter's unread ones read.
-  markAll:        (audience) => api.patch('/notifications/read-all', null, scope(audience)),
-  markAllByType:  (type, audience) => api.patch('/notifications/read-all', null, scope(audience, { type })),
+  // Body is {} not null: axios serializes null to the literal string "null",
+  // which Express's strict JSON parser rejects with a 400 — that bug shipped
+  // with the audience param (the 3rd axios arg forced a body arg) and made
+  // "Mark all as read" a silent no-op.
+  markAll:        (audience) => api.patch('/notifications/read-all', {}, scope(audience)),
+  markAllByType:  (type, audience) => api.patch('/notifications/read-all', {}, scope(audience, { type })),
 }
