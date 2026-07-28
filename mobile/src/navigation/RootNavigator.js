@@ -32,11 +32,12 @@ const linking = {
 export default function RootNavigator() {
   const { user, loading } = useAuth()
 
-  // Brand green, not white: this gate sits between BrandSplash and the first
-  // screen, and rehydrating a logged-in session costs a network round-trip to
-  // /auth/me. On a slow connection the splash finishes first, and a white
-  // panel here would be a flash of exactly the blank screen the launch
-  // sequence exists to avoid.
+  // Brand green, not white. On a cold start this gate is never SEEN —
+  // BrandSplash waits on this same `loading` flag, so it is still opaque above
+  // it and only lifts once this branch is gone. The colour is what keeps that
+  // true if the two ever come apart (a splash that is skipped, an early
+  // unmount): a white panel here would be a flash of exactly the blank screen
+  // the launch sequence exists to avoid.
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand600 }}>

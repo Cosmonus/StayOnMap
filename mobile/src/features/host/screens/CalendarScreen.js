@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
 import { leaseService } from '@services/lease.service'
 import Icon from '@components/common/Icon'
+import ErrorState from '@components/common/ErrorState'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { shadows } from '@theme/shadows'
@@ -20,6 +21,17 @@ const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 // grey that vanished against the canvas.
 const DOT_COLOR = { appointment: '#F59E0B', 'lease-start': colors.brand600, 'lease-end': '#6366F1' }
 const EVENT_TYPE_LABEL = { appointment: 'Visit request', 'lease-start': 'Lease starts', 'lease-end': 'Lease ends' }
+
+// Both endpoints return EVERY status — `getOwnerAppointments` and `GET /leases`
+// filter by nothing. Plotting all of them puts dates on the calendar that are
+// never going to happen: a visit the host already rejected, or a lease offer
+// the renter turned down, sat there looking exactly like a live booking.
+const LIVE_APPOINTMENT = new Set(['PENDING', 'ACCEPTED', 'RESCHEDULED'])
+// OFFERED/ACTIVE are ahead of you and EXPIRED ran its course, so its dates are
+// accurate history. REJECTED never became a tenancy at all, and a TERMINATED
+// one ended on `terminatedAt` — the `endDate` still on the row is the date it
+// was *going* to end, which is the one date it definitely did not.
+const LIVE_LEASE = new Set(['OFFERED', 'ACTIVE', 'EXPIRED'])
 
 function daysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate()
@@ -37,12 +49,16 @@ export default function CalendarScreen({ navigation }) {
   })
   const [selectedKey, setSelectedKey] = useState(null)
 
-  const { data: appointments = [], isLoading: loadingAppts } = useQuery({
+  const {
+    data: appointments = [], isLoading: loadingAppts, isError: apptFailed, refetch: refetchAppts,
+  } = useQuery({
     queryKey: ['owner-appointments'],
     queryFn: () => appointmentService.owner().then((r) => r.data),
   })
 
-  const { data: leaseData, isLoading: loadingLeases } = useQuery({
+  const {
+    data: leaseData, isLoading: loadingLeases, isError: leasesFailed, refetch: refetchLeases,
+  } = useQuery({
     queryKey: ['leases'],
     queryFn: () => leaseService.getMyLeases().then((r) => r.data),
   })
@@ -55,13 +71,13 @@ export default function CalendarScreen({ navigation }) {
     if (!events.has(key)) events.set(key, [])
     events.get(key).push(entry)
   }
-  appointments.forEach((a) => addEvent(a.requestedDate, {
+  appointments.filter((a) => LIVE_APPOINTMENT.has(a.status)).forEach((a) => addEvent(a.requestedDate, {
     type: 'appointment',
     label: a.property?.title ?? 'Visit',
     person: a.tenant?.name,
     detail: formatTime(a.requestedTime),
   }))
-  leases.forEach((l) => {
+  leases.filter((l) => LIVE_LEASE.has(l.status)).forEach((l) => {
     addEvent(l.startDate, { type: 'lease-start', label: l.property?.title ?? 'Lease starts', person: l.tenant?.name, detail: formatRent(l.rentAmount) })
     addEvent(l.endDate, { type: 'lease-end', label: l.property?.title ?? 'Lease ends', person: l.tenant?.name, detail: formatRent(l.rentAmount) })
   })
@@ -71,9 +87,18 @@ export default function CalendarScreen({ navigation }) {
   const cells = Array.from({ length: firstWeekday }, () => null).concat(
     Array.from({ length: total }, (_, i) => i + 1)
   )
+  // Pad out to whole weeks, then render one row per week. The grid used to be a
+  // single `flexWrap` run of cells each `width: '14.285714285714286%'`, which
+  // asks Yoga to fit seven rounded percentages into one row: overflow by a
+  // fraction of a pixel and the seventh cell wraps, so the days marched one
+  // column left down the month while the weekday header — a non-wrapping row —
+  // stayed put. Fixed rows of `flex: 1` cells cannot drift.
+  while (cells.length % 7) cells.push(null)
+  const weeks = Array.from({ length: cells.length / 7 }, (_, w) => cells.slice(w * 7, w * 7 + 7))
   const monthLabel = new Date(cursor.year, cursor.month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   const todayKey = dateKey(new Date())
   const isLoading = loadingAppts || loadingLeases
+  const failed = apptFailed || leasesFailed
 
   const selectedEvents = selectedKey ? (events.get(selectedKey) ?? []) : []
   const selectedLabel = selectedKey
@@ -89,7 +114,16 @@ export default function CalendarScreen({ navigation }) {
       />
       <ScrollView contentContainerStyle={styles.content}>
 
-        {isLoading ? (
+        {/* A real failure branch (AGENTS.md §10). Both queries default to an
+            empty list, so a dropped connection or an expired session used to
+            render a normal-looking month with no bookings in it — the host
+            cannot tell "nothing scheduled" from "we never loaded it". */}
+        {failed ? (
+          <ErrorState
+            title="Couldn't load your calendar"
+            onRetry={() => { refetchAppts(); refetchLeases() }}
+          />
+        ) : isLoading ? (
           <ActivityIndicator color={colors.brand600} style={{ marginTop: spacing.xl }} />
         ) : (
           <View style={styles.card}>
@@ -119,36 +153,38 @@ export default function CalendarScreen({ navigation }) {
               ))}
             </View>
 
-            <View style={styles.grid}>
-              {cells.map((day, i) => {
-                if (!day) return <View key={i} style={styles.cell} />
-                const key = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-                const dayEvents = events.get(key) ?? []
-                const isToday = key === todayKey
-                return (
-                  <Pressable
-                    key={i}
-                    style={styles.cell}
-                    onPress={() => setSelectedKey(key)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${key}${isToday ? ', today' : ''}${dayEvents.length ? `, ${dayEvents.length} booking${dayEvents.length > 1 ? 's' : ''}` : ''}`}
-                  >
-                    {/* Today is the one date a calendar must answer without
-                        being asked — the filled disc marks it. */}
-                    <View style={[styles.dayDisc, isToday && styles.dayDiscToday]}>
-                      <Text style={[styles.dayNumber, dayEvents.length > 0 && styles.dayNumberBusy, isToday && styles.dayNumberToday]}>
-                        {day}
-                      </Text>
-                    </View>
-                    <View style={styles.dotRow}>
-                      {dayEvents.slice(0, 3).map((e, idx) => (
-                        <View key={idx} style={[styles.dot, { backgroundColor: DOT_COLOR[e.type] }]} />
-                      ))}
-                    </View>
-                  </Pressable>
-                )
-              })}
-            </View>
+            {weeks.map((week, w) => (
+              <View key={w} style={styles.gridRow}>
+                {week.map((day, i) => {
+                  if (!day) return <View key={i} style={styles.cell} />
+                  const key = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                  const dayEvents = events.get(key) ?? []
+                  const isToday = key === todayKey
+                  return (
+                    <Pressable
+                      key={i}
+                      style={styles.cell}
+                      onPress={() => setSelectedKey(key)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${key}${isToday ? ', today' : ''}${dayEvents.length ? `, ${dayEvents.length} booking${dayEvents.length > 1 ? 's' : ''}` : ''}`}
+                    >
+                      {/* Today is the one date a calendar must answer without
+                          being asked — the filled disc marks it. */}
+                      <View style={[styles.dayDisc, isToday && styles.dayDiscToday]}>
+                        <Text style={[styles.dayNumber, dayEvents.length > 0 && styles.dayNumberBusy, isToday && styles.dayNumberToday]}>
+                          {day}
+                        </Text>
+                      </View>
+                      <View style={styles.dotRow}>
+                        {dayEvents.slice(0, 3).map((e, idx) => (
+                          <View key={idx} style={[styles.dot, { backgroundColor: DOT_COLOR[e.type] }]} />
+                        ))}
+                      </View>
+                    </Pressable>
+                  )
+                })}
+              </View>
+            ))}
 
             <View style={styles.legend}>
               {[['appointment', 'Visit request'], ['lease-start', 'Lease starts'], ['lease-end', 'Lease ends']].map(([type, label]) => (
@@ -198,11 +234,12 @@ export default function CalendarScreen({ navigation }) {
   )
 }
 
-const CELL_WIDTH = `${100 / 7}%`
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
-  content: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.xxl },
+  // flexGrow so ErrorState's `flex: 1` has room to centre in — a scroll
+  // container sizes to its content, and without this the failure state would
+  // collapse to a strip at the top of the screen.
+  content: { flexGrow: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.xxl },
   // One white card on the slate50 canvas — the app-shell rule (.claude/ui-ux.md).
   // The grid used to sit bare on the canvas, so the whole screen was one
   // undifferentiated grey sheet.
@@ -217,12 +254,15 @@ const styles = StyleSheet.create({
   },
   monthLabel: { fontFamily: fonts.displayBold, fontSize: fontSizes.base, color: colors.slate800 },
   weekRow: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.slate200, marginBottom: spacing.xs },
-  weekday: { width: CELL_WIDTH, textAlign: 'center', fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate500, paddingVertical: spacing.sm },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  weekday: { flex: 1, textAlign: 'center', fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate500, paddingVertical: spacing.sm },
+  // One row per week, seven `flex: 1` cells in it — see the `weeks` comment.
+  // The header row above uses the same `flex: 1`, so the two stay in lockstep
+  // at any width without either of them knowing the column count.
+  gridRow: { flexDirection: 'row' },
   // minHeight, not aspectRatio: a 7-column grid on a 360dp phone makes ~40dp
   // squares, under the 48dp Android target height (§6). Width is bound by the
   // seven columns; height is not.
-  cell: { width: CELL_WIDTH, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  cell: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   dayDisc: { width: 32, height: 32, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center' },
   dayDiscToday: { backgroundColor: colors.brand600 },
   dayNumber: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate700 },
