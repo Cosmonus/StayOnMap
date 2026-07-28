@@ -18,9 +18,9 @@
 // (a no-op if the row was deleted between the read and the write). Non-Supabase
 // URLs (seed/demo/external images) are left untouched.
 //
-// Prod: prefix DATABASE_URL=<public url> (railway internal host won't resolve
-// locally — see .claude/ops.md); SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY must
-// be present for the storage writes.
+// Prod: run ON the VM (Postgres is localhost-only — see .claude/ops.md), or
+// through an SSH tunnel with DATABASE_URL pointed at it; SUPABASE_URL +
+// SUPABASE_SERVICE_ROLE_KEY must be present for the storage writes.
 import 'dotenv/config'
 import sharp from 'sharp'
 import { prisma } from '../src/lib/prisma.js'

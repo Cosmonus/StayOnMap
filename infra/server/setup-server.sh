@@ -183,9 +183,11 @@ cat <<EOF
  NEXT STEPS (full detail in infra/server/README-server.md):
    b) Clone the repo as the deploy user into ${APP_DIR}:
         sudo -u ${APP_USER} git clone <repo> ${APP_DIR}   (deploy key needed)
-   c) Fill ${ENV_DIR}/api.env with the REAL Railway values
-      (JWT_SECRET / ADMIN_JWT_SECRET copied VERBATIM — do not regenerate).
-   d) Migrate the DB in from Railway (pg_dump -> pg_restore) — README step (d).
+   c) Fill ${ENV_DIR}/api.env with the real production values
+      (JWT_SECRET / ADMIN_JWT_SECRET copied VERBATIM from the current box —
+      do not regenerate, that signs everyone out).
+   d) If replacing an existing box: migrate the DB in (pg_dump -> pg_restore)
+      — README step (d).
    e) First deploy:  sudo -u ${APP_USER} ${APP_DIR}/infra/server/deploy.sh
    f) TLS AFTER dns points here:  certbot --nginx -d www.stayonmap.com -d stayonmap.com
    h) OSRM (optional):  bash ${APP_DIR}/infra/routing/setup-osrm.sh
