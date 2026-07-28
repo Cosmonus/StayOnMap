@@ -18,7 +18,7 @@
 //     retried once by the caller, at the tile level, where the failure is
 //     recorded as a coverage gap. Two retry mechanisms stacked would multiply
 //     into a burst of load on a free service that was already struggling.
-import { intelLog } from '../../lib/intelLog.js'
+import { intelLog, intelError } from '../../lib/intelLog.js'
 
 /** Public mirrors, tried in order. */
 export const OVERPASS_ENDPOINTS = [
@@ -51,6 +51,11 @@ export async function overpassQuery(query, opts = {}) {
   } = opts
 
   let lastError = null
+  // Per-endpoint, not just the last one. `lastError` alone is always the FINAL
+  // mirror's error, which on 2026-07-28 made a whole production run
+  // undiagnosable: every log line blamed maps.mail.ru while the interesting
+  // question — why the primary was skipped — went unrecorded.
+  const attempts = []
 
   for (const [index, endpoint] of endpoints.entries()) {
     try {
@@ -70,6 +75,7 @@ export async function overpassQuery(query, opts = {}) {
         // saying "busy", and 406 is what the primary returned for a whole
         // session.
         lastError = new Error(`${endpoint} → HTTP ${res.status}`)
+        attempts.push({ endpoint, status: res.status })
         continue
       }
 
@@ -80,6 +86,11 @@ export async function overpassQuery(query, opts = {}) {
         intelLog('spatial.overpass_fallback', {
           endpoint,
           skipped: index,
+          // Why each skipped mirror was skipped. `code` separates a routing
+          // problem (ENETUNREACH) from a block (ETIMEDOUT) from an overloaded
+          // server (HTTP 504) — three different fixes that look identical as
+          // "fetch failed".
+          attempts,
           lastError: lastError?.message ?? null,
         })
       }
@@ -87,8 +98,16 @@ export async function overpassQuery(query, opts = {}) {
       return await res.json()
     } catch (err) {
       lastError = err
+      attempts.push({
+        endpoint,
+        error: err.name,
+        // undici wraps the real reason here; without it every network failure
+        // is the useless string "fetch failed".
+        code: err.cause?.code ?? err.code ?? null,
+      })
     }
   }
 
+  intelError('spatial.overpass_all_failed', lastError ?? new Error('all endpoints failed'), { attempts })
   throw lastError ?? new Error('all Overpass endpoints failed')
 }
