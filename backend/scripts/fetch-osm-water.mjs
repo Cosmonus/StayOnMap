@@ -22,12 +22,17 @@ import { recordQualityReport, completeness } from '../src/features/spatial/dataQ
 import { assembleRings, ringsToGeometry, bboxOf } from '../src/features/spatial/boundaryGeometry.js'
 import { CITY_CENTERS, resolveCity } from '../src/config/cityCenters.js'
 import { parseSeedArgs } from '../src/features/spatial/seedArgs.js'
-import { bboxFor } from '../src/features/spatial/tiling.js'
+import { bboxFor, tiles } from '../src/features/spatial/tiling.js'
 import { overpassQuery } from '../src/features/spatial/overpassClient.js'
 import { MIN_AREA_SQM } from '../src/features/spatial/waterLookup.js'
 
 const REQUEST_TIMEOUT_MS = 240_000
-const DELAY_BETWEEN_PASSES_MS = 3_000
+const DELAY_BETWEEN_TILES_MS = 2_000
+// 3x3 = 9 tiles per city. Discovered the hard way on 2026-07-28: a city bbox is
+// a 35 km RADIUS, i.e. a ~70 km square, and one query over that asking for ways
+// AND relations with full member geometry does not come back. A 100x smaller
+// test box answered in 1.9 s. Overpass is fine; the query was not.
+const TILE_GRID = 3
 const DEG_LAT_M = 111_320
 
 const { confirm: CONFIRM, city: ONLY_CITY } = parseSeedArgs(process.argv.slice(2))
@@ -35,26 +40,13 @@ const { confirm: CONFIRM, city: ONLY_CITY } = parseSeedArgs(process.argv.slice(2
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const overpass = (query) => overpassQuery(query, { timeoutMs: REQUEST_TIMEOUT_MS })
 
-// Two passes rather than one big query: Overpass is far more likely to time out
-// on a single broad selector over a city bbox than on two narrow ones, and a
-// partial result is recoverable per-pass.
-const PASSES = [
-  {
-    key: 'standing',
-    // natural=water covers lakes, ponds, reservoirs and tanks; landuse=reservoir
-    // is the older tagging that plenty of Indian mapping still uses.
-    selector: ['way["natural"="water"]', 'relation["natural"="water"]',
-      'way["landuse"="reservoir"]', 'relation["landuse"="reservoir"]'],
-  },
-  {
-    key: 'flowing',
-    // riverbank is the AREA of a river. `waterway=river` is a LINE — a
-    // centreline, not a polygon — and is deliberately not fetched here: this
-    // table stores areas, and a line would have zero width and a meaningless
-    // bbox.
-    selector: ['way["waterway"="riverbank"]', 'relation["waterway"="riverbank"]',
-      'way["natural"="water"]["water"="canal"]'],
-  },
+// One selector set, applied per TILE. `waterway=river` is deliberately absent:
+// it is a LINE (a centreline), and this table stores areas — a line has zero
+// width and a meaningless bbox. `riverbank` is the river's area.
+const SELECTORS = [
+  'way["natural"="water"]', 'relation["natural"="water"]',
+  'way["landuse"="reservoir"]', 'relation["landuse"="reservoir"]',
+  'way["waterway"="riverbank"]', 'relation["waterway"="riverbank"]',
 ]
 
 // OSM's water vocabulary is much larger than ours. Map down to the six kinds a
@@ -165,14 +157,14 @@ function elementToRow(el, fetchedCity) {
   }
 }
 
-async function fetchPass(city, bbox, pass, seen) {
-  const box = `${bbox.south},${bbox.west},${bbox.north},${bbox.east}`
+async function fetchTile(city, tile, seen) {
+  const box = `${tile.south},${tile.west},${tile.north},${tile.east}`
   // `out geom;` NOT `out geom tags;` — in Overpass QL `tags` is a print MODE
   // that replaces `body`, and a relation's shape lives in its members, which
   // are part of body. The boundaries seeder learned this the expensive way:
   // `geom tags` returns every relation with zero members and parses cleanly to
   // zero rows, which looks exactly like "OSM has nothing here".
-  const body = pass.selector.map((s) => `${s}(${box});`).join('\n')
+  const body = SELECTORS.map((sel) => `${sel}(${box});`).join('\n')
   const query = `[out:json][timeout:230];\n(\n${body}\n);\nout geom;`
 
   const data = await overpass(query)
@@ -206,39 +198,42 @@ async function writeRows(rows) {
 
 async function fetchCity(city) {
   const bbox = bboxFor(CITY_CENTERS[city])
+  const grid = tiles(bbox, TILE_GRID)
   const seen = new Map()
   const runStart = new Date()
-  const failedPasses = []
+  const failedTiles = []
   let droppedRings = 0
 
-  console.log(`\n${city}`)
+  console.log(`
+${city} — ${grid.length} tiles`)
 
-  for (const [i, pass] of PASSES.entries()) {
+  for (const [i, tile] of grid.entries()) {
     try {
-      const { matched, droppedRings: d } = await fetchPass(city, bbox, pass, seen)
+      const { matched, droppedRings: d } = await fetchTile(city, tile, seen)
       droppedRings += d
-      console.log(`  ${pass.key}: ${matched} bodies`)
+      process.stdout.write(`  tile ${i + 1}/${grid.length}: ${matched} bodies`)
     } catch (err) {
-      failedPasses.push(pass)
-      console.warn(`  ${pass.key}: FAILED — ${err.message}`)
+      failedTiles.push(tile)
+      console.warn(`
+  tile ${i + 1}/${grid.length}: FAILED — ${err.message}`)
     }
-    if (i < PASSES.length - 1) await sleep(DELAY_BETWEEN_PASSES_MS)
+    if (i < grid.length - 1) await sleep(DELAY_BETWEEN_TILES_MS)
   }
+  console.log()
 
   // One retry pass. Overpass mirrors fail transiently far more often than
-  // persistently, and a silently-missing pass is exactly the gap that would
-  // make a lakeside address look landlocked.
+  // persistently, and a silently-missing tile would make a lakeside address
+  // look landlocked.
   let failed = 0
-  if (failedPasses.length) {
-    console.log(`  retrying ${failedPasses.length} pass(es)…`)
-    for (const pass of failedPasses) {
-      await sleep(DELAY_BETWEEN_PASSES_MS)
+  if (failedTiles.length) {
+    console.log(`  retrying ${failedTiles.length} tile(s)…`)
+    for (const tile of failedTiles) {
+      await sleep(DELAY_BETWEEN_TILES_MS)
       try {
-        const { matched } = await fetchPass(city, bbox, pass, seen)
-        console.log(`  retry ${pass.key}: ${matched} bodies`)
+        await fetchTile(city, tile, seen)
       } catch (err) {
         failed++
-        console.warn(`  retry ${pass.key} FAILED — ${err.message}`)
+        console.warn(`  retry FAILED — ${err.message}`)
       }
     }
   }
@@ -248,7 +243,7 @@ async function fetchCity(city) {
   for (const r of rows) byKind[r.kind] = (byKind[r.kind] ?? 0) + 1
   const named = rows.filter((r) => r.name).length
 
-  console.log(`  → ${rows.length} water bodies${failed ? `, ${failed} pass(es) failed` : ''}`)
+  console.log(`  → ${rows.length} water bodies${failed ? `, ${failed} tile(s) failed` : ''}`)
   for (const [kind, n] of Object.entries(byKind)) console.log(`      ${kind}: ${n}`)
   console.log(`      named: ${named} / ${rows.length}`)
   if (droppedRings) {
@@ -285,7 +280,7 @@ async function fetchCity(city) {
       // notes so a low share is visible without being scored as incomplete.
       completenessPct: completeness(rows, ['geometry']),
       complete: failed === 0,
-      notes: { byKind, named, total: rows.length, failedPasses: failed, droppedRings },
+      notes: { byKind, named, total: rows.length, failedTiles: failed, tiles: grid.length, droppedRings },
     })
   }
 
