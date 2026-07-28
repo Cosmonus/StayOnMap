@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { View, Text, Pressable, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, BackHandler, Alert, StyleSheet } from 'react-native'
+import { View, Text, Pressable, ScrollView, ActivityIndicator, KeyboardAvoidingView, BackHandler, Alert, StyleSheet } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
 import { availabilityService } from '@services/availability.service'
@@ -272,7 +272,7 @@ export default function OnboardingWizard({ onDone }) {
     <View style={{ flex: 1 }}>
       <WizardBar step={step} onBack={back} onExit={onDone} />
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {step.k === 'basics' && <BasicsScreen {...stepProps} onPickCategory={pickCategory} />}
           {categoryKey && step.k === 'location' && <LocationScreen {...stepProps} />}

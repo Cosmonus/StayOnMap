@@ -1,4 +1,4 @@
-import { ScrollView, Pressable, Text, View, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native'
+import { ScrollView, Pressable, Text, View, KeyboardAvoidingView, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import AppointmentForm from '@features/appointments/components/AppointmentForm'
 import Icon from '@components/common/Icon'
@@ -13,7 +13,7 @@ export default function BookViewingScreen({ route, navigation }) {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScreenHeader title="Request a visit" onBack={() => navigation.goBack()} />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <AppointmentForm
             propertyId={propertyId}

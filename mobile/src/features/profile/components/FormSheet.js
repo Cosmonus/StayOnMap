@@ -1,6 +1,6 @@
 import {
   Modal, View, Text, Pressable, ScrollView, KeyboardAvoidingView,
-  Platform, ActivityIndicator, StyleSheet,
+  ActivityIndicator, StyleSheet,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Icon from '@components/common/Icon'
@@ -29,7 +29,7 @@ export default function FormSheet({ visible, onClose, title, children, onSave, s
 
         <KeyboardAvoidingView
           style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior="padding"
         >
           <ScrollView
             style={styles.flex}

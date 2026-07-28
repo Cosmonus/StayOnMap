@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { View, Text, TextInput, Pressable, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Linking, Modal, StyleSheet } from 'react-native'
+import { View, Text, TextInput, Pressable, FlatList, KeyboardAvoidingView, ActivityIndicator, Alert, Linking, Modal, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Image } from 'expo-image'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -386,16 +386,15 @@ export default function ConversationScreen({ route, navigation }) {
           </View>
         )}
       />
-      {/* The house pattern from mobile/AGENTS.md §7, which this screen was the
-          only one of eight to deviate from. `behavior="height"` on Android
-          fights adjustResize: the window has already shrunk for the keyboard,
-          and KAV then applies a computed height on top, so the thread collapses
-          or a gap opens above the input. The stale keyboardVerticalOffset went
-          with it — 90 was sized for React Navigation's native header, which
-          this screen stopped using when it moved to ScreenHeader. */}
+      {/* `behavior="padding"` on BOTH platforms (mobile/AGENTS.md §7). The old
+          house pattern — undefined on Android, leaning on adjustResize — died
+          with SDK 57: edge-to-edge is enforced (targetSdk 36) and the window no
+          longer resizes for the keyboard, so the input bar sat hidden behind
+          it. KAV pads by the measured overlap of its own frame with the
+          keyboard, so it cannot double-compensate even where resize works. */}
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
       >
       {searchOpen && (
         <View style={styles.searchBar}>
