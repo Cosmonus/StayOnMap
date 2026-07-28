@@ -44,6 +44,16 @@ vi.mock('../src/features/spatial/providers.js', async (importOriginal) => ({
   airQuality:     vi.fn().mockResolvedValue(null),
 }))
 
+// WorldCover is a network provider too — landCover() range-reads a GeoTIFF
+// from S3. It belongs in this no-network block and was missed when it landed on
+// 2026-07-28, which made spatial-modules.test.js pass alone and fail in the
+// suite depending on whether S3 answered in time. Mocking it per-file was the
+// wrong fix; this is the right one.
+vi.mock('../src/features/spatial/worldCoverProvider.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  landCover: vi.fn().mockResolvedValue(null),
+}))
+
 // ── Spatial context — fire-and-forget materialisation + read-path join ─────
 // getContext returns null (cell not described yet), which is the normal
 // cold-start path and must not break a property fetch.
