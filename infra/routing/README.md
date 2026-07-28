@@ -27,21 +27,24 @@ scp -r infra/routing root@<box-ip>:/root/
 ssh root@<box-ip>
 bash /root/routing/setup-osrm.sh        # ~30-45 min: download, clip, build, serve
 # 4. Hetzner Cloud Firewall: allow inbound TCP :5000.
-# 5. Tell the session the box IP — it sets ROUTING_URL on the Railway backend.
+# 5. Tell the session the box IP — it sets ROUTING_URL in /etc/stayonmap/api.env
+#    on the production VM and restarts the API.
 ```
 
 The graph builds in one shot and osrm-routed serves on :5000, restart-always.
 `ROUTING_URL=http://<box-ip>:5000` is the only backend change; everything wired
-in the read path lights up with no deploy. Only the ROUTER moves off Railway —
-the backend API, Postgres, and frontend STAY on Railway.
+in the read path lights up with no deploy. (Since 2026-07-23 the backend API,
+Postgres and frontend all run on one self-hosted GCP VM — see
+`infra/server/README-server.md`; this router is a separate box either way.
+Running OSRM on that same VM is also an option if its RAM allows — serving is
+light; only the one-time graph build is hungry.)
 
 **Securing :5000** — OSRM has no auth. It computes routes over public OSM data,
 so there's no data to leak; the only risk is someone borrowing your routing CPU.
-Options, cheapest first: (a) leave :5000 open — low risk to start; (b) if you
-want it locked, a secret path prefix on `ROUTING_URL` behind a tiny Caddy proxy
-(ask the session — `routingProvider.js` appends fixed paths, so a prefix works).
-Railway's backend has no single static egress IP, so a strict IP allowlist isn't
-reliable here.
+The backend now lives on a VM with a **single static IP**, so the clean option
+is a firewall allowlist: inbound :5000 from that IP only — the firewall IS the
+auth. (A secret path prefix behind a tiny Caddy proxy still works as an
+alternative — `routingProvider.js` appends fixed paths, so a prefix is fine.)
 
 ## Cost & sizing (Hetzner alternative)
 
@@ -61,10 +64,10 @@ reliable here.
    (`extracts.json` — generated from `backend/src/config/cityCenters.js`,
    regenerate there if cities ever change), merges, builds the foot-profile
    graph, serves on `:5000`. Idempotent — re-run safe.
-4. Firewall: in the Hetzner console restrict inbound `:5000` to the backend's
-   egress IP (Railway egress IPs are listed in the service's settings). OSRM
-   has no auth of its own — the firewall IS the auth.
-5. Point the backend at it: set `ROUTING_URL=http://<ip>:5000` on Railway.
+4. Firewall: in the Hetzner console restrict inbound `:5000` to the production
+   VM's public IP. OSRM has no auth of its own — the firewall IS the auth.
+5. Point the backend at it: set `ROUTING_URL=http://<ip>:5000` in
+   `/etc/stayonmap/api.env` on the production VM and restart `stayonmap-api`.
    The backend's `routingProvider.js` health-probes it; absent or down, every
    consumer falls back to haversine exactly as today — the router can never
    break a page, only improve it.
