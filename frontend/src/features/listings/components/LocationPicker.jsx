@@ -62,12 +62,22 @@ export default function LocationPicker({ value, onChange }) {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function placePicked({ lat, lng }) {
+  // Fit the place's own extent — a city shows the whole city, a street its
+  // block — and let the owner zoom in from there. A fixed setZoom(16) dropped
+  // a "Bengaluru" search onto one arbitrary street of it.
+  function placePicked({ lat, lng, viewport }) {
     if (!mapRef.current) return
-    mapRef.current.setZoom(16)
-    mapRef.current.panTo({ lat, lng })
     markerRef.current?.setPosition({ lat, lng })
     onChange({ lat, lng })
+    if (viewport) {
+      mapRef.current.fitBounds(new window.google.maps.LatLngBounds(
+        { lat: viewport.swLat, lng: viewport.swLng },
+        { lat: viewport.neLat, lng: viewport.neLng },
+      ))
+    } else {
+      mapRef.current.setZoom(16)
+      mapRef.current.panTo({ lat, lng })
+    }
   }
 
   return (

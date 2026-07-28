@@ -77,9 +77,24 @@ export default function LocationPicker({ value, onChange }) {
     return () => clearTimeout(debounceRef.current)
   }, [query])
 
-  function moveTo(lat, lng) {
-    onChange({ lat, lng })
-    const region = { latitude: lat, longitude: lng, latitudeDelta: 0.02, longitudeDelta: 0.02 }
+  // Fit the place's own extent (the geocoder's viewport) — a city shows the
+  // whole city, a street its block — and let the owner zoom in from there. A
+  // fixed 0.02° delta dropped a "Bengaluru" search onto one arbitrary street.
+  function regionFor({ lat, lng, viewport }) {
+    if (viewport) {
+      return {
+        latitude: (viewport.neLat + viewport.swLat) / 2,
+        longitude: (viewport.neLng + viewport.swLng) / 2,
+        latitudeDelta: Math.max((viewport.neLat - viewport.swLat) * 1.2, 0.01),
+        longitudeDelta: Math.max((viewport.neLng - viewport.swLng) * 1.2, 0.01),
+      }
+    }
+    return { latitude: lat, longitude: lng, latitudeDelta: 0.02, longitudeDelta: 0.02 }
+  }
+
+  function moveTo(loc) {
+    onChange({ lat: loc.lat, lng: loc.lng })
+    const region = regionFor(loc)
     mapRef.current?.animateToRegion(region, 400)
     bigMapRef.current?.animateToRegion(region, 400)
   }
@@ -93,7 +108,7 @@ export default function LocationPicker({ value, onChange }) {
         setError('Couldn’t find that place — check the spelling or try a nearby landmark.')
         return
       }
-      moveTo(loc.lat, loc.lng)
+      moveTo(loc)
     } catch {
       setError('Search failed — check your connection and try again.')
     } finally {
