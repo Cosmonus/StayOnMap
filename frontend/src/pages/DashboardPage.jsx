@@ -117,6 +117,18 @@ function dateKey(d) {
 
 const EVENT_TYPE_LABEL = { appointment: 'Visit request', 'lease-start': 'Lease starts', 'lease-end': 'Lease ends' }
 
+// Both endpoints return EVERY status — `getOwnerAppointments` and `GET /leases`
+// filter by nothing. Plotting all of them puts dates on the calendar that are
+// never going to happen: a visit the host already rejected, or a lease offer
+// the renter turned down, sat there looking exactly like a live booking.
+// Mirrored in mobile/src/features/host/screens/CalendarScreen.js — keep in sync.
+const LIVE_APPOINTMENT = new Set(['PENDING', 'ACCEPTED', 'RESCHEDULED'])
+// OFFERED/ACTIVE are ahead of you and EXPIRED ran its course, so its dates are
+// accurate history. REJECTED never became a tenancy at all, and a TERMINATED
+// one ended on `terminatedAt` — the `endDate` still on the row is the date it
+// was *going* to end, which is the one date it definitely did not.
+const LIVE_LEASE = new Set(['OFFERED', 'ACTIVE', 'EXPIRED'])
+
 function CalendarSection() {
   const [cursor, setCursor] = useState(() => {
     const d = new Date()
@@ -124,12 +136,16 @@ function CalendarSection() {
   })
   const [selectedKey, setSelectedKey] = useState(null)
 
-  const { data: appointments = [] } = useQuery({
+  const {
+    data: appointments = [], isLoading: loadingAppts, isError: apptFailed, refetch: refetchAppts,
+  } = useQuery({
     queryKey: ['owner-appointments'],
     queryFn: () => appointmentService.owner().then(r => r.data),
   })
 
-  const { data: leaseData } = useQuery({
+  const {
+    data: leaseData, isLoading: loadingLeases, isError: leasesFailed, refetch: refetchLeases,
+  } = useQuery({
     queryKey: ['leases'],
     queryFn: () => leaseService.getMyLeases().then(r => r.data),
   })
@@ -142,13 +158,13 @@ function CalendarSection() {
     if (!events.has(key)) events.set(key, [])
     events.get(key).push(entry)
   }
-  appointments.forEach(a => addEvent(a.requestedDate, {
+  appointments.filter(a => LIVE_APPOINTMENT.has(a.status)).forEach(a => addEvent(a.requestedDate, {
     type: 'appointment',
     label: a.property?.title ?? 'Visit',
     person: a.tenant?.name,
     detail: formatTime(a.requestedTime),
   }))
-  leases.forEach(l => {
+  leases.filter(l => LIVE_LEASE.has(l.status)).forEach(l => {
     addEvent(l.startDate, { type: 'lease-start', label: l.property?.title ?? 'Lease starts', person: l.tenant?.name, detail: formatRent(l.rentAmount) })
     addEvent(l.endDate, { type: 'lease-end', label: l.property?.title ?? 'Lease ends', person: l.tenant?.name, detail: formatRent(l.rentAmount) })
   })
@@ -167,12 +183,45 @@ function CalendarSection() {
     ? new Date(`${selectedKey}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
     : ''
 
+  const heading = (
+    <div>
+      <h1 className="text-xl font-bold text-slate-900">Calendar</h1>
+      <p className="text-sm text-slate-500 mt-0.5">Upcoming appointments and lease dates</p>
+    </div>
+  )
+
+  // Both queries default to an empty list, so a dropped connection or an
+  // expired session rendered a normal-looking month with no bookings in it —
+  // the host cannot tell "nothing scheduled" from "we never loaded it".
+  if (apptFailed || leasesFailed) {
+    return (
+      <div className="space-y-5">
+        {heading}
+        <div className="text-center py-16">
+          <p className="text-sm text-slate-600">We couldn&apos;t load your calendar.</p>
+          <button
+            onClick={() => { refetchAppts(); refetchLeases() }}
+            className="min-h-[44px] mt-3 px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:border-slate-400"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (loadingAppts || loadingLeases) {
+    return (
+      <div className="space-y-5">
+        {heading}
+        <div className="h-[360px] max-w-md rounded-2xl bg-slate-100 animate-pulse" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">Calendar</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Upcoming appointments and lease dates</p>
-      </div>
+      {heading}
 
       <div className="bg-white border border-slate-100 rounded-2xl p-5 max-w-md">
         <div className="flex items-center justify-between mb-4">
