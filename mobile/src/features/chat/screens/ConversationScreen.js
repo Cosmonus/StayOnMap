@@ -123,10 +123,16 @@ export default function ConversationScreen({ route, navigation }) {
     queryFn: () => chatService.conversations().then((r) => r.data),
   })
   const conversation = conversations.find((c) => c.id === conversationId)
-  const other = otherParam ?? (conversation ? (conversation.tenantId === user?.id ? conversation.owner : conversation.tenant) : null)
+  const counterpart = conversation ? (conversation.tenantId === user?.id ? conversation.owner : conversation.tenant) : null
+  const other = otherParam ?? counterpart
   const property = conversation?.property
 
   const otherName = other?.name || other?.email?.split('@')[0] || 'Chat'
+  // Server-gated by the counterpart's own contactVisibility (chat.service.js's
+  // gateParticipantPhones) — absent means they chose not to share it, and the
+  // call button simply doesn't render. The conversation payload wins over the
+  // route param because it is the surface the gate is applied to.
+  const otherPhone = counterpart?.phone ?? other?.phone ?? null
 
   // Debounce the search box 300ms before hitting the backend search endpoint
   useEffect(() => {
@@ -353,16 +359,31 @@ export default function ConversationScreen({ route, navigation }) {
           .filter(Boolean).join(' · ') || undefined}
         onBack={() => navigation.goBack()}
         right={(
-          <Pressable
-            style={styles.headerSearchButton}
-            onPress={() => { setSearchOpen((o) => !o); setMsgSearch('') }}
-            accessibilityRole="button"
-            accessibilityLabel={searchOpen ? 'Close message search' : 'Search messages'}
-            accessibilityState={{ expanded: searchOpen }}
-            hitSlop={8}
-          >
-            <Icon name={searchOpen ? 'close' : 'search'} size={20} color={searchOpen ? colors.brand600 : colors.slate500} />
-          </Pressable>
+          <View style={styles.headerActions}>
+            {/* tel: hands off to the dialer — genuinely another app, the one
+                use Linking stays correct for (mobile/AGENTS.md §1). */}
+            {!!otherPhone && (
+              <Pressable
+                style={styles.headerSearchButton}
+                onPress={() => Linking.openURL(`tel:${otherPhone}`)}
+                accessibilityRole="button"
+                accessibilityLabel={`Call ${otherName}`}
+                hitSlop={8}
+              >
+                <Icon name="phone" size={20} color={colors.slate500} />
+              </Pressable>
+            )}
+            <Pressable
+              style={styles.headerSearchButton}
+              onPress={() => { setSearchOpen((o) => !o); setMsgSearch('') }}
+              accessibilityRole="button"
+              accessibilityLabel={searchOpen ? 'Close message search' : 'Search messages'}
+              accessibilityState={{ expanded: searchOpen }}
+              hitSlop={8}
+            >
+              <Icon name={searchOpen ? 'close' : 'search'} size={20} color={searchOpen ? colors.brand600 : colors.slate500} />
+            </Pressable>
+          </View>
         )}
       />
       {/* The house pattern from mobile/AGENTS.md §7, which this screen was the
@@ -598,6 +619,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand50, borderBottomWidth: 1, borderBottomColor: colors.brand100,
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  headerActions: { flexDirection: 'row', alignItems: 'center' },
   headerSearchButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
