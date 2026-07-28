@@ -4,7 +4,6 @@ import { useNavigation } from '@react-navigation/native'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
 import { chatService } from '@services/chat.service'
-import { useUiStore } from '@store/uiStore'
 import Icon from '@components/common/Icon'
 import { VISIT_SLOTS, formatTime } from '@utils/time'
 import { colors } from '@theme/colors'
@@ -22,7 +21,6 @@ const UPCOMING_DATES = Array.from({ length: 30 }, (_, i) => {
 export default function AppointmentForm({ propertyId, windowStart, windowEnd, onSuccess }) {
   const navigation = useNavigation()
   const queryClient = useQueryClient()
-  const hostMode = useUiStore((s) => s.hostMode)
   const [form, setForm] = useState({ requestedDate: '', requestedTime: '', message: '', contactNumber: '' })
   const [submitted, setSubmitted] = useState(false)
   const [chatLoading, setChatLoading] = useState(false)
@@ -48,8 +46,16 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
   async function handleChat() {
     setChatLoading(true)
     try {
-      await chatService.startConversation(propertyId)
-      navigation.getParent()?.navigate(hostMode ? 'Inbox' : 'Chat')
+      const convo = await chatService.startConversation(propertyId).then((r) => r.data)
+      queryClient.invalidateQueries({ queryKey: ['conversations'] })
+      // Pushed onto THIS stack (AppTabs.js's BOOKING_SCREENS carries
+      // Conversation everywhere BookViewing exists) — back returns here, not
+      // to whatever the Chat tab was parked on.
+      navigation.navigate('Conversation', {
+        conversationId: convo.id,
+        other: convo.owner,
+        otherRole: 'Owner',
+      })
     } catch {
       // best-effort — error surfaced via the disabled state resetting below
     } finally {

@@ -30,21 +30,29 @@ export function flushPendingReference() {
 // NotificationsScreen and an OS push tap are the same question — "what is
 // this notification about?" — and they used to answer it differently: push
 // opened the thread, the list only marked it read.
+// `initial: false` on every destination that is NOT its stack's first screen:
+// without it, a deep link into a tab whose stack hasn't mounted yet makes the
+// target the stack's INITIAL route — nothing beneath it, so back falls
+// through to the tab bar instead of popping to the list the screen belongs
+// over (a conversation with no inbox under it, a property with no map).
 export function referenceDestination({ referenceId, referenceType }, hostMode) {
   switch (referenceType) {
     case 'Conversation':
-      return [hostMode ? 'Inbox' : 'Chat', { screen: 'Conversation', params: { conversationId: referenceId } }]
+      return [hostMode ? 'Inbox' : 'Chat', { screen: 'Conversation', initial: false, params: { conversationId: referenceId } }]
     case 'Appointment':
       // referenceId is the appointment, but neither mode has a per-appointment
-      // screen — the queue is the destination.
-      return [hostMode ? 'Appointments' : 'Profile', { screen: hostMode ? 'AppointmentsHome' : 'Appointments' }]
+      // screen — the queue is the destination. Host mode's queue IS its
+      // stack's first screen, so only the renter path needs initial: false.
+      return hostMode
+        ? ['Appointments', { screen: 'AppointmentsHome' }]
+        : ['Profile', { screen: 'Appointments', initial: false }]
     case 'Lease':
       // Leases are a renter-side screen (ProfileStack). Host mode has no lease
       // list at all — only CreateLease — so a host's lease notification has
       // nowhere to land and stays unlinked instead of jumping somewhere wrong.
-      return hostMode ? null : ['Profile', { screen: 'Leases' }]
+      return hostMode ? null : ['Profile', { screen: 'Leases', initial: false }]
     case 'Property':
-      return [hostMode ? 'MyListing' : 'Explore', { screen: 'PropertyDetail', params: { propertyId: referenceId } }]
+      return [hostMode ? 'MyListing' : 'Explore', { screen: 'PropertyDetail', initial: false, params: { propertyId: referenceId } }]
     default:
       // PropertyReport and OwnershipVerification carry the REPORT's and the
       // VERIFICATION's own id, and no screen takes either. Sending someone to

@@ -41,7 +41,9 @@ export default function NotificationBell({ style }) {
   // cross-tab jump. The tab names differ per mode ('Profile' vs 'HostProfile')
   // — hardcoding either breaks in the other, the same trap as Inbox/Chat.
   function open() {
-    navigation.getParent()?.navigate(hostMode ? 'HostProfile' : 'Profile', { screen: 'Notifications' })
+    // initial: false keeps the account screen beneath Notifications, so back
+    // pops to it instead of falling through to the tab bar.
+    navigation.getParent()?.navigate(hostMode ? 'HostProfile' : 'Profile', { screen: 'Notifications', initial: false })
   }
 
   return (

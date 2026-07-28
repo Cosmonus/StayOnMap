@@ -86,12 +86,6 @@ export default function ExploreScreen({ navigation }) {
             >
               <Icon name="search" size={16} color={colors.slate700} />
             </Pressable>
-            {/* The map IS a renter's home screen, so the bell belongs here for
-                the same reason it belongs on the host dashboard: a notification
-                that arrives with nothing on screen to show for it may as well
-                not have arrived. Only for signed-in users — a guest browsing
-                the map has no notifications to have. */}
-            {!!user && <NotificationBell style={styles.bell} />}
             <Pressable
               style={styles.filterButton}
               onPress={() => setFiltersOpen(true)}
@@ -107,6 +101,13 @@ export default function ExploreScreen({ navigation }) {
                 </View>
               )}
             </Pressable>
+            {/* The map IS a renter's home screen, so the bell belongs here for
+                the same reason it belongs on the host dashboard: a notification
+                that arrives with nothing on screen to show for it may as well
+                not have arrived. Last in the row (logo · search · filter ·
+                bell — operator-specified order). Only for signed-in users — a
+                guest browsing the map has no notifications to have. */}
+            {!!user && <NotificationBell style={styles.bell} />}
           </View>
         </SafeAreaView>
         {searchOpen && (

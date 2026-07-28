@@ -70,7 +70,7 @@ export default function HostProfileScreen({ navigation }) {
           <AccountGroup>
             <AccountRow
               label="Calendar"
-              onPress={() => navigation.getParent()?.navigate('Dashboard', { screen: 'Calendar' })}
+              onPress={() => navigation.getParent()?.navigate('Dashboard', { screen: 'Calendar', initial: false })}
             />
           </AccountGroup>
 

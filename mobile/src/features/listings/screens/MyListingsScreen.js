@@ -150,7 +150,7 @@ export default function MyListingsScreen({ navigation }) {
               visibility={profile?.listingVisibility}
               // Settings lives in the host account tab, not this stack — the
               // same cross-tab hop the dashboard uses to reach Calendar.
-              onOpenSettings={() => navigation.getParent()?.navigate('HostProfile', { screen: 'Settings' })}
+              onOpenSettings={() => navigation.getParent()?.navigate('HostProfile', { screen: 'Settings', initial: false })}
             />
           }
           ListEmptyComponent={

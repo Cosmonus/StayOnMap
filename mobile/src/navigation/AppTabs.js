@@ -58,9 +58,29 @@ function makeStack(screens) {
   }
 }
 
+// A thread opens INSIDE whichever tab opened it — the same reason
+// BOOKING_SCREENS is spread into every stack that can open a listing.
+//
+// The alternative, a cross-tab `navigate('Inbox', { screen: 'Conversation' })`,
+// pushes the thread onto the Inbox tab's own stack. That tab then stays parked
+// on a conversation the user never opened from there, so tapping "Inbox" shows
+// one thread instead of the inbox — and hitting back from it lands on the chat
+// list rather than the screen they actually came from.
+const CONVERSATION_SCREEN = {
+  name: 'Conversation',
+  component: ConversationScreen,
+  options: { headerShown: false },
+}
+
+// Every stack that can show a listing can also open its "Message owner" thread
+// (CONVERSATION_SCREEN rides along), and every stack that can show a thread
+// can also open the listing it is about — a conversation's property card
+// pushes PropertyDetail. The two travel together so both hops stay INSIDE the
+// current tab and back always returns to the screen that opened them.
 const BOOKING_SCREENS = [
   { name: 'PropertyDetail', component: PropertyDetailScreen, options: { headerShown: false } },
   { name: 'BookViewing', component: BookViewingScreen, options: { headerShown: false, presentation: 'modal' } },
+  CONVERSATION_SCREEN,
 ]
 
 const ExploreStack = makeStack([
@@ -76,23 +96,9 @@ const SavedStack = makeStack([
   ...BOOKING_SCREENS,
 ])
 
-// A thread opens INSIDE whichever tab opened it — the same reason
-// BOOKING_SCREENS is spread into every stack that can open a listing.
-//
-// The alternative, a cross-tab `navigate('Inbox', { screen: 'Conversation' })`,
-// pushes the thread onto the Inbox tab's own stack. That tab then stays parked
-// on a conversation the user never opened from there, so tapping "Inbox" shows
-// one thread instead of the inbox — and hitting back from it lands on the chat
-// list rather than the screen they actually came from.
-const CONVERSATION_SCREEN = {
-  name: 'Conversation',
-  component: ConversationScreen,
-  options: { headerShown: false },
-}
-
 const ChatStack = makeStack([
   { name: 'ChatHome', component: ConversationListScreen, options: { headerShown: false } },
-  CONVERSATION_SCREEN,
+  ...BOOKING_SCREENS,
 ])
 
 // Renter-only — listing management moved out to host mode's My Listing tab.
@@ -118,7 +124,7 @@ const HostAppointmentsStack = makeStack([
   // "Chat" on a visit request. Only the incoming (owner) card has that button,
   // and only this stack passes initialTab: 'incoming' — so the renter's copy of
   // AppointmentsScreen, over in ProfileStack, has no way to reach it.
-  CONVERSATION_SCREEN,
+  ...BOOKING_SCREENS,
 ])
 
 const HostProfileStack = makeStack([
@@ -201,29 +207,54 @@ function useTabBadges(hostMode) {
     : { Chat: unread || undefined }
 }
 
-// Tapping "Listings" must always land on the LIST.
+// The root screen of each tab's stack, by ROUTE name (both modes).
+const TAB_HOME = {
+  Explore: 'ExploreHome',
+  Saved: 'SavedHome',
+  Chat: 'ChatHome',
+  Profile: 'ProfileHome',
+  Dashboard: 'DashboardHome',
+  MyListing: 'MyListingsHome',
+  Appointments: 'AppointmentsHome',
+  Inbox: 'ChatHome',
+  HostProfile: 'HostProfileHome',
+}
+
+// Two tab-press behaviours, applied to every tab:
 //
-// The add-a-listing wizard is pushed onto this tab's stack — by the Add button
-// on the list, and by the dashboard's "Add listing", which jumps tabs to get
-// here — and a stack remembers what was pushed. So walking away mid-wizard via
-// the tab bar left "Listings" reopening a half-filled form instead of your
-// listings, with nothing on screen to say the list was one back-press away.
+// 1. Re-tapping the tab you are already ON pops its stack to the tab's home —
+//    the platform convention (Instagram, YouTube, Maps all do this). Without
+//    it, a Profile stack parked on Notifications made the Profile tab button a
+//    no-op: tapping "Profile" while reading notifications did nothing at all,
+//    and the only way back to the profile was the header chevron. Switching
+//    AWAY and back still restores your spot — screens are PLACES and a tab
+//    should remember them; only the second tap on the same tab resets.
 //
-// Only the wizard is dismissed. ManageListing, EditListing and the rest are
-// PLACES, and keeping your spot in them is exactly what a tab should do; a
-// wizard is a task. Dismissing it costs nothing either, because
-// listings/.../draftStore.js persists every change — which is what "Safe to
-// close — we keep your draft" already promises the owner. Tapping Add resumes
-// on the same step.
-const TAB_LISTENERS = {
-  MyListing: ({ navigation, route }) => ({
+// 2. Tapping "Listings" always dismisses a mid-flight add-listing wizard
+//    (even from another tab). A wizard is a task, not a place — walking away
+//    via the tab bar left "Listings" reopening a half-filled form instead of
+//    your listings. Dismissing costs nothing: listings/.../draftStore.js
+//    persists every change ("Safe to close — we keep your draft"), and
+//    tapping Add resumes on the same step.
+//
+// `navigate(tab, { screen: home })` POPS to the home screen because it is
+// already in the stack — it does not push a duplicate.
+function tabListeners({ navigation, route }) {
+  return {
     tabPress: () => {
       const stack = route.state
       if (!stack?.routes?.length) return
       const top = stack.routes[stack.index ?? stack.routes.length - 1]
-      if (top?.name === 'AddListing') navigation.navigate('MyListing', { screen: 'MyListingsHome' })
+      const home = TAB_HOME[route.name]
+      if (route.name === 'MyListing' && top?.name === 'AddListing') {
+        navigation.navigate('MyListing', { screen: home })
+        return
+      }
+      if (navigation.isFocused() && top?.name !== home) {
+        navigation.navigate(route.name, { screen: home })
+      }
     },
-  }),
+  }
 }
 
 export default function AppTabs() {
@@ -259,6 +290,11 @@ export default function AppTabs() {
     <Tab.Navigator
       key={hostMode ? 'host' : 'renter'}
       initialRouteName={hostMode ? hostEntryTab : undefined}
+      // Hardware/gesture back walks back through the tabs you actually
+      // visited. The default ('firstRoute') jumped straight to Explore — so
+      // after a notification or "Message owner" carried you across tabs, back
+      // landed somewhere you had never been instead of where you came from.
+      backBehavior="history"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.brand600,
@@ -281,7 +317,7 @@ export default function AppTabs() {
           key={name}
           name={name}
           component={Component}
-          listeners={TAB_LISTENERS[name]}
+          listeners={tabListeners}
           options={{
             tabBarLabel: label ?? name,
             tabBarBadge: badges[name],
