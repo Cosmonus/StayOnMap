@@ -1,10 +1,14 @@
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
+import { useCallback, useState } from 'react'
+import { View, Text, FlatList, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native'
 import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useFocusEffect } from '@react-navigation/native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
 import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import { readSavedDraft, clearSavedDraft } from '@features/listings/components/onboarding/draftStore'
+import { STEPS, CATEGORIES, suggestTitle } from '@features/listings/config/onboarding.js'
 import { formatPrice, imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
@@ -88,21 +92,78 @@ function VisibilityNotice({ visibility, onOpenSettings }) {
   )
 }
 
+// The unfinished wizard draft, as a card on the listings page itself — the
+// screen "Save & exit" lands on. It has no server record (the wizard only
+// creates the property at publish), so without this the half-done listing was
+// invisible exactly where the owner came looking for it; the dashboard's
+// UnfinishedCard was the only surface that admitted it existed. Mirrors web's
+// LocalDraftRow in ListingManager, wording shared with the dashboard card.
+function DraftCard({ saved, onResume, onDiscard }) {
+  const step = STEPS[saved.stepIdx ?? 0] ?? STEPS[0]
+  const label = saved.draft?.title?.trim()
+    || suggestTitle(saved.categoryKey, { fields: saved.draft?.fields ?? {}, location: saved.draft?.location ?? {} })
+    || CATEGORIES[saved.categoryKey]?.label
+    || 'a listing'
+
+  return (
+    <View style={styles.draftCard}>
+      <Text style={styles.draftTitle}>Unfinished listing</Text>
+      <Text style={styles.draftBody}>
+        {label} — you stopped at {step.label.toLowerCase()}. Nothing was lost.
+      </Text>
+      <Pressable style={styles.draftResume} onPress={onResume} accessibilityRole="button">
+        <Text style={styles.draftResumeText}>Resume · step {step.n} of {STEPS.length}</Text>
+      </Pressable>
+      <Pressable style={styles.draftDiscard} onPress={onDiscard} accessibilityRole="button" accessibilityLabel="Delete draft">
+        <Text style={styles.draftDiscardText}>Delete draft</Text>
+      </Pressable>
+    </View>
+  )
+}
+
 export default function MyListingsScreen({ navigation }) {
   const { user } = useAuth()
 
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['me'],
     queryFn: () => authService.getMe().then((r) => r.data),
     enabled: !!user,
   })
   const isOwner = profile?.role === 'OWNER'
 
+  // Re-read on focus, same as the dashboard: the owner leaves for the wizard
+  // and comes back, and this screen must reflect what just happened there.
+  const [savedDraft, setSavedDraft] = useState(null)
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true
+      readSavedDraft().then((s) => { if (alive) setSavedDraft(s) })
+      return () => { alive = false }
+    }, []),
+  )
+
+  function discardDraft() {
+    Alert.alert('Delete this draft?', 'Your unfinished listing will be gone for good.', [
+      { text: 'Keep it', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => { clearSavedDraft(); setSavedDraft(null) } },
+    ])
+  }
+
   const { data: listings = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['my-listings'],
     queryFn: () => propertyService.getMyListings().then((r) => r.data),
     enabled: isOwner,
   })
+
+  // Owners cold-starting into this tab must not flash the become-owner
+  // prompt while ['me'] is still in flight — wait for an answer first.
+  if (profileLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={[]}>
+        <View style={styles.center}><ActivityIndicator color={colors.brand600} /></View>
+      </SafeAreaView>
+    )
+  }
 
   if (!isOwner) {
     return (
@@ -146,14 +207,25 @@ export default function MyListingsScreen({ navigation }) {
           columnWrapperStyle={{ gap: spacing.md }}
           contentContainerStyle={styles.list}
           ListHeaderComponent={
-            <VisibilityNotice
-              visibility={profile?.listingVisibility}
-              // Settings lives in the host account tab, not this stack — the
-              // same cross-tab hop the dashboard uses to reach Calendar.
-              onOpenSettings={() => navigation.getParent()?.navigate('HostProfile', { screen: 'Settings', initial: false })}
-            />
+            <>
+              <VisibilityNotice
+                visibility={profile?.listingVisibility}
+                // Settings lives in the host account tab, not this stack — the
+                // same cross-tab hop the dashboard uses to reach Calendar.
+                onOpenSettings={() => navigation.getParent()?.navigate('HostProfile', { screen: 'Settings', initial: false })}
+              />
+              {!!savedDraft && (
+                <DraftCard
+                  saved={savedDraft}
+                  onResume={() => navigation.navigate('AddListing')}
+                  onDiscard={discardDraft}
+                />
+              )}
+            </>
           }
-          ListEmptyComponent={
+          // With a draft on screen, "No listings yet" directly above it would
+          // be a lie — the draft card already carries the way forward.
+          ListEmptyComponent={savedDraft ? null : (
             <Pressable style={styles.emptyState} onPress={() => navigation.navigate('AddListing')}>
               <View style={styles.emptyIcon}>
                 <Icon name="plus" size={20} color={colors.brand600} />
@@ -161,7 +233,7 @@ export default function MyListingsScreen({ navigation }) {
               <Text style={styles.emptyTitle}>No listings yet</Text>
               <Text style={styles.emptyBody}>Tap to add your first property</Text>
             </Pressable>
-          }
+          )}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <Pressable
@@ -212,6 +284,15 @@ const styles = StyleSheet.create({
   addButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   list: { padding: spacing.lg, gap: spacing.md },
   notice: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.warning50, borderWidth: 1, borderColor: '#FDE68A', borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.md },
+  // Same visual language as the dashboard's UnfinishedCard — one feature,
+  // one look, wherever it surfaces.
+  draftCard: { backgroundColor: colors.warning50, borderWidth: 1, borderColor: colors.warning100, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.md },
+  draftTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.warning700 },
+  draftBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.warning700, marginTop: 4, lineHeight: 20 },
+  draftResume: { minHeight: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.warning700, borderRadius: radius.md, marginTop: spacing.md },
+  draftResumeText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.white },
+  draftDiscard: { minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: spacing.xs },
+  draftDiscardText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.warning700 },
   noticeText: { flex: 1, minWidth: 0 },
   noticeTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: '#78350F' },
   noticeBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#92400E', marginTop: 2 },
