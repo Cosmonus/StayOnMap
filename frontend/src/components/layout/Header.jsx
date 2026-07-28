@@ -39,12 +39,14 @@ const NAV_TABS = [
 // Text-only in the tab row (2026-07-27, operator decision) — five icons plus
 // five labels was double-encoding. The hamburger duplicates still carry one:
 // see TAB_MENU_ICON below.
+// Order is an operator decision (2026-07-28): the listings a host manages come
+// right after Dashboard, then the people-facing surfaces, Calendar last.
 const HOST_NAV_TABS = [
   { key: 'dashboard',    label: 'Dashboard',    to: '/user?tab=dashboard' },
-  { key: 'messages',     label: 'Inbox',        to: '/user?tab=messages' },
-  { key: 'appointments', label: 'Appointments', to: '/user?tab=appointments' },
-  { key: 'calendar',     label: 'Calendar',     to: '/user?tab=calendar' },
   { key: 'my-listing',   label: 'My Listing',   to: '/list' },
+  { key: 'appointments', label: 'Appointments', to: '/user?tab=appointments' },
+  { key: 'messages',     label: 'Inbox',        to: '/user?tab=messages' },
+  { key: 'calendar',     label: 'Calendar',     to: '/user?tab=calendar' },
 ]
 
 // The host tabs' hamburger duplicates keep an icon each, at the menu's own

@@ -286,7 +286,7 @@ export default function ManageListingScreen({ navigation, route }) {
         <ActionRow
           icon="edit"
           label="Edit"
-          sub="Title, description, and pricing"
+          sub="Details, photos, features, and pricing"
           onPress={() => navigation.navigate('EditListing', { propertyId })}
           disabled={busy}
         />
@@ -352,7 +352,7 @@ export default function ManageListingScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.slate50, gap: spacing.md, padding: spacing.xl },
-  list: { paddingBottom: spacing.xxl },
+  list: { paddingTop: spacing.lg, paddingBottom: spacing.xxl },
   hero: { marginHorizontal: spacing.lg, borderRadius: radius.lg, overflow: 'hidden', aspectRatio: 16 / 9, backgroundColor: colors.slate100 },
   heroImage: { width: '100%', height: '100%' },
   heroPlaceholder: { alignItems: 'center', justifyContent: 'center' },

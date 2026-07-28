@@ -18,12 +18,30 @@ export async function getOrCreateConversation(tenantId, propertyId, requesterId 
     where: { propertyId_tenantId: { propertyId, tenantId } },
     include: conversationInclude(requesterId),
   })
-  if (existing) return existing
+  if (existing) return gateParticipantPhones(existing)
 
-  return prisma.conversation.create({
+  const createdConvo = await prisma.conversation.create({
     data: { propertyId, tenantId, ownerId: property.ownerId },
     include: conversationInclude(requesterId),
   })
+  return gateParticipantPhones(createdConvo)
+}
+
+// A participant's number rides the thread only if THEIR OWN privacy setting
+// allows it — the same server-side rule as the property page's owner phone
+// (properties.service.js): a number the viewer shouldn't see never leaves the
+// API; hiding it client-side is not privacy. Both chat parties are
+// authenticated, so EVERYONE and LOGGED_IN (the default) both pass and only
+// NOBODY withholds. The setting itself is never returned. Powers the call
+// button in the mobile conversation header.
+function gateParticipantPhones(convo) {
+  for (const key of ['tenant', 'owner']) {
+    const person = convo[key]
+    if (!person) continue
+    if (person.contactVisibility === 'NOBODY') person.phone = null
+    delete person.contactVisibility
+  }
+  return convo
 }
 
 export async function getUserConversations(userId) {
@@ -39,7 +57,7 @@ export async function getUserConversations(userId) {
     ownerReplyMinutesFor(conversations),
   ])
 
-  return conversations.map((c) => ({
+  return conversations.map((c) => gateParticipantPhones({
     ...c,
     visit: visits.get(c.id) ?? null,
     ownerReplyMinutes: replyMinutes.get(c.ownerId) ?? null,
@@ -284,8 +302,10 @@ export async function getUnreadCount(userId) {
 function conversationInclude(userId) {
   return {
     property: { select: { id: true, title: true, rent: true, pricingModel: true, city: true, bhk: true, sharing: true, type: true, address: true, landmark: true, images: { where: { isPrimary: true }, take: 1 } } },
-    tenant:   { select: { id: true, name: true, email: true, avatarUrl: true } },
-    owner:    { select: { id: true, name: true, email: true, avatarUrl: true } },
+    // phone + contactVisibility feed gateParticipantPhones() below — the raw
+    // pair must never reach a response without passing through it.
+    tenant:   { select: { id: true, name: true, email: true, avatarUrl: true, phone: true, contactVisibility: true } },
+    owner:    { select: { id: true, name: true, email: true, avatarUrl: true, phone: true, contactVisibility: true } },
     messages: { orderBy: { createdAt: 'desc' }, take: 1 },
     // Unread = the OTHER person's unread messages, like getUnreadCount above.
     // Without the senderId exclusion, sending a message badged the SENDER's

@@ -93,11 +93,20 @@ function Chips({ opts, selected, onToggle }) {
 export function BasicsScreen({ categoryKey, draft, setDraft, onPickCategory }) {
   const describe = categoryKey ? DESCRIBE[categoryKey] : null
   const setField = (key, value) => setDraft((d) => ({ ...d, fields: { ...d.fields, [key]: value } }))
+  // No picker when editing (mirrors web's BasicsStep): changing what KIND of
+  // property a live listing is would rewrite every other answer on it, so
+  // that is a relist, not an edit.
+  const canPickCategory = typeof onPickCategory === 'function'
 
   return (
     <View>
-      <Head title="What are you listing?" sub="Your answer shapes every question after this one." />
-      <CategoryCards activeKey={categoryKey} onPick={onPickCategory} />
+      <Head
+        title={canPickCategory ? 'What are you listing?' : `Your ${CATEGORIES[categoryKey]?.short.toLowerCase() ?? 'listing'}`}
+        sub={canPickCategory
+          ? 'Your answer shapes every question after this one.'
+          : 'The basics renters filter on. Type can’t change on a live listing — relist instead.'}
+      />
+      {canPickCategory && <CategoryCards activeKey={categoryKey} onPick={onPickCategory} />}
 
       {describe && (
         <View style={{ marginTop: spacing.lg, gap: spacing.lg }}>

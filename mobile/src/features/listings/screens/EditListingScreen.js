@@ -1,106 +1,76 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
-  TextInput,
   Pressable,
   ScrollView,
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
-  Platform,
   StyleSheet,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
-import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
+import { BasicsScreen, LocationScreen, PhotosScreen, FeaturesScreen, PriceScreen } from '../components/onboarding/WizardScreens'
+import {
+  STEPS, DESCRIBE, deriveType, categoryFromType, draftFromProperty,
+  missingRequirements, buildUpdatePayload,
+} from '../config/onboarding.js'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-// Scalar-field edit only (title, description, pricing, available-from date) —
-// the fields PUT /properties/:id accepts without relation payloads. Images,
-// amenities, rules, location/map pin, and the type-specific columns
-// (LAND/PG/COMMERCIAL/SHORT_STAY) still require web's edit form; porting
-// wizard-grade editing to mobile is a documented follow-up, not attempted here.
+// Wizard-grade editing — the same five type-aware panels the add flow uses,
+// mirroring web's EditListingPanel. This replaced a scalar-fields-only form
+// (title, description, pricing) that quietly offered a smaller product than
+// adding: a plot's survey number, a PG's beds, the photos, the amenities and
+// the map pin were all uneditable on mobile.
+//
+// Same two differences from the add flow as web:
+//   - no Review tab (nothing to review — it is already live), Save instead
+//   - the category is fixed: a listing becoming a different KIND of property
+//     is a relist, not an edit (BasicsScreen hides the picker when no
+//     onPickCategory is passed)
 
-const NUMERIC_FIELDS = [
-  { key: 'rent', label: 'Rent / mo (₹) *', required: true, positive: true, placeholder: '28000' },
-  { key: 'deposit', label: 'Deposit (₹) *', required: true, placeholder: '56000' },
-  { key: 'maintenance', label: 'Maintenance / mo (₹)', placeholder: '1500' },
-  { key: 'brokerage', label: 'Brokerage (₹)', placeholder: '0' },
-  { key: 'electricityCharges', label: 'Electricity est. / mo (₹)', placeholder: '800' },
-  { key: 'waterCharges', label: 'Water est. / mo (₹)', placeholder: '300' },
-]
+const TABS = STEPS.filter((s) => s.k !== 'review')
 
-function fromProperty(p) {
-  const num = (v) => (v != null ? String(Number(v)) : '')
-  return {
-    title: p.title ?? '',
-    description: p.description ?? '',
-    rent: num(p.rent),
-    deposit: num(p.deposit),
-    maintenance: num(p.maintenance),
-    brokerage: num(p.brokerage),
-    electricityCharges: num(p.electricityCharges),
-    waterCharges: num(p.waterCharges),
-    availableFrom: p.availableFrom ? new Date(p.availableFrom).toISOString().slice(0, 10) : '',
-  }
+// Tab labels are shorter than the wizard's step labels — a tab bar is read at
+// a glance, a step header is read as a sentence. Same set as web's TAB_LABEL.
+const TAB_LABEL = {
+  basics: 'Basic info',
+  location: 'Location',
+  photos: 'Photos',
+  features: 'Features',
+  pricing: 'Price',
 }
 
-function validate(form) {
-  const e = {}
-  if (form.title.trim().length < 5) e.title = 'Min 5 characters'
-  if (form.description.trim().length < 10) e.description = 'Min 10 characters'
-  for (const f of NUMERIC_FIELDS) {
-    const v = form[f.key]
-    if (v === '') {
-      if (f.required) e[f.key] = 'Required'
-      continue
-    }
-    const n = Number(v)
-    if (!Number.isFinite(n)) e[f.key] = 'Enter a valid number'
-    else if (f.positive && n <= 0) e[f.key] = 'Must be greater than 0'
-    else if (!f.positive && n < 0) e[f.key] = 'Must be 0 or more'
-  }
-  if (form.availableFrom !== '') {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.availableFrom) || Number.isNaN(Date.parse(`${form.availableFrom}T00:00:00.000Z`))) {
-      e.availableFrom = 'Use YYYY-MM-DD (e.g. 2026-08-01)'
-    }
-  }
-  return e
+const PANEL = {
+  basics: BasicsScreen,
+  location: LocationScreen,
+  photos: PhotosScreen,
+  features: FeaturesScreen,
+  pricing: PriceScreen,
 }
 
-function buildPayload(form) {
-  const payload = {
-    title: form.title.trim(),
-    description: form.description.trim(),
-    rent: Number(form.rent),
-    deposit: Number(form.deposit),
-  }
-  for (const f of NUMERIC_FIELDS) {
-    if (f.required) continue
-    if (form[f.key] !== '') payload[f.key] = Number(form[f.key])
-  }
-  if (form.availableFrom !== '') payload.availableFrom = `${form.availableFrom}T00:00:00.000Z`
-  return payload
-}
+function EditForm({ property, navigation }) {
+  const qc = useQueryClient()
+  const categoryKey = categoryFromType(property.type)
+  const [activeTab, setActiveTab] = useState('basics')
+  const scrollRef = useRef(null)
 
-function Field({ label, error, hint, children }) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {children}
-      {error ? <Text style={styles.fieldError}>{error}</Text> : hint ? <Text style={styles.fieldHint}>{hint}</Text> : null}
-    </View>
-  )
-}
+  // Seeded once from the saved listing, then owned by the form. Deriving it on
+  // every render would throw away each keystroke.
+  const seeded = useMemo(() => draftFromProperty(property, categoryKey), [property, categoryKey])
+  const [draft, setDraft] = useState(null)
+  const current = draft ?? seeded
+  const updateDraft = (updater) => setDraft((d) => (typeof updater === 'function' ? updater(d ?? seeded) : updater))
 
-function EditForm({ property, navigation, onSaved }) {
-  const [form, setForm] = useState(() => fromProperty(property))
-  const [errors, setErrors] = useState({})
+  const { data: amenities = [] } = useQuery({
+    queryKey: ['amenities'],
+    queryFn: () => propertyService.getAmenities().then((r) => r.data),
+  })
 
   // Hardware/gesture back must never silently discard edits (AGENTS.md §2).
   // dirtyRef is read inside the listener; savedRef lets the post-save goBack
@@ -111,7 +81,7 @@ function EditForm({ property, navigation, onSaved }) {
   // once, not re-subscribed per keystroke) always reads the latest dirty
   // state instead of a stale closure — deliberate, not an oversight.
   // eslint-disable-next-line react-hooks/refs
-  dirtyRef.current = JSON.stringify(form) !== JSON.stringify(fromProperty(property))
+  dirtyRef.current = draft !== null && JSON.stringify(current) !== JSON.stringify(seeded)
 
   useEffect(() => {
     return navigation.addListener('beforeRemove', (e) => {
@@ -124,101 +94,86 @@ function EditForm({ property, navigation, onSaved }) {
     })
   }, [navigation])
 
-  const qc = useQueryClient()
-  const mutation = useMutation({
-    mutationFn: (payload) => propertyService.update(property.id, payload),
+  // The same checks the add flow runs, so an edit can't quietly strip a
+  // listing of something it needed to be published in the first place.
+  const missing = missingRequirements(categoryKey, current)
+  const incomplete = new Set(missing.map((m) => m.stepK))
+
+  const { mutate: save, isPending } = useMutation({
+    mutationFn: () => {
+      const type = deriveType(categoryKey, current.fields[DESCRIBE[categoryKey].k])
+      const amenityIds = amenities.filter((a) => current.amenityNames.includes(a.name)).map((a) => a.id)
+      return propertyService.update(property.id, buildUpdatePayload(categoryKey, type, current, amenityIds))
+    },
     onSuccess: () => {
       savedRef.current = true
       qc.invalidateQueries({ queryKey: ['my-listings'] })
       qc.invalidateQueries({ queryKey: ['manage-listing', property.id] })
       qc.invalidateQueries({ queryKey: ['property', property.id] })
-      onSaved()
+      Alert.alert('Saved', 'Your listing is updated')
+      navigation.goBack()
     },
-    onError: (e) => Alert.alert('Error', e?.message ?? 'Failed to update listing'),
+    onError: (e) => Alert.alert('Couldn’t save', e?.message ?? 'Please try again'),
   })
 
-  function set(key, val) {
-    setForm((f) => ({ ...f, [key]: val }))
-    setErrors((e) => ({ ...e, [key]: undefined }))
+  function switchTab(k) {
+    setActiveTab(k)
+    scrollRef.current?.scrollTo({ y: 0, animated: false })
   }
 
-  function submit() {
-    const e = validate(form)
-    if (Object.keys(e).length) {
-      setErrors(e)
-      return
-    }
-    mutation.mutate(buildPayload(form))
-  }
+  const Panel = PANEL[activeTab] ?? BasicsScreen
 
   return (
-    <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-      <Field label="Title *" error={errors.title}>
-        <TextInput
-          style={styles.input}
-          value={form.title}
-          onChangeText={(v) => set('title', v)}
-          placeholder="e.g. Spacious 2 BHK in Koramangala"
-          placeholderTextColor={colors.slate500}
-          maxLength={100}
-        />
-      </Field>
+    <KeyboardAvoidingView style={styles.flex} behavior="padding">
+      <View style={styles.tabBar}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabRow}>
+          {TABS.map((t) => {
+            const active = t.k === activeTab
+            return (
+              <Pressable
+                key={t.k}
+                onPress={() => switchTab(t.k)}
+                style={[styles.tab, active && styles.tabActive]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={TAB_LABEL[t.k]}
+              >
+                <Text style={[styles.tabText, active && styles.tabTextActive]}>{TAB_LABEL[t.k]}</Text>
+                {/* A dot, not a count — same as web: a badge per tab turns the
+                    bar into a scoreboard. */}
+                {incomplete.has(t.k) && <View style={styles.tabDot} accessibilityLabel="incomplete" />}
+              </Pressable>
+            )
+          })}
+        </ScrollView>
+      </View>
 
-      <Field label="Description *" error={errors.description}>
-        <TextInput
-          style={[styles.input, styles.multiline]}
-          value={form.description}
-          onChangeText={(v) => set('description', v)}
-          placeholder="Describe the property, surroundings, and unique features"
-          placeholderTextColor={colors.slate500}
-          multiline
-          numberOfLines={4}
-          textAlignVertical="top"
-          maxLength={2000}
-        />
-      </Field>
+      <ScrollView ref={scrollRef} style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Panel categoryKey={categoryKey} draft={current} setDraft={updateDraft} />
+      </ScrollView>
 
-      <Text style={styles.sectionHeading}>Pricing</Text>
-      {NUMERIC_FIELDS.map((f) => (
-        <Field key={f.key} label={f.label} error={errors[f.key]} hint={!f.required ? 'Leave blank to keep unchanged' : undefined}>
-          <TextInput
-            style={styles.input}
-            value={form[f.key]}
-            onChangeText={(v) => set(f.key, v)}
-            placeholder={f.placeholder}
-            placeholderTextColor={colors.slate500}
-            keyboardType="numeric"
-          />
-        </Field>
-      ))}
-
-      <Text style={styles.sectionHeading}>Availability</Text>
-      <Field label="Available from" error={errors.availableFrom} hint="YYYY-MM-DD — leave blank to keep unchanged">
-        <TextInput
-          style={styles.input}
-          value={form.availableFrom}
-          onChangeText={(v) => set('availableFrom', v)}
-          placeholder="2026-08-01"
-          placeholderTextColor={colors.slate500}
-          keyboardType="numbers-and-punctuation"
-          maxLength={10}
-        />
-      </Field>
-
-      <Pressable
-        style={[styles.saveButton, mutation.isPending && styles.disabled]}
-        onPress={submit}
-        disabled={mutation.isPending}
-        accessibilityRole="button"
-        accessibilityLabel="Save changes"
-      >
-        {mutation.isPending ? (
-          <ActivityIndicator color={colors.white} size="small" />
-        ) : (
-          <Text style={styles.saveButtonText}>Save Changes</Text>
+      <View style={styles.footer}>
+        {missing.length > 0 && (
+          <Text style={styles.footerWarn}>
+            {missing.length} {missing.length === 1 ? 'thing needs' : 'things need'} fixing before you can save
+          </Text>
         )}
-      </Pressable>
-    </ScrollView>
+        <Pressable
+          style={[styles.saveButton, (isPending || missing.length > 0) && styles.disabled]}
+          onPress={() => save()}
+          disabled={isPending || missing.length > 0}
+          accessibilityRole="button"
+          accessibilityLabel="Save changes"
+          accessibilityState={{ disabled: isPending || missing.length > 0 }}
+        >
+          {isPending ? (
+            <ActivityIndicator color={colors.white} size="small" />
+          ) : (
+            <Text style={styles.saveButtonText}>Save changes</Text>
+          )}
+        </Pressable>
+      </View>
+    </KeyboardAvoidingView>
   )
 }
 
@@ -229,11 +184,6 @@ export default function EditListingScreen({ navigation, route }) {
     queryKey: ['manage-listing', propertyId],
     queryFn: () => propertyService.getById(propertyId).then((r) => r.data),
   })
-
-  function handleSaved() {
-    Alert.alert('Saved', 'Listing updated successfully')
-    navigation.goBack()
-  }
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
@@ -255,9 +205,7 @@ export default function EditListingScreen({ navigation, route }) {
           </Pressable>
         </View>
       ) : (
-        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <EditForm property={property} navigation={navigation} onSaved={handleSaved} />
-        </KeyboardAvoidingView>
+        <EditForm property={property} navigation={navigation} />
       )}
     </SafeAreaView>
   )
@@ -267,15 +215,27 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.md },
-  field: { gap: spacing.xs },
-  fieldLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate700 },
-  fieldHint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
-  fieldError: { fontFamily: fonts.body, fontSize: 11, color: colors.danger },
-  input: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, minHeight: 48, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800, backgroundColor: colors.white },
-  multiline: { minHeight: 100, paddingTop: spacing.sm },
-  sectionHeading: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate500, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: spacing.sm },
-  saveButton: { backgroundColor: colors.brand600, borderRadius: radius.md, minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: spacing.md },
+  tabBar: { backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.slate200 },
+  tabRow: { paddingHorizontal: spacing.md, gap: spacing.xs },
+  tab: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    minHeight: 48, paddingHorizontal: spacing.md,
+    borderBottomWidth: 2, borderBottomColor: 'transparent',
+  },
+  tabActive: { borderBottomColor: colors.brand600 },
+  tabText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate500 },
+  tabTextActive: { color: colors.brand700 },
+  tabDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#F59E0B' },
+  content: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  footer: {
+    gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm,
+    borderTopWidth: 1, borderTopColor: colors.slate100, backgroundColor: colors.white,
+  },
+  footerWarn: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#B45309', textAlign: 'center' },
+  saveButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand600, borderRadius: radius.md },
   saveButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
+  errorTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
+  retryButton: { backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, minHeight: 40, justifyContent: 'center' },
+  retryText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   disabled: { opacity: 0.6 },
 })

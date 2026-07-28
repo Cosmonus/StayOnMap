@@ -139,7 +139,7 @@ function ListingsOverview({
           Add listing
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-8 space-y-4">
+      <div className="flex-1 overflow-y-auto px-6 md:px-10 pt-5 pb-8 space-y-4">
         <VisibilityNotice visibility={profile?.listingVisibility} />
         {localDraft && (
           <UnfinishedDraftBanner draft={localDraft} onResume={onResumeLocalDraft} />
@@ -449,9 +449,11 @@ export default function OnboardingWizard({ profile }) {
           profile={profile}
           onAdd={startNewListing}
           onEdit={setEditListingId}
-          // Preview opens the listing a renter actually sees, in a new tab, so the
-          // owner keeps their place in the list.
-          onPreview={(property) => window.open(`/property/${property.id}`, '_blank', 'noopener')}
+          // Preview opens the listing a renter actually sees, in THIS tab — the
+          // property page's own back button (navigate(-1)) returns to this list.
+          // A new tab looked like keeping your place but actually lost it: the
+          // opened tab had no history, so back was dead.
+          onPreview={(property) => navigate(`/property/${property.id}`)}
           // Visit requests live in the Appointments tab (host mode shows the
           // incoming side) — the listing row links there rather than growing its
           // own half-copy of it.
