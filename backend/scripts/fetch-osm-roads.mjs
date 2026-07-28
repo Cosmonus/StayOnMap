@@ -25,8 +25,8 @@ import { prisma } from '../src/lib/prisma.js'
 import { invalidateCityCells } from '../src/features/spatial/seedMaintenance.js'
 import { recordQualityReport, completeness } from '../src/features/spatial/dataQuality.js'
 import { CITY_CENTERS, resolveCity } from '../src/config/cityCenters.js'
-import { parseSeedArgs } from '../src/features/spatial/seedArgs.js'
-import { bboxFor, tiles } from '../src/features/spatial/tiling.js'
+import { parseSeedArgs, flagValue } from '../src/features/spatial/seedArgs.js'
+import { bboxFor, tiles, fetchTileAdaptive } from '../src/features/spatial/tiling.js'
 import { overpassQuery } from '../src/features/spatial/overpassClient.js'
 import { ALL_MOTORABLE } from '../src/features/spatial/roadLookup.js'
 
@@ -36,7 +36,13 @@ const DELAY_BETWEEN_TILES_MS = 2_000
 // response Overpass will actually finish, not so the grid is pretty.
 const TILE_GRID = 4
 
-const { confirm: CONFIRM, city: ONLY_CITY } = parseSeedArgs(process.argv.slice(2))
+const argv = process.argv.slice(2)
+const { confirm: CONFIRM, city: ONLY_CITY } = parseSeedArgs(argv)
+// Override the starting grid, e.g. `--city Delhi --tiles 6`. Failed tiles now
+// subdivide themselves, so this is a coarse dial for a city that is slow
+// throughout, not the fix for one stubborn tile.
+const gridArg = Number(flagValue(argv, '--tiles'))
+const GRID = Number.isFinite(gridArg) && gridArg > 0 ? gridArg : TILE_GRID
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const overpass = (query) => overpassQuery(query, { timeoutMs: REQUEST_TIMEOUT_MS })
@@ -148,41 +154,39 @@ async function writeRows(rows) {
 
 async function fetchCity(city) {
   const bbox = bboxFor(CITY_CENTERS[city])
-  const grid = tiles(bbox, TILE_GRID)
+  const grid = tiles(bbox, GRID)
   const seen = new Map()
   const runStart = new Date()
-  const failedTiles = []
+  let failed = 0
 
-  console.log(`\n${city} — ${grid.length} tiles`)
+  console.log(`
+${city} — ${grid.length} tiles`)
 
   for (const [i, tile] of grid.entries()) {
     try {
-      const matched = await fetchTile(city, tile, seen)
-      process.stdout.write(`  tile ${i + 1}/${grid.length}: ${matched} ways\r`)
+      // Roads are the heaviest dataset here, so this matters more than it does
+      // for water: a 504 says the box held too much, and quartering it is the
+      // only retry that changes that.
+      const matched = await fetchTileAdaptive(
+        tile,
+        (t) => fetchTile(city, t, seen),
+        {
+          delayMs: DELAY_BETWEEN_TILES_MS,
+          onSplit: (depth) => console.log(
+            `
+  tile ${i + 1}/${grid.length}: too large, splitting into 4 (depth ${depth + 1})`
+          ),
+        }
+      )
+      process.stdout.write(`  tile ${i + 1}/${grid.length}: ${matched} ways`)
     } catch (err) {
-      failedTiles.push(tile)
-      console.warn(`\n  tile ${i + 1}/${grid.length}: FAILED — ${err.message}`)
+      failed++
+      console.warn(`
+  tile ${i + 1}/${grid.length}: FAILED after subdividing — ${err.message}`)
     }
     if (i < grid.length - 1) await sleep(DELAY_BETWEEN_TILES_MS)
   }
   console.log()
-
-  // One retry pass. Overpass mirrors fail transiently far more often than
-  // persistently, and a silently-missing tile is a hole in a city's road
-  // network — which would read to a plot buyer as "no road access".
-  let failed = 0
-  if (failedTiles.length) {
-    console.log(`  retrying ${failedTiles.length} tile(s)…`)
-    for (const tile of failedTiles) {
-      await sleep(DELAY_BETWEEN_TILES_MS)
-      try {
-        await fetchTile(city, tile, seen)
-      } catch (err) {
-        failed++
-        console.warn(`  retry FAILED — ${err.message}`)
-      }
-    }
-  }
 
   const rows = [...seen.values()]
   const byClass = {}
@@ -224,7 +228,7 @@ async function fetchCity(city) {
       // unnamed residential street still proves access.
       completenessPct: completeness(rows, ['geometry']),
       complete: failed === 0,
-      notes: { byClass, withWidth, total: rows.length, failedTiles: failed, tiles: grid.length },
+      notes: { byClass, withWidth, total: rows.length, failedTiles: failed, tiles: grid.length, grid: GRID },
     })
   }
 

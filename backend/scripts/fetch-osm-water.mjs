@@ -21,8 +21,8 @@ import { invalidateCityCells } from '../src/features/spatial/seedMaintenance.js'
 import { recordQualityReport, completeness } from '../src/features/spatial/dataQuality.js'
 import { assembleRings, ringsToGeometry, bboxOf } from '../src/features/spatial/boundaryGeometry.js'
 import { CITY_CENTERS, resolveCity } from '../src/config/cityCenters.js'
-import { parseSeedArgs } from '../src/features/spatial/seedArgs.js'
-import { bboxFor, tiles } from '../src/features/spatial/tiling.js'
+import { parseSeedArgs, flagValue } from '../src/features/spatial/seedArgs.js'
+import { bboxFor, tiles, fetchTileAdaptive } from '../src/features/spatial/tiling.js'
 import { overpassQuery } from '../src/features/spatial/overpassClient.js'
 import { MIN_AREA_SQM } from '../src/features/spatial/waterLookup.js'
 
@@ -35,7 +35,13 @@ const DELAY_BETWEEN_TILES_MS = 2_000
 const TILE_GRID = 3
 const DEG_LAT_M = 111_320
 
-const { confirm: CONFIRM, city: ONLY_CITY } = parseSeedArgs(process.argv.slice(2))
+const argv = process.argv.slice(2)
+const { confirm: CONFIRM, city: ONLY_CITY } = parseSeedArgs(argv)
+// Override the starting grid, e.g. `--city Delhi --tiles 5`. A failed tile now
+// subdivides itself, so this is a coarse dial rather than the fix — reach for it
+// when a whole city is consistently slow, not for one stubborn tile.
+const gridArg = Number(flagValue(argv, '--tiles'))
+const GRID = Number.isFinite(gridArg) && gridArg > 0 ? gridArg : TILE_GRID
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const overpass = (query) => overpassQuery(query, { timeoutMs: REQUEST_TIMEOUT_MS })
@@ -157,7 +163,7 @@ function elementToRow(el, fetchedCity) {
   }
 }
 
-async function fetchTile(city, tile, seen) {
+async function fetchTile(city, tile, seen, stats) {
   const box = `${tile.south},${tile.west},${tile.north},${tile.east}`
   // `out geom;` NOT `out geom tags;` — in Overpass QL `tags` is a print MODE
   // that replaces `body`, and a relation's shape lives in its members, which
@@ -169,18 +175,18 @@ async function fetchTile(city, tile, seen) {
 
   const data = await overpass(query)
   let matched = 0
-  let droppedRings = 0
 
   for (const el of data.elements ?? []) {
     if (el.type !== 'way' && el.type !== 'relation') continue
     const result = elementToRow(el, city)
     if (!result) continue
     seen.set(result.row.osmId, result.row)
-    droppedRings += result.dropped
+    stats.droppedRings += result.dropped
     matched++
   }
 
-  return { matched, droppedRings }
+  // A plain count, because fetchTileAdaptive sums what its children return.
+  return matched
 }
 
 async function writeRows(rows) {
@@ -198,45 +204,43 @@ async function writeRows(rows) {
 
 async function fetchCity(city) {
   const bbox = bboxFor(CITY_CENTERS[city])
-  const grid = tiles(bbox, TILE_GRID)
+  const grid = tiles(bbox, GRID)
   const seen = new Map()
   const runStart = new Date()
-  const failedTiles = []
-  let droppedRings = 0
+  const stats = { droppedRings: 0 }
+  let failed = 0
 
   console.log(`
 ${city} — ${grid.length} tiles`)
 
   for (const [i, tile] of grid.entries()) {
     try {
-      const { matched, droppedRings: d } = await fetchTile(city, tile, seen)
-      droppedRings += d
+      // Quarters itself on failure instead of retrying the same box. Delhi's
+      // first production run died here with a 504 on tile 1 of 9, and a 504 is
+      // a statement about the query's size — repeating it verbatim was never
+      // going to work.
+      const matched = await fetchTileAdaptive(
+        tile,
+        (t) => fetchTile(city, t, seen, stats),
+        {
+          delayMs: DELAY_BETWEEN_TILES_MS,
+          onSplit: (depth) => console.log(
+            `
+  tile ${i + 1}/${grid.length}: too large, splitting into 4 (depth ${depth + 1})`
+          ),
+        }
+      )
       process.stdout.write(`  tile ${i + 1}/${grid.length}: ${matched} bodies`)
     } catch (err) {
-      failedTiles.push(tile)
+      failed++
       console.warn(`
-  tile ${i + 1}/${grid.length}: FAILED — ${err.message}`)
+  tile ${i + 1}/${grid.length}: FAILED after subdividing — ${err.message}`)
     }
     if (i < grid.length - 1) await sleep(DELAY_BETWEEN_TILES_MS)
   }
   console.log()
 
-  // One retry pass. Overpass mirrors fail transiently far more often than
-  // persistently, and a silently-missing tile would make a lakeside address
-  // look landlocked.
-  let failed = 0
-  if (failedTiles.length) {
-    console.log(`  retrying ${failedTiles.length} tile(s)…`)
-    for (const tile of failedTiles) {
-      await sleep(DELAY_BETWEEN_TILES_MS)
-      try {
-        await fetchTile(city, tile, seen)
-      } catch (err) {
-        failed++
-        console.warn(`  retry FAILED — ${err.message}`)
-      }
-    }
-  }
+  const droppedRings = stats.droppedRings
 
   const rows = [...seen.values()]
   const byKind = {}
@@ -280,7 +284,7 @@ ${city} — ${grid.length} tiles`)
       // notes so a low share is visible without being scored as incomplete.
       completenessPct: completeness(rows, ['geometry']),
       complete: failed === 0,
-      notes: { byKind, named, total: rows.length, failedTiles: failed, tiles: grid.length, droppedRings },
+      notes: { byKind, named, total: rows.length, failedTiles: failed, tiles: grid.length, grid: GRID, droppedRings },
     })
   }
 

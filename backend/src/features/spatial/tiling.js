@@ -51,3 +51,57 @@ export function tiles(bbox, n) {
   }
   return out
 }
+
+/**
+ * Fetch a tile, QUARTERING it on failure instead of retrying it unchanged.
+ *
+ * Added 2026-07-28 after the first production seeding attempt: Delhi's tile 1
+ * of 9 came back `HTTP 504` from every mirror. 504 from Overpass means the
+ * query was too big or too slow — it is a statement about the QUERY, not a
+ * blip on the wire. Both seeders' original retry re-issued the identical box,
+ * which is the one retry strategy guaranteed to reproduce the failure.
+ *
+ * Subdividing changes the thing that actually failed. A tile that times out at
+ * 1/9th of a city usually succeeds at 1/36th, and the cost is paid only where
+ * it is needed rather than by shrinking the grid for every city.
+ *
+ * Partial success inside a subdivision still counts as failure for the parent
+ * tile: rows already gathered are kept (the callback mutates its own
+ * collection), but the city is reported incomplete, so stale-row removal is
+ * skipped and re-running converges. Silently accepting a hole is how a
+ * lakeside address comes to look landlocked.
+ *
+ * @param {object} tile   {south,west,north,east}
+ * @param {(t:object)=>Promise<number>} fetchFn  resolves to a match count
+ * @param {object} [opts] {maxDepth=2, onSplit, delayMs}
+ * @returns {Promise<number>} total matches across this tile and its children
+ */
+export async function fetchTileAdaptive(tile, fetchFn, opts = {}) {
+  const { maxDepth = 2, depth = 0, onSplit = () => {}, delayMs = 0 } = opts
+  try {
+    return await fetchFn(tile)
+  } catch (err) {
+    // Out of subdivisions: this box is genuinely unservable, so let the caller
+    // record it as failed rather than pretending it was empty.
+    if (depth >= maxDepth) throw err
+    onSplit(depth, err)
+
+    // EVERY quarter is attempted, even after one of them fails. Bailing on the
+    // first failure would throw away the three siblings that might have
+    // succeeded — and since re-running converges on osmId, three quarters of a
+    // tile now is strictly better than none. The parent still fails at the end,
+    // so the city is reported incomplete and stale-row removal is skipped.
+    let total = 0
+    let lastError = null
+    for (const quad of tiles(tile, 2)) {
+      if (delayMs) await new Promise((r) => setTimeout(r, delayMs))
+      try {
+        total += await fetchTileAdaptive(quad, fetchFn, { ...opts, depth: depth + 1 })
+      } catch (quadErr) {
+        lastError = quadErr
+      }
+    }
+    if (lastError) throw lastError
+    return total
+  }
+}
