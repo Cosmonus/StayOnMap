@@ -19,7 +19,7 @@
 // See docs/spatial-intelligence.md §5.8.
 import { fact, PROVENANCE } from '../envelope.js'
 import { elevation, SRTM_SOURCE } from '../providers.js'
-import { nearestWater, SEARCH_RADIUS_M } from '../waterLookup.js'
+import { nearestWater, SEARCH_RADIUS_M, OSM_WATER_SOURCE } from '../waterLookup.js'
 import { ALL_TYPES, RESIDENTIAL_TYPES } from '../propertyTypes.js'
 
 // Below this, the difference is inside SRTM's own vertical error (~±16m
@@ -29,7 +29,10 @@ const MEANINGFUL_RELATIVE_M = 1.5
 
 export default {
   key: 'terrain',
-  version: 1,
+  // v2 (2026-07-28): water_distance landed. The bump is load-bearing — without
+  // it, cells already stored keep serving the waterless envelope for the full
+  // 90-day TTL, so the new input would reach no property page.
+  version: 2,
   // Water finds every property type. A warehouse floods, a plot needs
   // levelling, a guest cancels when the road is knee-deep.
   appliesTo: ALL_TYPES,
@@ -47,9 +50,6 @@ export default {
   inputs: [
     { key: 'srtm_elevation', weight: 3 },
     { key: 'terrain_ring',   weight: 2 },
-    // Declared, absent, deliberate. These are what would turn "this ground is
-    // low" into "this place floods", and until they exist the module should
-    // not read as a complete answer to the question it raises.
     // `water_distance` landed 2026-07-28 (WaterBody + waterLookup.js). It says
     // where the water IS. `flood_history` — whether water has ever COME here —
     // remains absent, and the two are not the same claim. The module must still
@@ -73,6 +73,9 @@ export default {
         missing: ['Elevation data was unavailable for this location.', ...DEFERRED_NOTES],
         inputsPresent: [],
         sources: [],
+        unavailableReason: 'The elevation lookup returned nothing for this ' +
+          'location. This is an upstream failure on our side, not a statement ' +
+          'that the ground here is unmeasured.',
       }
     }
 
@@ -145,7 +148,8 @@ export default {
         'can read. Ask locally, and ask about last monsoon specifically.',
       ],
       inputsPresent,
-      sources: [SRTM_SOURCE],
+      // Only cite a source we actually showed something from.
+      sources: [SRTM_SOURCE, ...(water?.available ? [OSM_WATER_SOURCE] : [])],
     }
   },
 }

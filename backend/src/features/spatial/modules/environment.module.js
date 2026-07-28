@@ -27,7 +27,7 @@ import { fact, PROVENANCE } from '../envelope.js'
 import { airQuality, OPEN_METEO_SOURCE } from '../providers.js'
 import { ALL_TYPES } from '../propertyTypes.js'
 import { nearestStations, stationConfidenceFactor } from '../cpcbProvider.js'
-import { nearestWater, SEARCH_RADIUS_M } from '../waterLookup.js'
+import { nearestWater, SEARCH_RADIUS_M, OSM_WATER_SOURCE } from '../waterLookup.js'
 import { formatDistance } from '../proximity.js'
 
 // CPCB data is Government of India open data under the National Data Sharing
@@ -64,7 +64,9 @@ export default {
   // v4: climate normals removed, CPCB station readings added. The bump is what
   // forces every stored envelope to be recomputed — without it, cells would
   // keep serving the temperature and rainfall facts until their TTL expired.
-  version: 4,
+  // v5 (2026-07-28): water_distance landed; a failed air-quality read no
+  // longer empties the module. Same reason for the bump as v4.
+  version: 5,
   // Air and flood exposure matter to every type — a warehouse floods too, and
   // a plot's air is what its future building breathes.
   appliesTo: ALL_TYPES,
@@ -80,7 +82,7 @@ export default {
     // the data actually exists rather than letting a thin module look complete.
     { key: 'cpcb_station',      weight: 2 }, // needs a data.gov.in API key
     { key: 'tree_cover',        weight: 2 }, // needs ESA WorldCover ingestion
-    { key: 'water_distance',    weight: 1 }, // needs OSM water polygon ingestion
+    { key: 'water_distance',    weight: 1 }, // landed 2026-07-28
   ],
 
   async compute({ lat, lng }) {
@@ -111,6 +113,14 @@ export default {
         ],
         inputsPresent: water?.available ? ['water_distance'] : [],
         sources: water?.available ? [OSM_WATER_SOURCE] : [],
+        // Only reaches the envelope if this branch also produced no facts,
+        // i.e. water was unavailable too. Says which upstream, so an empty
+        // card is diagnosable from the payload rather than from the box.
+        unavailableReason: water?.available
+          ? null
+          : 'The air-quality and water-body lookups both returned nothing for ' +
+            'this location. This is an upstream failure on our side, not a ' +
+            'statement that the area has no data.',
       }
     }
 
@@ -289,12 +299,6 @@ const NOISE_NOTE =
 const WATER_UNAVAILABLE_NOTE = 'Distance to open water is not yet available for this location.'
 
 const DEFERRED_NOTES = [GREEN_NOTE, WATER_UNAVAILABLE_NOTE, NOISE_NOTE]
-
-export const OSM_WATER_SOURCE = {
-  id: 'openstreetmap',
-  label: 'OpenStreetMap',
-  licence: 'ODbL',
-}
 
 /**
  * Open water as amenity, not as hazard.

@@ -1461,6 +1461,63 @@ model WaterBody {
 }
 
 
+// Motorable roads, as lines. Closes `road_access` for `landContext` — at 0.19
+// against a ceiling of 0.50, the weakest module in the layer.
+//
+// LAND only, and that is the point: "can a lorry actually get to this plot, or
+// does the last 800 m run over a dirt track" is the question a plot buyer asks
+// first, and until now the module could only decline to answer it.
+//
+// Two deliberate narrowings keep this table a fraction of OSM's road data:
+//   - MOTORABLE classes only. footway/path/cycleway/steps are excluded — they
+//     are the majority of highway=* ways in a mapped city and none of them can
+//     carry a vehicle. `track` IS kept, because "reachable, but only by track"
+//     is a real and important answer rather than an absent one.
+//   - Geometry only, no routing attributes. This answers "how far to a road of
+//     what class", not "how long is the drive". Drive time is routing's job
+//     (routingProvider.js) and needs a graph, not a table.
+//
+// Same no-PostGIS pattern as WaterBody, one shape simpler: a road has no
+// inside, so nearest-point is the only question (geometryDistance.js).
+model RoadSegment {
+  id     String @id @default(cuid())
+  osmId  String @unique
+  // Frequently absent and that is fine — an unnamed residential street still
+  // proves access. The class carries the meaning here, not the name.
+  name   String?
+  // OSM's own `highway=` value, unmapped. Same reasoning as Boundary.adminLevel:
+  // it is what the source data, every other OSM consumer and the seeder all
+  // speak, and a private renumbering would need translating back on refetch.
+  // ROAD_CLASS_RANK in roadLookup.js is where it gains an ordering.
+  highway String
+  // Physical width in metres where a mapper recorded one. Rare in India, but
+  // decisive for a plot when present, so it is carried rather than inferred.
+  widthM  Float?
+  // `true` when surface= is a paved value. Null means unrecorded, which is NOT
+  // the same as unpaved and must never be rendered as it.
+  paved   Boolean?
+  city    String?
+  source  String @default("openstreetmap")
+
+  // LineString or MultiLineString.
+  geometry Json
+
+  minLat Decimal @db.Decimal(10, 7)
+  maxLat Decimal @db.Decimal(10, 7)
+  minLng Decimal @db.Decimal(10, 7)
+  maxLng Decimal @db.Decimal(10, 7)
+
+  ingestedAt DateTime @default(now())
+
+  // The nearest-road scan narrows by class first (a plot cares about the
+  // nearest DRIVEABLE road, not the nearest track), then by bbox.
+  @@index([highway, minLat, maxLat])
+  @@index([minLat, maxLat])
+  @@index([minLng, maxLng])
+  @@index([city])
+}
+
+
 // One row per ETL run, per dataset.
 //
 // What is near a CELL, in a shape a query can filter on.

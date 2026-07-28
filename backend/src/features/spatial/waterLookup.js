@@ -15,6 +15,7 @@
 import { prisma } from '../../lib/prisma.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { intelError } from '../../lib/intelLog.js'
+import { distanceToGeometry, degreeBox } from './geometryDistance.js'
 
 // Water moves on geological time; reservoirs get built on municipal time. The
 // cache is here to spare re-decoding large river polygons, not to track change.
@@ -29,8 +30,6 @@ export const SEARCH_RADIUS_M = 3000
 // reporting nothing. 2000 m² is roughly a 45 m square.
 export const MIN_AREA_SQM = 2000
 
-const DEG_LAT_M = 111_320
-
 // Plain-language names for our own `kind` vocabulary. The seeder maps OSM's
 // much larger tag set down to these six; anything it cannot place is dropped
 // rather than guessed.
@@ -43,85 +42,18 @@ export const WATER_KIND_LABELS = {
   canal: 'canal',
 }
 
-/**
- * Metres from a point to a line segment, on a locally-flat approximation.
- *
- * Equirectangular rather than great-circle: over the <3 km spans this is used
- * for, the error is far below the metre, and the alternative is projecting
- * every ring vertex of every candidate on every call.
- */
-function pointToSegmentM(pt, a, b) {
-  const mPerLng = DEG_LAT_M * Math.cos((pt.lat * Math.PI) / 180)
-  const px = (pt.lng - a[0]) * mPerLng
-  const py = (pt.lat - a[1]) * DEG_LAT_M
-  const bx = (b[0] - a[0]) * mPerLng
-  const by = (b[1] - a[1]) * DEG_LAT_M
-
-  const lenSq = bx * bx + by * by
-  // Degenerate segment (a duplicated vertex — common in OSM rings): fall back
-  // to the endpoint distance rather than dividing by zero.
-  if (lenSq === 0) return Math.hypot(px, py)
-
-  // Clamped projection of the point onto the segment.
-  const t = Math.max(0, Math.min(1, (px * bx + py * by) / lenSq))
-  return Math.hypot(px - t * bx, py - t * by)
+// One source line for both consuming modules — terrain and environment cite
+// the same dataset, and duplicating the literal in each is how they drift.
+export const OSM_WATER_SOURCE = {
+  id: 'openstreetmap',
+  label: 'OpenStreetMap',
+  licence: 'ODbL',
 }
 
-/** Ray casting, on a GeoJSON ring in [lng, lat] order. */
-function pointInRing(pt, ring) {
-  let inside = false
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [xi, yi] = ring[i]
-    const [xj, yj] = ring[j]
-    const straddles = yi > pt.lat !== yj > pt.lat
-    if (straddles && pt.lng < ((xj - xi) * (pt.lat - yi)) / (yj - yi) + xi) inside = !inside
-  }
-  return inside
-}
-
-/** Every ring of a Polygon or MultiPolygon, outer and inner alike. */
-function ringsOf(geometry) {
-  if (!geometry) return []
-  if (geometry.type === 'Polygon') return geometry.coordinates ?? []
-  if (geometry.type === 'MultiPolygon') return (geometry.coordinates ?? []).flat()
-  return []
-}
-
-/**
- * Distance from a point to a water polygon, and the closest point on it.
- *
- * Zero when the point is inside — a property standing on a lake edge and one
- * standing in the lake are both "at the water", and inventing a negative
- * distance would imply a depth we do not have.
- *
- * The returned `at` is what lets reanchor.js and the walk enrichment treat this
- * like every other distance fact: a real coordinate, not a centroid.
- */
-export function distanceToGeometry(lat, lng, geometry) {
-  const pt = { lat, lng }
-  const rings = ringsOf(geometry)
-  if (!rings.length) return null
-
-  // Inner rings are holes, so containment must be an odd number of crossings
-  // across all of them — which is exactly what toggling gives.
-  let inside = false
-  for (const ring of rings) if (pointInRing(pt, ring)) inside = !inside
-
-  let best = Infinity
-  let at = null
-  for (const ring of rings) {
-    for (let i = 0; i < ring.length - 1; i++) {
-      const d = pointToSegmentM(pt, ring[i], ring[i + 1])
-      if (d < best) {
-        best = d
-        at = { lat: ring[i][1], lng: ring[i][0] }
-      }
-    }
-  }
-  if (at === null) return null
-
-  return { distanceM: inside ? 0 : Math.round(best), at, inside }
-}
+// Re-exported so callers and tests keep importing it from here, where it was
+// first defined. The maths moved to geometryDistance.js when roads needed the
+// same nearest-shape pass.
+export { distanceToGeometry }
 
 /**
  * The nearest meaningful water body to a point.
@@ -143,8 +75,7 @@ export async function nearestWater(lat, lng, radiusM = SEARCH_RADIUS_M) {
   const cached = await cacheGet(key)
   if (cached) return cached.v
 
-  const dLat = radiusM / DEG_LAT_M
-  const dLng = radiusM / (DEG_LAT_M * Math.cos((lat * Math.PI) / 180))
+  const { dLat, dLng } = degreeBox(lat, radiusM)
 
   try {
     // bbox INTERSECTION, not containment: a body counts if any part of its box

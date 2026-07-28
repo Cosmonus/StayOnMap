@@ -312,6 +312,19 @@ export function buildEnvelope(module, result) {
     missing: result.missing ?? [],
     sources: result.sources ?? [],
     sparselyMapped: result.sparselyMapped ?? null,
+    // WHY there is nothing, when there is nothing.
+    //
+    // `unavailableEnvelope` has always carried a reason, but it only fires when
+    // a module THROWS. A module that returns normally with zero facts — because
+    // an upstream answered with nothing — lands here instead, and until
+    // 2026-07-28 that produced an UNAVAILABLE envelope with no way to tell
+    // "the provider was down" from "there is genuinely nothing here".
+    //
+    // That is not hypothetical: Chennai's environment cell reads 0 of 4 inputs
+    // in production while Open-Meteo answers that coordinate fine, and the
+    // payload cannot say which of the two it is (see
+    // docs/spatial-research-2026-07-28.md §4). Only meaningful when UNAVAILABLE.
+    unavailableReason: status === STATUS.UNAVAILABLE ? (result.unavailableReason ?? null) : null,
     computedAt: now.toISOString(),
     staleAfter: staleAfter.toISOString(),
   }
