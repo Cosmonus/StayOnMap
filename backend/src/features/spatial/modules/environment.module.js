@@ -4,8 +4,9 @@
 // NOT claim is as designed as what it does:
 //
 //   Air quality      ships now — modelled, and labelled as modelled
-//   Tree cover       deferred  — needs ESA WorldCover raster ingestion
-//   Water bodies     deferred  — needs OSM polygon ingestion
+//   CPCB stations    ships now — the one genuine instrument reading here
+//   Tree cover       ships now (2026-07-28) — ESA WorldCover, ESTIMATED
+//   Water bodies     ships now (2026-07-28) — OSM polygons
 //   Noise            deferred  — no measured data exists for India
 //   Urban heat       NOT SHIPPING — see the note at the bottom of this file
 //   Climate normals  REMOVED 2026-07-20 — see below
@@ -28,6 +29,7 @@ import { airQuality, OPEN_METEO_SOURCE } from '../providers.js'
 import { ALL_TYPES } from '../propertyTypes.js'
 import { nearestStations, stationConfidenceFactor } from '../cpcbProvider.js'
 import { nearestWater, SEARCH_RADIUS_M, OSM_WATER_SOURCE } from '../waterLookup.js'
+import { landCover, SAMPLE_RADIUS_M, WORLDCOVER_SOURCE } from '../worldCoverProvider.js'
 import { formatDistance } from '../proximity.js'
 
 // CPCB data is Government of India open data under the National Data Sharing
@@ -64,37 +66,41 @@ export default {
   // v4: climate normals removed, CPCB station readings added. The bump is what
   // forces every stored envelope to be recomputed — without it, cells would
   // keep serving the temperature and rainfall facts until their TTL expired.
-  // v5 (2026-07-28): water_distance landed; a failed air-quality read no
-  // longer empties the module. Same reason for the bump as v4.
-  version: 5,
+  // v6 (2026-07-28): tree_cover landed too. Same reason for the bump as v4 —
+  // without it, stored envelopes keep serving the version without these facts.
+  version: 6,
   // Air and flood exposure matter to every type — a warehouse floods too, and
   // a plot's air is what its future building breathes.
   appliesTo: ALL_TYPES,
   ttlHours: 12, // air quality genuinely moves; everything else here is deferred
-  // Capped because every fact this module currently emits is model output.
-  // The ceiling rises when a real CPCB station reading or a WorldCover raster
-  // lands, and not before.
-  maxConfidence: 0.60,
+  // Was 0.60, "capped because every fact this module currently emits is model
+  // output — the ceiling rises when a real CPCB station reading or a WorldCover
+  // raster lands, and not before". Both have now landed, so this is the
+  // module's own stated condition being met rather than a number being tuned.
+  // 0.75 not 1.0: the HEADLINE facts here are still modelled air quality, and
+  // the ceiling should reflect what the module leads with.
+  maxConfidence: 0.75,
 
   inputs: [
     { key: 'air_quality_model', weight: 3 },
     // Declared, absent, and deliberately so — each holds confidence down until
     // the data actually exists rather than letting a thin module look complete.
-    { key: 'cpcb_station',      weight: 2 }, // needs a data.gov.in API key
-    { key: 'tree_cover',        weight: 2 }, // needs ESA WorldCover ingestion
+    { key: 'cpcb_station',      weight: 2 }, // live — data.gov.in key is set
+    { key: 'tree_cover',        weight: 2 }, // landed 2026-07-28
     { key: 'water_distance',    weight: 1 }, // landed 2026-07-28
   ],
 
   async compute({ lat, lng }) {
     // Independent upstreams, so one being slow or down must not serialise or
     // sink the other. Either can be null; each missing one lowers confidence.
-    const [aq, stations, water] = await Promise.all([
+    const [aq, stations, water, cover] = await Promise.all([
       airQuality(lat, lng),
       // { pm25, pm10 }, each the nearest monitor carrying THAT reading — they
       // need not be the same site. Either can be null: no key, no feed, or
       // nothing within the airshed bound all mean the same thing here.
       nearestStations(lat, lng),
       nearestWater(lat, lng),
+      landCover(lat, lng),
     ])
 
     // Air quality failing no longer empties the whole module. Chennai's
@@ -103,22 +109,34 @@ export default {
     // (docs/spatial-research-2026-07-28.md §4) — water is independent of it and
     // should survive.
     if (!aq) {
-      const waterFacts = water?.available ? [waterAmenityFact(water.body)] : []
+      const survivors = [
+        ...(water?.available ? [waterAmenityFact(water.body)] : []),
+        ...(cover ? [treeFact(cover)] : []),
+      ]
       return {
-        facts: waterFacts,
+        facts: survivors,
         assessment: null,
         missing: [
           'Air quality data was unavailable for this location.',
-          ...(water?.available ? [NOISE_NOTE] : DEFERRED_NOTES),
+          ...(cover ? [] : [GREEN_NOTE]),
+          ...(water?.available ? [] : [WATER_UNAVAILABLE_NOTE]),
+          NOISE_NOTE,
         ],
-        inputsPresent: water?.available ? ['water_distance'] : [],
-        sources: water?.available ? [OSM_WATER_SOURCE] : [],
-        // Only reaches the envelope if this branch also produced no facts,
-        // i.e. water was unavailable too. Says which upstream, so an empty
-        // card is diagnosable from the payload rather than from the box.
-        unavailableReason: water?.available
+        inputsPresent: [
+          ...(water?.available ? ['water_distance'] : []),
+          ...(cover ? ['tree_cover'] : []),
+        ],
+        sources: [
+          ...(water?.available ? [OSM_WATER_SOURCE] : []),
+          ...(cover ? [WORLDCOVER_SOURCE] : []),
+        ],
+        // Only reaches the envelope if this branch also produced no facts —
+        // i.e. water and land cover were BOTH unavailable too. Names the
+        // upstreams, so an empty card is diagnosable from the payload rather
+        // than only from the box.
+        unavailableReason: (water?.available || cover)
           ? null
-          : 'The air-quality and water-body lookups both returned nothing for ' +
+          : 'Air quality, water bodies and land cover all returned nothing for ' +
             'this location. This is an upstream failure on our side, not a ' +
             'statement that the area has no data.',
       }
@@ -245,6 +263,10 @@ export default {
       inputsPresent.push('water_distance')
       facts.push(waterAmenityFact(water.body))
     }
+    if (cover) {
+      inputsPresent.push('tree_cover')
+      facts.push(treeFact(cover))
+    }
     // Gated on a fact actually being emitted, not on a station existing.
     if (stationFacts.length) inputsPresent.push('cpcb_station')
 
@@ -262,6 +284,7 @@ export default {
     // Only cite a source we actually showed something from.
     if (stationFacts.length) sources.push(CPCB_SOURCE)
     if (water?.available) sources.push(OSM_WATER_SOURCE)
+    if (cover) sources.push(WORLDCOVER_SOURCE)
 
     return {
       facts,
@@ -274,7 +297,7 @@ export default {
           'readings from a monitoring station at this address — treat them as a ' +
           'good indication of the area, not a measurement of the building.',
         ] : ['Air quality data was unavailable for this location.']),
-        GREEN_NOTE,
+        ...(cover ? [] : [GREEN_NOTE]),
         ...(water?.available ? [] : [WATER_UNAVAILABLE_NOTE]),
         NOISE_NOTE,
       ],
@@ -287,8 +310,39 @@ export default {
 
 // Tree cover is still absent; distance to water landed 2026-07-28, so this note
 // no longer claims it.
-const GREEN_NOTE =
-  'Tree cover and green space are not yet available for this location.'
+const GREEN_NOTE = 'Tree cover and green space are not yet available for this location.'
+
+/**
+ * How much of the ground around here is under trees.
+ *
+ * ESTIMATED, not MEASURED, and the distinction is the point: WorldCover is a
+ * CLASSIFICATION of Sentinel imagery, so every pixel carries a model's judgement
+ * about what it is looking at. The satellite measured reflectance; a classifier
+ * decided "tree". `method` says so plainly.
+ *
+ * Built-up share rides along in the display because it is what makes the tree
+ * figure legible — 16% tree cover means something different at 80% built than
+ * it does on a city edge — and it costs nothing extra, coming from the same
+ * pixel window.
+ */
+function treeFact(cover) {
+  const km = SAMPLE_RADIUS_M >= 1000 ? `${SAMPLE_RADIUS_M / 1000} km` : `${SAMPLE_RADIUS_M} m`
+  return fact({
+    key: 'tree_cover',
+    label: 'Tree cover nearby',
+    value: cover.treePct,
+    unit: '%',
+    display: `${cover.treePct}% of the ground within ${km} is under tree cover` +
+      ` — ${cover.builtPct}% is built on`,
+    provenance: PROVENANCE.ESTIMATED,
+    source: 'esa-worldcover',
+    method: `from ESA WorldCover 2021, a 10 m satellite land-cover classification: ` +
+      `the share of ${cover.samplePx} pixels within ${km} classed as tree cover. ` +
+      'This is how a classifier read satellite imagery, not a count of trees — ' +
+      'it cannot see a courtyard tree or tell a plantation from a park.',
+    count: cover.samplePx,
+  })
+}
 
 // Named explicitly because "we didn't build it" and "it cannot be built" are
 // different, and a renter deserves to know which one they're looking at.
@@ -298,7 +352,6 @@ const NOISE_NOTE =
 
 const WATER_UNAVAILABLE_NOTE = 'Distance to open water is not yet available for this location.'
 
-const DEFERRED_NOTES = [GREEN_NOTE, WATER_UNAVAILABLE_NOTE, NOISE_NOTE]
 
 /**
  * Open water as amenity, not as hazard.

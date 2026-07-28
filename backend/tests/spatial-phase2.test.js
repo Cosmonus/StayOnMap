@@ -2,6 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prismaMock } from './mocks/prisma.js'
 import { PROVENANCE, STATUS, buildEnvelope } from '../src/features/spatial/envelope.js'
 import * as providers from '../src/features/spatial/providers.js'
+// Mocked because it is a NETWORK provider: landCover() range-reads a GeoTIFF
+// from S3. Left real, these tests would hit the internet, take seconds, and
+// pass or fail on someone else's uptime — the same trap the water tests fell
+// into with elevation.
+vi.mock('../src/features/spatial/worldCoverProvider.js', () => ({
+  landCover: vi.fn(async () => null),
+  SAMPLE_RADIUS_M: 500,
+  WORLDCOVER_SOURCE: { id: 'esa-worldcover', label: 'ESA WorldCover', licence: 'CC-BY 4.0' },
+}))
+const { landCover } = await import('../src/features/spatial/worldCoverProvider.js')
 import environment from '../src/features/spatial/modules/environment.module.js'
 import lifestyle from '../src/features/spatial/modules/lifestyle.module.js'
 import infrastructure from '../src/features/spatial/modules/infrastructure.module.js'
@@ -56,13 +66,48 @@ describe('environment module', () => {
     expect(e.facts.find((f) => f.key === 'pm25_now').display).toMatch(/Satisfactory/)
   })
 
-  it('caps confidence — every fact it has today is model output', async () => {
+  it('caps confidence — the headline facts are still model output', async () => {
     providers.airQuality.mockResolvedValue(AQ)
     const e = buildEnvelope(environment, await environment.compute(CELL))
-    expect(e.confidence.value).toBeLessThanOrEqual(0.6)
+    // Ceiling raised 0.60 -> 0.75 on 2026-07-28 when CPCB readings and
+    // WorldCover both landed, which is the condition the module's own comment
+    // set for raising it. Not 1.0: what this module LEADS with is still
+    // modelled air quality.
+    expect(e.confidence.value).toBeLessThanOrEqual(0.75)
     expect(e.confidence.inputsMissing).toEqual(
       expect.arrayContaining(['cpcb_station', 'tree_cover', 'water_distance'])
     )
+  })
+
+  it('survives a failed air-quality read when another input is alive', async () => {
+    // The Chennai defect. One upstream hiccup used to take the whole module
+    // down via the early return, leaving a production cell at "0 of 4 inputs"
+    // while Open-Meteo answered that coordinate fine.
+    providers.airQuality.mockResolvedValue(null)
+    landCover.mockResolvedValueOnce({
+      treePct: 16.1, greenPct: 16.8, builtPct: 80.3, waterPct: 0.5,
+      samplePx: 10000, radiusM: 500, clipped: false,
+    })
+    const e = buildEnvelope(environment, await environment.compute(CELL))
+
+    expect(e.status).not.toBe(STATUS.UNAVAILABLE)
+    expect(e.confidence.inputsPresent).toContain('tree_cover')
+    expect(e.missing.join(' ')).toMatch(/air quality data was unavailable/i)
+  })
+
+  it('labels tree cover ESTIMATED — a classifier read imagery, it did not count trees', async () => {
+    providers.airQuality.mockResolvedValue(AQ)
+    landCover.mockResolvedValueOnce({
+      treePct: 67.2, greenPct: 68.7, builtPct: 30.8, waterPct: 0.1,
+      samplePx: 10000, radiusM: 500, clipped: false,
+    })
+    const e = buildEnvelope(environment, await environment.compute(CELL))
+    const tree = e.facts.find((f) => f.key === 'tree_cover')
+
+    expect(tree.provenance).toBe(PROVENANCE.ESTIMATED)
+    expect(tree.method).toMatch(/classifier read satellite imagery|not a count of trees/i)
+    // Built-up share is what makes the tree figure legible.
+    expect(tree.display).toMatch(/30.8% is built on/)
   })
 
   it('says noise is unavailable because it cannot be measured, not because it was skipped', async () => {
@@ -77,11 +122,17 @@ describe('environment module', () => {
     expect(e.facts.some((f) => /heat|temperature/i.test(f.key))).toBe(false)
   })
 
-  it('degrades to UNAVAILABLE with an explanation when the API is down', async () => {
+  it('degrades to UNAVAILABLE with an explanation when EVERY input is down', async () => {
+    // Still the right outcome when nothing at all answered — what changed on
+    // 2026-07-28 is that one dead upstream no longer counts as all of them.
     providers.airQuality.mockResolvedValue(null)
+    landCover.mockResolvedValue(null)
     const e = buildEnvelope(environment, await environment.compute(CELL))
     expect(e.status).toBe(STATUS.UNAVAILABLE)
     expect(e.missing.length).toBeGreaterThan(0)
+    // And now says WHICH upstream, so an empty card is diagnosable from the
+    // payload rather than only from the box.
+    expect(e.unavailableReason).toMatch(/upstream failure/i)
   })
 })
 
