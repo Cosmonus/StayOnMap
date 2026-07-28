@@ -9,7 +9,7 @@ import {
   Plane, Camera, Hotel,
   Shield, Siren, Shirt,
   Thermometer, CloudRain, Umbrella,
-  Mountain, MoveVertical, WavesHorizontal, Map,
+  Mountain, MoveVertical, WavesHorizontal, Droplets, TreePine, Map,
   CircleDot,
 } from 'lucide-react-native'
 
@@ -60,6 +60,10 @@ const FACT_ICONS = {
 
   // ── terrain ───────────────────────────────────────────────────────────────
   elevation:           Mountain,
+  // terrain AND environment both emit this key — the same measurement framed
+  // two ways. One icon, deliberately.
+  nearest_water:       Droplets,
+  tree_cover:          TreePine,
   relative_height:     MoveVertical,
   local_relief:        WavesHorizontal,
 
@@ -79,6 +83,10 @@ const FACT_ICONS = {
   // ── landContext ───────────────────────────────────────────────────────────
   distance_from_city:  MapPin,
   development_nearby:  Construction,
+  // Both already imported. `Car` for the driveable one is the semantic match:
+  // the whole reason that second fact exists is "can a vehicle get here".
+  nearest_road:          Route,
+  nearest_driveable_road: Car,
 
   // ── pgContext ─────────────────────────────────────────────────────────────
   food_walkable:       UtensilsCrossed,
