@@ -16,6 +16,7 @@
 //   - files a DataQualityReport, so "this area is sparse" stays distinguishable
 //     from "we failed to fetch it"
 import 'dotenv/config'
+import '../src/lib/netTuning.js'
 import { prisma } from '../src/lib/prisma.js'
 import { invalidateCityCells } from '../src/features/spatial/seedMaintenance.js'
 import { recordQualityReport, completeness } from '../src/features/spatial/dataQuality.js'

@@ -1,3 +1,4 @@
+import './lib/netTuning.js'
 import 'dotenv/config'
 import './config/env.js'
 import { createServer } from 'http'

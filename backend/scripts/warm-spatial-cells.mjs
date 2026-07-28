@@ -21,6 +21,7 @@
 // cell can spend from the daily API budget (providers.js enforces the ceiling
 // underneath, so this cannot overrun it — it can only exhaust it).
 import 'dotenv/config'
+import '../src/lib/netTuning.js'
 import { prisma } from '../src/lib/prisma.js'
 import { materialize } from '../src/features/spatial/spatial.service.js'
 import { parseSeedArgs, flagValue, requireDatabaseUrl } from '../src/features/spatial/seedArgs.js'
