@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { googleMapsReady } from '@lib/googleMaps'
+import AreaInput from '@features/search/components/AreaInput'
 
 const INDIA_CENTER = { lat: 20.5937, lng: 78.9629 }
 
+// The search is AreaInput — the same Places-autocomplete control the map and
+// admin already use. It replaced a bare input wired to `google.maps.Geocoder`,
+// which never worked here: the browser key is restricted to Maps JavaScript +
+// Places (see docs/google-maps-api-setup.md), so every geocode came back
+// REQUEST_DENIED and the "Find" button silently did nothing.
 export default function LocationPicker({ value, onChange }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -23,7 +29,7 @@ export default function LocationPicker({ value, onChange }) {
         mapTypeId: 'roadmap',
         mapTypeControl: false,
         streetViewControl: false,
-        fullscreenControl: false,
+        fullscreenControl: true,
         gestureHandling: 'greedy',
         // A POI info window opening here would swallow the click that is
         // supposed to place the pin.
@@ -56,40 +62,25 @@ export default function LocationPicker({ value, onChange }) {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function search() {
-    if (!query.trim() || !mapRef.current) return
-    const geocoder = new window.google.maps.Geocoder()
-    geocoder.geocode({ address: `${query}, India`, region: 'in' }, (results, status) => {
-      if (status !== 'OK' || !results?.[0]) return
-      const loc = results[0].geometry.location
-      mapRef.current.setZoom(15)
-      mapRef.current.panTo(loc)
-      markerRef.current?.setPosition(loc)
-      onChange({ lat: loc.lat(), lng: loc.lng() })
-    })
+  function placePicked({ lat, lng }) {
+    if (!mapRef.current) return
+    mapRef.current.setZoom(16)
+    mapRef.current.panTo({ lat, lng })
+    markerRef.current?.setPosition({ lat, lng })
+    onChange({ lat, lng })
   }
 
   return (
     <div className="space-y-2">
-      <div className="flex gap-2">
-        <input
-          type="text"
-          placeholder="Search area, e.g. Koramangala, Bengaluru"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), search())}
-          className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
-        <button
-          type="button"
-          onClick={search}
-          className="min-h-[44px] px-4 py-3 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
-        >
-          Find
-        </button>
-      </div>
+      <AreaInput
+        value={query}
+        onChange={setQuery}
+        onPlacePicked={placePicked}
+        onClear={() => {}}
+        showLabel={false}
+      />
 
-      <div ref={containerRef} className="w-full h-52 rounded-lg overflow-hidden border border-slate-200" />
+      <div ref={containerRef} className="w-full h-80 rounded-lg overflow-hidden border border-slate-200" />
 
       <p className="text-xs text-slate-500">
         {value
