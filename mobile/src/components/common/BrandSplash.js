@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Animated, Easing, StyleSheet, useWindowDimensions } from 'react-native'
 import Logo from '@components/common/Logo'
 import { useAuth } from '@features/auth/hooks/useAuth'
@@ -10,12 +10,13 @@ import { fontSizes } from '@theme/typography'
 //
 // The user sees one continuous green launch. Technically there are three
 // surfaces and all of them are brand-600: expo-splash-screen paints it before
-// JS exists (with a deliberately transparent image — it cannot render text,
-// and Android 12+ would circle-clip a baked-in wordmark, see app.config.js),
-// this overlay paints it and animates the name in, and GetStartedScreen —
-// the screen underneath — is brand-600 too. Nothing white ever appears, and
-// the fade-out reads as the wordmark dissolving into the first real screen
-// rather than as a screen change.
+// JS exists (carrying the adaptive icon's white S — the wordmark can't go
+// there, Android 12+ would circle-clip it, see app.config.js), this overlay
+// paints it and animates the name in, and GetStartedScreen — the screen
+// underneath — is brand-600 too. The order is mark → name → app: the mark
+// greets you, the name arrives the instant JS is up. Nothing white ever
+// appears, and the fade-out reads as the wordmark dissolving into the first
+// real screen rather than as a screen change.
 //
 // The three colours MUST stay in sync: app.config.js's splash
 // `backgroundColor`, `styles.root` below, and GetStartedScreen's container.
@@ -35,9 +36,15 @@ export default function BrandSplash({ onFinish }) {
   // Held open by real work, not a timer: this is the session rehydrating
   // (AuthContext's AsyncStorage read plus, for a signed-in user, /auth/me).
   const { loading } = useAuth()
-  const wordmark = useRef(new Animated.Value(0)).current
-  const fade = useRef(new Animated.Value(1)).current
+  // useMemo, not `useRef(new Animated.Value(0)).current` — the house pattern
+  // (PropertyDetailScreen.js). The ref form evaluates `new Animated.Value()`
+  // on every render only to throw the result away, and reading `.current`
+  // during render is a lint error.
+  const wordmark = useMemo(() => new Animated.Value(0), [])
+  const fade = useMemo(() => new Animated.Value(1), [])
   const [shown, setShown] = useState(false)
+  // The name has arrived and the app behind it is ready — the fade is running.
+  const leaving = shown && !loading
 
   useEffect(() => {
     const anim = Animated.timing(wordmark, {
@@ -61,7 +68,7 @@ export default function BrandSplash({ onFinish }) {
   // `loading` always resolves: api.js sets a 10s axios timeout, so a dead
   // network ends this rather than stranding it.
   useEffect(() => {
-    if (!shown || loading) return
+    if (!leaving) return
     const anim = Animated.timing(fade, {
       toValue: 0,
       duration: 260,
@@ -72,11 +79,20 @@ export default function BrandSplash({ onFinish }) {
       if (finished) onFinish?.()
     })
     return () => anim.stop()
-  }, [shown, loading, fade, onFinish])
+  }, [leaving, fade, onFinish])
 
   return (
     <Animated.View
       style={[styles.root, { width, height, opacity: fade }]}
+      // Blocks touches while it is opaque — a blind tap must not reach a
+      // button nobody can see — and stops blocking the instant the fade
+      // starts, because by then the real screen is visible underneath and
+      // eating its taps for 260ms reads as the app being frozen on launch.
+      pointerEvents={leaving ? 'none' : 'auto'}
+      // `accessible` collapses the subtree into one node: without it TalkBack
+      // focuses this container AND the Logo's own Text, announcing the
+      // wordmark twice.
+      accessible
       accessibilityRole="image"
       accessibilityLabel="StayOnMap"
     >

@@ -19,9 +19,14 @@ SplashScreen.preventAutoHideAsync().catch(() => {})
 export default function App() {
   // The branded launch screen (the wordmark, on the same brand green the
   // native splash just painted) that takes over the instant that splash lets
-  // go. It is an overlay, not a route: the navigator mounts and starts its own
-  // data fetching underneath while it plays, so the brand moment costs nothing
-  // in time-to-interactive.
+  // go. It is an overlay, not a route, so it needs no navigator state and
+  // cannot be backed out of.
+  //
+  // It does NOT overlap the app's first fetches, and this comment claimed it
+  // did until 2026-07-28: RootNavigator short-circuits to its loading gate on
+  // the SAME AuthContext `loading` that BrandSplash waits for, so no screen is
+  // mounted underneath and nothing is warming. The splash costs what the
+  // session rehydration costs, plus the 260ms the name takes to arrive.
   //
   // It leaves as soon as the session is rehydrated — see BrandSplash. It used
   // to run a fixed 1220ms and had no idea what the app was doing, which was
