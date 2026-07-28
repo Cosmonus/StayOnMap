@@ -9,7 +9,7 @@ import {
   Plane, Camera, Hotel,
   Shield, Siren, Shirt,
   Thermometer, CloudRain, Umbrella,
-  Mountain, MoveVertical, Waves, Map,
+  Mountain, MoveVertical, Waves, Droplets, Map,
   CircleDot,
 } from 'lucide-react'
 
@@ -67,6 +67,9 @@ const FACT_ICONS = {
 
   // ── terrain ───────────────────────────────────────────────────────────────
   elevation:           Mountain,
+  // terrain AND environment both emit this key — the same measurement framed
+  // two ways. One icon, deliberately.
+  nearest_water:       Droplets,
   relative_height:     MoveVertical,
   local_relief:        Waves,
 

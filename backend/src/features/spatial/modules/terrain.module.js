@@ -19,6 +19,7 @@
 // See docs/spatial-intelligence.md §5.8.
 import { fact, PROVENANCE } from '../envelope.js'
 import { elevation, SRTM_SOURCE } from '../providers.js'
+import { nearestWater, SEARCH_RADIUS_M } from '../waterLookup.js'
 import { ALL_TYPES, RESIDENTIAL_TYPES } from '../propertyTypes.js'
 
 // Below this, the difference is inside SRTM's own vertical error (~±16m
@@ -49,12 +50,21 @@ export default {
     // Declared, absent, deliberate. These are what would turn "this ground is
     // low" into "this place floods", and until they exist the module should
     // not read as a complete answer to the question it raises.
-    { key: 'water_distance', weight: 2 }, // needs OSM water polygon ingestion
+    // `water_distance` landed 2026-07-28 (WaterBody + waterLookup.js). It says
+    // where the water IS. `flood_history` — whether water has ever COME here —
+    // remains absent, and the two are not the same claim. The module must still
+    // not read as a complete answer to the question it raises.
+    { key: 'water_distance', weight: 2 },
     { key: 'flood_history',  weight: 3 }, // no parcel-level data exists for India
   ],
 
   async compute({ lat, lng, propertyType }) {
-    const terrain = await elevation(lat, lng)
+    // Independent upstreams: a water lookup that fails must not cost the
+    // elevation reading, which is the module's primary fact.
+    const [terrain, water] = await Promise.all([
+      elevation(lat, lng),
+      nearestWater(lat, lng),
+    ])
 
     if (!terrain) {
       return {
@@ -111,11 +121,20 @@ export default {
       }))
     }
 
+    // "We could not look" (null) and "we looked, there is none within 3 km"
+    // (available, no body) are different answers, and only the first is a gap.
+    // Collapsing them would make an unseeded city look like a desert.
+    if (water?.available) {
+      inputsPresent.push('water_distance')
+      facts.push(waterFact(water.body))
+    }
+
     return {
       facts,
       assessment: assess(terrain, propertyType),
       missing: [
-        ...DEFERRED_NOTES,
+        ...(water?.available ? [] : [WATER_UNAVAILABLE_NOTE]),
+        FLOOD_HISTORY_NOTE,
         // The load-bearing caveat. Someone reading "sits 4 m lower than its
         // surroundings" will hear "this floods", and the two are not the same
         // claim — drainage is about ground, flooding is also about drains,
@@ -131,12 +150,61 @@ export default {
   },
 }
 
-const DEFERRED_NOTES = [
-  'Distance to the nearest river, lake or drainage channel is not yet available.',
+const WATER_UNAVAILABLE_NOTE =
+  'Distance to the nearest river, lake or drainage channel is not yet available.'
+
+const FLOOD_HISTORY_NOTE =
   'Recorded flood history is not shown: no parcel-level flood record is ' +
   'published for Indian cities in a form anyone can query, and we would rather ' +
-  'show nothing than a risk level we invented.',
-]
+  'show nothing than a risk level we invented.'
+
+// Kept for the no-elevation early return, which has no water reading to report.
+const DEFERRED_NOTES = [WATER_UNAVAILABLE_NOTE, FLOOD_HISTORY_NOTE]
+
+/**
+ * Where the water is — stated as a location, never as a hazard.
+ *
+ * This fact sits on the same card as "sits 4 m lower than the ground around
+ * it", and a reader will put the two together into "this floods". They are not
+ * that claim and this wording must not help them become it: no risk word, no
+ * severity, no implication of direction. `FLOOD_HISTORY_NOTE` stays visible
+ * directly beneath, and tests/spatial-water.test.js pins the vocabulary.
+ */
+function waterFact(body) {
+  if (!body) {
+    return fact({
+      key: 'nearest_water',
+      label: 'Nearest water',
+      // A real answer, not a gap: null value with a display that says so.
+      value: null,
+      display: `No mapped lake, river or canal within ${SEARCH_RADIUS_M / 1000} km`,
+      provenance: PROVENANCE.DERIVED,
+      source: 'openstreetmap',
+      method: 'a search of mapped water bodies around this address',
+    })
+  }
+
+  const named = body.name ? `${body.name}` : `An unnamed ${body.label}`
+  return fact({
+    key: 'nearest_water',
+    label: 'Nearest water',
+    value: body.distanceM,
+    unit: 'm',
+    place: body.name ?? null,
+    // The mapped edge, so reanchor.js and walkEnrich.js can treat this like
+    // every other distance fact rather than a special case.
+    at: body.at,
+    display: body.inside
+      ? `${named} — this location sits on the water`
+      : `${named}, ${body.distanceM} m away`,
+    // Haversine between measured points is arithmetic, which is the definition
+    // of DERIVED. The accuracy pass made this exact correction everywhere else.
+    provenance: PROVENANCE.DERIVED,
+    source: 'openstreetmap',
+    method: 'straight-line distance from this address to the mapped edge of the water body',
+    displayStyle: 'distance',
+  })
+}
 
 function describeRelative(relativeM) {
   if (Math.abs(relativeM) < MEANINGFUL_RELATIVE_M) {

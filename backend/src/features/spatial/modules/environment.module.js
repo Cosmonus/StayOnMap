@@ -27,6 +27,7 @@ import { fact, PROVENANCE } from '../envelope.js'
 import { airQuality, OPEN_METEO_SOURCE } from '../providers.js'
 import { ALL_TYPES } from '../propertyTypes.js'
 import { nearestStations, stationConfidenceFactor } from '../cpcbProvider.js'
+import { nearestWater, SEARCH_RADIUS_M } from '../waterLookup.js'
 import { formatDistance } from '../proximity.js'
 
 // CPCB data is Government of India open data under the National Data Sharing
@@ -85,21 +86,31 @@ export default {
   async compute({ lat, lng }) {
     // Independent upstreams, so one being slow or down must not serialise or
     // sink the other. Either can be null; each missing one lowers confidence.
-    const [aq, stations] = await Promise.all([
+    const [aq, stations, water] = await Promise.all([
       airQuality(lat, lng),
       // { pm25, pm10 }, each the nearest monitor carrying THAT reading — they
       // need not be the same site. Either can be null: no key, no feed, or
       // nothing within the airshed bound all mean the same thing here.
       nearestStations(lat, lng),
+      nearestWater(lat, lng),
     ])
 
+    // Air quality failing no longer empties the whole module. Chennai's
+    // production cell sat at confidence 0 with "0 of 4 inputs" because one
+    // upstream hiccup took the other three down with it via this branch
+    // (docs/spatial-research-2026-07-28.md §4) — water is independent of it and
+    // should survive.
     if (!aq) {
+      const waterFacts = water?.available ? [waterAmenityFact(water.body)] : []
       return {
-        facts: [],
+        facts: waterFacts,
         assessment: null,
-        missing: ['Air quality data was unavailable for this location.', ...DEFERRED_NOTES],
-        inputsPresent: [],
-        sources: [],
+        missing: [
+          'Air quality data was unavailable for this location.',
+          ...(water?.available ? [NOISE_NOTE] : DEFERRED_NOTES),
+        ],
+        inputsPresent: water?.available ? ['water_distance'] : [],
+        sources: water?.available ? [OSM_WATER_SOURCE] : [],
       }
     }
 
@@ -217,6 +228,13 @@ export default {
 
     const inputsPresent = []
     if (aq) inputsPresent.push('air_quality_model')
+    // Same lookup terrain uses, framed differently: there it is a fact about
+    // the ground, here it is open water as green/blue space. One ingestion,
+    // two modules — the reason this input was built first.
+    if (water?.available) {
+      inputsPresent.push('water_distance')
+      facts.push(waterAmenityFact(water.body))
+    }
     // Gated on a fact actually being emitted, not on a station existing.
     if (stationFacts.length) inputsPresent.push('cpcb_station')
 
@@ -233,6 +251,7 @@ export default {
     if (aq) sources.push(OPEN_METEO_SOURCE)
     // Only cite a source we actually showed something from.
     if (stationFacts.length) sources.push(CPCB_SOURCE)
+    if (water?.available) sources.push(OSM_WATER_SOURCE)
 
     return {
       facts,
@@ -245,7 +264,9 @@ export default {
           'readings from a monitoring station at this address — treat them as a ' +
           'good indication of the area, not a measurement of the building.',
         ] : ['Air quality data was unavailable for this location.']),
-        ...DEFERRED_NOTES,
+        GREEN_NOTE,
+        ...(water?.available ? [] : [WATER_UNAVAILABLE_NOTE]),
+        NOISE_NOTE,
       ],
       inputsPresent,
       sources,
@@ -254,14 +275,64 @@ export default {
   },
 }
 
-const DEFERRED_NOTES = [
-  'Tree cover, green space and distance to water are not yet available for ' +
-  'this location.',
-  // Named explicitly because "we didn't build it" and "it cannot be built" are
-  // different, and a renter deserves to know which one they're looking at.
+// Tree cover is still absent; distance to water landed 2026-07-28, so this note
+// no longer claims it.
+const GREEN_NOTE =
+  'Tree cover and green space are not yet available for this location.'
+
+// Named explicitly because "we didn't build it" and "it cannot be built" are
+// different, and a renter deserves to know which one they're looking at.
+const NOISE_NOTE =
   'Noise levels are not shown: no measured noise data exists for Indian ' +
-  'cities, and we would rather show nothing than a number we invented.',
-]
+  'cities, and we would rather show nothing than a number we invented.'
+
+const WATER_UNAVAILABLE_NOTE = 'Distance to open water is not yet available for this location.'
+
+const DEFERRED_NOTES = [GREEN_NOTE, WATER_UNAVAILABLE_NOTE, NOISE_NOTE]
+
+export const OSM_WATER_SOURCE = {
+  id: 'openstreetmap',
+  label: 'OpenStreetMap',
+  licence: 'ODbL',
+}
+
+/**
+ * Open water as amenity, not as hazard.
+ *
+ * The same measurement `terrain` reports, framed for the question this module
+ * asks ("what are you breathing / living beside?"). It carries no risk claim
+ * here either — see the note on terrain's `waterFact`.
+ */
+function waterAmenityFact(body) {
+  if (!body) {
+    return fact({
+      key: 'nearest_water',
+      label: 'Open water nearby',
+      value: null,
+      display: `No mapped lake, river or canal within ${SEARCH_RADIUS_M / 1000} km`,
+      provenance: PROVENANCE.DERIVED,
+      source: 'openstreetmap',
+      method: 'a search of mapped water bodies around this address',
+    })
+  }
+
+  const named = body.name ?? `An unnamed ${body.label}`
+  return fact({
+    key: 'nearest_water',
+    label: 'Open water nearby',
+    value: body.distanceM,
+    unit: 'm',
+    place: body.name ?? null,
+    at: body.at,
+    display: body.inside
+      ? `${named} — this location sits on the water`
+      : `${named}, ${body.distanceM} m away`,
+    provenance: PROVENANCE.DERIVED,
+    source: 'openstreetmap',
+    method: 'straight-line distance from this address to the mapped edge of the water body',
+    displayStyle: 'distance',
+  })
+}
 
 function assess(aq) {
   if (!aq) return null

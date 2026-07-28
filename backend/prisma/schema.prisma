@@ -1407,6 +1407,60 @@ model Boundary {
 }
 
 
+// Where the water is — lakes, rivers, tanks, reservoirs and canals, as polygons.
+//
+// This closes `water_distance`, the only declared-but-absent input that two
+// modules share: `terrain` (0.50 measured against a ceiling of 1.00) and
+// `environment` (0.38 against 0.60). One ingestion, two modules — which is why
+// it was ranked first in docs/spatial-research-2026-07-28.md.
+//
+// Same shape as Boundary above and for the same reasons: `geometry` is Json
+// because it is read whole and never filtered on; the bbox is four REAL indexed
+// columns because the bbox IS the filter. Still no PostGIS — nearest-edge
+// distance runs in JS over the handful of rows the bbox scan returns
+// (docs/spatial-intelligence.md §3 names what would change that).
+//
+// ⚠ NOT a flood input, and it must never be presented as one. Distance to water
+// is the most tempting flood proxy that exists, and the standing refusal covers
+// it: whether water actually collects somewhere depends on drains, pumps and
+// what got built upstream last year, none of which is published as data. The
+// refusal is enforced by tests/spatial-water.test.js, not by convention.
+model WaterBody {
+  id     String  @id @default(cuid())
+  // "way/123" or "relation/456" — unique so a re-seed updates in place rather
+  // than duplicating the dataset, the same contract PoiIndex and Boundary use.
+  osmId  String  @unique
+  // Genuinely optional: a large share of Indian tanks and ponds are mapped with
+  // geometry and no name. They still count for distance; they just render as
+  // "a lake" rather than by name.
+  name   String?
+  // Our own vocabulary (lake | river | reservoir | tank | pond | canal), mapped
+  // from OSM tags by the seeder. Narrower than OSM's, because the only
+  // distinctions worth carrying are the ones a reader would notice.
+  kind   String
+  city   String?
+  source String  @default("openstreetmap")
+
+  geometry Json
+  // Lets the seeder drop puddles and the lookup prefer a lake over the drain
+  // beside it. Nullable because a degenerate ring has no meaningful area.
+  areaSqM  Float?
+
+  minLat Decimal @db.Decimal(10, 7)
+  maxLat Decimal @db.Decimal(10, 7)
+  minLng Decimal @db.Decimal(10, 7)
+  maxLng Decimal @db.Decimal(10, 7)
+
+  ingestedAt DateTime @default(now())
+
+  // Nearest-water is a bbox INTERSECTION test, not the containment test
+  // Boundary does, so both axes get an index.
+  @@index([minLat, maxLat])
+  @@index([minLng, maxLng])
+  @@index([city])
+}
+
+
 // One row per ETL run, per dataset.
 //
 // What is near a CELL, in a shape a query can filter on.
