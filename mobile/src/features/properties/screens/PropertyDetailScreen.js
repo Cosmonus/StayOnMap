@@ -8,7 +8,6 @@ import { chatService } from '@services/chat.service'
 import { savedService } from '@services/saved.service'
 import { appointmentService } from '@services/appointment.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
-import { useUiStore } from '@store/uiStore'
 import TrustBadge from '@components/common/TrustBadge'
 import RiskAlert from '@components/common/RiskAlert'
 import TrustScoreWidget from '@features/trust/components/TrustScoreWidget'
@@ -87,7 +86,6 @@ export default function PropertyDetailScreen({ route, navigation }) {
     outputRange: [0, 1],
     extrapolate: 'clamp',
   })
-  const hostMode = useUiStore((s) => s.hostMode)
   const qc = useQueryClient()
 
   const { data: property, isLoading, isError } = useQuery({
@@ -129,8 +127,17 @@ export default function PropertyDetailScreen({ route, navigation }) {
   async function handleMessageOwner() {
     setChatLoading(true)
     try {
-      await chatService.startConversation(propertyId)
-      navigation.getParent()?.navigate(hostMode ? 'Inbox' : 'Chat')
+      const convo = await chatService.startConversation(propertyId).then((r) => r.data)
+      qc.invalidateQueries({ queryKey: ['conversations'] })
+      // Pushed onto THIS stack (AppTabs.js's CONVERSATION_SCREEN rides along
+      // with BOOKING_SCREENS) — back returns to the property. Jumping to the
+      // Chat tab instead showed whatever that tab was parked on, and back
+      // from there could never reach this listing again.
+      navigation.navigate('Conversation', {
+        conversationId: convo.id,
+        other: property.owner,
+        otherRole: 'Owner',
+      })
     } catch {
       // best-effort
     } finally {

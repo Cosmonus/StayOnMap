@@ -7,7 +7,6 @@ import * as ImagePicker from 'expo-image-picker'
 import { chatService } from '@services/chat.service'
 import { uploadService } from '@services/upload.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
-import { useUiStore } from '@store/uiStore'
 import { getSocket } from '@lib/socket'
 import { imgUrl } from '@utils/format'
 import { formatTime } from '@utils/time'
@@ -105,7 +104,6 @@ function replyTimeLabel(minutes) {
 export default function ConversationScreen({ route, navigation }) {
   const { conversationId, other: otherParam, otherRole } = route.params
   const { user } = useAuth()
-  const hostMode = useUiStore((s) => s.hostMode)
   const qc = useQueryClient()
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
@@ -307,12 +305,11 @@ export default function ConversationScreen({ route, navigation }) {
 
   function openProperty() {
     if (!property?.id) return
-    // ChatStack has no PropertyDetail screen — hop to a tab stack that does
-    // (host mode's Chat tab is 'Inbox' and has no 'Explore' sibling).
-    navigation.getParent()?.navigate(hostMode ? 'MyListing' : 'Explore', {
-      screen: 'PropertyDetail',
-      params: { propertyId: property.id },
-    })
+    // Pushed onto THIS stack — every stack that carries Conversation also
+    // carries PropertyDetail (AppTabs.js's BOOKING_SCREENS), so back returns
+    // to this thread. The old cross-tab hop to Explore/MyListing meant back
+    // landed on the map instead of the conversation.
+    navigation.navigate('PropertyDetail', { propertyId: property.id })
   }
 
   // Search hits the backend once the box settles (300ms debounce); otherwise

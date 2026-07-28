@@ -255,7 +255,7 @@ export default function HostDashboardScreen({ navigation }) {
   const activeId = openId ?? queue[0]?.id
 
   function goToWizard() {
-    navigation.getParent()?.navigate('MyListing', { screen: 'AddListing' })
+    navigation.getParent()?.navigate('MyListing', { screen: 'AddListing', initial: false })
   }
 
   return (
