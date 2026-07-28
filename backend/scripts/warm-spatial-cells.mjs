@@ -23,7 +23,7 @@
 import 'dotenv/config'
 import { prisma } from '../src/lib/prisma.js'
 import { materialize } from '../src/features/spatial/spatial.service.js'
-import { parseSeedArgs, flagValue } from '../src/features/spatial/seedArgs.js'
+import { parseSeedArgs, flagValue, requireDatabaseUrl } from '../src/features/spatial/seedArgs.js'
 
 const argv = process.argv.slice(2)
 const { confirm: CONFIRM, city: ONLY_CITY } = parseSeedArgs(argv)
@@ -38,6 +38,8 @@ const LIMIT = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 20
 // Between cells: materialisation can call out to Open-Meteo, OpenTopoData and
 // (on a miss) Google. Pacing keeps a warm-up from looking like an attack.
 const DELAY_MS = 500
+requireDatabaseUrl()
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 async function main() {

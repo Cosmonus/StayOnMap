@@ -25,7 +25,7 @@ import { prisma } from '../src/lib/prisma.js'
 import { invalidateCityCells } from '../src/features/spatial/seedMaintenance.js'
 import { recordQualityReport, completeness } from '../src/features/spatial/dataQuality.js'
 import { CITY_CENTERS, resolveCity } from '../src/config/cityCenters.js'
-import { parseSeedArgs, flagValue } from '../src/features/spatial/seedArgs.js'
+import { parseSeedArgs, flagValue, requireDatabaseUrl } from '../src/features/spatial/seedArgs.js'
 import { bboxFor, tiles, fetchTileAdaptive } from '../src/features/spatial/tiling.js'
 import { overpassQuery } from '../src/features/spatial/overpassClient.js'
 import { ALL_MOTORABLE } from '../src/features/spatial/roadLookup.js'
@@ -43,6 +43,8 @@ const { confirm: CONFIRM, city: ONLY_CITY } = parseSeedArgs(argv)
 // throughout, not the fix for one stubborn tile.
 const gridArg = Number(flagValue(argv, '--tiles'))
 const GRID = Number.isFinite(gridArg) && gridArg > 0 ? gridArg : TILE_GRID
+
+requireDatabaseUrl()
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const overpass = (query) => overpassQuery(query, { timeoutMs: REQUEST_TIMEOUT_MS })
@@ -178,7 +180,8 @@ ${city} — ${grid.length} tiles`)
           ),
         }
       )
-      process.stdout.write(`  tile ${i + 1}/${grid.length}: ${matched} ways`)
+      process.stdout.write(`  tile ${i + 1}/${grid.length}: ${matched} ways
+`)
     } catch (err) {
       failed++
       console.warn(`
