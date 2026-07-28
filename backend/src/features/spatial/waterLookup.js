@@ -16,6 +16,7 @@ import { prisma } from '../../lib/prisma.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { intelError } from '../../lib/intelLog.js'
 import { distanceToGeometry, degreeBox } from './geometryDistance.js'
+import { resolveCity } from '../../config/cityCenters.js'
 
 // Water moves on geological time; reservoirs get built on municipal time. The
 // cache is here to spare re-decoding large river polygons, not to track change.
@@ -75,6 +76,12 @@ export async function nearestWater(lat, lng, radiusM = SEARCH_RADIUS_M) {
   const cached = await cacheGet(key)
   if (cached) return cached.v
 
+  // Unseeded is "could not look", NEVER "there is no water here". Resolved from
+  // the coordinate rather than passed in, so terrain and environment — neither
+  // of which receives `city` — are covered too.
+  const city = resolveCity(lat, lng)?.city ?? null
+  if ((await waterCoverage(city)) === 0) return null
+
   const { dLat, dLng } = degreeBox(lat, radiusM)
 
   try {
@@ -130,7 +137,20 @@ export async function nearestWater(lat, lng, radiusM = SEARCH_RADIUS_M) {
   }
 }
 
-/** Has this dataset been seeded at all? Used to keep an empty table honest. */
+
+/**
+ * Has this city's water data been seeded?
+ *
+ * THE most important guard in this file, and it was missing until 2026-07-28.
+ * Without it an EMPTY table answers "we looked, there is none within range" —
+ * which is a confident false statement, and worse, it counts the input as
+ * PRESENT and raises the module's confidence on the basis of no data at all.
+ * `poiProvider.js` has always gated on coverage this way; these lookups did
+ * not, and would have shipped that to production.
+ *
+ * Cached, because the answer changes only when a seeder runs.
+ */
+
 export async function waterCoverage(city) {
   try {
     return await prisma.waterBody.count({ where: city ? { city } : {} })

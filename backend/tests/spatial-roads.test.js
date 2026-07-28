@@ -8,7 +8,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../src/lib/prisma.js', () => ({
-  prisma: { roadSegment: { findMany: vi.fn(), count: vi.fn() } },
+  prisma: { roadSegment: { findMany: vi.fn(), count: vi.fn(async () => 1) } },
 }))
 vi.mock('../src/lib/redis.js', () => ({
   cacheGet: vi.fn(async () => null),
@@ -61,7 +61,18 @@ describe('road class vocabulary', () => {
 })
 
 describe('roadAccess', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    prisma.roadSegment.count.mockResolvedValue(1)
+  })
+
+  it('an UNSEEDED table is "could not look", never "no road access"', async () => {
+    // Telling a plot buyer their land has no road access because a seeder has
+    // not run yet is the single most damaging thing this module could say.
+    prisma.roadSegment.count.mockResolvedValue(0)
+    expect(await roadAccess(12.9352, 77.6245)).toBeNull()
+    expect(prisma.roadSegment.findMany).not.toHaveBeenCalled()
+  })
 
   it('distinguishes "could not look" from "looked, found none"', async () => {
     prisma.roadSegment.findMany.mockRejectedValueOnce(new Error('no table'))
@@ -102,7 +113,10 @@ describe('roadAccess', () => {
 })
 
 describe('landContext road facts', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    prisma.roadSegment.count.mockResolvedValue(1)
+  })
 
   it('emits the second fact only when it says something new', async () => {
     // Track 30 m away, tarmac ~975 m away — the gap IS the finding.

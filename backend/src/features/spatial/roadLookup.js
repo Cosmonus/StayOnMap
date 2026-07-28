@@ -14,6 +14,7 @@ import { prisma } from '../../lib/prisma.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { intelError } from '../../lib/intelLog.js'
 import { distanceToLine, degreeBox } from './geometryDistance.js'
+import { resolveCity } from '../../config/cityCenters.js'
 
 const LOOKUP_TTL_S = 24 * 60 * 60
 
@@ -106,6 +107,12 @@ export async function roadAccess(lat, lng, radiusM = SEARCH_RADIUS_M) {
   const cached = await cacheGet(key)
   if (cached) return cached.v
 
+  // Unseeded is "could not look", NEVER "there is no road here". Telling a plot
+  // buyer their land has no road access because a seeder has not run yet is the
+  // single most damaging thing this module could say.
+  const city = resolveCity(lat, lng)?.city ?? null
+  if ((await roadCoverage(city)) === 0) return null
+
   const { dLat, dLng } = degreeBox(lat, radiusM)
 
   try {
@@ -143,7 +150,20 @@ export async function roadAccess(lat, lng, radiusM = SEARCH_RADIUS_M) {
   }
 }
 
-/** Has this dataset been seeded at all? Keeps an empty table honest. */
+
+/**
+ * Has this city's road data been seeded?
+ *
+ * THE most important guard in this file, and it was missing until 2026-07-28.
+ * Without it an EMPTY table answers "we looked, there is none within range" —
+ * which is a confident false statement, and worse, it counts the input as
+ * PRESENT and raises the module's confidence on the basis of no data at all.
+ * `poiProvider.js` has always gated on coverage this way; these lookups did
+ * not, and would have shipped that to production.
+ *
+ * Cached, because the answer changes only when a seeder runs.
+ */
+
 export async function roadCoverage(city) {
   try {
     return await prisma.roadSegment.count({ where: city ? { city } : {} })

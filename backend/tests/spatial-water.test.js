@@ -11,7 +11,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../src/lib/prisma.js', () => ({
-  prisma: { waterBody: { findMany: vi.fn(), count: vi.fn() } },
+  prisma: { waterBody: { findMany: vi.fn(), count: vi.fn(async () => 1) } },
 }))
 vi.mock('../src/lib/redis.js', () => ({
   cacheGet: vi.fn(async () => null),
@@ -88,7 +88,22 @@ describe('distanceToGeometry', () => {
 })
 
 describe('nearestWater — the three-way contract', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // Seeded, unless a test says otherwise.
+    prisma.waterBody.count.mockResolvedValue(1)
+  })
+
+  it('an UNSEEDED table is "could not look", never "there is no water"', async () => {
+    // The bug this guards, caught 2026-07-28 before it reached production: an
+    // empty table returned "we looked, found none within 3 km" — a confident
+    // false statement — AND counted water_distance as a present input, raising
+    // the module's confidence on the basis of no data whatsoever.
+    prisma.waterBody.count.mockResolvedValue(0)
+    expect(await nearestWater(12.9352, 77.6245)).toBeNull()
+    // …and it must not even reach the scan.
+    expect(prisma.waterBody.findMany).not.toHaveBeenCalled()
+  })
 
   it('distinguishes "could not look" from "looked, found none"', async () => {
     // The distinction providers.js draws. Collapsing them makes an unseeded
