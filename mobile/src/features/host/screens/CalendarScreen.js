@@ -14,7 +14,11 @@ import { formatRent } from '@utils/format'
 import { formatTime } from '@utils/time'
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-const DOT_COLOR = { appointment: '#FBBF24', 'lease-start': '#4ADE80', 'lease-end': colors.slate400 }
+// Amber = someone waiting on you, jade = money starts arriving, indigo = the
+// tenancy colour the OCCUPIED banner already uses, here marking its end.
+// The old set (#FBBF24 / #4ADE80 / slate400) was two washed-out pastels and a
+// grey that vanished against the canvas.
+const DOT_COLOR = { appointment: '#F59E0B', 'lease-start': colors.brand600, 'lease-end': '#6366F1' }
 const EVENT_TYPE_LABEL = { appointment: 'Visit request', 'lease-start': 'Lease starts', 'lease-end': 'Lease ends' }
 
 function daysInMonth(year, month) {
@@ -68,6 +72,7 @@ export default function CalendarScreen({ navigation }) {
     Array.from({ length: total }, (_, i) => i + 1)
   )
   const monthLabel = new Date(cursor.year, cursor.month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  const todayKey = dateKey(new Date())
   const isLoading = loadingAppts || loadingLeases
 
   const selectedEvents = selectedKey ? (events.get(selectedKey) ?? []) : []
@@ -87,24 +92,24 @@ export default function CalendarScreen({ navigation }) {
         {isLoading ? (
           <ActivityIndicator color={colors.brand600} style={{ marginTop: spacing.xl }} />
         ) : (
-          <>
+          <View style={styles.card}>
             <View style={styles.monthNav}>
               <Pressable
-                hitSlop={14}
+                style={styles.monthButton}
                 onPress={() => setCursor((c) => (c.month === 0 ? { year: c.year - 1, month: 11 } : { ...c, month: c.month - 1 }))}
                 accessibilityRole="button"
                 accessibilityLabel="Previous month"
               >
-                <Icon name="chevronLeft" size={18} color={colors.slate500} />
+                <Icon name="chevronLeft" size={18} color={colors.slate700} />
               </Pressable>
               <Text style={styles.monthLabel}>{monthLabel}</Text>
               <Pressable
-                hitSlop={14}
+                style={styles.monthButton}
                 onPress={() => setCursor((c) => (c.month === 11 ? { year: c.year + 1, month: 0 } : { ...c, month: c.month + 1 }))}
                 accessibilityRole="button"
                 accessibilityLabel="Next month"
               >
-                <Icon name="chevronRight" size={18} color={colors.slate500} />
+                <Icon name="chevronRight" size={18} color={colors.slate700} />
               </Pressable>
             </View>
 
@@ -119,42 +124,41 @@ export default function CalendarScreen({ navigation }) {
                 if (!day) return <View key={i} style={styles.cell} />
                 const key = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
                 const dayEvents = events.get(key) ?? []
+                const isToday = key === todayKey
                 return (
                   <Pressable
                     key={i}
                     style={styles.cell}
                     onPress={() => setSelectedKey(key)}
                     accessibilityRole="button"
-                    accessibilityLabel={`${key}${dayEvents.length ? `, ${dayEvents.length} booking${dayEvents.length > 1 ? 's' : ''}` : ''}`}
+                    accessibilityLabel={`${key}${isToday ? ', today' : ''}${dayEvents.length ? `, ${dayEvents.length} booking${dayEvents.length > 1 ? 's' : ''}` : ''}`}
                   >
-                    <Text style={styles.dayNumber}>{day}</Text>
-                    {dayEvents.length > 0 && (
-                      <View style={styles.dotRow}>
-                        {dayEvents.slice(0, 3).map((e, idx) => (
-                          <View key={idx} style={[styles.dot, { backgroundColor: DOT_COLOR[e.type] }]} />
-                        ))}
-                      </View>
-                    )}
+                    {/* Today is the one date a calendar must answer without
+                        being asked — the filled disc marks it. */}
+                    <View style={[styles.dayDisc, isToday && styles.dayDiscToday]}>
+                      <Text style={[styles.dayNumber, dayEvents.length > 0 && styles.dayNumberBusy, isToday && styles.dayNumberToday]}>
+                        {day}
+                      </Text>
+                    </View>
+                    <View style={styles.dotRow}>
+                      {dayEvents.slice(0, 3).map((e, idx) => (
+                        <View key={idx} style={[styles.dot, { backgroundColor: DOT_COLOR[e.type] }]} />
+                      ))}
+                    </View>
                   </Pressable>
                 )
               })}
             </View>
 
             <View style={styles.legend}>
-              <View style={styles.legendItem}>
-                <View style={[styles.dot, { backgroundColor: DOT_COLOR.appointment }]} />
-                <Text style={styles.legendText}>Appointment</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.dot, { backgroundColor: DOT_COLOR['lease-start'] }]} />
-                <Text style={styles.legendText}>Lease starts</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.dot, { backgroundColor: DOT_COLOR['lease-end'] }]} />
-                <Text style={styles.legendText}>Lease ends</Text>
-              </View>
+              {[['appointment', 'Visit request'], ['lease-start', 'Lease starts'], ['lease-end', 'Lease ends']].map(([type, label]) => (
+                <View key={type} style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: DOT_COLOR[type] }]} />
+                  <Text style={styles.legendText}>{label}</Text>
+                </View>
+              ))}
             </View>
-          </>
+          </View>
         )}
       </ScrollView>
 
@@ -198,19 +202,43 @@ const CELL_WIDTH = `${100 / 7}%`
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
-  content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
-  monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
-  monthLabel: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
-  weekRow: { flexDirection: 'row' },
-  weekday: { width: CELL_WIDTH, textAlign: 'center', fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate500, paddingVertical: spacing.xs },
+  content: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.xxl },
+  // One white card on the slate50 canvas — the app-shell rule (.claude/ui-ux.md).
+  // The grid used to sit bare on the canvas, so the whole screen was one
+  // undifferentiated grey sheet.
+  card: {
+    backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate200,
+    borderRadius: radius.lg, padding: spacing.md, ...shadows.card,
+  },
+  monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
+  monthButton: {
+    width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.slate100,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  monthLabel: { fontFamily: fonts.displayBold, fontSize: fontSizes.base, color: colors.slate800 },
+  weekRow: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.slate200, marginBottom: spacing.xs },
+  weekday: { width: CELL_WIDTH, textAlign: 'center', fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate500, paddingVertical: spacing.sm },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  cell: { width: CELL_WIDTH, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  dayNumber: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate700 },
-  dotRow: { flexDirection: 'row', gap: 2 },
-  dot: { width: 5, height: 5, borderRadius: 3 },
-  legend: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg, flexWrap: 'wrap' },
+  // minHeight, not aspectRatio: a 7-column grid on a 360dp phone makes ~40dp
+  // squares, under the 48dp Android target height (§6). Width is bound by the
+  // seven columns; height is not.
+  cell: { width: CELL_WIDTH, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  dayDisc: { width: 32, height: 32, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center' },
+  dayDiscToday: { backgroundColor: colors.brand600 },
+  dayNumber: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate700 },
+  dayNumberBusy: { fontFamily: fonts.bodySemiBold, color: colors.slate800 },
+  dayNumberToday: { fontFamily: fonts.bodySemiBold, color: colors.white },
+  // Constant height whether or not the day has dots, so rows don't ripple.
+  dotRow: { flexDirection: 'row', gap: 3, height: 6, marginTop: 2 },
+  dot: { width: 6, height: 6, borderRadius: 3 },
+  legend: {
+    flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap',
+    marginTop: spacing.sm, paddingTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.slate200,
+  },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate600 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,

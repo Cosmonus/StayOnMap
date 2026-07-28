@@ -84,6 +84,9 @@ export function ModeSwitch({ hostMode, onChange, waiting = 0 }) {
             accessibilityLabel={marked ? `${label}, has unread` : label}
             accessibilityHint={selected ? undefined : `Switches the app to ${label.toLowerCase()}`}
           >
+            {/* The hat, not just its name: a compass for the side browsing the
+                map, a key for the side that holds them. */}
+            <Icon name={isHost ? 'key' : 'explore'} size={16} color={selected ? colors.white : colors.brand600} />
             <Text style={[styles.segmentText, selected && styles.segmentTextActive]} numberOfLines={1}>
               {label}
             </Text>
@@ -124,19 +127,24 @@ const styles = StyleSheet.create({
   // 48 sits on the segment, not the track, so the TAPPABLE area clears
   // Android's 48dp minimum (mobile/AGENTS.md §6) rather than the track clearing
   // it while each half sits under.
+  // A full pill, like every segmented control people already know how to
+  // read. The mint track with a brand-100 hairline reads as the control's own
+  // recessed surface; the selected half is a raised brand pill sitting IN it.
   segment: {
     flexDirection: 'row',
     backgroundColor: colors.brand50,
-    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.brand100,
+    borderRadius: radius.full,
     padding: spacing.xs,
   },
   segmentItem: {
-    flex: 1, minHeight: 48, flexDirection: 'row', gap: spacing.xs,
+    flex: 1, minHeight: 48, flexDirection: 'row', gap: spacing.sm,
     alignItems: 'center', justifyContent: 'center',
-    borderRadius: radius.sm,
+    borderRadius: radius.full,
   },
   segmentDot: { width: 7, height: 7, borderRadius: radius.full, backgroundColor: colors.danger },
   segmentItemActive: { backgroundColor: colors.brand700, ...shadows.xs },
-  segmentText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.base, color: colors.brand700 },
+  segmentText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.brand700 },
   segmentTextActive: { fontFamily: fonts.bodySemiBold, color: colors.white },
 })
