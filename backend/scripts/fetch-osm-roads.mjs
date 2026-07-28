@@ -21,6 +21,7 @@
 // tiling below is what makes Overpass survivable, and the DataQualityReport is
 // what makes a partial run visible rather than silent.
 import 'dotenv/config'
+import '../src/lib/netTuning.js'
 import { prisma } from '../src/lib/prisma.js'
 import { invalidateCityCells } from '../src/features/spatial/seedMaintenance.js'
 import { recordQualityReport, completeness } from '../src/features/spatial/dataQuality.js'

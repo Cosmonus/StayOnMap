@@ -21,10 +21,29 @@
 import { intelLog, intelError } from '../../lib/intelLog.js'
 
 /** Public mirrors, tried in order. */
+// Order is load-bearing: they are tried in sequence, so a slow mirror early in
+// the list is paid for on every request that reaches it.
+//
+// Measured from the production VM 2026-07-28, after netTuning.js fixed the
+// connection-attempt timeout that was making the first entry look dead:
+//
+//   overpass-api.de        HTTP 200 in  1.2 s
+//   maps.mail.ru           HTTP 200 in 14.5 s
+//   overpass.kumi.systems  hard timeout at 30 s
+//
+// kumi moved to LAST on that evidence. It used to sit second, where it was
+// harmless only by accident: Node abandoned the connection after 250 ms, so it
+// failed fast. With that bug fixed it would instead hang for the caller's FULL
+// timeout — 240 s per tile in the seeders — before falling through. Fixing one
+// thing made the ordering matter, which is why both changes ship together.
+//
+// It is kept rather than deleted: one measurement from one network is not
+// proof a mirror is dead everywhere, and a third fallback costs nothing while
+// the first two are healthy.
 export const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
   'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
 ]
 
 /**
