@@ -1,0 +1,24 @@
+# Nightly trigger for stayonmap-backup.service.
+#
+#   sudo systemctl enable --now stayonmap-backup.timer
+#   systemctl list-timers stayonmap-backup.timer      # next / last run
+[Unit]
+Description=Run the StayOnMap database backup nightly
+Documentation=file:///srv/stayonmap/infra/server/README-server.md
+
+[Timer]
+# 02:30 UTC = 08:00 IST. Deliberately not midnight: 00:00 is when every cron on
+# every box fires, and the dump competes with log rotation and package timers.
+OnCalendar=*-*-* 02:30:00
+# Spread the actual start over 15 minutes. Matters little on one box today, but
+# costs nothing and is correct if a second box ever shares the offsite bucket.
+RandomizedDelaySec=15min
+
+# THE IMPORTANT ONE. Without Persistent=true a timer whose window passed while
+# the VM was off or rebooting simply skips that day — silently. A backup that
+# skips the day of an incident is the backup you needed. With it, systemd runs
+# the missed job at next boot.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

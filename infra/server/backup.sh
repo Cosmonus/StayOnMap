@@ -7,13 +7,19 @@
 # Dumps the local DB in PostgreSQL CUSTOM format (-Fc, already zlib-compressed
 # — so a separate gzip pass would only add CPU for a few % and complicate
 # restore; the format IS the compression). Keeps 14 days in /var/backups/
-# stayonmap, prunes older. An OPTIONAL, clearly-marked offsite push block is at
-# the bottom — leave it commented to keep everything on-box.
+# stayonmap, prunes older, then pushes offsite if an offsite target is set in
+# /etc/stayonmap/api.env (see the OFFSITE PUSH section below).
 #
 #  >>> READ THIS: self-hosting means BACKUPS ARE NOW YOUR RESPONSIBILITY. <<<
 #  Railway snapshotted Postgres automatically; this VM does not. A backup that
-#  only lives on the same disk as the DB is not a backup — enable the offsite
-#  block (or copy the dumps elsewhere) before you rely on this in anger.
+#  only lives on the same disk as the DB is not a backup — set an offsite
+#  target before you rely on this in anger.
+#
+# Schedule it with the units next door — this script does nothing on its own:
+#   sudo cp /srv/stayonmap/infra/server/systemd/stayonmap-backup.* /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now stayonmap-backup.timer
+# On 2026-07-30 a verification pass found this script present, executable, and
+# NEVER ONCE RUN: nothing scheduled it, and /var/backups/stayonmap was empty.
 #
 # Restore a dump (custom format):
 #   pg_restore --clean --if-exists --no-owner --no-acl \
@@ -45,46 +51,70 @@ echo "[backup] verified. size: $(du -h "${outfile}" | cut -f1)"
 echo "[backup] pruning dumps older than ${RETAIN_DAYS} days"
 find "${BACKUP_DIR}" -name 'stayonmap-*.dump' -type f -mtime "+${RETAIN_DAYS}" -print -delete
 
-# ── OPTIONAL OFFSITE PUSH — UNCOMMENT AND CONFIGURE ONE ─────────────────────
-# On-disk backups die with the disk. Push offsite to survive VM loss.
+# ── OFFSITE PUSH — configured in api.env, NOT by editing this file ──────────
 #
-# Google Cloud Storage (install: `curl https://sdk.cloud.google.com | bash`,
-# auth a service account with Storage Object Creator on the bucket):
-#   gsutil cp "${outfile}" "gs://YOUR-BUCKET/stayonmap/"
+# This used to be a block of commented-out examples with "uncomment one".
+# That was bad advice: this file is git-tracked and deploy.sh runs `git pull`
+# on every merge, so a local edit here is either clobbered or blocks the pull
+# outright — the same trap a manual `chmod` on the box already sprang once
+# (see .claude/ops.md). Anything that varies per box belongs in
+# /etc/stayonmap/api.env, which is not in git and is already sourced above.
 #
-# Any S3-compatible target (awscli):
-#   aws s3 cp "${outfile}" "s3://YOUR-BUCKET/stayonmap/"
+# Set ONE of these in api.env to enable. Unset = on-disk only, and the script
+# says so loudly, because a dump on the same disk as the database is not a
+# backup — it does not survive the one event backups exist for.
 #
-# Or rsync to another host:
-#   rsync -az "${outfile}" backups@your-other-host:/backups/stayonmap/
-# ────────────────────────────────────────────────────────────────────────────
+#   BACKUP_GCS_BUCKET=gs://your-bucket/stayonmap      # needs gsutil + a service account
+#   BACKUP_S3_URI=s3://your-bucket/stayonmap          # needs awscli
+#   BACKUP_RSYNC_TARGET=backups@host:/backups/stayonmap
+#
+offsite_ok=""
+if [ -n "${BACKUP_GCS_BUCKET:-}" ]; then
+  echo "[backup] offsite -> ${BACKUP_GCS_BUCKET}"
+  gsutil cp "${outfile}" "${BACKUP_GCS_BUCKET}/" && offsite_ok=1
+elif [ -n "${BACKUP_S3_URI:-}" ]; then
+  echo "[backup] offsite -> ${BACKUP_S3_URI}"
+  aws s3 cp "${outfile}" "${BACKUP_S3_URI}/" && offsite_ok=1
+elif [ -n "${BACKUP_RSYNC_TARGET:-}" ]; then
+  echo "[backup] offsite -> ${BACKUP_RSYNC_TARGET}"
+  rsync -az "${outfile}" "${BACKUP_RSYNC_TARGET}/" && offsite_ok=1
+else
+  echo "[backup] WARNING: no offsite target set (BACKUP_GCS_BUCKET / BACKUP_S3_URI /"
+  echo "[backup]          BACKUP_RSYNC_TARGET in ${ENV_FILE}). This dump lives only on"
+  echo "[backup]          the same disk as the database it came from."
+fi
+
+# `set -e` already aborts on a failed push, so reaching here with the variable
+# empty means no target was configured rather than a push that failed. Said
+# explicitly so the distinction survives in the journal.
+#
+# Written as an `if` rather than `[ ... ] && echo`: under `set -e` a trailing
+# AND-list whose test fails is exempt from exiting, but only by a rule most
+# readers have to look up — and it is the LAST statement here, where a future
+# edit could easily make it the script's exit status.
+if [ -n "${offsite_ok}" ]; then
+  echo "[backup] offsite copy confirmed."
+fi
 
 echo "[backup] done."
 
 # ============================================================================
-# SCHEDULING — pick ONE.
+# SCHEDULING
 #
-# A) systemd timer (preferred — journald logs, no per-user crontab). Create
-#    /etc/systemd/system/stayonmap-backup.service :
-#      [Unit]
-#      Description=StayOnMap nightly DB backup
-#      [Service]
-#      Type=oneshot
-#      User=deploy
-#      ExecStart=/usr/bin/bash /srv/stayonmap/infra/server/backup.sh
-#    and /etc/systemd/system/stayonmap-backup.timer :
-#      [Unit]
-#      Description=Run StayOnMap DB backup nightly
-#      [Timer]
-#      OnCalendar=*-*-* 02:30:00
-#      Persistent=true
-#      [Install]
-#      WantedBy=timers.target
-#    Then:
-#      sudo systemctl daemon-reload
-#      sudo systemctl enable --now stayonmap-backup.timer
-#      systemctl list-timers stayonmap-backup.timer
+# The units are real files now, not a recipe to retype:
+#   infra/server/systemd/stayonmap-backup.service
+#   infra/server/systemd/stayonmap-backup.timer
 #
-# B) cron (deploy user's crontab — `crontab -e -u deploy`):
-#      30 2 * * * bash /srv/stayonmap/infra/server/backup.sh >> /var/log/stayonmap-backup.log 2>&1
+#   sudo cp /srv/stayonmap/infra/server/systemd/stayonmap-backup.* /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now stayonmap-backup.timer
+#   systemctl list-timers stayonmap-backup.timer     # next / last run
+#   sudo systemctl start stayonmap-backup            # run one now
+#   journalctl -u stayonmap-backup -n 50             # what happened
+#
+# The timer sets Persistent=true, so a run missed while the VM was off happens
+# at next boot instead of being skipped silently.
+#
+# Verify the whole picture (scheduled? fresh? offsite on?) with:
+#   sudo /srv/stayonmap/infra/server/verify-production.sh
 # ============================================================================
