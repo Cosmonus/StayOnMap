@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  Check, CheckCheck, Search, MessageCircle, CalendarDays, FileText, Pencil, Trash2, Home,
+  Check, CheckCheck, Search, MessageCircle, CalendarDays, FileText, Pencil, Trash2, Home, Phone,
 } from 'lucide-react'
 import { chatService } from '@services/chat.service'
 import { getSocket } from '@lib/socket'
@@ -15,8 +15,14 @@ import Avatar from './Avatar'
 import InputBar from './InputBar'
 import { chatTime, dateSeparator, displayName, isImageAttachment, replyTimeLabel } from './chatFormat'
 
+// 16px, not 14: the double tick draws two overlapping strokes across the full
+// width of its box, so it loses more to a small size than a single tick does and
+// reads as a smudge. 16 is also the floor on the icon scale (.claude/ui-ux.md).
+// `text-white/70`, not /50: on the brand-700 bubble that was ~2.9:1, under the
+// 3:1 a meaning-bearing icon needs — and "sent but not read yet" is the whole
+// meaning of that state.
 function ReadReceipt({ isRead }) {
-  const cls = `w-3.5 h-3.5 shrink-0 ${isRead ? 'text-white' : 'text-white/50'}`
+  const cls = `w-4 h-4 shrink-0 ${isRead ? 'text-white' : 'text-white/70'}`
   return isRead ? <CheckCheck className={cls} strokeWidth={2.5} /> : <Check className={cls} strokeWidth={2.5} />
 }
 
@@ -46,6 +52,27 @@ function ThreadHeader({ conversation, other, counterpartRole, replyMinutes, typi
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
+        {/* Either party can call the other, and the direction is not a rule this
+            component enforces: the server decides per PERSON, from their own
+            contactVisibility (chat.service.js's gateParticipantPhones), so a
+            number the caller shouldn't have simply isn't in the payload. Absent
+            therefore means "they chose not to share it, or never saved one" and
+            the control does not render — the same behaviour mobile has had since
+            P10. Web had no call affordance at all until 2026-07-30, so on this
+            platform NEITHER side could call, which read as the feature being
+            owner-only.
+            `tel:` hands off to the phone/dialer — genuinely another app, the one
+            case where leaving ours is correct. */}
+        {!!other?.phone && (
+          <a
+            href={`tel:${other.phone}`}
+            aria-label={`Call ${displayName(other)} on ${other.phone}`}
+            title={other.phone}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 no-underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
+            <Phone className="w-[18px] h-[18px]" strokeWidth={2} aria-hidden="true" />
+          </a>
+        )}
         <button
           onClick={onToggleSearch}
           aria-label="Search in this conversation"
@@ -276,6 +303,15 @@ function EmptyThread({ prompt }) {
   )
 }
 
+// The sender re-announces typing at most once per SEND interval; the receiver
+// hides the indicator after HOLD. HOLD must be comfortably LONGER than SEND, or
+// the receiver's window closes exactly when the next announcement is due and
+// network latency guarantees it closes first — which is why "X is typing"
+// flickered, and why whether you saw it at all depended on the other person's
+// typing rhythm. Mirrored in mobile's ConversationScreen; keep the two in step.
+const TYPING_SEND_EVERY_MS = 2000
+const TYPING_HOLD_MS = 4000
+
 // The right pane: one open thread, end to end. Everything here — sending,
 // editing, deleting, typing, read receipts, live socket updates — is identical
 // for both hats, because a message is a message. What the caller supplies is
@@ -300,11 +336,56 @@ export default function MessageThread({
     return () => clearTimeout(t)
   }, [msgSearch])
 
-  const { data: messages = [] } = useQuery({
+  const { data: messages = [], isSuccess } = useQuery({
     queryKey: ['chat-messages', conversationId],
     queryFn: () => chatService.messages(conversationId).then(r => r.data),
     enabled: !!conversationId,
   })
+
+  // Reading a thread makes every count that pointed at it wrong at once: the
+  // Header's Messages/Inbox badge, this row's unread pill, and the MESSAGE
+  // notification the backend retires alongside the messages (chat.service.js's
+  // markConversationRead). Nothing here computes a new number — it drops the
+  // stale ones so the next read is the truth. That is the difference between the
+  // badge going out now and going out when its 15s/30s poll next came round,
+  // which read as "the app thinks I haven't read this".
+  const dropStaleCounts = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ['conversations'] })
+    qc.invalidateQueries({ queryKey: ['chat-unread'] })
+    qc.invalidateQueries({ queryKey: ['notifications'] })
+    qc.invalidateQueries({ queryKey: ['notification-unread'] })
+  }, [qc])
+
+  // The fetch above is what marks the thread read server-side, so the moment it
+  // lands is the moment those counts are stale. Once per thread, via the ref:
+  // dropStaleCounts refetches `conversations`, which changes this component's
+  // props — without the guard that is a loop.
+  const syncedFor = useRef(null)
+  useEffect(() => {
+    if (!conversationId || !isSuccess || syncedFor.current === conversationId) return
+    syncedFor.current = conversationId
+    dropStaleCounts()
+  }, [conversationId, isSuccess, dropStaleCounts])
+
+  const { mutate: markRead } = useMutation({
+    mutationFn: () => chatService.markRead(conversationId),
+    onSuccess: dropStaleCounts,
+  })
+
+  // A message that lands while its own thread is open has been READ — unless the
+  // tab is in the background, in which case it hasn't, and sending the other
+  // person a read receipt for it would be a lie. So it is parked and settled the
+  // moment the reader comes back.
+  const arrivedUnseen = useRef(false)
+  useEffect(() => {
+    function onVisibility() {
+      if (document.visibilityState !== 'visible' || !arrivedUnseen.current) return
+      arrivedUnseen.current = false
+      markRead()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [markRead])
 
   const { data: searchResults = [] } = useQuery({
     queryKey: ['chat-search', conversationId, searchQuery],
@@ -348,19 +429,27 @@ export default function MessageThread({
     socket.emit('join:conversation', conversationId)
 
     function onNewMessage(msg) {
-      if (msg.senderId !== userId) {
-        qc.setQueryData(['chat-messages', conversationId], (old = []) => {
-          if (old.some(m => m.id === msg.id)) return old
-          return [...old, msg]
-        })
-      }
+      if (msg.senderId === userId) return
+      qc.setQueryData(['chat-messages', conversationId], (old = []) => {
+        if (old.some(m => m.id === msg.id)) return old
+        return [...old, msg]
+      })
+      // The message is here, so they have stopped typing — leaving the indicator
+      // up for another few seconds under the message it was announcing makes it
+      // look like a second one is coming.
+      clearTimeout(typingTimer.current)
+      setTyping(false)
+      // It is on screen, so it is read. Otherwise the badge appears over the
+      // very tab the reader is looking at.
+      if (document.visibilityState === 'visible') markRead()
+      else arrivedUnseen.current = true
     }
 
     function onTypingEvent(data) {
       if (data.userId !== userId && data.conversationId === conversationId) {
         setTyping(true)
         clearTimeout(typingTimer.current)
-        typingTimer.current = setTimeout(() => setTyping(false), 2000)
+        typingTimer.current = setTimeout(() => setTyping(false), TYPING_HOLD_MS)
       }
     }
 
@@ -403,14 +492,14 @@ export default function MessageThread({
       socket.off('message:deleted', onMessageDeleted)
       socket.off('connect', onConnect)
     }
-  }, [conversationId, userId, qc])
+  }, [conversationId, userId, qc, markRead])
 
   const typingDebounce = useRef(null)
   function emitTyping() {
     if (typingDebounce.current) return
     const socket = getSocket()
     if (socket) socket.emit('typing', { conversationId })
-    typingDebounce.current = setTimeout(() => { typingDebounce.current = null }, 2000)
+    typingDebounce.current = setTimeout(() => { typingDebounce.current = null }, TYPING_SEND_EVERY_MS)
   }
 
   function startEdit(msg) { setEditingId(msg.id); setEditValue(msg.body) }

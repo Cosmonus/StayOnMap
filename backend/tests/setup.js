@@ -85,6 +85,9 @@ vi.mock('../src/features/spatial/spatial.service.js', () => ({
 // ── Notifications / chat — fire-and-forget side effects across services ────
 vi.mock('../src/features/notifications/notifications.service.js', () => ({
   notifyUser: vi.fn().mockResolvedValue(null),
+  // chat.service.js calls this when a thread is read; the count it returns is
+  // only reported back, never branched on.
+  markMessageNotificationsRead: vi.fn().mockResolvedValue(0),
 }))
 vi.mock('../src/features/chat/chat.service.js', () => ({
   getOrCreateConversation: vi.fn().mockResolvedValue({ id: 'convo-1' }),

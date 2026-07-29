@@ -122,6 +122,14 @@ export const prismaMock = {
     findMany:   vi.fn(),
     create:     vi.fn(),
   },
+  notification: {
+    findUnique: vi.fn(),
+    create:     vi.fn(),
+    update:     vi.fn(),
+    updateMany: vi.fn(),
+    count:      vi.fn(),
+    findMany:   vi.fn(),
+  },
   ownerTrustScore: undefined, // not yet in schema — tested services check typeof before calling
   // Spatial intelligence. Defaults leave PoiIndex unseeded (count 0), which is
   // a fresh checkout's real state and the path that must degrade gracefully —

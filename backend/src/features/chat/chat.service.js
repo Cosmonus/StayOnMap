@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/prisma.js'
-import { notifyUser } from '../notifications/notifications.service.js'
+import { notifyUser, markMessageNotificationsRead } from '../notifications/notifications.service.js'
 import { emitToConversation, emitToUser } from '../../lib/socket.js'
 
 // `requesterId` is the authenticated caller. It differs from `tenantId` only
@@ -155,14 +155,9 @@ export async function getMessages(conversationId, userId, { skip = 0, limit = 50
     throw Object.assign(new Error('Access denied'), { statusCode: 403 })
   }
 
-  // Mark unread messages from the other person as read
-  const { count } = await prisma.message.updateMany({
-    where: { conversationId, senderId: { not: userId }, isRead: false },
-    data: { isRead: true },
-  })
-  if (count > 0) {
-    emitToConversation(conversationId, 'message:read', { conversationId, readerId: userId, readAt: new Date() })
-  }
+  // Opening a thread IS reading it — see markConversationRead below for what
+  // that clears.
+  await applyRead(conversationId, userId)
 
   return prisma.message.findMany({
     where: { conversationId },
@@ -171,6 +166,42 @@ export async function getMessages(conversationId, userId, { skip = 0, limit = 50
     take: limit,
     include: { sender: { select: { id: true, name: true, email: true, avatarUrl: true } } },
   })
+}
+
+// Everything that was pointing at this thread, retired at once: the other
+// person's unread messages AND the MESSAGE notification that stood in for them.
+// One function, so "I have seen this" cannot mean two different things
+// depending on which surface asks.
+//
+// Two callers, two moments. getMessages covers OPENING a thread. This one
+// exists for a message that lands while the thread is already open — nothing
+// else clears that, so the badge lit up over a conversation the reader was
+// looking at and only the next poll took it back off.
+export async function markConversationRead(conversationId, userId) {
+  const convo = await prisma.conversation.findUnique({ where: { id: conversationId } })
+  if (!convo) throw Object.assign(new Error('Conversation not found'), { statusCode: 404 })
+  if (convo.tenantId !== userId && convo.ownerId !== userId) {
+    throw Object.assign(new Error('Access denied'), { statusCode: 403 })
+  }
+  return applyRead(conversationId, userId)
+}
+
+// Callers have already proven the caller is a participant.
+async function applyRead(conversationId, userId) {
+  const [{ count }, notifications] = await Promise.all([
+    prisma.message.updateMany({
+      where: { conversationId, senderId: { not: userId }, isRead: false },
+      data: { isRead: true },
+    }),
+    markMessageNotificationsRead(userId, conversationId),
+  ])
+
+  // The other party's read receipts — only when something actually changed. An
+  // empty receipt on every thread open would be noise on the wire.
+  if (count > 0) {
+    emitToConversation(conversationId, 'message:read', { conversationId, readerId: userId, readAt: new Date() })
+  }
+  return { messages: count, notifications }
 }
 
 export async function sendMessage(conversationId, senderId, body, attachment = {}) {

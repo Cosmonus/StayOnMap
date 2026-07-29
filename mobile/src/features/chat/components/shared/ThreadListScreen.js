@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { chatService } from '@services/chat.service'
+import { notificationService } from '@services/notification.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { getSocket } from '@lib/socket'
 import Icon from '@components/common/Icon'
@@ -22,6 +23,7 @@ import ConversationRow from './ConversationRow'
 // one screen with a flag.
 export default function ThreadListScreen({ navigation, side, title, counterpartRole, empty }) {
   const { user } = useAuth()
+  const qc = useQueryClient()
   const [onlineUsers, setOnlineUsers] = useState(new Set())
 
   const { data: allConversations = [], isLoading, isError, refetch } = useQuery({
@@ -29,6 +31,24 @@ export default function ThreadListScreen({ navigation, side, title, counterpartR
     queryFn: () => chatService.conversations().then((r) => r.data),
     refetchInterval: 15000,
   })
+
+  // Opening the inbox is seeing that these messages exist, so the notification
+  // that announced them has done its job — the list itself now says which
+  // threads are unread, per row, which the bell cannot. Web has cleared them at
+  // this point since the audience split (DashboardPage's messages section) and
+  // mobile never did, so a chat notification sat unread on the bell long after
+  // the thread had been read.
+  //
+  // Only THIS hat's: the list you opened shows one side's threads, so it cannot
+  // have caught you up on the other's.
+  useEffect(() => {
+    notificationService.markAllByType('MESSAGE', side === 'owner' ? 'OWNER' : 'TENANT')
+      .then(() => {
+        qc.invalidateQueries({ queryKey: ['notifications'] })
+        qc.invalidateQueries({ queryKey: ['notification-unread'] })
+      })
+      .catch(() => {})
+  }, [side, qc])
 
   const conversations = allConversations.filter((c) =>
     side === 'owner' ? c.ownerId === user?.id : c.tenantId === user?.id,

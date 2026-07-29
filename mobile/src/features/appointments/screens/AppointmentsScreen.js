@@ -372,7 +372,11 @@ export default function AppointmentsScreen({ navigation, route }) {
       navigation.navigate('Conversation', {
         conversationId: convo.id,
         other: appt.tenant,
-        otherRole: 'Tenant',
+        // "Renter", not "Tenant" — mobile says renter everywhere else, including
+        // the host inbox that opens the same screen for the same person
+        // (.claude/architecture.md's platform-divergence note). Two words for one
+        // party, one screen apart, is how it read until 2026-07-30.
+        otherRole: 'Renter',
       })
     } catch {
       Alert.alert('Couldn’t open the chat', 'Please try again in a moment.')

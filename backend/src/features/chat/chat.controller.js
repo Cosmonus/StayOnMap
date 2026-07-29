@@ -29,6 +29,14 @@ export async function listMessages(req, res, next) {
   } catch (err) { next(err) }
 }
 
+// "I am looking at this thread right now." Idempotent, so a client can call it
+// whenever the reader's attention returns without tracking what it already sent.
+export async function markRead(req, res, next) {
+  try {
+    ok(res, await chatService.markConversationRead(req.params.conversationId, req.user.id))
+  } catch (err) { next(err) }
+}
+
 export async function sendMessage(req, res, next) {
   try {
     const message = await chatService.sendMessage(req.params.conversationId, req.user.id, req.body.body, {

@@ -225,7 +225,7 @@ export default function UnifiedSidebar({ active, onChange, isAdmin = false, onLo
     >
       {/* Brand */}
       <div className={`shrink-0 px-5 pt-5 pb-2 flex items-center ${collapsed ? 'justify-center px-0' : 'justify-between'}`}>
-        <Link to="/dashboard" className="no-underline flex items-center gap-2.5">
+        <Link to="/admin" className="no-underline flex items-center gap-2.5">
           {!collapsed && (
             <span className="font-display font-bold text-lg text-slate-900 tracking-tight">
               Stay<span className="text-brand-600">OnMap</span>

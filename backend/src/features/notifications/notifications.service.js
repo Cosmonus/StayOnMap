@@ -107,3 +107,25 @@ export async function markAllRead(userId, type, audience) {
   if (type) where.type = type
   await prisma.notification.updateMany({ where, data: { isRead: true } })
 }
+
+// A MESSAGE notification is a stand-in for the message itself, so reading the
+// thread has to retire it. Without this the bell went on announcing a
+// conversation the reader had already finished, and the only cure was clearing
+// it by hand — "1 new message" pointing at a thread with nothing new in it is
+// the small lie that teaches people to ignore the badge entirely.
+//
+// Scoped to ONE conversation on purpose: markAllRead(type) above is the
+// blunter action, and the two are not interchangeable.
+export async function markMessageNotificationsRead(userId, conversationId) {
+  const { count } = await prisma.notification.updateMany({
+    where: {
+      userId,
+      type: 'MESSAGE',
+      referenceType: 'Conversation',
+      referenceId: conversationId,
+      isRead: false,
+    },
+    data: { isRead: true },
+  })
+  return count
+}
