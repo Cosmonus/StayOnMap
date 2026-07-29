@@ -1,6 +1,8 @@
-import rateLimit from 'express-rate-limit'
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
 import { RedisStore } from 'rate-limit-redis'
+import jwt from 'jsonwebtoken'
 import { redis } from '../lib/redis.js'
+import { env } from '../config/env.js'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
@@ -31,6 +33,54 @@ function redisStore(prefix) {
   })
 }
 
+// ── Bucket identity: the signed-in USER first, the IP only as a fallback ─────
+//
+// Keying purely on `req.ip` is wrong for this product's actual network.
+// India's mobile carriers run carrier-grade NAT, so a large number of Jio or
+// Airtel subscribers share one public IPv4 — and StayOnMap is map-first
+// (every pan fires /pins) and mobile-first by explicit product decision. The
+// comment on defaultLimiter below says a single active session legitimately
+// makes several hundred requests per window; against a 600-request bucket
+// that means roughly TWO users behind one carrier NAT can exhaust the limit
+// for everyone else behind it. On /auth the strict bucket is 20, so a handful
+// of shared-IP users could lock each other out of signing in entirely.
+//
+// The symptom is invisible from here: users on mobile data get sporadic 429s
+// that never reproduce on wifi, and (with no telemetry yet) nothing surfaces
+// it. Fixing it after launch means explaining away weeks of bad first
+// impressions, so it is fixed now.
+//
+// The token is VERIFIED, not merely decoded. An unverified `sub` would let
+// anyone mint unlimited buckets by sending garbage Authorization headers,
+// which is worse than keying on IP rather than better. A forged or expired
+// token fails the check and falls back to the IP bucket, which is exactly the
+// old behaviour — so this can only ever loosen limits for legitimately
+// signed-in users, never for an attacker.
+//
+// Admin tokens are signed with a different secret and are checked second;
+// admin traffic is low-volume, and giving each operator their own bucket stops
+// two moderators on one office IP from throttling each other.
+function bucketKey(req) {
+  const header = req.headers.authorization
+  if (header?.startsWith('Bearer ')) {
+    const token = header.slice(7)
+    for (const [secret, prefix] of [
+      [env.jwtSecret, 'u'],
+      [process.env.ADMIN_JWT_SECRET, 'a'],
+    ]) {
+      if (!secret) continue
+      try {
+        const payload = jwt.verify(token, secret)
+        if (payload?.sub) return `${prefix}:${payload.sub}`
+      } catch { /* not this audience — try the next, then fall back to IP */ }
+    }
+  }
+  // ipKeyGenerator normalises IPv6 to a /64 subnet. Without it a single IPv6
+  // client rotating through its own address space gets a fresh bucket per
+  // request, which is a documented bypass rather than a subtlety.
+  return `ip:${ipKeyGenerator(req.ip)}`
+}
+
 function makeLimiter({ prefix, windowMs, max, message }) {
   if (isDev) return noop
   return rateLimit({
@@ -38,6 +88,7 @@ function makeLimiter({ prefix, windowMs, max, message }) {
     max,
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: bucketKey,
     ...(message && { message }),
     store: redisStore(prefix),
   })

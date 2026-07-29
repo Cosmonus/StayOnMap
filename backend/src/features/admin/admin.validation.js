@@ -80,3 +80,26 @@ export const adminPropertyStatusSchema = z.object({
   (v) => v.status === 'ACTIVE' || (v.note?.length ?? 0) >= 5,
   { path: ['note'], message: 'Tell the owner why — this reason is sent to them' },
 )
+
+// Three admin mutations read req.body fields with no schema, so a malformed
+// body threw inside the service and returned 500 for a bad request. Admin-
+// authed, so the severity is capped — but a moderator seeing "Internal server
+// error" cannot tell a typo from an outage, which is the real cost.
+export const adminBlockUserSchema = z.object({
+  blocked: z.boolean(),
+  reason:  z.string().trim().max(500).optional(),
+})
+
+// Mirrors ContentStatus in schema.prisma. FLAGGED is included because the
+// moderation UI offers it alongside approve/reject.
+export const adminReviewStatusSchema = z.object({
+  status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'FLAGGED']),
+})
+
+// Amenity names are a controlled vocabulary matched across 4 files x 2
+// platforms (scripts/check-amenities.mjs enforces it) — every mismatch fails
+// SILENTLY, so an untrimmed or empty name creates an amenity no wizard can
+// ever offer.
+export const adminAmenitySchema = z.object({
+  name: z.string().trim().min(1, 'Amenity name is required').max(60),
+})

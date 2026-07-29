@@ -9,7 +9,8 @@ import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import compression from 'compression'
-import { initSocket } from './lib/socket.js'
+import { initSocket, getIO } from './lib/socket.js'
+import { prisma } from './lib/prisma.js'
 import { corsOriginHandler } from './lib/corsOrigin.js'
 import { initSentry, setupExpressErrorHandler } from './lib/sentry.js'
 
@@ -28,6 +29,10 @@ const publicDir = path.join(__dirname, '../../public')
 process.on('unhandledRejection', (reason) => {
   console.error('[unhandledRejection]', reason)
 })
+
+// Flipped false by the shutdown handler at the bottom of this file so
+// /health/ready starts failing before we tear anything down.
+let ready = true
 
 import { errorMiddleware } from './middlewares/error.middleware.js'
 import { defaultLimiter, uploadLimiter, adminLimiter } from './middlewares/rateLimit.middleware.js'
@@ -74,7 +79,33 @@ app.use(express.json({ limit: '2mb' }))
 app.use(defaultLimiter)
 
 // Health check
+// ── Health ───────────────────────────────────────────────────────────────────
+// Two probes, deliberately different, because they answer different questions.
+//
+// /health is LIVENESS: is the process up and serving? It touches nothing
+// external on purpose — a dependency outage must not make a healthy process
+// look dead and get restarted, which turns a recoverable Postgres blip into a
+// restart loop. Its contract is depended on by deploy verification
+// (`.claude/ops.md`) and must stay shallow and 200.
+//
+// /health/ready is READINESS: should traffic be sent here? It checks the DB,
+// because "Express is answering" was previously indistinguishable from
+// "Express is answering and every request 500s" — the API reported a cheerful
+// 200 with Postgres face down. It also reports 503 while draining, so the
+// shutdown handler below can take us out of rotation before it starts closing
+// things.
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
+
+app.get('/health/ready', async (_req, res) => {
+  if (!ready) return res.status(503).json({ status: 'shutting_down' })
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    res.json({ status: 'ready', db: 'up', timestamp: new Date().toISOString() })
+  } catch (err) {
+    console.error('[health/ready] db check failed', err.message)
+    res.status(503).json({ status: 'degraded', db: 'down' })
+  }
+})
 
 // User-facing routes
 app.use('/api/v1/auth',          authRoutes)
@@ -138,3 +169,52 @@ httpServer.listen(PORT, () => {
     .then((path) => console.log(`Spatial refresher started (${path})`))
     .catch(() => {})
 })
+
+// ── Graceful shutdown ────────────────────────────────────────────────────────
+// `infra/server/deploy.sh` runs `systemctl restart stayonmap-api` on every
+// merge to master, and systemd's restart is SIGTERM. Node's DEFAULT SIGTERM
+// action is to exit immediately: every in-flight request dies mid-response and
+// every Socket.io client is severed without a close frame. With auto-deploy
+// that was several dropped requests per merge, presenting to users as a random
+// failed save or a chat that silently stopped updating.
+//
+// The order below is the point:
+//   1. stop reporting ready, so a health check (and any future load balancer)
+//      routes away BEFORE we start tearing anything down;
+//   2. stop accepting new connections, but let in-flight ones finish;
+//   3. disconnect sockets deliberately, so clients get a close frame and
+//      reconnect to the new process instead of waiting out a timeout;
+//   4. only then drop the DB pool — a request still draining in (2) needs it.
+//
+// The hard timeout is not optional: without it one stuck request holds the
+// deploy open until systemd's own TimeoutStopSec (90s default) SIGKILLs us,
+// which is the very thing this handler exists to avoid.
+const SHUTDOWN_TIMEOUT_MS = 15_000
+let shuttingDown = false
+
+async function shutdown(signal) {
+  if (shuttingDown) return // a second Ctrl-C must not race the first
+  shuttingDown = true
+  ready = false
+  console.log(`[shutdown] ${signal} received — draining`)
+
+  const hardExit = setTimeout(() => {
+    console.error('[shutdown] drain timed out — forcing exit')
+    process.exit(1)
+  }, SHUTDOWN_TIMEOUT_MS)
+  hardExit.unref() // don't let the timer itself keep the loop alive
+
+  try {
+    await new Promise((resolve) => httpServer.close(resolve))
+    try { getIO()?.disconnectSockets(true) } catch { /* socket layer already down */ }
+    await prisma.$disconnect()
+    console.log('[shutdown] clean')
+    process.exit(0)
+  } catch (err) {
+    console.error('[shutdown] failed', err)
+    process.exit(1)
+  }
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM')) // systemd restart/stop
+process.on('SIGINT',  () => shutdown('SIGINT'))  // Ctrl-C in dev

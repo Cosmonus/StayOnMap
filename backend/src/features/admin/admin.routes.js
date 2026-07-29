@@ -1,7 +1,11 @@
 import { Router } from 'express'
 import { adminAuthMiddleware } from '../../middlewares/adminAuth.middleware.js'
 import { validate } from '../../middlewares/validate.middleware.js'
-import { adminLoginSchema, adminChangePasswordSchema, adminPinsQuerySchema, adminPropertiesQuerySchema, adminPropertyStatusSchema } from './admin.validation.js'
+import {
+  adminLoginSchema, adminChangePasswordSchema, adminPinsQuerySchema,
+  adminPropertiesQuerySchema, adminPropertyStatusSchema,
+  adminBlockUserSchema, adminReviewStatusSchema, adminAmenitySchema,
+} from './admin.validation.js'
 import { strictLimiter } from '../../middlewares/rateLimit.middleware.js'
 import * as ctrl from './admin.controller.js'
 
@@ -16,7 +20,7 @@ router.get('/analytics', ctrl.analytics)
 router.get('/waitlist', ctrl.waitlist)
 router.get('/users', ctrl.users)
 router.get('/users/:userId', ctrl.userDetail)
-router.patch('/users/:userId/block', ctrl.blockUser)
+router.patch('/users/:userId/block', validate(adminBlockUserSchema), ctrl.blockUser)
 router.get('/properties', validate(adminPropertiesQuerySchema, 'query'), ctrl.properties)
 router.get('/properties/pins', validate(adminPinsQuerySchema, 'query'), ctrl.adminPins)
 router.get('/properties/:id', ctrl.propertyById)
@@ -27,7 +31,7 @@ router.get('/properties/:id', ctrl.propertyById)
 router.patch('/properties/:id/status', validate(adminPropertyStatusSchema), ctrl.setPropertyStatus)
 router.get('/moderation/queue', ctrl.moderationQueue)
 router.get('/reviews', ctrl.getReviews)
-router.patch('/reviews/:id/status', ctrl.moderateReview)
+router.patch('/reviews/:id/status', validate(adminReviewStatusSchema), ctrl.moderateReview)
 router.get('/logs', ctrl.activityLogs)
 router.get('/monitor', ctrl.getMonitorStatus)
 // Read-only: the latest ETL run per dataset. There is no write side by
@@ -38,7 +42,7 @@ router.get('/profile', ctrl.getProfile)
 router.patch('/profile', ctrl.updateProfile)
 router.patch('/profile/password', validate(adminChangePasswordSchema), ctrl.changePassword)
 router.get('/amenities', ctrl.getAmenities)
-router.post('/amenities', ctrl.addAmenity)
+router.post('/amenities', validate(adminAmenitySchema), ctrl.addAmenity)
 router.delete('/amenities/:id', ctrl.removeAmenity)
 
 export default router
