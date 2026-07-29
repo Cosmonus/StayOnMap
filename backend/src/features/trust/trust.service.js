@@ -26,15 +26,6 @@ async function googlePlacesCount(lat, lng, type, radius = 1500) {
   } catch { return 0 }
 }
 
-async function googleElevation(lat, lng) {
-  if (!env.googleMapsKey) return null
-  try {
-    const url = `https://maps.googleapis.com/maps/api/elevation/json?locations=${lat},${lng}&key=${env.googleMapsKey}`
-    const data = await fetch(url, { signal: AbortSignal.timeout(GOOGLE_TIMEOUT_MS) }).then(r => r.json())
-    return data.results?.[0]?.elevation ?? null
-  } catch { return null }
-}
-
 // ── AreaScore (0–10): transit + amenities + safety insights ───────────────────
 async function computeAreaScore(lat, lng, propertyId) {
   const cacheKey = geoCacheKey(lat, lng, 'area')
@@ -82,29 +73,23 @@ async function computeWaterScore(propertyId) {
   return Math.round(Math.max(0, Math.min(10, score)) * 10) / 10
 }
 
-// ── FloodSafe (0–10): elevation proxy, higher = safer ─────────────────────────
-async function computeFloodSafe(lat, lng) {
-  const cacheKey = geoCacheKey(lat, lng, 'flood')
-  const cached = await cacheGet(cacheKey)
-  if (cached !== null) return cached
-
-  const elevation = await googleElevation(lat, lng)
-  let score = 5
-
-  if (elevation !== null) {
-    if (elevation < 2)       score = 2
-    else if (elevation < 5)  score = 3
-    else if (elevation < 10) score = 5
-    else if (elevation < 15) score = 6
-    else if (elevation < 20) score = 7
-    else if (elevation < 30) score = 8
-    else if (elevation < 50) score = 9
-    else                     score = 10
-  }
-
-  await cacheSet(cacheKey, score, 7 * 24 * 60 * 60)
-  return score
-}
+// ── No FloodSafe score. Deliberate — do not reintroduce. ──────────────────────
+// A `floodSafeRating` lived here until 2026-07-30: one Google Elevation call
+// against a hardcoded ladder (<2m → 2 … >50m → 10), rendered to users as
+// "Flood safety 9.0/10". Nothing else fed it — no rainfall, no drainage, no
+// water body, no historical inundation.
+//
+// That is the exact inference `.claude/spatial.md` names as a standing refusal
+// ("inferring it from elevation would be the most credibility-damaging thing
+// this platform could do"). Four test files enforce that refusal — all of them
+// inside features/spatial/, none of which this predating path was ever in the
+// blast radius of. It shipped to users for months.
+//
+// Elevation is still available honestly: the spatial layer's terrain module
+// reports it in metres, MEASURED, with a provenance chip and a confidence
+// band. That is the one place it belongs. A 0–10 "safety" ladder derived from
+// the same number is not a second opinion, it is the same fact with a claim
+// attached that the data cannot support.
 
 // ── StayScore ─────────────────────────────────────────────────────────────────
 export async function recalculateTrustScore(propertyId) {
@@ -149,16 +134,15 @@ export async function recalculateTrustScore(propertyId) {
 
   const lat = property?.lat
   const lng = property?.lng
-  const [areaScore, waterScore, floodSafeRating] = await Promise.all([
+  const [areaScore, waterScore] = await Promise.all([
     lat && lng ? computeAreaScore(lat, lng, propertyId) : Promise.resolve(0),
     computeWaterScore(propertyId),
-    lat && lng ? computeFloodSafe(lat, lng) : Promise.resolve(5),
   ])
 
   const result = await prisma.trustScore.upsert({
     where:  { propertyId },
-    create: { propertyId, overallScore, safetyScore, cleanlinessScore, neighborhoodScore, totalReviews, recommendCount, notRecommendCount, recommendPercent, badge, areaScore, waterScore, floodSafeRating },
-    update: { overallScore, safetyScore, cleanlinessScore, neighborhoodScore, totalReviews, recommendCount, notRecommendCount, recommendPercent, badge, areaScore, waterScore, floodSafeRating },
+    create: { propertyId, overallScore, safetyScore, cleanlinessScore, neighborhoodScore, totalReviews, recommendCount, notRecommendCount, recommendPercent, badge, areaScore, waterScore },
+    update: { overallScore, safetyScore, cleanlinessScore, neighborhoodScore, totalReviews, recommendCount, notRecommendCount, recommendPercent, badge, areaScore, waterScore },
   })
 
   if (property?.ownerId) {

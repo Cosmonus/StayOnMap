@@ -101,7 +101,7 @@ export default function TrustScoreWidget({ trustScore, riskScore: _riskScore }) 
   const hasReviews   = (trustScore.totalReviews ?? 0) > 0
   const recommendPct = Number(trustScore.recommendPercent ?? 0)
 
-  const hasAreaScores   = (trustScore.areaScore > 0) || (trustScore.waterScore > 0) || (trustScore.floodSafeRating > 0)
+  const hasAreaScores   = (trustScore.areaScore > 0) || (trustScore.waterScore > 0)
   const hasReviewScores = hasReviews && (
     (trustScore.safetyScore > 0) || (trustScore.cleanlinessScore > 0) || (trustScore.neighborhoodScore > 0)
   )
@@ -135,9 +135,12 @@ export default function TrustScoreWidget({ trustScore, riskScore: _riskScore }) 
         <div>
           <p className="text-[0.7rem] font-semibold text-slate-500 uppercase tracking-widest mb-2.5">Area Insights</p>
           <div className="grid grid-cols-2 gap-2">
+            {/* No flood tile. It was an elevation ladder wearing a safety
+                label — see the refusal note in trust.service.js. Elevation
+                lives in the spatial panel's terrain module, in metres, with
+                provenance. */}
             {trustScore.areaScore > 0        && <InsightTile label="Area"          value={trustScore.areaScore}        />}
             {trustScore.waterScore > 0       && <InsightTile label="Water"         value={trustScore.waterScore}       />}
-            {trustScore.floodSafeRating > 0  && <InsightTile label="Flood safety"  value={trustScore.floodSafeRating}  />}
           </div>
         </div>
       )}

@@ -1032,7 +1032,8 @@ model TrustScore {
   // Named scores
   areaScore         Float       @default(0) // AreaScore  0–10
   waterScore        Float       @default(0) // WaterScore 0–10
-  floodSafeRating   Float       @default(0) // FloodSafe  0–10
+  // No floodSafeRating — dropped 2026-07-30, deliberately. See the refusal
+  // note in features/trust/trust.service.js before adding anything like it.
   updatedAt         DateTime    @updatedAt
 }
 

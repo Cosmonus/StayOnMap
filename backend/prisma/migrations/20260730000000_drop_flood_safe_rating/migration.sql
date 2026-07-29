@@ -1,0 +1,25 @@
+-- Drop TrustScore.floodSafeRating.
+--
+-- The column stored a 0-10 "flood safety" score derived from ELEVATION ALONE
+-- (one Google Elevation call against a hardcoded ladder), and it was rendered
+-- to users as "Flood safety 9.0/10" on the property page, web and mobile.
+-- No rainfall, no drainage, no water body, no historical inundation fed it.
+--
+-- `.claude/spatial.md` names inferring flood risk from elevation as a standing
+-- refusal. Four test files enforce that refusal inside features/spatial/; this
+-- column predates that module and was never in their blast radius.
+--
+-- The column is dropped rather than merely left unwritten. Two reasons:
+--   1. Stale non-null values would keep shipping in the API payload, so any
+--      client already released -- which cannot be updated from here -- would
+--      go on rendering the tile. Removing the column removes the field, and
+--      every client's `floodSafeRating > 0` guard then falls through to false.
+--   2. A dead column full of 9.0s is the landmine the incident's own pattern
+--      lesson warns about: the next person finds it and re-surfaces it.
+--
+-- The data is derived and worthless -- recomputed from lat/lng on every
+-- recalculateTrustScore -- so there is nothing here worth preserving.
+-- Elevation itself remains available honestly via the spatial layer's terrain
+-- module: metres, MEASURED, with provenance and a confidence band.
+
+ALTER TABLE "TrustScore" DROP COLUMN IF EXISTS "floodSafeRating";
