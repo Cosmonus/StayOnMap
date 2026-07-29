@@ -57,7 +57,7 @@ export default function TrustScoreWidget({ trustScore }) {
   const score        = Number(trustScore.overallScore ?? 0)
   const hasReviews   = (trustScore.totalReviews ?? 0) > 0
   const recommendPct = Number(trustScore.recommendPercent ?? 0)
-  const hasAreaScores   = trustScore.areaScore > 0 || trustScore.waterScore > 0 || trustScore.floodSafeRating > 0
+  const hasAreaScores   = trustScore.areaScore > 0 || trustScore.waterScore > 0
   const hasReviewScores = hasReviews && (trustScore.safetyScore > 0 || trustScore.cleanlinessScore > 0 || trustScore.neighborhoodScore > 0)
 
   return (
@@ -79,9 +79,10 @@ export default function TrustScoreWidget({ trustScore }) {
         <View>
           <Text style={styles.sectionLabel}>Area Insights</Text>
           <View style={styles.insightRow}>
+            {/* No flood tile — see the refusal note in trust.service.js.
+                Elevation lives in the spatial panel's terrain module. */}
             {trustScore.areaScore > 0 && <InsightTile label="Area" value={trustScore.areaScore} />}
             {trustScore.waterScore > 0 && <InsightTile label="Water" value={trustScore.waterScore} />}
-            {trustScore.floodSafeRating > 0 && <InsightTile label="Flood safety" value={trustScore.floodSafeRating} />}
           </View>
         </View>
       )}
