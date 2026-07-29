@@ -19,3 +19,16 @@ export const createReviewSchema = z.object({
   body: z.string().min(10).max(2000),
   mediaUrls: z.array(z.string().url()).max(5).default([]),
 })
+
+// `vote` read req.body.recommend and `ownerRespond` read req.body.response
+// with no schema. A missing or non-boolean `recommend` reached Prisma and
+// threw a 500 for what is a malformed request; an unbounded `response`
+// persisted and rendered under every review on the listing.
+export const voteSchema = z.object({
+  recommend: z.boolean(),
+})
+
+export const reviewResponseSchema = z.object({
+  // Empty clears the response — the service already maps falsy to null.
+  response: z.string().trim().max(2000).optional(),
+})

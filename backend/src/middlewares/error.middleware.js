@@ -11,10 +11,50 @@ const DEFAULT_CODE = {
   429: 'RATE_LIMITED',
 }
 
+// Prisma errors that are really CLIENT errors, mapped once, centrally.
+//
+// `.claude/backend.md` and `.claude/database.md` both mandate catching P2025
+// and converting it to a 404 in the service layer. The 2026-07-17 audit found
+// that had happened in exactly one place (`saved.service.js`) out of ~46
+// update/delete call sites, so every other "the row vanished between read and
+// write" surfaced as a 500: a real bug for the user (a retryable 404 reported
+// as a server fault), noise that buries genuine 5xx in the logs, and — once
+// Sentry has a DSN — a permanent stream of false alerts.
+//
+// Doing it here rather than per-service is deliberate. A convention that must
+// be remembered at 46 sites has already been forgotten at 45 of them; the
+// middleware cannot be forgotten by a new call site. Service-layer catches
+// remain correct and take precedence — they set `statusCode` themselves and
+// never reach this map — so this is a floor, not a ceiling.
+//
+// Only codes whose meaning is unambiguously the caller's are mapped. Anything
+// else stays a 500, because a connection failure or a schema mismatch is ours.
+const PRISMA_STATUS = {
+  P2025: 404, // required record not found (update/delete on a vanished row)
+  P2002: 409, // unique constraint — the row already exists
+  P2003: 400, // foreign key constraint — caller referenced something absent
+}
+
+const PRISMA_MESSAGE = {
+  P2025: 'Not found',
+  P2002: 'Already exists',
+  P2003: 'Invalid reference',
+}
+
 export function errorMiddleware(err, _req, res, _next) {
   console.error(err)
 
-  const status = err.statusCode || err.status || 500
+  let status = err.statusCode || err.status || 500
+
+  // Only reinterpret when nothing upstream already decided. An explicit
+  // statusCode from a service is a considered choice and outranks the map.
+  if (!err.statusCode && !err.status && PRISMA_STATUS[err.code]) {
+    status = PRISMA_STATUS[err.code]
+    err = Object.assign(new Error(PRISMA_MESSAGE[err.code]), {
+      code: err.code,
+      statusCode: status,
+    })
+  }
 
   // Never leak internal error details to clients in production.
   //

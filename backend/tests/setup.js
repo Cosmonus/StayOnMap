@@ -42,6 +42,17 @@ vi.mock('../src/features/spatial/providers.js', async (importOriginal) => ({
   nearbyCount:    vi.fn().mockResolvedValue(null),
   distanceMatrix: vi.fn().mockResolvedValue(null),
   airQuality:     vi.fn().mockResolvedValue(null),
+  // elevation() hits OpenTopoData, which needs no API key — so unlike the
+  // Google-backed providers above it was NOT neutralised by googleMapsKey
+  // being null, and every run made a real call to a free, rate-limited public
+  // API with a 15s internal timeout against vitest's 5s. It failed CI on
+  // 2026-07-30 and would have kept doing so at random, blocking deploys.
+  //
+  // This is the same miss as landCover below, one provider later. A provider
+  // added to providers.js is not automatically absent from tests — it has to
+  // be listed here. tests/no-network-in-tests.test.js now enforces that so
+  // there isn't a third time.
+  elevation:      vi.fn().mockResolvedValue(null),
 }))
 
 // WorldCover is a network provider too — landCover() range-reads a GeoTIFF
