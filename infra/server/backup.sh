@@ -21,7 +21,10 @@
 # On 2026-07-30 a verification pass found this script present, executable, and
 # NEVER ONCE RUN: nothing scheduled it, and /var/backups/stayonmap was empty.
 #
-# Restore a dump (custom format):
+# Restore a dump (custom format). Note the URL is written out by hand WITHOUT
+# any ?connection_limit=… — pg_restore and psql reject Prisma's query params
+# exactly like pg_dump does (see the libpq_url note below), so do not paste
+# DATABASE_URL from api.env verbatim here:
 #   pg_restore --clean --if-exists --no-owner --no-acl \
 #     -d "postgresql://stayonmap:PASS@127.0.0.1:5432/stayonmap" \
 #     /var/backups/stayonmap/stayonmap-YYYYmmdd-HHMMSS.dump
@@ -36,13 +39,56 @@ RETAIN_DAYS=14
 set -a; . "${ENV_FILE}"; set +a
 : "${DATABASE_URL:?DATABASE_URL missing from ${ENV_FILE}}"
 
+# ── DATABASE_URL is Prisma-flavoured; libpq is not ──────────────────────────
+#
+# The first real run of this script (2026-07-30) died on:
+#     pg_dump: error: invalid URI query parameter: "connection_limit"
+#
+# `connection_limit` is a PRISMA driver parameter. libpq has never heard of it,
+# and it rejects the ENTIRE URI on the first query parameter it does not
+# recognise — so one Prisma-only param makes the URL unusable for pg_dump,
+# psql and pg_restore alike, while Prisma itself is perfectly happy. Same story
+# for pool_timeout, pgbouncer, schema, socket_timeout, statement_cache_size.
+#
+# Allow-list rather than deny-list: new Prisma params appear with new Prisma
+# versions, and the failure mode of missing one is a backup that stops working.
+# The failure mode of dropping a libpq param we forgot to list is a connection
+# that needs one more entry here — visible, and much cheaper.
+#
+# Dropping `schema` is safe: pg_dump takes no search_path from the URI and
+# dumps every schema unless told otherwise with -n.
+LIBPQ_OK='sslmode|sslrootcert|sslcert|sslkey|sslpassword|connect_timeout|application_name|options|target_session_attrs|channel_binding|gssencmode|client_encoding'
+
+libpq_url() {
+  local url="$1" base query kept="" dropped="" kv key
+  base="${url%%\?*}"
+  if [ "$base" = "$url" ]; then printf '%s' "$url"; return; fi
+  query="${url#*\?}"
+  local IFS='&'
+  for kv in $query; do
+    key="${kv%%=*}"
+    if [[ "$key" =~ ^(${LIBPQ_OK})$ ]]; then
+      kept="${kept:+$kept&}$kv"
+    else
+      dropped="${dropped:+$dropped, }$key"
+    fi
+  done
+  # Only ever print KEY names — the URL carries the database password.
+  if [ -n "$dropped" ]; then
+    echo "[backup] note: dropped non-libpq URI params for pg_dump: ${dropped}" >&2
+  fi
+  printf '%s' "${base}${kept:+?$kept}"
+}
+
+DUMP_URL="$(libpq_url "${DATABASE_URL}")"
+
 mkdir -p "${BACKUP_DIR}"
 timestamp="$(date +%Y%m%d-%H%M%S)"
 outfile="${BACKUP_DIR}/stayonmap-${timestamp}.dump"
 
 echo "[backup] dumping -> ${outfile}"
 # -Fc custom format, --no-owner/--no-acl so it restores cleanly onto any role.
-pg_dump --format=custom --no-owner --no-acl --file="${outfile}" "${DATABASE_URL}"
+pg_dump --format=custom --no-owner --no-acl --file="${outfile}" "${DUMP_URL}"
 
 # Sanity: a valid custom dump lists its TOC without error.
 pg_restore --list "${outfile}" >/dev/null
