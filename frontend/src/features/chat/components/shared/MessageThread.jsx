@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  Check, CheckCheck, Search, MessageCircle, CalendarDays, FileText, Pencil, Trash2, Home,
+  Check, CheckCheck, Search, MessageCircle, CalendarDays, FileText, Pencil, Trash2, Home, Phone,
 } from 'lucide-react'
 import { chatService } from '@services/chat.service'
 import { getSocket } from '@lib/socket'
@@ -52,6 +52,27 @@ function ThreadHeader({ conversation, other, counterpartRole, replyMinutes, typi
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
+        {/* Either party can call the other, and the direction is not a rule this
+            component enforces: the server decides per PERSON, from their own
+            contactVisibility (chat.service.js's gateParticipantPhones), so a
+            number the caller shouldn't have simply isn't in the payload. Absent
+            therefore means "they chose not to share it, or never saved one" and
+            the control does not render — the same behaviour mobile has had since
+            P10. Web had no call affordance at all until 2026-07-30, so on this
+            platform NEITHER side could call, which read as the feature being
+            owner-only.
+            `tel:` hands off to the phone/dialer — genuinely another app, the one
+            case where leaving ours is correct. */}
+        {!!other?.phone && (
+          <a
+            href={`tel:${other.phone}`}
+            aria-label={`Call ${displayName(other)} on ${other.phone}`}
+            title={other.phone}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 no-underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
+            <Phone className="w-[18px] h-[18px]" strokeWidth={2} aria-hidden="true" />
+          </a>
+        )}
         <button
           onClick={onToggleSearch}
           aria-label="Search in this conversation"
