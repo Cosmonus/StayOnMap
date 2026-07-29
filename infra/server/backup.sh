@@ -31,6 +31,23 @@
 # ============================================================================
 set -euo pipefail
 
+# Run from a directory this user can definitely read.
+#
+# The documented manual invocation is `sudo -u deploy bash …`, which keeps the
+# INVOKING user's cwd — typically /home/<someone-else>, which `deploy` cannot
+# enter. Every child process inherits it, and on 2026-07-30 that aborted a
+# successful backup at the very last step:
+#
+#     find: Failed to restore initial working directory: /home/hello: Permission denied
+#
+# find saves and restores its cwd; the restore failed, find exited non-zero,
+# and `set -e` killed the script after a good 94M dump had already been written
+# — so the offsite push never ran and the exit status said failure. Under
+# systemd this never appeared, because a unit's default WorkingDirectory is /.
+# A script whose success depends on who invoked it and from where is broken;
+# one line fixes it for both paths.
+cd /
+
 ENV_FILE=/etc/stayonmap/api.env
 BACKUP_DIR=/var/backups/stayonmap
 RETAIN_DAYS=14
