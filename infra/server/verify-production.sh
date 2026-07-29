@@ -129,8 +129,19 @@ if systemctl is-active --quiet postgresql; then
   conns=$(sudo -u postgres psql -tAc "SELECT count(*) FROM pg_stat_activity" 2>/dev/null)
   maxc=$(sudo -u postgres psql -tAc "SHOW max_connections" 2>/dev/null)
   [ -n "$conns" ] && note "connections: ${conns}/${maxc}"
-  dbsize=$(sudo -u postgres psql -tAc "SELECT pg_size_pretty(pg_database_size(current_database()))" 2>/dev/null)
-  [ -n "$dbsize" ] && note "database size: ${dbsize}"
+  # NOT current_database(): `sudo -u postgres psql` connects to the `postgres`
+  # maintenance DB, so this reported ITS size and called it the app's. On
+  # 2026-07-30 it printed "7670 kB" for a database that dumps to 94M — an
+  # order-of-magnitude-wrong number, and worse, a reassuring one. Read the
+  # database name out of DATABASE_URL instead, and say which one was measured.
+  appdb=$(envval DATABASE_URL | sed -e 's/?.*$//' -e 's#.*/##')
+  if [ -n "$appdb" ]; then
+    dbsize=$(sudo -u postgres psql -tAc "SELECT pg_size_pretty(pg_database_size('${appdb}'))" 2>/dev/null)
+    [ -n "$dbsize" ] && note "database '${appdb}' size: ${dbsize}" \
+                     || warn "could not read the size of database '${appdb}'"
+  else
+    warn "could not parse a database name out of DATABASE_URL"
+  fi
 else
   bad "postgresql is NOT running"
 fi
