@@ -74,16 +74,25 @@ else
   warn "backup dir $backup_dir does not exist (set BACKUP_DIR= if it lives elsewhere)"
 fi
 
-# A dump on the same disk as the database is not a backup — backup.sh says so
-# itself. The offsite block ships fully commented out, so "enabled" means an
-# UNCOMMENTED gsutil/aws/rsync line referencing $outfile exists.
-if grep -qE '^[[:space:]]*(gsutil|aws|rsync|rclone)[[:space:]].*outfile' \
-        "$APP_DIR/infra/server/backup.sh" 2>/dev/null; then
-  ok "offsite push is enabled ($(grep -oE '^[[:space:]]*(gsutil|aws|rsync|rclone)' "$APP_DIR/infra/server/backup.sh" | head -1 | tr -d ' '))"
+# A failed oneshot is easy to miss: the TIMER stays "active" while every run it
+# triggers fails, so "scheduled" above can be green while nothing is produced.
+if [ "$(systemctl is-failed stayonmap-backup.service 2>/dev/null)" = "failed" ]; then
+  bad "the last backup RUN failed — journalctl -u stayonmap-backup -n 50"
+fi
+
+# A dump on the same disk as the database is not a backup. The offsite target
+# is configured in api.env, NOT by editing backup.sh — that file is git-tracked
+# and deploy.sh pulls straight over it.
+offsite_target=""
+for v in BACKUP_GCS_BUCKET BACKUP_S3_URI BACKUP_RSYNC_TARGET; do
+  [ -n "$(envval "$v")" ] && offsite_target="$v"
+done
+if [ -n "$offsite_target" ]; then
+  ok "offsite push configured via ${offsite_target}"
 else
   bad "OFFSITE PUSH NOT ENABLED — dumps sit on the same disk as the database"
   note "Disk loss or VM deletion takes the database and every backup together."
-  note "Uncomment one target at the bottom of infra/server/backup.sh."
+  note "Set ONE of BACKUP_GCS_BUCKET / BACKUP_S3_URI / BACKUP_RSYNC_TARGET in $ENV_FILE."
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
