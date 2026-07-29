@@ -15,8 +15,14 @@ import Avatar from './Avatar'
 import InputBar from './InputBar'
 import { chatTime, dateSeparator, displayName, isImageAttachment, replyTimeLabel } from './chatFormat'
 
+// 16px, not 14: the double tick draws two overlapping strokes across the full
+// width of its box, so it loses more to a small size than a single tick does and
+// reads as a smudge. 16 is also the floor on the icon scale (.claude/ui-ux.md).
+// `text-white/70`, not /50: on the brand-700 bubble that was ~2.9:1, under the
+// 3:1 a meaning-bearing icon needs — and "sent but not read yet" is the whole
+// meaning of that state.
 function ReadReceipt({ isRead }) {
-  const cls = `w-3.5 h-3.5 shrink-0 ${isRead ? 'text-white' : 'text-white/50'}`
+  const cls = `w-4 h-4 shrink-0 ${isRead ? 'text-white' : 'text-white/70'}`
   return isRead ? <CheckCheck className={cls} strokeWidth={2.5} /> : <Check className={cls} strokeWidth={2.5} />
 }
 
@@ -276,6 +282,15 @@ function EmptyThread({ prompt }) {
   )
 }
 
+// The sender re-announces typing at most once per SEND interval; the receiver
+// hides the indicator after HOLD. HOLD must be comfortably LONGER than SEND, or
+// the receiver's window closes exactly when the next announcement is due and
+// network latency guarantees it closes first — which is why "X is typing"
+// flickered, and why whether you saw it at all depended on the other person's
+// typing rhythm. Mirrored in mobile's ConversationScreen; keep the two in step.
+const TYPING_SEND_EVERY_MS = 2000
+const TYPING_HOLD_MS = 4000
+
 // The right pane: one open thread, end to end. Everything here — sending,
 // editing, deleting, typing, read receipts, live socket updates — is identical
 // for both hats, because a message is a message. What the caller supplies is
@@ -398,6 +413,11 @@ export default function MessageThread({
         if (old.some(m => m.id === msg.id)) return old
         return [...old, msg]
       })
+      // The message is here, so they have stopped typing — leaving the indicator
+      // up for another few seconds under the message it was announcing makes it
+      // look like a second one is coming.
+      clearTimeout(typingTimer.current)
+      setTyping(false)
       // It is on screen, so it is read. Otherwise the badge appears over the
       // very tab the reader is looking at.
       if (document.visibilityState === 'visible') markRead()
@@ -408,7 +428,7 @@ export default function MessageThread({
       if (data.userId !== userId && data.conversationId === conversationId) {
         setTyping(true)
         clearTimeout(typingTimer.current)
-        typingTimer.current = setTimeout(() => setTyping(false), 2000)
+        typingTimer.current = setTimeout(() => setTyping(false), TYPING_HOLD_MS)
       }
     }
 
@@ -458,7 +478,7 @@ export default function MessageThread({
     if (typingDebounce.current) return
     const socket = getSocket()
     if (socket) socket.emit('typing', { conversationId })
-    typingDebounce.current = setTimeout(() => { typingDebounce.current = null }, 2000)
+    typingDebounce.current = setTimeout(() => { typingDebounce.current = null }, TYPING_SEND_EVERY_MS)
   }
 
   function startEdit(msg) { setEditingId(msg.id); setEditValue(msg.body) }

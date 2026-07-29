@@ -20,6 +20,16 @@ import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
+// The sender re-announces typing at most once per SEND interval; the receiver
+// hides the indicator after HOLD. HOLD must be comfortably LONGER than SEND, or
+// the receiver's window closes exactly when the next announcement is due and
+// network latency guarantees it closes first — which is why "X is typing"
+// flickered, and why whether you saw it at all depended on the other person's
+// typing rhythm rather than on whether they were typing. Mirrored in web's
+// MessageThread; keep the two in step.
+const TYPING_SEND_EVERY_MS = 2000
+const TYPING_HOLD_MS = 4000
+
 // Mirrors web's isImageAttachment. Messages older than 2026-07-26 carry no
 // attachmentMime and were images by construction — chat accepted nothing else.
 function isImageAttachment(msg) {
@@ -183,18 +193,31 @@ export default function ConversationScreen({ route, navigation }) {
   const isFocused = useIsFocused()
   const canSee = useRef(false)
   const arrivedUnseen = useRef(false)
+  const wasAway = useRef(false)
 
   useEffect(() => {
     function sync(appState = AppState.currentState) {
       canSee.current = isFocused && appState === 'active'
-      if (!canSee.current || !arrivedUnseen.current) return
+      if (!canSee.current) {
+        wasAway.current = true
+        return
+      }
+      if (wasAway.current) {
+        wasAway.current = false
+        // Back after being away. A socket that dozed can miss both a message and
+        // a `message:read` receipt (mobile/AGENTS.md §9), and a stale single tick
+        // on a message the other person read an hour ago is a lie the screen
+        // will never correct on its own. Ask, don't trust what is on screen.
+        qc.invalidateQueries({ queryKey: ['chat-messages', conversationId] })
+      }
+      if (!arrivedUnseen.current) return
       arrivedUnseen.current = false
       markRead()
     }
     sync()
     const sub = AppState.addEventListener('change', sync)
     return () => sub.remove()
-  }, [isFocused, markRead])
+  }, [isFocused, markRead, qc, conversationId])
 
   const { data: searchResults = [] } = useQuery({
     queryKey: ['chat-search', conversationId, searchQuery],
@@ -243,6 +266,11 @@ export default function ConversationScreen({ route, navigation }) {
         if (old.some((m) => m.id === msg.id)) return old
         return [...old, msg]
       })
+      // The message is here, so they have stopped typing — leaving the indicator
+      // up for another few seconds under the message it was announcing makes it
+      // look like a second one is coming.
+      clearTimeout(typingTimer.current)
+      setTyping(false)
       // It is on screen, so it is read. Otherwise the badge appears over the
       // very tab the reader is looking at.
       if (canSee.current) markRead()
@@ -253,7 +281,7 @@ export default function ConversationScreen({ route, navigation }) {
       if (data.userId !== user?.id && data.conversationId === conversationId) {
         setTyping(true)
         clearTimeout(typingTimer.current)
-        typingTimer.current = setTimeout(() => setTyping(false), 2000)
+        typingTimer.current = setTimeout(() => setTyping(false), TYPING_HOLD_MS)
       }
     }
 
@@ -302,7 +330,7 @@ export default function ConversationScreen({ route, navigation }) {
   function emitTyping() {
     if (typingDebounce.current) return
     getSocket()?.emit('typing', { conversationId })
-    typingDebounce.current = setTimeout(() => { typingDebounce.current = null }, 2000)
+    typingDebounce.current = setTimeout(() => { typingDebounce.current = null }, TYPING_SEND_EVERY_MS)
   }
 
   const busy = isPending || isEditPending || uploading
@@ -569,7 +597,11 @@ export default function ConversationScreen({ route, navigation }) {
           }}
           ListHeaderComponent={typing ? (
             <View style={styles.typingRow}>
-              <Text style={styles.typingText}>{otherRole ?? 'They'} typing…</Text>
+              {/* "Owner is typing…" — the role, because on this screen the name
+                  is already in the header and the role is what says which side
+                  of the deal is answering you. It read "Owner typing…" until
+                  2026-07-30. */}
+              <Text style={styles.typingText}>{otherRole ?? 'They'} {otherRole ? 'is' : 'are'} typing…</Text>
             </View>
           ) : null}
           ListFooterComponent={null}
