@@ -322,6 +322,10 @@ export default function DashboardPage() {
     // one side's threads, so it can't have caught you up on the other's.
     notificationService.markAllByType('MESSAGE', hostMode ? 'OWNER' : 'TENANT').then(() => {
       qc.invalidateQueries({ queryKey: ['notifications'] })
+      // The mode-switch badge reads its own count (Header's ['notification-unread'],
+      // 60s poll) — without this it kept advertising messages in the hat you had
+      // just cleared for the better part of a minute.
+      qc.invalidateQueries({ queryKey: ['notification-unread'] })
     }).catch(() => {})
   }, [section, qc, hostMode])
 

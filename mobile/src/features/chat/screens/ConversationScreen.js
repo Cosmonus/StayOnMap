@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { View, Text, TextInput, Pressable, FlatList, KeyboardAvoidingView, ActivityIndicator, Alert, Linking, Modal, StyleSheet } from 'react-native'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { View, Text, TextInput, Pressable, FlatList, KeyboardAvoidingView, ActivityIndicator, Alert, AppState, Linking, Modal, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useIsFocused } from '@react-navigation/native'
 import { Image } from 'expo-image'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as ImagePicker from 'expo-image-picker'
@@ -140,11 +141,60 @@ export default function ConversationScreen({ route, navigation }) {
     return () => clearTimeout(t)
   }, [msgSearch])
 
-  const { data: messages = [], isLoading, isError, refetch } = useQuery({
+  const { data: messages = [], isLoading, isSuccess, isError, refetch } = useQuery({
     queryKey: ['chat-messages', conversationId],
     queryFn: () => chatService.messages(conversationId).then((r) => r.data),
     enabled: !!conversationId,
   })
+
+  // Reading a thread makes every count that pointed at it wrong at once: the
+  // Chat/Inbox tab badge (useTabBadges sums the same ['conversations'] rows),
+  // this thread's unread pill, and the MESSAGE notification the backend retires
+  // alongside the messages (chat.service.js's markConversationRead). Nothing
+  // here computes a number — it drops the stale ones so the next read is the
+  // truth. Without it the tab badge outlived the reading by up to 15 seconds.
+  const dropStaleCounts = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ['conversations'] })
+    qc.invalidateQueries({ queryKey: ['notifications'] })
+    qc.invalidateQueries({ queryKey: ['notification-unread'] })
+  }, [qc])
+
+  // The fetch above is what marks the thread read server-side, so the moment it
+  // lands is the moment those counts are stale. Once per thread, via the ref:
+  // dropStaleCounts refetches `conversations`, which this screen reads.
+  const syncedFor = useRef(null)
+  useEffect(() => {
+    if (!conversationId || !isSuccess || syncedFor.current === conversationId) return
+    syncedFor.current = conversationId
+    dropStaleCounts()
+  }, [conversationId, isSuccess, dropStaleCounts])
+
+  const { mutate: markRead } = useMutation({
+    mutationFn: () => chatService.markRead(conversationId),
+    onSuccess: dropStaleCounts,
+  })
+
+  // "The reader can actually see this thread" = this screen is focused AND the
+  // app is foregrounded. A message that lands while both are true has been read;
+  // one that lands otherwise has NOT, and claiming so would put a false read
+  // receipt in front of the sender. Kept in refs so the socket effect below
+  // never re-subscribes — it would leave and re-join the room on every app
+  // switch. Anything parked is settled the moment attention returns.
+  const isFocused = useIsFocused()
+  const canSee = useRef(false)
+  const arrivedUnseen = useRef(false)
+
+  useEffect(() => {
+    function sync(appState = AppState.currentState) {
+      canSee.current = isFocused && appState === 'active'
+      if (!canSee.current || !arrivedUnseen.current) return
+      arrivedUnseen.current = false
+      markRead()
+    }
+    sync()
+    const sub = AppState.addEventListener('change', sync)
+    return () => sub.remove()
+  }, [isFocused, markRead])
 
   const { data: searchResults = [] } = useQuery({
     queryKey: ['chat-search', conversationId, searchQuery],
@@ -188,12 +238,15 @@ export default function ConversationScreen({ route, navigation }) {
     socket.emit('join:conversation', conversationId)
 
     function onNewMessage(msg) {
-      if (msg.senderId !== user?.id) {
-        qc.setQueryData(['chat-messages', conversationId], (old = []) => {
-          if (old.some((m) => m.id === msg.id)) return old
-          return [...old, msg]
-        })
-      }
+      if (msg.senderId === user?.id) return
+      qc.setQueryData(['chat-messages', conversationId], (old = []) => {
+        if (old.some((m) => m.id === msg.id)) return old
+        return [...old, msg]
+      })
+      // It is on screen, so it is read. Otherwise the badge appears over the
+      // very tab the reader is looking at.
+      if (canSee.current) markRead()
+      else arrivedUnseen.current = true
     }
 
     function onTypingEvent(data) {
@@ -244,7 +297,7 @@ export default function ConversationScreen({ route, navigation }) {
       socket.off('message:deleted', onMessageDeleted)
       socket.off('connect', onConnect)
     }
-  }, [conversationId, user?.id, qc])
+  }, [conversationId, user?.id, qc, markRead])
 
   function emitTyping() {
     if (typingDebounce.current) return

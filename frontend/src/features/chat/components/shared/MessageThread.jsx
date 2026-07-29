@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -300,11 +300,56 @@ export default function MessageThread({
     return () => clearTimeout(t)
   }, [msgSearch])
 
-  const { data: messages = [] } = useQuery({
+  const { data: messages = [], isSuccess } = useQuery({
     queryKey: ['chat-messages', conversationId],
     queryFn: () => chatService.messages(conversationId).then(r => r.data),
     enabled: !!conversationId,
   })
+
+  // Reading a thread makes every count that pointed at it wrong at once: the
+  // Header's Messages/Inbox badge, this row's unread pill, and the MESSAGE
+  // notification the backend retires alongside the messages (chat.service.js's
+  // markConversationRead). Nothing here computes a new number — it drops the
+  // stale ones so the next read is the truth. That is the difference between the
+  // badge going out now and going out when its 15s/30s poll next came round,
+  // which read as "the app thinks I haven't read this".
+  const dropStaleCounts = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ['conversations'] })
+    qc.invalidateQueries({ queryKey: ['chat-unread'] })
+    qc.invalidateQueries({ queryKey: ['notifications'] })
+    qc.invalidateQueries({ queryKey: ['notification-unread'] })
+  }, [qc])
+
+  // The fetch above is what marks the thread read server-side, so the moment it
+  // lands is the moment those counts are stale. Once per thread, via the ref:
+  // dropStaleCounts refetches `conversations`, which changes this component's
+  // props — without the guard that is a loop.
+  const syncedFor = useRef(null)
+  useEffect(() => {
+    if (!conversationId || !isSuccess || syncedFor.current === conversationId) return
+    syncedFor.current = conversationId
+    dropStaleCounts()
+  }, [conversationId, isSuccess, dropStaleCounts])
+
+  const { mutate: markRead } = useMutation({
+    mutationFn: () => chatService.markRead(conversationId),
+    onSuccess: dropStaleCounts,
+  })
+
+  // A message that lands while its own thread is open has been READ — unless the
+  // tab is in the background, in which case it hasn't, and sending the other
+  // person a read receipt for it would be a lie. So it is parked and settled the
+  // moment the reader comes back.
+  const arrivedUnseen = useRef(false)
+  useEffect(() => {
+    function onVisibility() {
+      if (document.visibilityState !== 'visible' || !arrivedUnseen.current) return
+      arrivedUnseen.current = false
+      markRead()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [markRead])
 
   const { data: searchResults = [] } = useQuery({
     queryKey: ['chat-search', conversationId, searchQuery],
@@ -348,12 +393,15 @@ export default function MessageThread({
     socket.emit('join:conversation', conversationId)
 
     function onNewMessage(msg) {
-      if (msg.senderId !== userId) {
-        qc.setQueryData(['chat-messages', conversationId], (old = []) => {
-          if (old.some(m => m.id === msg.id)) return old
-          return [...old, msg]
-        })
-      }
+      if (msg.senderId === userId) return
+      qc.setQueryData(['chat-messages', conversationId], (old = []) => {
+        if (old.some(m => m.id === msg.id)) return old
+        return [...old, msg]
+      })
+      // It is on screen, so it is read. Otherwise the badge appears over the
+      // very tab the reader is looking at.
+      if (document.visibilityState === 'visible') markRead()
+      else arrivedUnseen.current = true
     }
 
     function onTypingEvent(data) {
@@ -403,7 +451,7 @@ export default function MessageThread({
       socket.off('message:deleted', onMessageDeleted)
       socket.off('connect', onConnect)
     }
-  }, [conversationId, userId, qc])
+  }, [conversationId, userId, qc, markRead])
 
   const typingDebounce = useRef(null)
   function emitTyping() {
