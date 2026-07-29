@@ -183,13 +183,11 @@ function Argument({ liveListings, activeOwners, citiesLive, isLoading }) {
               Everything here already works in a mobile browser — nothing is waiting on the app.
             </p>
           </div>
-          <Link
-            to="/intelligence"
-            className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 self-start text-sm font-semibold text-brand-700 no-underline underline-offset-4 hover:underline sm:self-auto"
-          >
-            See how the scoring works
-            <ArrowRight size={13} strokeWidth={2.5} />
-          </Link>
+          {/* "See how the scoring works" pointed at /intelligence, deleted
+              2026-07-30 with the other marketing pages. Not re-pointed at
+              anything: the honest explanation of a score lives beside the score
+              itself, on the property page's Trust & safety card and the spatial
+              panel's provenance chips, which every listing already carries. */}
         </div>
       </div>
     </section>

@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import {
   Shield, Camera, IndianRupee, Clock, Check, Heart, TriangleAlert, Ban,
   Copy, Lock, User, Wrench, Flag, MessageSquare, FileText, Mail, X, Info, CircleAlert,
 } from 'lucide-react'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
+import { SUPPORT_EMAIL } from '@/config/support'
 import { CITIES } from '@/config/cities'
 
 // ── Data ────────────────────────────────────────────────────────────
@@ -301,12 +301,17 @@ export default function RulesPage() {
                 By using StayOnMap you agree to act with honesty, fairness, and respect. Violations lead to listing removal and account bans.
               </p>
             </div>
-            <Link
-              to="/contact"
-              className="min-h-[44px] shrink-0 px-5 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold transition-colors no-underline whitespace-nowrap"
+            {/* A mail client, not the deleted /contact page. The subject is
+                prefilled because this button is the one place someone arrives
+                with a violation in mind and no listing in front of them — the
+                in-product path for a specific listing is still ReportButton on
+                the property page, which files a real PropertyReport. */}
+            <a
+              href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Reporting a violation of the Community Rules')}`}
+              className="min-h-[44px] shrink-0 px-5 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold transition-colors no-underline whitespace-nowrap inline-flex items-center"
             >
               Report a violation
-            </Link>
+            </a>
           </div>
         </div>
       </section>

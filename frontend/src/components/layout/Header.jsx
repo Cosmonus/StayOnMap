@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
-  Map as MapIcon, Home, ConciergeBell, Menu, User,
+  Map as MapIcon, Home, Menu, User,
   LayoutDashboard, MessageSquare, CalendarCheck, CalendarDays, Building2,
   Bell, UserRound, LifeBuoy, LogOut, ArrowLeftRight, Heart, KeyRound,
 } from 'lucide-react'
@@ -28,11 +28,6 @@ const NAV_TABS = [
     label: 'Properties',
     to: '/properties',
     icon: <Home size={20} strokeWidth={1.8} />,
-  },
-  {
-    label: 'Services',
-    to: '/services',
-    icon: <ConciergeBell size={20} strokeWidth={1.8} />,
   },
 ]
 

@@ -29,10 +29,15 @@ function lazyRetry(importer) {
 // Lazy loaded — not needed until user navigates there
 const PropertiesPage    = lazyRetry(() => import('@pages/PropertiesPage'))
 const PropertyPage      = lazyRetry(() => import('@pages/PropertyPage'))
-const ServicesPage      = lazyRetry(() => import('@pages/ServicesPage'))
-const AboutPage         = lazyRetry(() => import('@pages/AboutPage'))
-const IntelligencePage  = lazyRetry(() => import('@pages/IntelligencePage'))
-const ContactPage       = lazyRetry(() => import('@pages/ContactPage'))
+// The four marketing pages — /services, /about, /intelligence, /contact — were
+// DELETED 2026-07-30. They described the product to a visitor who is already
+// looking at it, and the app-store listing covers that job for the Play release.
+// Nothing functional went with them: the Contact page's three "channels" were
+// all the same mailto (hello@cosmonus.com, now in the Footer and on the legal
+// pages) and its form's onSubmit set `sent = true` and posted nowhere — so a
+// page promising "we read every message" was discarding them.
+// Don't re-add a route here without re-adding a page; `*` catches it as a 404,
+// which is how the admin logo bug worked.
 const RulesPage         = lazyRetry(() => import('@pages/RulesPage'))
 const PrivacyPolicyPage    = lazyRetry(() => import('@pages/PrivacyPolicyPage'))
 const TermsOfServicePage   = lazyRetry(() => import('@pages/TermsOfServicePage'))
@@ -64,11 +69,7 @@ export default function AppRoutes() {
           {/* Public */}
           <Route path="/"             element={<HomePage />} />
           <Route path="/properties"   element={<PropertiesPage />} />
-          <Route path="/services"     element={<ServicesPage />} />
           <Route path="/property/:id" element={<PropertyPage />} />
-          <Route path="/about"        element={<AboutPage />} />
-          <Route path="/intelligence" element={<IntelligencePage />} />
-          <Route path="/contact"      element={<ContactPage />} />
           <Route path="/rules"        element={<RulesPage />} />
           <Route path="/privacy"      element={<PrivacyPolicyPage />} />
           <Route path="/terms"        element={<TermsOfServicePage />} />

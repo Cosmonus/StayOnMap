@@ -9,6 +9,7 @@ import { appointmentService } from '@services/appointment.service'
 import { leaseService } from '@services/lease.service'
 import { formatRent } from '@utils/format'
 import { formatTime } from '@utils/time'
+import { SUPPORT_EMAIL } from '@/config/support'
 import Modal from '@components/common/Modal'
 import NotificationCenter from '@features/notifications/components/NotificationCenter'
 import ChatPanel from '@features/chat/components/ChatPanel'
@@ -27,8 +28,6 @@ import SettingsPanel from '@features/settings/components/SettingsPanel'
 // to reach anybody — on a platform that asks people to hand a deposit to a
 // stranger. Everything here already existed somewhere else in the product; the
 // only thing missing was a route to it from the menu item called Support.
-const SUPPORT_EMAIL = 'hello@cosmonus.com'
-
 const SUPPORT_ROUTES = [
   {
     key: 'listing',
@@ -94,12 +93,10 @@ function SupportSection() {
           >
             Email {SUPPORT_EMAIL}
           </a>
-          <Link
-            to="/contact"
-            className="inline-flex min-h-[44px] items-center px-5 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl no-underline transition-colors"
-          >
-            Use the contact form
-          </Link>
+          {/* "Use the contact form" was the second button here until 2026-07-30.
+              It led to a form whose onSubmit set a flag and posted nowhere, so
+              the two buttons were one working channel and one that swallowed the
+              message. Deleted with the page. */}
         </div>
       </div>
     </div>

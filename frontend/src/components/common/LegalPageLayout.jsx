@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { SUPPORT_EMAIL } from '@/config/support'
 
 /**
  * Shared chrome for long-form legal documents (Privacy Policy, Terms of Service).
@@ -48,12 +48,15 @@ export function LegalPageLayout({ title, lastUpdated, sections, children }) {
               Reach out and we will get back to you.
             </p>
           </div>
-          <Link
-            to="/contact"
-            className="min-h-[44px] shrink-0 px-5 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold transition-colors no-underline whitespace-nowrap"
+          {/* The address itself, not a "Contact us" button to a page that no
+              longer exists (deleted 2026-07-30). Naming it is better anyway on a
+              legal document: a reader can see where the reply comes from. */}
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="min-h-[44px] shrink-0 px-5 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold transition-colors no-underline whitespace-nowrap inline-flex items-center"
           >
-            Contact us
-          </Link>
+            {SUPPORT_EMAIL}
+          </a>
         </div>
       </div>
     </div>

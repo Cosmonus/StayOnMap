@@ -1,15 +1,16 @@
 ﻿import { Link } from 'react-router-dom'
 import { Globe } from 'lucide-react'
 import { CITY_LIST_LABEL } from '@/config/cities'
+import { SUPPORT_EMAIL } from '@/config/support'
 
+// The marketing pages (Services / About / Intelligence / Contact) were deleted
+// 2026-07-30 — see the note in routes.jsx. Getting in touch is a `mailto:` now,
+// which is what the deleted Contact page's three channels all resolved to
+// anyway; its form posted nowhere.
 const LINKS = {
   Explore: [
     { label: 'Map',        to: '/' },
     { label: 'Properties', to: '/properties' },
-    { label: 'Services',   to: '/services' },
-    { label: 'About',      to: '/about' },
-    { label: 'Intelligence', to: '/intelligence' },
-    { label: 'Contact',    to: '/contact' },
   ],
   'For Owners': [
     { label: 'List Your Property', to: '/user' },
@@ -20,8 +21,7 @@ const LINKS = {
     { label: 'Browse Rentals', to: '/properties' },
     { label: 'Saved Homes',    to: '/user?tab=wishlist' },
     { label: 'Rules',          to: '/rules' },
-    { label: 'How It Works',   to: '/about' },
-    { label: 'Get in Touch',   to: '/contact' },
+    { label: 'Get in Touch',   href: `mailto:${SUPPORT_EMAIL}` },
   ],
 }
 
@@ -92,14 +92,25 @@ export default function Footer() {
             <div key={group}>
               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">{group}</p>
               <ul className="flex flex-col gap-2.5">
-                {items.map(({ label, to }) => (
+                {items.map(({ label, to, href }) => (
                   <li key={label}>
-                    <Link
-                      to={to}
-                      className="text-sm text-slate-400 hover:text-white transition-colors duration-150 no-underline"
-                    >
-                      {label}
-                    </Link>
+                    {/* `href` is the mail client — a router Link would navigate
+                        to a route called "mailto:…" and 404. */}
+                    {href ? (
+                      <a
+                        href={href}
+                        className="text-sm text-slate-400 hover:text-white transition-colors duration-150 no-underline"
+                      >
+                        {label}
+                      </a>
+                    ) : (
+                      <Link
+                        to={to}
+                        className="text-sm text-slate-400 hover:text-white transition-colors duration-150 no-underline"
+                      >
+                        {label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
