@@ -66,10 +66,27 @@ log "6. restart API"
 sudo /usr/bin/systemctl restart stayonmap-api
 
 log "7. reload nginx"
+# NOTE: this RELOADS nginx, it does not install nginx/stayonmap.conf. That is
+# deliberate — certbot rewrites the live file in place to add its
+# ssl_certificate lines, so copying the repo template over it on every deploy
+# would clobber TLS. The template is installed once by setup-server.sh; when it
+# changes in the repo, apply it by hand (see README-server.md § "Updating the
+# nginx config").
 sudo /usr/sbin/nginx -t
 sudo /usr/bin/systemctl reload nginx
 
 log "deploy complete"
 echo "Health check:"
 sleep 2
-curl -fsS http://127.0.0.1:4000/health && echo || echo "WARN: /health did not return 200 yet — check: journalctl -u stayonmap-api -n 50"
+# /health/ready, not /health: readiness also proves the DB is reachable, which
+# is what a deploy can plausibly have broken (a migration, a bad DATABASE_URL).
+# /health only proves Express is answering, and would have reported a cheerful
+# 200 over a completely dead database.
+if curl -fsS http://127.0.0.1:4000/health/ready; then
+  echo
+else
+  echo "WARN: /health/ready did not return 200 — the API may be up but degraded."
+  echo "      check: journalctl -u stayonmap-api -n 50"
+  curl -fsS http://127.0.0.1:4000/health >/dev/null 2>&1 \
+    && echo "      (/health IS 200, so the process is alive — suspect the database)"
+fi
