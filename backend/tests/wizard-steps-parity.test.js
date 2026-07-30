@@ -22,6 +22,7 @@
 import { describe, it, expect } from 'vitest'
 import { STEPS as SHARED_STEPS } from '../../frontend/src/features/listings/config/onboarding.js'
 import { WIZARD_STEPS as MOBILE_STEPS, savedStepIndex } from '../../mobile/src/features/listings/config/wizardSteps.js'
+import { savedStepIndex as webSavedStepIndex } from '../../frontend/src/features/listings/config/wizardSteps.js'
 
 const MOBILE_ONLY = ['type']
 
@@ -69,5 +70,39 @@ describe('resuming a saved draft', () => {
   it('falls back to the first step for an empty or unknown draft', () => {
     expect(savedStepIndex(null)).toBe(0)
     expect(savedStepIndex({ stepKey: 'gone' })).toBe(0)
+  })
+})
+
+/**
+ * The draft crosses devices as of 2026-07-30, so the index has to survive the
+ * trip in BOTH directions. A phone writes an index into seven steps; reading it
+ * on web as an index into six lands one question further on than the owner
+ * actually reached, with the skipped one silently blank.
+ */
+describe('resuming a saved draft on web', () => {
+  it('reads a mobile draft through its key, not its index', () => {
+    MOBILE_STEPS.forEach((mobile) => {
+      if (MOBILE_ONLY.includes(mobile.k)) return
+      const resumed = SHARED_STEPS[webSavedStepIndex({ stepIdx: mobile.n - 1, stepKey: mobile.k })]
+      expect(resumed.k, `mobile ${mobile.k}`).toBe(mobile.k)
+    })
+  })
+
+  it("lands mobile's own type screen on web's first step, which contains it", () => {
+    // Web's step 1 is "Type & basics" — the front half of it IS that screen, so
+    // there is nowhere else honest to put it.
+    expect(SHARED_STEPS[webSavedStepIndex({ stepKey: 'type' })].k).toBe('basics')
+  })
+
+  it('trusts a bare index only from a draft with no key — those only came from web', () => {
+    SHARED_STEPS.forEach((shared, idx) => {
+      expect(SHARED_STEPS[webSavedStepIndex({ stepIdx: idx })].k, `legacy stepIdx ${idx}`).toBe(shared.k)
+    })
+  })
+
+  it('falls back to the first step for an empty, unknown or out-of-range draft', () => {
+    expect(webSavedStepIndex(null)).toBe(0)
+    expect(webSavedStepIndex({ stepKey: 'gone' })).toBe(0)
+    expect(webSavedStepIndex({ stepIdx: 99 })).toBe(0)
   })
 })

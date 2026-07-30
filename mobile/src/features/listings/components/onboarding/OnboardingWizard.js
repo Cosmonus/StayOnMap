@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { View, Text, Pressable, ScrollView, ActivityIndicator, KeyboardAvoidingView, BackHandler, Alert, StyleSheet } from 'react-native'
+import { View, Text, Pressable, ScrollView, ActivityIndicator, KeyboardAvoidingView, BackHandler, Alert, AppState, StyleSheet } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
 import { availabilityService } from '@services/availability.service'
@@ -7,7 +7,8 @@ import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import Icon from '@components/common/Icon'
 import { BusinessGate } from './HostGates'
-import { readSavedDraft, writeSavedDraft, clearSavedDraft } from './draftStore'
+import { writeSavedDraft } from './draftStore'
+import { syncAndReadDraft, schedulePush, flushPush, discardDraftEverywhere } from './draftSync'
 import { TypeScreen, BasicsScreen, LocationScreen, PhotosScreen, FeaturesScreen, PriceScreen, ReviewScreen } from './WizardScreens'
 import {
   CATEGORIES, BUSINESS_GATED_TYPES, DESCRIBE,
@@ -136,24 +137,40 @@ export default function OnboardingWizard({ onDone }) {
   })
 
   // Restore once, on mount, before a category is chosen — never clobber a
-  // draft the owner is already typing into.
+  // draft the owner is already typing into. Syncs first, so a listing started
+  // on the owner's laptop opens here rather than an empty wizard.
   useEffect(() => {
     if (restored.current) return
     restored.current = true
-    readSavedDraft().then((s) => {
+    syncAndReadDraft().then((s) => {
       if (!s) return
       setCategoryKey(s.categoryKey)
       setDraft({ ...EMPTY_DRAFT, ...s.draft })
       // Not s.stepIdx directly — a draft saved before the type/basics split
-      // indexes a six-step list. savedStepIndex() reads the key instead.
+      // indexes a six-step list, and one written on web indexes a different
+      // six. savedStepIndex() reads the key instead.
       setStepIdx(savedStepIndex(s))
     })
   }, [])
 
   useEffect(() => {
     if (stage !== 'flow' || !categoryKey) return
+    // Local first, always: the server copy is for the owner's other device, and
+    // it must never be the thing standing between a keystroke and it being
+    // safe. The pushed envelope is the one writeSavedDraft stamped, never a
+    // re-stamp — see the note on writeSavedDraft for why that matters.
     writeSavedDraft({ categoryKey, stepIdx, stepKey: STEPS[stepIdx].k, draft })
+      .then(schedulePush)
   }, [stage, categoryKey, stepIdx, draft])
+
+  // Backgrounding is the moment someone puts the phone down and opens the
+  // laptop, and Android may kill the process before the 2s push debounce fires.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s !== 'active') flushPush()
+    })
+    return () => { sub.remove(); flushPush() }
+  }, [])
 
   const { mutate: publish, isPending } = useMutation({
     mutationFn: async () => {
@@ -172,7 +189,10 @@ export default function OnboardingWizard({ onDone }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['my-listings'] })
       qc.invalidateQueries({ queryKey: ['host-dashboard'] })
-      clearSavedDraft()
+      // The draft has become a real listing, so it stops existing as a draft on
+      // every device — otherwise the owner's laptop still offers to resume a
+      // listing they already published.
+      discardDraftEverywhere()
       setStage('done')
     },
     onError: (err) => setBlockError(err?.message ?? 'Please try again.'),

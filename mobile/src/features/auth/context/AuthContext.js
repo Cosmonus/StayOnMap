@@ -8,6 +8,7 @@ import {
   unregisterPushNotifications,
 } from '@services/push.service'
 import { useUiStore, HOST_MODE_KEY } from '@store/uiStore'
+import { clearLocalDraftOnSignOut } from '@features/listings/components/onboarding/draftSync'
 
 const AuthContext = createContext(null)
 
@@ -54,6 +55,12 @@ export function AuthProvider({ children }) {
   async function signOut() {
     // Revoke this device's session server-side — best-effort; the local
     // tokens are gone either way.
+    // Before the tokens go: the unfinished listing is kept server-side now, so
+    // nothing is lost by dropping this phone's copy — and leaving it would hand
+    // the next person to sign in on this device a stranger's half-written
+    // listing, which is how it behaved before the draft belonged to an account.
+    await clearLocalDraftOnSignOut()
+
     const refreshToken = await AsyncStorage.getItem('user_refresh_token').catch(() => null)
     if (refreshToken) {
       authService.logout({ refreshToken }).catch(() => {})

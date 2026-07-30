@@ -304,6 +304,7 @@ model User {
   pointsLedger        PointsLedger[]
   socialAccounts      SocialAccount[]
   authSessions        AuthSession[]
+  listingDraft        ListingDraft?
 
   lastLoginAt DateTime?
   // When they last opened their saved list. Powers "since you last looked" —
@@ -845,6 +846,46 @@ model SavedListing {
 
   @@unique([userId, propertyId])
   @@index([userId])
+}
+
+// The add-listing wizard's unfinished draft, so it follows the PERSON rather
+// than the device they started on. An owner photographs a flat on their phone
+// and finishes the pricing on a laptop; before this the two clients wrote the
+// same envelope, under the same key name, to two stores that never met.
+//
+// NOT the same thing as a Property with status DRAFT. That is a real listing
+// row that exists on the server and was never submitted for review; this is
+// client scratch state for a listing that has no row yet — the wizard calls
+// create+publish back to back at the very end, so a wizard in progress has no
+// server footprint at all. That is precisely why this table has to exist.
+//
+// `payload` is the client envelope verbatim ({ categoryKey, stepIdx, stepKey,
+// draft }) rather than columns: it is a half-answered form whose shape changes
+// every time the wizard gains a question, it is only ever read whole, and
+// nothing filters on it. Promote a value out of here when a QUERY needs it —
+// the same rule SpatialContext.modules follows.
+model ListingDraft {
+  id     String @id @default(cuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // One slot per owner, matching what both wizards already assume — "start
+  // fresh" discards the saved one on both platforms, and a unique constraint
+  // is what makes the upsert safe against two devices pushing at once.
+  userId String @unique
+
+  payload Json
+
+  // The CLIENT's own timestamp, not the server's, because it is the clock both
+  // wizards already stamp their local envelope with — and the pull compares
+  // this against that local value to decide who wins. Last write wins on wall
+  // clock: two devices editing the same draft at the same moment means the
+  // later stamp survives and the other's edits are lost. That is a real limit,
+  // accepted because this is one person with one draft slot, not a shared
+  // document. Kept separate from updatedAt so a same-payload re-push can't
+  // fake progress.
+  savedAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ─────────────────────────────────────────────────────────────────

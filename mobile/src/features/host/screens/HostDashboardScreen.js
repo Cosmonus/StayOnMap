@@ -10,7 +10,7 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import { hostService } from '@services/host.service'
 import { appointmentService } from '@services/appointment.service'
 import { reviewService } from '@services/review.service'
-import { readSavedDraft } from '@features/listings/components/onboarding/draftStore'
+import { syncAndReadDraft } from '@features/listings/components/onboarding/draftSync'
 import { CATEGORIES, suggestTitle } from '@features/listings/config/onboarding.js'
 import { WIZARD_STEPS as STEPS, savedStep } from '@features/listings/config/wizardSteps.js'
 import Icon from '@components/common/Icon'
@@ -217,11 +217,12 @@ export default function HostDashboardScreen({ navigation }) {
 
   // Re-read on focus, not once on mount: the owner leaves for the wizard and
   // comes back, and a stale banner pointing at a listing they just published is
-  // worse than no banner.
+  // worse than no banner. Syncs as it reads, so a listing started on the
+  // owner's laptop is waiting here.
   useFocusEffect(
     useCallback(() => {
       let alive = true
-      readSavedDraft().then((s) => { if (alive) setSavedDraft(s) })
+      syncAndReadDraft().then((s) => { if (alive) setSavedDraft(s) })
       return () => { alive = false }
     }, []),
   )

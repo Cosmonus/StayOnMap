@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
 import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
-import { readSavedDraft, clearSavedDraft } from '@features/listings/components/onboarding/draftStore'
+import { syncAndReadDraft, discardDraftEverywhere } from '@features/listings/components/onboarding/draftSync'
 import { CATEGORIES, suggestTitle } from '@features/listings/config/onboarding.js'
 import { WIZARD_STEPS as STEPS, savedStep } from '@features/listings/config/wizardSteps.js'
 import { formatPrice } from '@utils/format'
@@ -134,19 +134,23 @@ export default function MyListingsScreen({ navigation }) {
 
   // Re-read on focus, same as the dashboard: the owner leaves for the wizard
   // and comes back, and this screen must reflect what just happened there.
+  // syncAndReadDraft rather than a bare read, so a listing started on the
+  // owner's laptop turns up here too.
   const [savedDraft, setSavedDraft] = useState(null)
   useFocusEffect(
     useCallback(() => {
       let alive = true
-      readSavedDraft().then((s) => { if (alive) setSavedDraft(s) })
+      syncAndReadDraft().then((s) => { if (alive) setSavedDraft(s) })
       return () => { alive = false }
     }, []),
   )
 
   function discardDraft() {
-    Alert.alert('Delete this draft?', 'Your unfinished listing will be gone for good.', [
+    Alert.alert('Delete this draft?', 'Your unfinished listing will be gone for good, on this phone and your other devices.', [
       { text: 'Keep it', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => { clearSavedDraft(); setSavedDraft(null) } },
+      // Everywhere, not just here: the owner asked for it to be gone, and
+      // leaving the server's copy would have their laptop push it back.
+      { text: 'Delete', style: 'destructive', onPress: () => { discardDraftEverywhere(); setSavedDraft(null) } },
     ])
   }
 

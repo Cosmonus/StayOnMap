@@ -52,6 +52,11 @@ export const prismaMock = {
   savedListing: {
     count: vi.fn(),
   },
+  listingDraft: {
+    findUnique: vi.fn(),
+    upsert:     vi.fn(),
+    deleteMany: vi.fn(),
+  },
   propertyDailyView: {
     aggregate: vi.fn(),
     upsert:    vi.fn(),
