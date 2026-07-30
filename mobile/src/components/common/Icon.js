@@ -5,6 +5,7 @@ import {
   Check, CircleCheck, TriangleAlert, Info, Bell, Shield, ShieldCheck, Clock, Calendar, Eye, EyeOff,
   Users, Phone, Mail, Lock, Key, Settings,
   House, Building2, MapPin, BedDouble, Ruler, IndianRupee, Sofa, Package, Wifi,
+  LandPlot, Store, Luggage,
   Image as ImageIcon, FileText, Link2, ArrowRight,
   ArrowUpDown, Dumbbell, WavesLadder, Video, Zap, Droplet, Wind, Refrigerator, WashingMachine,
   TreePine, DoorClosed, SquareParking,
@@ -85,6 +86,12 @@ const ICONS = {
   area: Ruler,
   rupee: IndianRupee,
   sofa: Sofa,
+  // The six wizard categories, as they appear on a map pin — see
+  // config/propertyTypes.js. `home` and `building` above serve houses and
+  // flats; these three are the other three categories.
+  land: LandPlot,
+  store: Store,
+  luggage: Luggage,
   box: Package,
   wifi: Wifi,
   image: ImageIcon,

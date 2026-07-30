@@ -6,13 +6,13 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import { savedService } from '@services/saved.service'
 import { imgUrl, formatCompact, priceUnit, formatAge, isAvailableToday } from '@utils/format'
 import Icon from '@components/common/Icon'
+import { typeIcon, typeLabel } from '@config/propertyTypes'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
 const FURNISHED_LABEL = { FULLY: 'Furnished', SEMI: 'Semi', UNFURNISHED: 'Unfurnished' }
 const FURNISHED_ICON = { FULLY: 'sofa', SEMI: 'sofa', UNFURNISHED: 'box' }
-const TYPE_ICON = { APARTMENT: 'building', HOUSE: 'home', VILLA: 'home', PG: 'building', INDEPENDENT_HOUSE: 'home', COMMERCIAL: 'building' }
 
 // Optimistic save/unsave toggle ported from the WORKING pattern in
 // frontend/src/features/properties/components/PropertyCard.jsx — not the
@@ -79,19 +79,26 @@ export default function PropertyCard({ property, isSaved: initialSaved = false, 
         <View style={styles.chipRow}>
           {bhkLabel && (
             <View style={[styles.chip, styles.chipBrand]}>
-              <Icon name="bed" size={11} color={colors.brand700} />
+              <Icon name="bed" size={16} color={colors.brand700} />
               <Text style={styles.chipTextBrand}>{bhkLabel}</Text>
             </View>
           )}
           {FURNISHED_LABEL[property.furnished] && (
             <View style={styles.chip}>
-              <Icon name={FURNISHED_ICON[property.furnished]} size={11} color={colors.slate600} />
+              <Icon name={FURNISHED_ICON[property.furnished]} size={16} color={colors.slate600} />
               <Text style={styles.chipText}>{FURNISHED_LABEL[property.furnished]}</Text>
             </View>
           )}
-          {property.type && (
+          {/* Named, not just drawn. This chip was an icon on its own, from a
+              private map that had no LAND or SHORT_STAY entry (both fell back
+              to a house) and drew a PG, a shop and a flat with the same
+              building — so on a card carrying no BHK it said nothing, or
+              something false. A card has room for the word; the map pin, which
+              does not, is the one place the glyph stands alone. */}
+          {typeLabel(property.type) && (
             <View style={styles.chip}>
-              <Icon name={TYPE_ICON[property.type] ?? 'home'} size={11} color={colors.slate600} />
+              <Icon name={typeIcon(property.type)} size={16} color={colors.slate600} />
+              <Text style={styles.chipText}>{typeLabel(property.type)}</Text>
             </View>
           )}
         </View>
