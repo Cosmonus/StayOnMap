@@ -7,6 +7,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 //
 // Mirrors web's useDraftAutosave: same key name, same envelope
 // ({ categoryKey, stepIdx, draft, at }), same 14-day expiry.
+//
+// Read the step back with config/wizardSteps.js's savedStep/savedStepIndex,
+// never `stepIdx` directly: mobile's wizard has seven steps to web's six, so a
+// raw index means one thing in an envelope written before that split and
+// another after. `stepKey` is the authoritative field; `stepIdx` is kept only
+// so the envelope shape still matches web's.
 
 export const DRAFT_KEY = 'sn_listing_draft_v1'
 const MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000

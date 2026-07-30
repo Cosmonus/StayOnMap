@@ -7,16 +7,11 @@ import TrustBadge from '@components/common/TrustBadge'
 import { propertyService } from '@services/property.service'
 import { formatCompact, priceUnit, imgUrl } from '@utils/format'
 import { previewHighlights } from '@features/spatial/previewHighlights'
+import { TYPE_LABEL } from '@config/propertyTypes'
 import { colors } from '@theme/colors'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
-
-const TYPE_LABEL = {
-  APARTMENT: 'Apartment', HOUSE: 'House', VILLA: 'Villa', PG: 'PG',
-  INDEPENDENT_HOUSE: 'Independent house', COMMERCIAL: 'Commercial',
-  LAND: 'Plot', SHORT_STAY: 'Stay',
-}
 
 const FURNISHED_LABEL = { FULLY: 'Furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
 

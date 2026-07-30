@@ -6,6 +6,7 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import { savedService } from '@services/saved.service'
 import { imgUrl, formatCompact, priceUnit } from '@utils/format'
 import Icon from '@components/common/Icon'
+import { typeLabel } from '@config/propertyTypes'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -32,9 +33,14 @@ export default function MapHomeCard({ property, isSaved: initialSaved = false, o
   }
 
   const thumb = property.images?.[0]?.url ?? property.images?.[0]
-  const bhkLabel = property.type === 'PG'
-    ? `${property.sharing}-Sharing`
-    : property.bhk != null ? `${property.bhk} BHK` : null
+  // The type is the fallback, not an extra: a plot, a shop and a short stay
+  // have no BHK, so this line was the city alone and the card never said what
+  // it was selling. One slot either way — three columns across a phone cannot
+  // carry "Apartment · 2 BHK · Bengaluru" without truncating the city.
+  // (A PG with no sharing figure used to render the string "null-Sharing".)
+  const specLabel = property.type === 'PG'
+    ? (property.sharing ? `${property.sharing}-Sharing` : 'PG')
+    : property.bhk != null ? `${property.bhk} BHK` : typeLabel(property.type)
 
   return (
     <Pressable style={styles.card} onPress={onPress} accessibilityRole="button" accessibilityLabel={`View ${property.title}`}>
@@ -60,7 +66,7 @@ export default function MapHomeCard({ property, isSaved: initialSaved = false, o
       </Text>
       <Text style={styles.title} numberOfLines={1}>{property.title}</Text>
       <Text style={styles.spec} numberOfLines={1}>
-        {[bhkLabel, property.city].filter(Boolean).join(' · ')}
+        {[specLabel, property.city].filter(Boolean).join(' · ')}
       </Text>
     </Pressable>
   )

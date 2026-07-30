@@ -72,6 +72,18 @@ const CONVERSATION_SCREEN = {
   options: { headerShown: false },
 }
 
+// Notifications is a DESTINATION, not a tab, and the bell that opens it sits on
+// the home screen of Explore (renter) and Dashboard (host) as well as in both
+// account menus. It therefore rides along in every stack that can open it, for
+// the same reason CONVERSATION_SCREEN does: opening it cross-tab in the account
+// stack meant back from the bell popped to the ACCOUNT screen — somewhere the
+// reader had never been — and only then to the map they came from.
+const NOTIFICATIONS_SCREEN = {
+  name: 'Notifications',
+  component: NotificationsScreen,
+  options: { headerShown: false },
+}
+
 // Every stack that can show a listing can also open its "Message owner" thread
 // (CONVERSATION_SCREEN rides along), and every stack that can show a thread
 // can also open the listing it is about — a conversation's property card
@@ -88,6 +100,7 @@ const ExploreStack = makeStack([
   // The map's list handoff — web's /properties. Explore-only: it reads the
   // live map viewport, so it has no meaning pushed from anywhere else.
   { name: 'PropertyList', component: PropertyListScreen, options: { headerShown: false } },
+  NOTIFICATIONS_SCREEN,
   ...BOOKING_SCREENS,
 ])
 
@@ -105,7 +118,7 @@ const ChatStack = makeStack([
 const ProfileStack = makeStack([
   { name: 'ProfileHome', component: ProfileScreen, options: { headerShown: false } },
   { name: 'Appointments', component: AppointmentsScreen, options: { headerShown: false } },
-  { name: 'Notifications', component: NotificationsScreen, options: { headerShown: false } },
+  NOTIFICATIONS_SCREEN,
   { name: 'Leases', component: LeasesScreen, options: { headerShown: false } },
   { name: 'Settings', component: SettingsScreen, options: { headerShown: false } },
   { name: 'Support', component: SupportScreen, options: { headerShown: false } },
@@ -117,6 +130,7 @@ const ProfileStack = makeStack([
 const DashboardStack = makeStack([
   { name: 'DashboardHome', component: HostDashboardScreen, options: { headerShown: false } },
   { name: 'Calendar', component: CalendarScreen, options: { headerShown: false } },
+  NOTIFICATIONS_SCREEN,
 ])
 
 const HostAppointmentsStack = makeStack([
@@ -129,7 +143,7 @@ const HostAppointmentsStack = makeStack([
 
 const HostProfileStack = makeStack([
   { name: 'HostProfileHome', component: HostProfileScreen, options: { headerShown: false } },
-  { name: 'Notifications', component: NotificationsScreen, options: { headerShown: false } },
+  NOTIFICATIONS_SCREEN,
   { name: 'Settings', component: SettingsScreen, options: { headerShown: false } },
   { name: 'Support', component: SupportScreen, options: { headerShown: false } },
   { name: 'Legal', component: LegalScreen, options: { headerShown: false } },

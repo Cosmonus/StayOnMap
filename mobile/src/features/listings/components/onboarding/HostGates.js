@@ -6,9 +6,10 @@ import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 import { CATEGORIES } from '../../config/onboarding.js'
 
-// The category grid, now rendered INSIDE step 1 of the wizard
-// (WizardScreens.js's BasicsScreen) rather than as a page of its own —
-// picking a type and answering its first question is one decision.
+// The category grid — the whole of the wizard's step 1 (WizardScreens.js's
+// TypeScreen). It shared that step with the question the choice unlocks until
+// 2026-07-30; on a phone the two together were one scroll too long, so on
+// mobile they are two screens (config/wizardSteps.js).
 export function CategoryCards({ activeKey, onPick }) {
   return (
     <View style={{ gap: spacing.sm }}>
