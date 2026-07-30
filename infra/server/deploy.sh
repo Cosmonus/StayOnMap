@@ -76,17 +76,48 @@ sudo /usr/sbin/nginx -t
 sudo /usr/bin/systemctl reload nginx
 
 log "deploy complete"
-echo "Health check:"
-sleep 2
+
+# ── 8. Wait for the API to be READY ─────────────────────────────────────────
+# POLL, don't sleep-then-look-once. This slept 2s and curled a single time, so
+# a start that took a moment longer than usual reported the whole deploy as
+# broken while it was merely not finished yet — curl's exit 7 there is
+# "connection refused", i.e. nothing is listening on :4000 *yet*, which is not
+# the same claim as "the API is unhealthy". Restarting the unit already takes
+# ~15s, and Prisma's client init lands on top of that. The TIMEOUT is what
+# should mean something, not the first attempt.
+#
 # /health/ready, not /health: readiness also proves the DB is reachable, which
 # is what a deploy can plausibly have broken (a migration, a bad DATABASE_URL).
 # /health only proves Express is answering, and would have reported a cheerful
 # 200 over a completely dead database.
-if curl -fsS http://127.0.0.1:4000/health/ready; then
-  echo
-else
-  echo "WARN: /health/ready did not return 200 — the API may be up but degraded."
-  echo "      check: journalctl -u stayonmap-api -n 50"
-  curl -fsS http://127.0.0.1:4000/health >/dev/null 2>&1 \
-    && echo "      (/health IS 200, so the process is alive — suspect the database)"
-fi
+READY_URL=http://127.0.0.1:4000/health/ready
+READY_TIMEOUT=60
+
+log "8. health check (up to ${READY_TIMEOUT}s)"
+deadline=$(( SECONDS + READY_TIMEOUT ))
+until ready_body=$(curl -fsS --max-time 5 "${READY_URL}" 2>/dev/null); do
+  if (( SECONDS >= deadline )); then
+    # Deliberately FATAL, and deliberately an explicit exit. This branch used
+    # to print "WARN" and fall through — meaning to be non-fatal — but its last
+    # command was a diagnostic curl whose failure silently became the script's
+    # own exit status. So it failed the job by accident while *saying* it was
+    # only warning. Either answer is defensible; what isn't, is the exit code
+    # and the message disagreeing. An API that is not ready a minute after a
+    # deploy is a broken deploy: the whole value of the job's red/green is that
+    # someone reacts to red, which they won't if it also goes red for a slow
+    # start.
+    echo "ERROR: ${READY_URL} did not return 200 within ${READY_TIMEOUT}s."
+    # The two failures need different next moves, so name which one it is.
+    if curl -fsS --max-time 5 http://127.0.0.1:4000/health >/dev/null 2>&1; then
+      echo "       /health IS 200, so the process is alive — suspect the DATABASE."
+    else
+      echo "       /health is not answering either — the process is down."
+      echo "       systemctl is-active stayonmap-api: $(systemctl is-active stayonmap-api 2>&1 || true)"
+    fi
+    echo "       logs: journalctl -u stayonmap-api -n 50"
+    exit 1
+  fi
+  sleep 2
+done
+echo "${ready_body}"
+echo "OK — the API is ready."
