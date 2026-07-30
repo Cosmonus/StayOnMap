@@ -8,16 +8,18 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import Icon from '@components/common/Icon'
 import { BusinessGate } from './HostGates'
 import { readSavedDraft, writeSavedDraft, clearSavedDraft } from './draftStore'
-import { BasicsScreen, LocationScreen, PhotosScreen, FeaturesScreen, PriceScreen, ReviewScreen } from './WizardScreens'
+import { TypeScreen, BasicsScreen, LocationScreen, PhotosScreen, FeaturesScreen, PriceScreen, ReviewScreen } from './WizardScreens'
 import {
-  CATEGORIES, BUSINESS_GATED_TYPES, DESCRIBE, STEPS,
+  CATEGORIES, BUSINESS_GATED_TYPES, DESCRIBE,
   deriveType, missingRequirements, buildPayload, suggestTitle, defaultRules,
 } from '../../config/onboarding.js'
+import { WIZARD_STEPS as STEPS, savedStepIndex } from '../../config/wizardSteps.js'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-// Six steps, the same six as web. The draft is persisted after every change (see
+// Seven steps — web's six with its combined first step split in two
+// (config/wizardSteps.js). The draft is persisted after every change (see
 // draftStore.js) — a listing takes photos, a pin and a price, and a phone WILL
 // be interrupted halfway through.
 const EMPTY_DRAFT = {
@@ -76,9 +78,9 @@ function DoneScreen({ category, onListAnother, onDone }) {
   )
 }
 
-// One bar, not two rows: back, where you are, and the way out. Six named steps
-// don't fit a phone's width, so the stepper is "Step N of 6 · Label" over a
-// single continuous progress bar rather than six labelled segments.
+// One bar, not two rows: back, where you are, and the way out. The step names
+// don't fit a phone's width, so the stepper is "Step N of 7 · Label" over a
+// single continuous progress bar rather than seven labelled segments.
 function WizardBar({ step, onBack, onExit }) {
   return (
     <View style={styles.bar}>
@@ -102,6 +104,7 @@ function WizardBar({ step, onBack, onExit }) {
 // differs by where they are: that nothing is lost, or that a human looks before
 // this goes live.
 const FOOTER_NOTE = {
+  type: 'Changing this later clears your answers',
   basics: 'Saved automatically',
   location: 'The pin decides your area report',
   photos: 'Safe to close — we keep your draft',
@@ -141,13 +144,15 @@ export default function OnboardingWizard({ onDone }) {
       if (!s) return
       setCategoryKey(s.categoryKey)
       setDraft({ ...EMPTY_DRAFT, ...s.draft })
-      setStepIdx(s.stepIdx ?? 0)
+      // Not s.stepIdx directly — a draft saved before the type/basics split
+      // indexes a six-step list. savedStepIndex() reads the key instead.
+      setStepIdx(savedStepIndex(s))
     })
   }, [])
 
   useEffect(() => {
     if (stage !== 'flow' || !categoryKey) return
-    writeSavedDraft({ categoryKey, stepIdx, draft })
+    writeSavedDraft({ categoryKey, stepIdx, stepKey: STEPS[stepIdx].k, draft })
   }, [stage, categoryKey, stepIdx, draft])
 
   const { mutate: publish, isPending } = useMutation({
@@ -274,7 +279,8 @@ export default function OnboardingWizard({ onDone }) {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          {step.k === 'basics' && <BasicsScreen {...stepProps} onPickCategory={pickCategory} />}
+          {step.k === 'type' && <TypeScreen categoryKey={categoryKey} onPickCategory={pickCategory} />}
+          {categoryKey && step.k === 'basics' && <BasicsScreen {...stepProps} />}
           {categoryKey && step.k === 'location' && <LocationScreen {...stepProps} />}
           {categoryKey && step.k === 'photos' && <PhotosScreen {...stepProps} />}
           {categoryKey && step.k === 'features' && <FeaturesScreen {...stepProps} />}

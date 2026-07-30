@@ -37,13 +37,14 @@ export default function NotificationBell({ style }) {
 
   const unread = notifications.filter((n) => !n.isRead).length
 
-  // Notifications live in the ACCOUNT stack of each mode, so this is a
-  // cross-tab jump. The tab names differ per mode ('Profile' vs 'HostProfile')
-  // — hardcoding either breaks in the other, the same trap as Inbox/Chat.
+  // Push it onto the CURRENT tab's stack, never cross-tab into the account
+  // stack. It used to do the latter, with the account screen slipped in
+  // underneath — so back from the map's bell went map → account → map, landing
+  // on a screen the reader had never opened. Notifications belongs to wherever
+  // you asked for it (AppTabs.js's NOTIFICATIONS_SCREEN is in every stack that
+  // renders this button — add it there before putting a bell on a new screen).
   function open() {
-    // initial: false keeps the account screen beneath Notifications, so back
-    // pops to it instead of falling through to the tab bar.
-    navigation.getParent()?.navigate(hostMode ? 'HostProfile' : 'Profile', { screen: 'Notifications', initial: false })
+    navigation.navigate('Notifications')
   }
 
   return (

@@ -8,7 +8,8 @@ import { propertyService } from '@services/property.service'
 import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { readSavedDraft, clearSavedDraft } from '@features/listings/components/onboarding/draftStore'
-import { STEPS, CATEGORIES, suggestTitle } from '@features/listings/config/onboarding.js'
+import { CATEGORIES, suggestTitle } from '@features/listings/config/onboarding.js'
+import { WIZARD_STEPS as STEPS, savedStep } from '@features/listings/config/wizardSteps.js'
 import { formatPrice, imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
@@ -99,7 +100,7 @@ function VisibilityNotice({ visibility, onOpenSettings }) {
 // UnfinishedCard was the only surface that admitted it existed. Mirrors web's
 // LocalDraftRow in ListingManager, wording shared with the dashboard card.
 function DraftCard({ saved, onResume, onDiscard }) {
-  const step = STEPS[saved.stepIdx ?? 0] ?? STEPS[0]
+  const step = savedStep(saved)
   const label = saved.draft?.title?.trim()
     || suggestTitle(saved.categoryKey, { fields: saved.draft?.fields ?? {}, location: saved.draft?.location ?? {} })
     || CATEGORIES[saved.categoryKey]?.label

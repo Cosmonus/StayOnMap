@@ -31,8 +31,12 @@ import { spacing, radius } from '@theme/spacing'
 // Same two differences from the add flow as web:
 //   - no Review tab (nothing to review — it is already live), Save instead
 //   - the category is fixed: a listing becoming a different KIND of property
-//     is a relist, not an edit (BasicsScreen hides the picker when no
-//     onPickCategory is passed)
+//     is a relist, not an edit (hence `typeLocked` on the basics panel — the
+//     add wizard reaches its type picker on its own first step, config/
+//     wizardSteps.js, and there is no equivalent tab here)
+//
+// These are the SHARED six steps minus review, which is exactly the editable
+// set — the wizard's mobile-only type step is not one of them.
 
 const TABS = STEPS.filter((s) => s.k !== 'review')
 
@@ -149,7 +153,8 @@ function EditForm({ property, navigation }) {
       </View>
 
       <ScrollView ref={scrollRef} style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Panel categoryKey={categoryKey} draft={current} setDraft={updateDraft} />
+        {/* typeLocked is read by BasicsScreen only; the other four ignore it. */}
+        <Panel categoryKey={categoryKey} draft={current} setDraft={updateDraft} typeLocked />
       </ScrollView>
 
       <View style={styles.footer}>

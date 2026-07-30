@@ -26,9 +26,10 @@ import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-// The six steps, in the same order and with the same questions as web
+// The steps, in the same order and with the same questions as web
 // (frontend/.../onboarding/steps/). Layout differs — one column, sheets
-// instead of side panels — capability does not.
+// instead of side panels, and web's step 1 split in two (config/wizardSteps.js)
+// — capability does not.
 
 function Head({ title, sub }) {
   return (
@@ -90,26 +91,40 @@ function Chips({ opts, selected, onToggle }) {
 }
 
 // ── Step 1 ──────────────────────────────────────────────────────────
-export function BasicsScreen({ categoryKey, draft, setDraft, onPickCategory }) {
+// The six categories, and nothing else. They shared a screen with the question
+// they unlock until 2026-07-30 — six cards, a dropdown and up to five fields is
+// one long phone scroll, and the choice driving all of it scrolled out of sight
+// above its own consequences. See config/wizardSteps.js for why this is a
+// mobile-only split.
+export function TypeScreen({ categoryKey, onPickCategory }) {
+  return (
+    <View>
+      <Head title="What are you listing?" sub="Your answer shapes every question after this one." />
+      <CategoryCards activeKey={categoryKey} onPick={onPickCategory} />
+    </View>
+  )
+}
+
+// ── Step 2 ──────────────────────────────────────────────────────────
+// Also the "Basic info" tab of EditListingScreen, which is where `typeLocked`
+// comes from: a live listing becoming a different KIND of property is a relist,
+// not an edit, so there the absence of a type picker needs explaining. In the
+// wizard it doesn't — the picker is the screen you just came from.
+export function BasicsScreen({ categoryKey, draft, setDraft, typeLocked = false }) {
   const describe = categoryKey ? DESCRIBE[categoryKey] : null
   const setField = (key, value) => setDraft((d) => ({ ...d, fields: { ...d.fields, [key]: value } }))
-  // No picker when editing (mirrors web's BasicsStep): changing what KIND of
-  // property a live listing is would rewrite every other answer on it, so
-  // that is a relist, not an edit.
-  const canPickCategory = typeof onPickCategory === 'function'
 
   return (
     <View>
       <Head
-        title={canPickCategory ? 'What are you listing?' : `Your ${CATEGORIES[categoryKey]?.short.toLowerCase() ?? 'listing'}`}
-        sub={canPickCategory
-          ? 'Your answer shapes every question after this one.'
-          : 'The basics renters filter on. Type can’t change on a live listing — relist instead.'}
+        title={`Your ${CATEGORIES[categoryKey]?.short.toLowerCase() ?? 'listing'}`}
+        sub={typeLocked
+          ? 'The basics renters filter on. Type can’t change on a live listing — relist instead.'
+          : 'The basics renters filter on.'}
       />
-      {canPickCategory && <CategoryCards activeKey={categoryKey} onPick={onPickCategory} />}
 
       {describe && (
-        <View style={{ marginTop: spacing.lg, gap: spacing.lg }}>
+        <View style={{ gap: spacing.lg }}>
           {/* A dropdown, like every other single-choice question — the pill row
               this replaced wrapped to three lines on a narrow phone. */}
           <View>
@@ -157,7 +172,7 @@ function PincodeTruth({ pincode, city }) {
   return <Text style={styles.truth}>{office ? `${office} — ` : ''}{place} (India Post)</Text>
 }
 
-// ── Step 2 ──────────────────────────────────────────────────────────
+// ── Step 3 ──────────────────────────────────────────────────────────
 export function LocationScreen({ categoryKey, draft, setDraft }) {
   const loc = draft.location
   const set = (key, value) => setDraft((d) => ({ ...d, location: { ...d.location, [key]: value } }))
@@ -220,7 +235,7 @@ export function LocationScreen({ categoryKey, draft, setDraft }) {
   )
 }
 
-// ── Step 3 ──────────────────────────────────────────────────────────
+// ── Step 4 ──────────────────────────────────────────────────────────
 export function PhotosScreen({ categoryKey, draft, setDraft }) {
   return (
     <View>
@@ -231,7 +246,7 @@ export function PhotosScreen({ categoryKey, draft, setDraft }) {
   )
 }
 
-// ── Step 4 ──────────────────────────────────────────────────────────
+// ── Step 5 ──────────────────────────────────────────────────────────
 export function FeaturesScreen({ categoryKey, draft, setDraft }) {
   const [expanded, setExpanded] = useState(false)
   const f = FEATURES[categoryKey]
@@ -350,7 +365,7 @@ function Money({ label, value, onChange, ph }) {
   )
 }
 
-// ── Step 5 ──────────────────────────────────────────────────────────
+// ── Step 6 ──────────────────────────────────────────────────────────
 export function PriceScreen({ categoryKey, draft, setDraft }) {
   const [datePickerFor, setDatePickerFor] = useState(null)
   // Land's mode comes from its own "Sale or lease?" answer on step 1, so it gets
@@ -554,7 +569,7 @@ export function PriceScreen({ categoryKey, draft, setDraft }) {
   )
 }
 
-// ── Step 6 ──────────────────────────────────────────────────────────
+// ── Step 7 ──────────────────────────────────────────────────────────
 // The renter's view of the same data, at the top of the step. An owner who can
 // see how thin their listing looks fixes it here, not after nobody enquires.
 function RenterPreview({ categoryKey, draft, price, priceSuffix }) {
