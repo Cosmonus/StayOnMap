@@ -29,9 +29,32 @@ log() { printf '\n\033[1m== %s ==\033[0m\n' "$*"; }
 set -a; . "${ENV_FILE}"; set +a
 : "${DATABASE_URL:?DATABASE_URL missing from ${ENV_FILE}}"
 
-# ── 1. Pull latest ──────────────────────────────────────────────────────────
-log "1. git pull"
-git -C "${APP_DIR}" pull --ff-only
+# ── 1. Pull latest, then hand over to the version just pulled ───────────────
+# `git pull` rewrites THIS FILE while bash is part-way through executing it.
+# Two consequences, and the second one is a live bug rather than a hypothetical:
+#
+#   - Bash reads a script lazily and keeps a byte offset into it, so after the
+#     pull it can resume at an offset that now points into different content.
+#     Every edit to this file so far has survived only because bash happened to
+#     slurp the whole thing in one read; that is a buffer size, not a guarantee,
+#     and this file has grown by half again today.
+#   - Even when it survives, the OLD script is what finishes the deploy. So a
+#     change to deploy.sh takes effect one deploy LATE. That is exactly how the
+#     2026-07-30 health-check fix shipped and then stood by while the old check
+#     failed the very deploy that delivered it.
+#
+# Pull, then `exec` the pulled bytes. The guard variable is what stops the new
+# copy pulling and exec-ing again forever; `VAR=1 exec` puts it in the new
+# process's environment, which is the whole mechanism. `bash <path>` rather than
+# running the file directly so a lost exec bit can't turn this into a 126 — that
+# has bitten this repo once already (0faf13e).
+if [[ "${DEPLOY_REEXEC:-}" != "1" ]]; then
+  log "1. git pull"
+  git -C "${APP_DIR}" pull --ff-only
+  DEPLOY_REEXEC=1 exec bash "${BASH_SOURCE[0]}" "$@"
+fi
+
+log "1. deploying $(git -C "${APP_DIR}" rev-parse --short HEAD)"
 
 # ── 2. Backend: runtime deps + migrations + client ──────────────────────────
 log "2. backend deps"
