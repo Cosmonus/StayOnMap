@@ -1,5 +1,3 @@
-// Form validation helpers
-
 // Indian mobile numbers, normalised before they are validated or sent.
 //
 // The server's rule (users.validation.js) is /^[6-9]\d{9}$/ applied after a
@@ -8,7 +6,8 @@
 // those are the three ways people actually write a phone number. Normalising
 // here is what turns "the field doesn't work" into "the field works".
 //
-// Mirrored in mobile/src/utils/phone.js — keep the two in step.
+// Mirrored in frontend/src/utils/validation.js — keep the two in step.
+
 export const PHONE_RE = /^[6-9]\d{9}$/
 
 /**
@@ -23,8 +22,5 @@ export function normalizePhone(raw = '') {
   return digits
 }
 
+/** True only for what the server will actually accept. */
 export const isValidPhone = (phone) => PHONE_RE.test(normalizePhone(phone))
-
-export const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-
-export const isValidRent = (amount) => Number(amount) > 0 && Number(amount) <= 10_000_000

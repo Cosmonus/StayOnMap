@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import Dropdown from '@components/common/Dropdown'
 import { userService } from '@services/user.service'
 import { authService } from '@services/auth.service'
+import { normalizePhone, isValidPhone } from '@utils/phone'
 import { CITY_NAMES } from '@config/cities'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -32,8 +33,31 @@ export default function PublishGate({ missing, profile }) {
 
   const verify = useMutation({ mutationFn: () => authService.sendEmailVerification() })
 
+  const [phoneError, setPhoneError] = useState('')
+
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
   const commit = (k) => { if (form[k]?.trim() && form[k] !== profile?.[k]) save.mutate({ [k]: form[k] }) }
+
+  // Phone is committed as you type, not on blur, and always normalised.
+  //
+  // Two separate reasons this field appeared broken. The server rejects
+  // anything but 10 bare digits, so the number typed the way the placeholder
+  // demonstrated it ("98450 12345") 400'd every time. And because Publish
+  // stays disabled until missingProfile clears, a save that never fired —
+  // blur does not happen if you type the number and reach straight for the
+  // button — left the gate up with no explanation at all.
+  const commitPhone = (raw) => {
+    const clean = normalizePhone(raw)
+    if (!clean) { setPhoneError(''); return }
+    if (!isValidPhone(clean)) {
+      // Silent while the number is merely unfinished; only nag once it is long
+      // enough to be wrong rather than incomplete.
+      setPhoneError(clean.length >= 10 ? 'Enter a valid 10-digit Indian mobile number' : '')
+      return
+    }
+    setPhoneError('')
+    if (clean !== profile?.phone) save.mutate({ phone: clean })
+  }
 
   return (
     <View style={styles.card}>
@@ -63,15 +87,19 @@ export default function PublishGate({ missing, profile }) {
         <View style={styles.field}>
           <Text style={styles.label}>Contact number</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, phoneError && styles.inputError]}
             value={form.phone}
-            onChangeText={(v) => set('phone', v)}
-            onBlur={() => commit('phone')}
-            placeholder="98450 12345"
+            onChangeText={(v) => { set('phone', v); commitPhone(v) }}
+            onBlur={() => commitPhone(form.phone)}
+            placeholder="9845012345"
             placeholderTextColor={colors.slate500}
             keyboardType="phone-pad"
+            maxLength={16}
             accessibilityLabel="Contact number"
           />
+          {phoneError
+            ? <Text style={styles.fieldError}>{phoneError}</Text>
+            : <Text style={styles.hint}>10 digits. +91, spaces and dashes are fine.</Text>}
         </View>
       )}
 
@@ -126,6 +154,9 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md,
     paddingHorizontal: spacing.md, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800,
   },
+  inputError: { borderColor: colors.danger },
+  fieldError: { fontFamily: fonts.body, fontSize: 11, color: colors.danger, marginTop: spacing.xs, lineHeight: 16 },
+  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: spacing.xs, lineHeight: 16 },
   verifyButton: { minHeight: 48, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.warning700, borderRadius: radius.md, paddingHorizontal: spacing.md },
   verifyText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   disabled: { opacity: 0.6 },

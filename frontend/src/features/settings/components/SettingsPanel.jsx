@@ -282,7 +282,7 @@ export default function SettingsPanel() {
                 <input type="text" value={form.name} onChange={e => set('name', e.target.value)} className={INPUT} />
               </Field>
               <Field label="Phone">
-                <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+91 98765 43210" className={INPUT} />
+                <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="9876543210" className={INPUT} />
               </Field>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
