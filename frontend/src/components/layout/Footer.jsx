@@ -124,6 +124,9 @@ export default function Footer() {
           <Link to="/terms" className="text-xs text-slate-500 hover:text-white transition-colors duration-150 no-underline">
             Terms of Service
           </Link>
+          <Link to="/delete-account" className="text-xs text-slate-500 hover:text-white transition-colors duration-150 no-underline">
+            Delete Account
+          </Link>
         </div>
         <p className="text-xs text-slate-600 text-center sm:text-right">
           Built by{' '}

@@ -36,6 +36,7 @@ const ContactPage       = lazyRetry(() => import('@pages/ContactPage'))
 const RulesPage         = lazyRetry(() => import('@pages/RulesPage'))
 const PrivacyPolicyPage    = lazyRetry(() => import('@pages/PrivacyPolicyPage'))
 const TermsOfServicePage   = lazyRetry(() => import('@pages/TermsOfServicePage'))
+const DeleteAccountPage    = lazyRetry(() => import('@pages/DeleteAccountPage'))
 const DashboardPage     = lazyRetry(() => import('@pages/DashboardPage'))
 const HostOnboardingPage = lazyRetry(() => import('@pages/HostOnboardingPage'))
 const NotFoundPage      = lazyRetry(() => import('@pages/NotFoundPage'))
@@ -72,6 +73,9 @@ export default function AppRoutes() {
           <Route path="/rules"        element={<RulesPage />} />
           <Route path="/privacy"      element={<PrivacyPolicyPage />} />
           <Route path="/terms"        element={<TermsOfServicePage />} />
+          {/* Public by design — the store-listing deletion link must be
+              readable by someone who cannot sign in. Never wrap in UserGuard. */}
+          <Route path="/delete-account" element={<DeleteAccountPage />} />
 
           {/* Authenticated user */}
           <Route path="/user"         element={<UserGuard><DashboardPage /></UserGuard>} />
