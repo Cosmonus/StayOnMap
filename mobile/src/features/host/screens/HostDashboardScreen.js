@@ -209,10 +209,18 @@ export default function HostDashboardScreen({ navigation }) {
   const [replyText, setReplyText] = useState('')
   const [savedDraft, setSavedDraft] = useState(null)
 
+  // GET /host/dashboard is authMiddleware + requireOwner, so a TENANT gets a
+  // 403 — which React Query reports as isError and the screen rendered as
+  // "Couldn't load your dashboard" with a Retry that could never succeed.
+  // That was the FIRST thing a new account saw on tapping the host tab: their
+  // own app, apparently broken. A tenant has no owner dashboard to fail at
+  // loading; they have a listing they haven't made yet.
+  const isOwner = user?.role === 'OWNER'
+
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['host-dashboard'],
     queryFn: () => hostService.dashboard().then((r) => r.data),
-    enabled: !!user,
+    enabled: !!user && isOwner,
   })
 
   // Re-read on focus, not once on mount: the owner leaves for the wizard and
@@ -288,7 +296,25 @@ export default function HostDashboardScreen({ navigation }) {
       />
       <ScrollView contentContainerStyle={styles.scroll}>
 
-        {isLoading ? (
+        {!isOwner ? (
+          <View style={styles.body}>
+            <View style={styles.introCard}>
+              <Text style={styles.introTitle}>You haven&rsquo;t listed anything yet</Text>
+              <Text style={styles.introBody}>
+                Put your place on the map and renters contact you directly. No brokers,
+                no brokerage, and listing is free.
+              </Text>
+              <Pressable
+                style={styles.introButton}
+                onPress={() => navigation.getParent()?.navigate('MyListing', { screen: 'AddListing', initial: false })}
+                accessibilityRole="button"
+                accessibilityLabel="Add your first listing"
+              >
+                <Text style={styles.introButtonText}>Add your first listing</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : isLoading ? (
           <View style={styles.body}>
             <ActivityIndicator color={colors.brand600} style={{ marginTop: spacing.xl }} />
           </View>
@@ -436,6 +462,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   scroll: { paddingBottom: spacing.xxl },
   body: { padding: spacing.md, gap: spacing.sm },
+  introCard: {
+    backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1,
+    borderColor: colors.slate200, padding: spacing.lg, marginTop: spacing.md,
+  },
+  introTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
+  introBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate600, marginTop: spacing.sm, lineHeight: 20 },
+  introButton: {
+    minHeight: 48, justifyContent: 'center', alignItems: 'center', marginTop: spacing.lg,
+    backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.md,
+  },
+  introButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
 
   card: {
     backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate200,
