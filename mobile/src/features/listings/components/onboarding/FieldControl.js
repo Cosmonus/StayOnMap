@@ -107,7 +107,11 @@ export default function FieldControl({ field: f, values, onChange }) {
 }
 
 const styles = StyleSheet.create({
-  fieldWrap: { marginBottom: spacing.lg },
+  // No margin. The vertical rhythm between fields belongs to the container
+  // that stacks them (WizardScreens' `gap: spacing.lg`), and carrying it here
+  // too put 48 between every question — the gap AND the margin — plus 24 of
+  // dead space under the last one.
+  fieldWrap: {},
   label: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, marginBottom: spacing.sm },
   subLabel: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginBottom: 6 },
   countRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
