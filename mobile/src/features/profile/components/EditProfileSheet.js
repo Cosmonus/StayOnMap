@@ -4,21 +4,16 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { userService } from '@services/user.service'
 import { useResetOnOpen } from '@/hooks/useResetOnOpen'
 import { CITY_NAMES } from '@config/cities'
+import { PHONE_RE, normalizePhone } from '@utils/phone'
 import FormSheet from './FormSheet'
 import LabeledInput from './LabeledInput'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-const PHONE_RE = /^[6-9]\d{9}$/
-
-// Strips spaces/dashes and an optional +91 / 0 prefix before validating.
-function normalizePhone(raw) {
-  const digits = raw.replace(/[\s-]/g, '')
-  if (digits.startsWith('+91')) return digits.slice(3)
-  if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1)
-  return digits
-}
+// PHONE_RE / normalizePhone moved to @utils/phone (2026-08-01) so the listing
+// wizard's PublishGate could share them — it had no normalisation at all, and
+// its placeholder demonstrated a format the server rejects.
 
 export default function EditProfileSheet({ visible, onClose, settings }) {
   const qc = useQueryClient()

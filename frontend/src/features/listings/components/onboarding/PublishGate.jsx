@@ -5,6 +5,7 @@ import { toast } from '@components/common/Toaster'
 import { userService } from '@services/user.service'
 import { authService } from '@services/auth.service'
 import { CITY_NAMES } from '@/config/cities'
+import { normalizePhone, isValidPhone } from '@utils/validation'
 import { FieldLabel, Txt } from './FieldControl'
 
 // The four things POST /properties requires of the person listing
@@ -36,8 +37,26 @@ export default function PublishGate({ missing, profile }) {
     onError: (err) => toast.error('Couldn’t send', err.message ?? 'Please try again'),
   })
 
+  const [phoneError, setPhoneError] = useState('')
+
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
   const blur = (k) => { if (form[k]?.trim() && form[k] !== profile?.[k]) save.mutate({ [k]: form[k] }) }
+
+  // Phone is committed as you type, not on blur, and always normalised — see
+  // the note in mobile's PublishGate.js. The server takes 10 bare digits only,
+  // and this placeholder used to demonstrate "+91 98450 12345", which it
+  // rejects. Publish stays disabled until missingProfile clears, so a save
+  // that never fired left the gate up with nothing explaining why.
+  const commitPhone = (raw) => {
+    const clean = normalizePhone(raw)
+    if (!clean) { setPhoneError(''); return }
+    if (!isValidPhone(clean)) {
+      setPhoneError(clean.length >= 10 ? 'Enter a valid 10-digit Indian mobile number' : '')
+      return
+    }
+    setPhoneError('')
+    if (clean !== profile?.phone) save.mutate({ phone: clean })
+  }
 
   return (
     <div className="p-5 rounded-2xl bg-amber-50 border border-amber-100">
@@ -58,7 +77,16 @@ export default function PublishGate({ missing, profile }) {
         {need.has('phone') && (
           <div>
             <FieldLabel>Contact number</FieldLabel>
-            <Txt value={form.phone} onChange={(v) => set('phone', v)} onBlur={() => blur('phone')} ph="+91 98450 12345" label="Contact number" />
+            <Txt
+              value={form.phone}
+              onChange={(v) => { set('phone', v); commitPhone(v) }}
+              onBlur={() => commitPhone(form.phone)}
+              ph="9845012345"
+              label="Contact number"
+            />
+            <p className={`text-xs mt-1 leading-relaxed ${phoneError ? 'text-red-600' : 'text-slate-500'}`}>
+              {phoneError || '10 digits. +91, spaces and dashes are fine.'}
+            </p>
           </div>
         )}
         {need.has('city') && (
