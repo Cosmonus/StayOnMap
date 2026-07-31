@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import { authService } from '@services/auth.service'
 import { toast } from '@components/common/Toaster'
 import { useUiStore } from '@store/uiStore'
+import { clearLocalDraftOnSignOut } from '@features/listings/components/onboarding/draftSync'
 
 const AuthContext = createContext(null)
 
@@ -49,6 +50,12 @@ export function AuthProvider({ children }) {
     if (refreshToken) authService.logout({ refreshToken }).catch(() => {})
     localStorage.removeItem('user_token')
     localStorage.removeItem('user_refresh_token')
+    // The unfinished listing goes with them. It is kept server-side now, so
+    // nothing is lost by dropping this browser's copy — and leaving it would
+    // hand the next person to sign in on a shared machine a stranger's
+    // half-written listing, which is exactly how it behaved before the draft
+    // belonged to an account.
+    clearLocalDraftOnSignOut()
     setUser(null)
     toast.info('Signed out', 'You have been logged out')
   }

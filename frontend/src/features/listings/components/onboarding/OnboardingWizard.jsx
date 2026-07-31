@@ -8,7 +8,9 @@ import { toast } from '@components/common/Toaster'
 import { BecomeHostIntro, BusinessGate } from './HostGates'
 import { WizardHeader, WizardFooter } from './WizardChrome'
 import ListingFormTabs from '../ListingFormTabs'
-import useDraftAutosave, { EMPTY_DRAFT, clearSavedDraft, readSavedDraft } from './useDraftAutosave'
+import useDraftAutosave, { EMPTY_DRAFT, readSavedDraft, useDraftSync } from './useDraftAutosave'
+import { discardDraftEverywhere } from './draftSync'
+import { savedStepIndex } from '../../config/wizardSteps.js'
 import UnfinishedDraftBanner from './UnfinishedDraftBanner'
 import {
   CATEGORIES, BUSINESS_GATED_TYPES, DESCRIBE, STEPS,
@@ -199,9 +201,13 @@ export default function OnboardingWizard({ profile }) {
     setSearchParams(next, { replace: true })
   }, [wantsNewListing, searchParams, setSearchParams])
 
+  // Pulls the account's draft into this browser and tells us when one lands, so
+  // a listing started on a phone shows up here without a reload.
+  const syncVersion = useDraftSync()
+
   const savedAt = useDraftAutosave({
     stage, categoryKey, stepIdx, draft, setCategoryKey, setStepIdx, setDraft,
-    paused: !!pendingDraft,
+    paused: !!pendingDraft, syncVersion,
   })
 
   // Held in state and refreshed on every stage change — NOT read during render.
@@ -211,10 +217,13 @@ export default function OnboardingWizard({ profile }) {
   // straight from a reload they are already null/EMPTY_DRAFT/0, every setState
   // bails out, and the deleted draft stays on screen until the next reload.
   // Publishing and resuming both move the stage, so this stays current for them.
+  // syncVersion is in the deps for the same reason: a draft that arrives from
+  // the owner's phone while this page is open must appear on the overview, not
+  // wait for a reload.
   const [localDraft, setLocalDraft] = useState(null)
   useEffect(() => {
     setLocalDraft(stage === 'listings' ? readSavedDraft() : null)
-  }, [stage])
+  }, [stage, syncVersion])
   const localDraftLabel = localDraft
     ? (localDraft.draft?.title?.trim()
         || suggestTitle(localDraft.categoryKey, { fields: localDraft.draft?.fields ?? {}, location: localDraft.draft?.location ?? {} })
@@ -340,12 +349,14 @@ export default function OnboardingWizard({ profile }) {
       variant: 'danger',
     })
     if (!ok) return
-    clearSavedDraft()
+    // Everywhere, not just this browser: the owner asked for it to be gone, and
+    // leaving the server's copy would have their phone push it straight back.
+    discardDraftEverywhere()
     setLocalDraft(null)
     setCategoryKey(null)
     setDraft(EMPTY_DRAFT)
     setStepIdx(0)
-    toast.success('Draft deleted', 'Your unfinished listing is gone')
+    toast.success('Draft deleted', 'Your unfinished listing is gone, on this device and your others')
   }
 
   // The one way back into a saved draft, used by the banner on My listings and
@@ -359,7 +370,9 @@ export default function OnboardingWizard({ profile }) {
     if (saved?.categoryKey) {
       setCategoryKey(saved.categoryKey)
       setDraft({ ...EMPTY_DRAFT, ...saved.draft })
-      setStepIdx(saved.stepIdx ?? 0)
+      // Via the key, never the raw index — this draft may have been written on
+      // a phone, whose step list is seven long.
+      setStepIdx(savedStepIndex(saved))
     }
     setStage('flow')
   }
@@ -369,12 +382,12 @@ export default function OnboardingWizard({ profile }) {
   async function startFreshOverDraft() {
     const ok = await confirm({
       title: 'Start a new listing?',
-      message: 'Your unfinished listing will be discarded — only one draft is kept at a time.',
+      message: 'Your unfinished listing will be discarded on all your devices — only one draft is kept at a time.',
       confirmLabel: 'Discard and start new',
       variant: 'danger',
     })
     if (!ok) return
-    clearSavedDraft()
+    discardDraftEverywhere()
     setCategoryKey(null)
     setDraft(EMPTY_DRAFT)
     setStepIdx(0)
@@ -402,7 +415,10 @@ export default function OnboardingWizard({ profile }) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['my-listings'] })
-      clearSavedDraft()
+      // The draft has become a real listing, so it stops existing as a draft on
+      // every device — otherwise the owner's phone still offers to resume a
+      // listing they already published.
+      discardDraftEverywhere()
       toast.success('Submitted', 'Your listing is now pending review')
       setStage('done')
     },

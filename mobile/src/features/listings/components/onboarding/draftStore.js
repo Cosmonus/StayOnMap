@@ -37,14 +37,21 @@ export async function readSavedDraft() {
   }
 }
 
+// Returns the STAMPED envelope, and callers that also push it to the server
+// (draftSync.js) must send back exactly this one. Stamping twice — once here,
+// once at the push — produces two `at` values milliseconds apart, and since the
+// pull adopts anything newer than the local copy, the server's would win every
+// single comparison and re-write local storage on every sync.
 export async function writeSavedDraft(envelope) {
+  const stamped = { ...envelope, at: Date.now() }
   // Autosave failing is not worth interrupting typing over — the owner finds
   // out at the point they come back, which the dashboard banner covers.
   try {
-    await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify({ ...envelope, at: Date.now() }))
+    await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(stamped))
   } catch {
     /* storage full or unavailable */
   }
+  return stamped
 }
 
 export async function clearSavedDraft() {

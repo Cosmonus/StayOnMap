@@ -43,6 +43,7 @@ import hostRoutes from './features/host/host.routes.js'
 import userRoutes        from './features/users/users.routes.js'
 import uploadRoutes      from './features/uploads/uploads.routes.js'
 import savedRoutes       from './features/saved/saved.routes.js'
+import listingDraftRoutes from './features/listingDraft/listingDraft.routes.js'
 import appointmentRoutes from './features/appointments/appointments.routes.js'
 import notificationRoutes from './features/notifications/notifications.routes.js'
 import pointsRoutes       from './features/points/points.routes.js'
@@ -114,6 +115,7 @@ app.use('/api/v1/host',          hostRoutes)
 app.use('/api/v1/users',         userRoutes)
 app.use('/api/v1/uploads',       uploadLimiter, uploadRoutes)
 app.use('/api/v1/saved',         savedRoutes)
+app.use('/api/v1/listing-draft', listingDraftRoutes)
 app.use('/api/v1/appointments',  appointmentRoutes)
 app.use('/api/v1/notifications', notificationRoutes)
 app.use('/api/v1/points',        pointsRoutes)
