@@ -37,6 +37,12 @@ yarn-error.*
 # Play Console service account key (eas submit credential — never commit)
 serviceAccountKey*.json
 
+# `eas credentials` local sync — plaintext keystore + key passwords, and the
+# keystore it points at. *.jks already covers credentials/android/keystore.jks;
+# this covers the manifest that holds the passwords for it.
+credentials.json
+credentials/
+
 # typescript
 *.tsbuildinfo
 
