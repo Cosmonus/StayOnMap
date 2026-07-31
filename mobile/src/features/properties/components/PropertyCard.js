@@ -1,20 +1,36 @@
 import { useState } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
-import { Image } from 'expo-image'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { savedService } from '@services/saved.service'
-import { imgUrl, formatCompact, priceUnit, formatAge, isAvailableToday } from '@utils/format'
+import { formatCompact, priceUnit, formatAge, isAvailableToday } from '@utils/format'
 import Icon from '@components/common/Icon'
-import { typeIcon, typeLabel } from '@config/propertyTypes'
+import ListingCard from '@components/common/ListingCard'
+import { typeLabel } from '@config/propertyTypes'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-const FURNISHED_LABEL = { FULLY: 'Furnished', SEMI: 'Semi', UNFURNISHED: 'Unfurnished' }
-const FURNISHED_ICON = { FULLY: 'sofa', SEMI: 'sofa', UNFURNISHED: 'box' }
+const FURNISHED_LABEL = { FULLY: 'Furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
 
-// Optimistic save/unsave toggle ported from the WORKING pattern in
+// A search result, on @components/common/ListingCard — the same card as Saved
+// homes and My listings as of 2026-07-31. It used to be a third design: a
+// slate200 hairline instead of slate100, and a 4/3 photo bleeding to the card
+// edge instead of a 16/10 one inset inside the padding.
+//
+// The three facts this card had that the shared shape has no line for did not
+// get dropped, they moved into its two slots:
+//   heart + "Available now"  -> overlay, on the photo, where they already were
+//   deposit                  -> the footer, beside the age
+// Deposit especially has to survive the move: on an Indian rental it is
+// routinely several months' rent, so a browse card that shows only the monthly
+// figure is understating the money by an order of magnitude.
+//
+// The BHK/furnished/type CHIPS became the meta line. The type word stays in it
+// — that was added deliberately (e2d7315) because a plot, a PG and a shop
+// carry no BHK, so without the word the card said nothing about what it was.
+//
+// Optimistic save/unsave ported from the WORKING pattern in
 // frontend/src/features/properties/components/PropertyCard.jsx — not the
 // dead useSaved.js/SavedList.jsx stubs elsewhere in the web app.
 export default function PropertyCard({ property, isSaved: initialSaved = false, onPress }) {
@@ -35,90 +51,61 @@ export default function PropertyCard({ property, isSaved: initialSaved = false, 
     mutation.mutate(!saved)
   }
 
-  const cover = property.images?.[0] ? imgUrl(property.images[0]?.url ?? property.images[0], 'card') : null
+  // images[0] is an object on the list payload but a bare string on some
+  // callers' shapes — resolve both before handing one url to the card.
+  const first = property.images?.[0]
+  const photoUrl = typeof first === 'string' ? first : first?.url
   const availableNow = isAvailableToday(property.availableFrom)
   const postedAge = formatAge(property.createdAt)
   const bhkLabel = property.bhk === 0 ? 'Studio' : property.bhk ? `${property.bhk} BHK` : null
+  const deposit = Number(property.deposit)
+
+  const meta = [bhkLabel, FURNISHED_LABEL[property.furnished], typeLabel(property.type)]
+    .filter(Boolean)
+    .join(' · ')
+
+  const footer = [deposit > 0 ? `${formatCompact(deposit)} dep.` : null, postedAge]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
-    <Pressable style={styles.card} onPress={onPress} accessibilityRole="button" accessibilityLabel={`View ${property.title}`}>
-      <View style={styles.imageWrap}>
-        {cover ? (
-          <Image source={{ uri: cover }} style={styles.image} contentFit="cover" cachePolicy="memory-disk" transition={200} />
-        ) : (
-          <View style={[styles.image, styles.imageFallback]} />
-        )}
-
-        {availableNow && (
-          <View style={styles.availableBadge}>
-            <Text style={styles.availableBadgeText}>Available Now</Text>
-          </View>
-        )}
-
-        <Pressable
-          style={styles.heartButton}
-          onPress={handleHeartPress}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel={saved ? 'Remove from saved' : 'Save property'}
-          accessibilityState={{ selected: saved }}
-        >
-          <Icon name={saved ? 'heartFilled' : 'heart'} size={16} color={saved ? colors.danger : colors.white} />
-        </Pressable>
+    <ListingCard
+      photoUrl={photoUrl}
+      price={formatCompact(Number(property.rent))}
+      priceUnit={priceUnit(property)}
+      title={property.title}
+      meta={meta}
+      onPress={onPress}
+      accessibilityLabel={`View ${property.title}`}
+      overlay={(
+        <>
+          {availableNow && (
+            <View style={styles.availableBadge}>
+              <Text style={styles.availableBadgeText}>Available Now</Text>
+            </View>
+          )}
+          <Pressable
+            style={styles.heartButton}
+            onPress={handleHeartPress}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={saved ? 'Remove from saved' : 'Save property'}
+            accessibilityState={{ selected: saved }}
+          >
+            <Icon name={saved ? 'heartFilled' : 'heart'} size={16} color={saved ? colors.danger : colors.white} />
+          </Pressable>
+        </>
+      )}
+    >
+      <View style={styles.footerRow}>
+        <Text style={styles.city} numberOfLines={1}>{property.city}</Text>
+        {!!footer && <Text style={styles.footerText}>{footer}</Text>}
       </View>
-
-      <View style={styles.body}>
-        <View style={styles.priceRow}>
-          <Text style={styles.price}>
-            {formatCompact(Number(property.rent))}
-            <Text style={styles.priceUnit}>{priceUnit(property)}</Text>
-          </Text>
-          {property.deposit > 0 && <Text style={styles.deposit}>{formatCompact(Number(property.deposit))} dep.</Text>}
-        </View>
-
-        <View style={styles.chipRow}>
-          {bhkLabel && (
-            <View style={[styles.chip, styles.chipBrand]}>
-              <Icon name="bed" size={16} color={colors.brand700} />
-              <Text style={styles.chipTextBrand}>{bhkLabel}</Text>
-            </View>
-          )}
-          {FURNISHED_LABEL[property.furnished] && (
-            <View style={styles.chip}>
-              <Icon name={FURNISHED_ICON[property.furnished]} size={16} color={colors.slate600} />
-              <Text style={styles.chipText}>{FURNISHED_LABEL[property.furnished]}</Text>
-            </View>
-          )}
-          {/* Named, not just drawn. This chip was an icon on its own, from a
-              private map that had no LAND or SHORT_STAY entry (both fell back
-              to a house) and drew a PG, a shop and a flat with the same
-              building — so on a card carrying no BHK it said nothing, or
-              something false. A card has room for the word; the map pin, which
-              does not, is the one place the glyph stands alone. */}
-          {typeLabel(property.type) && (
-            <View style={styles.chip}>
-              <Icon name={typeIcon(property.type)} size={16} color={colors.slate600} />
-              <Text style={styles.chipText}>{typeLabel(property.type)}</Text>
-            </View>
-          )}
-        </View>
-
-        <Text style={styles.title} numberOfLines={1}>{property.title}</Text>
-
-        <View style={styles.footerRow}>
-          <Text style={styles.city} numberOfLines={1}>{property.city}</Text>
-          {postedAge && <Text style={styles.age}>{postedAge}</Text>}
-        </View>
-      </View>
-    </Pressable>
+    </ListingCard>
   )
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: radius.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate200, overflow: 'hidden' },
-  imageWrap: { aspectRatio: 4 / 3, backgroundColor: colors.slate100 },
-  image: { width: '100%', height: '100%' },
-  imageFallback: { backgroundColor: colors.slate100 },
   availableBadge: {
     position: 'absolute', top: spacing.sm, left: spacing.sm,
     backgroundColor: colors.success, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 3,
@@ -129,18 +116,7 @@ const styles = StyleSheet.create({
     width: 32, height: 32, borderRadius: radius.full,
     backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center',
   },
-  body: { padding: spacing.md },
-  priceRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: spacing.xs + 2 },
-  price: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
-  priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
-  deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: spacing.xs + 2 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.slate100, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 2 },
-  chipBrand: { backgroundColor: colors.brand50 },
-  chipText: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.slate600 },
-  chipTextBrand: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.brand700 },
-  title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, marginBottom: spacing.xs },
-  footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs },
   city: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, flexShrink: 1 },
-  age: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
+  footerText: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
 })

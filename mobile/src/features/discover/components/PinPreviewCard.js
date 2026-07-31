@@ -15,6 +15,10 @@ import { spacing, radius } from '@theme/spacing'
 
 const FURNISHED_LABEL = { FULLY: 'Furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
 
+// One definition, used by both the loaded image and the loading placeholder.
+// Two literals is how they drifted to 132 and 200 and made the card jump.
+const IMAGE_HEIGHT = 132
+
 // Spec is per-type: BHK means nothing on a plot, sharing is the number that
 // matters for a PG, guests for a short stay, carpet area for a shop.
 function specLabel(property) {
@@ -25,6 +29,18 @@ function specLabel(property) {
   if (property.bhk === 0) return 'Studio'
   if (property.bhk) return `${property.bhk} BHK`
   return null
+}
+
+// A loading bar that occupies exactly one line of the style it stands in for.
+// The height comes from the real text style rather than a hand-picked number,
+// which is the whole point: the skeleton and the loaded card are laid out by
+// the same rules, so they cannot drift apart and make the card jump.
+function SkeletonBar({ width, textStyle }) {
+  return (
+    <View style={[styles.skelBar, { width }]}>
+      <Text style={[textStyle, styles.skelText]}> </Text>
+    </View>
+  )
 }
 
 // Floating preview card over the map for the currently selected pin — same
@@ -46,7 +62,14 @@ export default function PinPreviewCard({ propertyId, onPress }) {
     return (
       <SafeAreaView edges={['bottom']} style={styles.wrap} pointerEvents="box-none">
         <View style={styles.card}>
-          <View style={styles.skeleton} />
+          <View style={styles.imageWrap} />
+          <View style={styles.body}>
+            <View style={styles.priceRow}><SkeletonBar width="45%" textStyle={styles.price} /></View>
+            <SkeletonBar width="75%" textStyle={styles.title} />
+            <SkeletonBar width="55%" textStyle={styles.meta} />
+            <View style={styles.highlightRow}><SkeletonBar width="65%" textStyle={styles.highlightText} /></View>
+            <View style={styles.ctaSkeleton} />
+          </View>
         </View>
       </SafeAreaView>
     )
@@ -131,8 +154,10 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.slate100,
     ...shadows.float,
   },
-  skeleton: { height: 200, width: '100%', backgroundColor: colors.slate100 },
-  imageWrap: { height: 132, backgroundColor: colors.slate100 },
+  skelBar: { backgroundColor: colors.slate100, borderRadius: radius.sm },
+  skelText: { opacity: 0 },
+  ctaSkeleton: { marginTop: spacing.sm, minHeight: 48, borderRadius: radius.lg, backgroundColor: colors.slate100 },
+  imageWrap: { height: IMAGE_HEIGHT, backgroundColor: colors.slate100 },
   image: { width: '100%', height: '100%' },
   imageFallback: { backgroundColor: colors.slate100 },
   imageCount: {

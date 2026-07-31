@@ -104,6 +104,12 @@ export default function PropertyPopup({ bare = false }) {
   const highlights = previewHighlights(property?.spatialContext)
   const images = property?.images ?? []
 
+  // The photo is the first thing that says whether this place is worth a tap.
+  // 16:9 across a 340px desktop panel is ~190px and reads fine; the same ratio
+  // across a full-width phone sheet is a letterbox strip, so the mobile sheet
+  // gets a taller crop of the same image.
+  const photoRatio = bare ? 'aspect-[3/2]' : 'aspect-[16/9]'
+
   return (
     <div
       className={bare ? 'w-full bg-white' : 'w-full bg-white rounded-2xl overflow-hidden border border-slate-100'}
@@ -111,9 +117,9 @@ export default function PropertyPopup({ bare = false }) {
     >
       {/* ── Photo ── */}
       {isLoading ? (
-        <div className="aspect-[16/9] bg-slate-100 animate-pulse" />
+        <div className={`${photoRatio} bg-slate-100 animate-pulse`} />
       ) : (
-        <div className="relative aspect-[16/9] bg-slate-100">
+        <div className={`relative ${photoRatio} bg-slate-100`}>
           {images[0]?.url ? (
             <img src={imgUrl(images[0].url, 'card')} alt={property?.title ?? ''} className="w-full h-full object-cover" />
           ) : (

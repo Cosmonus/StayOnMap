@@ -1,5 +1,4 @@
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
-import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
@@ -7,7 +6,8 @@ import { savedService } from '@services/saved.service'
 import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
 import ScreenHeader from '@components/common/ScreenHeader'
-import { formatCurrency, priceUnit, imgUrl } from '@utils/format'
+import ListingCard from '@components/common/ListingCard'
+import { formatCurrency, priceUnit } from '@utils/format'
 import { formatTime } from '@utils/time'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -26,13 +26,13 @@ import { spacing, radius } from '@theme/spacing'
 // and wrong for this list: it repeats what the renter already decided on
 // (badges, amenities) and has nowhere to put the one thing they came back for.
 //
-// The layout is a CARD as of 2026-07-27 — the same chrome as My listings
-// (white, radius.lg, hairline, padding md, photo inset with its own radius.md)
-// so the app has one card, not one per screen. What did NOT come back with it
-// is PropertyCard's content: the signal below still gets the last word in the
-// card, which is the whole reason this screen isn't a grid of search results.
-// A saved home is one a renter has already looked at, so the photo is worth
-// the space; what it must never do is crowd out the signal.
+// The card is @components/common/ListingCard as of 2026-07-31 — the shape
+// this screen defined, now literally shared with My listings and the browse
+// list rather than copied into them. What stays local is the CONTENT: the
+// signal chip still gets the last word, which is the whole reason this screen
+// isn't a grid of search results. A saved home is one a renter has already
+// looked at, so the photo is worth the space; what it must never do is crowd
+// out the signal.
 
 const FURNISHED = { FULLY: 'Furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
 
@@ -57,36 +57,28 @@ function Chip({ children, tone = 'brand' }) {
 
 function SavedRow({ item, onPress }) {
   const p = item.property
-  const url = p.images?.[0]?.url
 
   return (
-    <Pressable style={styles.card} onPress={onPress} accessibilityRole="button" accessibilityLabel={p.title}>
-      <View style={styles.cardImageWrap}>
-        {url
-          ? <Image source={{ uri: imgUrl(url, 'card') }} style={styles.cardImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
-          : <Icon name="image" size={26} color={colors.slate500} />}
-      </View>
-
-      <View style={styles.cardBody}>
-        <Text style={styles.price}>
-          {formatCurrency(Number(p.rent))}
-          <Text style={styles.priceUnit}>{priceUnit(p)}</Text>
-        </Text>
-        <Text style={styles.title} numberOfLines={1}>{p.title}</Text>
-        <Text style={styles.meta} numberOfLines={1}>{metaLine(p)}</Text>
-
-        {/* At most one chip. Stacking "visit booked" over "price dropped" over
-            "no longer available" turns a card into a noticeboard, so the most
-            actionable one wins. */}
-        {!item.isAvailable ? (
-          <Chip tone="muted">No longer available</Chip>
-        ) : item.visit ? (
-          <Chip>{visitLabel(item.visit)}</Chip>
-        ) : item.priceDrop > 0 ? (
-          <Chip>{formatCurrency(item.priceDrop)} cheaper than when you saved</Chip>
-        ) : null}
-      </View>
-    </Pressable>
+    <ListingCard
+      photoUrl={p.images?.[0]?.url}
+      price={formatCurrency(Number(p.rent))}
+      priceUnit={priceUnit(p)}
+      title={p.title}
+      meta={metaLine(p)}
+      onPress={onPress}
+      accessibilityLabel={p.title}
+    >
+      {/* At most one chip. Stacking "visit booked" over "price dropped" over
+          "no longer available" turns a card into a noticeboard, so the most
+          actionable one wins. */}
+      {!item.isAvailable ? (
+        <Chip tone="muted">No longer available</Chip>
+      ) : item.visit ? (
+        <Chip>{visitLabel(item.visit)}</Chip>
+      ) : item.priceDrop > 0 ? (
+        <Chip>{formatCurrency(item.priceDrop)} cheaper than when you saved</Chip>
+      ) : null}
+    </ListingCard>
   )
 }
 
@@ -194,23 +186,10 @@ const styles = StyleSheet.create({
   emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate600, textAlign: 'center', maxWidth: 260, marginBottom: spacing.lg },
   exploreButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 48, backgroundColor: colors.brand600, borderRadius: radius.md, paddingHorizontal: spacing.lg },
   exploreButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
-  list: { padding: spacing.md, paddingBottom: spacing.xxl },
-  // Same card as My listings — see MyListingsScreen's `card`. Keep the two in
-  // step; two different white cards in one app is how a design system rots.
-  card: {
-    backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100,
-    padding: spacing.md, marginBottom: spacing.md,
-  },
-  cardImageWrap: {
-    aspectRatio: 16 / 10, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.slate100,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  cardImage: { width: '100%', height: '100%' },
-  cardBody: { paddingTop: spacing.sm },
-  price: { fontFamily: fonts.displayBold, fontSize: fontSizes.xl, color: colors.slate900 },
-  priceUnit: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500 },
-  title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800, marginTop: 2 },
-  meta: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2 },
+  // The card itself is @components/common/ListingCard — shared with My
+  // listings and the browse list. The gap belongs here because the card
+  // carries no margin of its own.
+  list: { padding: spacing.md, paddingBottom: spacing.xxl, gap: spacing.md },
   chip: { alignSelf: 'flex-start', backgroundColor: colors.brand50, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 6, marginTop: spacing.sm },
   chipMuted: { backgroundColor: colors.slate100 },
   chipText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand700 },

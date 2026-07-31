@@ -62,7 +62,19 @@ export default function Modal({ isOpen, onClose, title, size = 'md', children, f
           </div>
         )}
         <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
-        {footer && <div className="shrink-0 border-t border-slate-200 bg-white px-6 py-3">{footer}</div>}
+        {/* As a bottom sheet the footer sits on the screen edge, so its buttons
+            end up under the home indicator / gesture bar with nothing below
+            them. Pad past the safe-area inset on mobile; the centered desktop
+            dialog has an edge of its own and keeps the tighter padding. */}
+        {footer && (
+          <div
+            className={`shrink-0 border-t border-slate-200 bg-white px-6 py-3 ${
+              sheet ? 'pb-[max(1.25rem,env(safe-area-inset-bottom))] md:pb-3' : ''
+            }`}
+          >
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   )

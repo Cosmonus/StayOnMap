@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react'
 import { View, Text, FlatList, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native'
-import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -10,9 +9,10 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import { readSavedDraft, clearSavedDraft } from '@features/listings/components/onboarding/draftStore'
 import { CATEGORIES, suggestTitle } from '@features/listings/config/onboarding.js'
 import { WIZARD_STEPS as STEPS, savedStep } from '@features/listings/config/wizardSteps.js'
-import { formatPrice, imgUrl } from '@utils/format'
+import { formatPrice } from '@utils/format'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
+import ListingCard from '@components/common/ListingCard'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -204,8 +204,6 @@ export default function MyListingsScreen({ navigation }) {
         <FlatList
           data={listings}
           keyExtractor={(item) => item.id}
-          numColumns={2}
-          columnWrapperStyle={{ gap: spacing.md }}
           contentContainerStyle={styles.list}
           ListHeaderComponent={
             <>
@@ -236,22 +234,15 @@ export default function MyListingsScreen({ navigation }) {
             </Pressable>
           )}
           renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Pressable
-                onPress={() => navigation.navigate('ManageListing', { propertyId: item.id })}
-                accessibilityRole="button"
-                accessibilityLabel={`Manage listing ${item.title}`}
-              >
-                <View style={styles.cardImageWrap}>
-                  {item.images?.[0] ? <Image source={{ uri: imgUrl(item.images[0].url, 'card') }} style={styles.cardImage} contentFit="cover" cachePolicy="memory-disk" transition={200} /> : <View style={styles.cardImage} />}
-                  <View style={styles.statusPillWrap}><StatusPill status={item.status} /></View>
-                </View>
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-                  <Text style={styles.cardRent}>{formatPrice(item)}</Text>
-                  <Text style={styles.cardCity} numberOfLines={1}>{item.city}{item.state ? `, ${item.state}` : ''}</Text>
-                </View>
-              </Pressable>
+            <ListingCard
+              photoUrl={item.images?.[0]?.url}
+              overlay={<View style={styles.statusPillWrap}><StatusPill status={item.status} /></View>}
+              price={formatPrice(item)}
+              title={item.title}
+              meta={`${item.city}${item.state ? `, ${item.state}` : ''}`}
+              onPress={() => navigation.navigate('ManageListing', { propertyId: item.id })}
+              accessibilityLabel={`Manage listing ${item.title}`}
+            >
               {/* Verify and Offer lease used to sit here as two 25dp-tall
                   buttons squeezed into a half-width card — under half the 48dp
                   Android minimum, with 10px labels. Both are full rows one tap
@@ -267,7 +258,7 @@ export default function MyListingsScreen({ navigation }) {
                 <Text style={styles.cardManageText}>Manage</Text>
                 <Icon name="chevronRight" size={14} color={colors.slate600} />
               </Pressable>
-            </View>
+            </ListingCard>
           )}
         />
       )}
@@ -298,22 +289,14 @@ const styles = StyleSheet.create({
   noticeTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: '#78350F' },
   noticeBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#92400E', marginTop: 2 },
   noticeLink: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: '#B45309', marginTop: spacing.xs },
-  // The card pads its own contents and the photo is inset inside that padding,
-  // rather than the photo bleeding to the card's edges. `overflow: 'hidden'`
-  // is gone with it — it existed only to clip a full-bleed image to the card's
-  // top corners, and the image now carries its own radius.
-  card: { flex: 1, backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.slate100, padding: spacing.md, marginBottom: spacing.md },
-  cardImageWrap: { aspectRatio: 16 / 10, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.slate100 },
-  cardImage: { width: '100%', height: '100%' },
+  // The card itself is @components/common/ListingCard — the same one Saved
+  // homes and the browse list use. Only the two things layered ONTO it live
+  // here: the status pill over the photo, and the Manage row under the meta.
   statusPillWrap: { position: 'absolute', top: spacing.xs, left: spacing.xs },
   statusPill: { borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 2 },
   statusPillText: { fontFamily: fonts.bodySemiBold, fontSize: 11 },
-  cardBody: { paddingTop: spacing.sm },
   cardManage: { flexDirection: 'row', gap: 4, marginTop: spacing.sm, minHeight: 44, borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   cardManageText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
-  cardTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
-  cardRent: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand600, marginTop: 2 },
-  cardCity: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 2 },
   emptyState: { padding: spacing.xxl, borderWidth: 1, borderColor: colors.slate200, borderStyle: 'dashed', borderRadius: radius.lg, alignItems: 'center', width: '100%' },
   emptyIcon: { width: 44, height: 44, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
   emptyTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
