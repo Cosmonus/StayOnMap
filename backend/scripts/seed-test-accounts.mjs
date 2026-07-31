@@ -29,8 +29,14 @@ import { encode } from '../src/lib/geohash.js'
 // (auth.validation.js): length ≥ 8, lower + upper + digit + special.
 const TEST_PASSWORD = 'Test@1234'
 
-const OWNER = { email: 'test1@stayonmap.test', name: 'Test One (Owner)', city: 'Bengaluru' }
-const TENANT = { email: 'test2@stayonmap.test', name: 'Test Two (Renter)', city: 'Bengaluru' }
+// `phone` is not decoration: requireCompleteProfile (properties.routes.js)
+// gates listing CREATION on name + phone + city + verified email, so without a
+// number test1 can manage the demo listings below but gets a 403
+// PROFILE_INCOMPLETE the moment it tries to add a seventh. That dead end is
+// exactly what an app-store reviewer walks into. The 98765-000xx block matches
+// the contactNumber already used on the seeded appointment.
+const OWNER = { email: 'test1@stayonmap.test', name: 'Test One (Owner)', city: 'Bengaluru', phone: '9876500001' }
+const TENANT = { email: 'test2@stayonmap.test', name: 'Test Two (Renter)', city: 'Bengaluru', phone: '9876500002' }
 
 // One listing per category, so test1's dashboard demonstrates all six property
 // types. Coordinates are real localities in supported cities — the spatial
@@ -111,16 +117,17 @@ const PROPERTIES = [
   },
 ]
 
-async function upsertUser({ email, name, city }, { role, isBusiness }) {
+async function upsertUser({ email, name, city, phone }, { role, isBusiness }) {
   const passwordHash = await bcrypt.hash(TEST_PASSWORD, 12)
   return prisma.user.upsert({
     where: { email },
-    // Reset role/business/verified on every run so a re-seed restores a known
-    // state even if the account was edited while testing. Password is only set
-    // on create — never clobber a password someone changed on a live account.
-    update: { name, city, role, isBusiness, isVerified: true },
+    // Reset role/business/verified/phone on every run so a re-seed restores a
+    // known state even if the account was edited while testing — and so an
+    // account seeded before `phone` existed gets one. Password is only set on
+    // create — never clobber a password someone changed on a live account.
+    update: { name, city, phone, role, isBusiness, isVerified: true },
     create: {
-      email, name, city, role, isBusiness, isVerified: true, passwordHash,
+      email, name, city, phone, role, isBusiness, isVerified: true, passwordHash,
       ...(isBusiness && { businessSince: new Date() }),
     },
   })
