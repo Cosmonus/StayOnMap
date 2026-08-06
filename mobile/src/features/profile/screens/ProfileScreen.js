@@ -53,7 +53,17 @@ export default function ProfileScreen({ navigation }) {
     <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader
         title="Profile"
-        below={<ModeSwitch hostMode={hostMode} onChange={setHostMode} waiting={waiting} />}
+        below={(
+          <ModeSwitch
+            hostMode={hostMode}
+            onChange={setHostMode}
+            waiting={waiting}
+            // A tenant sees "Become a host", not a Hosting segment they have no
+            // mode for — same rule web settled on 2026-08-07.
+            isOwner={user?.role === 'OWNER'}
+            onBecomeHost={() => setHostMode(true)}
+          />
+        )}
       />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.body}>
