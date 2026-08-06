@@ -10,6 +10,9 @@ import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 import { shadows } from '@theme/shadows'
 
+// A stable reference, so the derived empty case never looks like a new value.
+const EMPTY = []
+
 const INDIA_CENTER = { latitude: 20.5937, longitude: 78.9629 }
 
 // Search works like the map's own search bar (MapSearchBar.js): live Places
@@ -68,7 +71,14 @@ export default function LocationPicker({ value, onChange }) {
   useEffect(() => {
     clearTimeout(debounceRef.current)
     if (pickedRef.current) { pickedRef.current = false; return }
-    if (query.trim().length < 2) { setSuggestions([]); return }
+    // No setState here. Whether the list SHOWS is derived at render time
+    // (`visibleSuggestions` below) rather than synced from an effect — the old
+    // code called `setSuggestions([])` in the effect body, which re-rendered on
+    // every keystroke under the threshold (a fresh `[]` is never
+    // `Object.is`-equal to the last one) and is the cascading-render pattern
+    // React warns about. Derived beats synced: there is no second copy of the
+    // truth to keep in step.
+    if (query.trim().length < 2) return
     debounceRef.current = setTimeout(() => {
       autocompletePlaces(query)
         .then(setSuggestions)
@@ -133,6 +143,10 @@ export default function LocationPicker({ value, onChange }) {
     resolve(`${query}, India`)
   }
 
+  // Stale results from a longer query must not hang around once the field is
+  // cleared, and this is where that is decided — not in an effect.
+  const visibleSuggestions = query.trim().length < 2 ? EMPTY : suggestions
+
   return (
     <View style={{ gap: spacing.sm }}>
       <View style={styles.searchRow}>
@@ -160,9 +174,9 @@ export default function LocationPicker({ value, onChange }) {
         </Pressable>
       </View>
 
-      {suggestions.length > 0 && (
+      {visibleSuggestions.length > 0 && (
         <View style={styles.suggestions}>
-          {suggestions.slice(0, 5).map((s) => (
+          {visibleSuggestions.slice(0, 5).map((s) => (
             <Pressable
               key={s.place_id}
               style={styles.suggestionRow}
