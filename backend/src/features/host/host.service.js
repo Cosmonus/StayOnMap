@@ -44,7 +44,10 @@ function listingLabel(property) {
 async function needsYouToday(ownerId) {
   const [visits, reviews] = await Promise.all([
     prisma.appointment.findMany({
-      where: { ownerId, status: 'PENDING' },
+      // RESCHEDULE_REQUESTED belongs here too: a renter's counter-offer is
+      // waiting on exactly the same yes-or-no as a first request, and leaving
+      // it out would have parked it in the queue the dashboard exists to empty.
+      where: { ownerId, status: { in: ['PENDING', 'RESCHEDULE_REQUESTED'] } },
       include: {
         tenant: { select: { id: true, name: true, email: true, avatarUrl: true } },
         property: { select: { id: true, title: true, bhk: true, sharing: true, landmark: true, city: true } },

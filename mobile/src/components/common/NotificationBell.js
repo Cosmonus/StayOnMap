@@ -30,9 +30,9 @@ export default function NotificationBell({ style }) {
     queryKey: ['notifications', audience],
     queryFn: () => notificationService.list(audience).then((r) => r.data),
     enabled: !!user,
-    // Same cadence as the tab badges — often enough to feel live, rare enough
-    // that a backgrounded app isn't polling every few seconds.
-    refetchInterval: 60000,
+    // No interval: useRealtimeUpdates (RootNavigator) invalidates this key off
+    // `notification:new` and on socket reconnect, and App.js re-invalidates on
+    // foreground. A timer here was always both too slow and too often.
   })
 
   const unread = notifications.filter((n) => !n.isRead).length

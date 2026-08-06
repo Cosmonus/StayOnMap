@@ -37,10 +37,11 @@ export default function ChatSurface({
   // One query for both surfaces, one cache entry: GET /chat returns every
   // thread you are in either way round, and only one of these two components
   // is ever mounted at a time.
+  // No interval: useRealtimeUpdates invalidates this key on every
+  // `message:notification` and on socket reconnect.
   const { data: conversations = [], isLoading } = useQuery({
     queryKey: ['conversations'],
     queryFn: () => chatService.conversations().then(r => r.data),
-    refetchInterval: 15000,
   })
 
   const mine = useMemo(

@@ -87,6 +87,7 @@ export default function ModuleCard({ envelope, coords }) {
           <ul className="mt-2.5 space-y-1.5">
             {envelope.missing.map((note, i) => (
               <li key={i} className="flex gap-1.5 text-xs leading-snug text-slate-500">
+                {/* eslint-disable-next-line no-restricted-syntax -- aria-hidden separator dot, not text */}
                 <span aria-hidden="true" className="shrink-0 text-slate-300">·</span>
                 <span>{note}</span>
               </li>
@@ -100,7 +101,7 @@ export default function ModuleCard({ envelope, coords }) {
               const FIcon = factIcon(f.key)
               return (
                 <div key={f.key} className="flex items-start gap-2.5">
-                  <FIcon className="mt-[3px] h-3.5 w-3.5 shrink-0 text-slate-300" strokeWidth={2} aria-hidden="true" />
+                  <FIcon className="mt-[3px] h-3.5 w-3.5 shrink-0 text-slate-500" strokeWidth={2} aria-hidden="true" />
                   {/* flex-wrap, not a fixed two-column split: a short pair sits
                       on one line with the value right-aligned, while a long one
                       ("Lines served" / "Green Line: Chennai Central — St.

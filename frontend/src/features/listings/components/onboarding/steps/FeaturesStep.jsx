@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Check } from 'lucide-react'
 import Toggle from '@components/common/Toggle'
 import { FEATURES, FEATURES_VISIBLE, RULES, TITLE_HINTS, DESC_PROMPTS } from '../../../config/onboarding.js'
 import { StepHead } from '../WizardChrome'
@@ -31,7 +32,7 @@ function AmenityChips({ categoryKey, selected, onToggle }) {
                 on ? 'bg-brand-50 text-brand-700 border-brand-600' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'
               }`}
             >
-              {on && <span aria-hidden="true">✓ </span>}{name}
+              {on && <Check className="inline w-3.5 h-3.5 mr-1 -mt-px" strokeWidth={2.5} aria-hidden="true" />}{name}
             </button>
           )
         })}

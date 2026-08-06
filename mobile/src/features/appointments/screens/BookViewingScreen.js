@@ -1,10 +1,8 @@
-import { ScrollView, Pressable, Text, View, KeyboardAvoidingView, StyleSheet } from 'react-native'
+import { ScrollView, KeyboardAvoidingView, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import AppointmentForm from '@features/appointments/components/AppointmentForm'
-import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
-import { fonts, fontSizes } from '@theme/typography'
 import { spacing } from '@theme/spacing'
 
 export default function BookViewingScreen({ route, navigation }) {

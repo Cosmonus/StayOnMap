@@ -10,6 +10,9 @@ export async function mine(req, res, next) {
 export async function ownerAppointments(req, res, next) {
   try { ok(res, await service.getOwnerAppointments(req.user.id)) } catch (err) { next(err) }
 }
+export async function availability(req, res, next) {
+  try { ok(res, await service.getVisitAvailability(req.params.propertyId)) } catch (err) { next(err) }
+}
 export async function forProperty(req, res, next) {
   try { ok(res, await service.getPropertyAppointments(req.params.propertyId, req.user.id)) } catch (err) { next(err) }
 }

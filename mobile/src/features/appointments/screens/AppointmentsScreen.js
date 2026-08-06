@@ -10,6 +10,7 @@ import { formatTime } from '@utils/time'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ErrorState from '@components/common/ErrorState'
+import ProposeTimeSheet from '../components/ProposeTimeSheet'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -28,12 +29,16 @@ const STATUS = {
   ACCEPTED:    { bg: colors.success50, text: '#15803D',       dot: '#4ADE80',        label: 'Accepted' },
   REJECTED:    { bg: colors.danger50,  text: '#DC2626',       dot: '#F87171',        label: 'Declined' },
   RESCHEDULED: { bg: colors.brand50,   text: colors.brand700, dot: colors.brand500,  label: 'Rescheduled' },
+  // Worded from the OWNER's side — this queue is where a decision is owed.
+  // The renter's card reads the same status as "Waiting on the owner".
+  RESCHEDULE_REQUESTED: { bg: colors.warning50, text: '#B45309', dot: '#FBBF24', label: 'New time proposed' },
   CANCELLED:   { bg: colors.slate100,  text: colors.slate600, dot: colors.slate400,  label: 'Cancelled' },
 }
 
 const OWNER_FILTERS = [
   ['all', 'All'],
   ['PENDING', 'Pending'],
+  ['RESCHEDULE_REQUESTED', 'New time'],
   ['ACCEPTED', 'Accepted'],
   ['REJECTED', 'Declined'],
 ]
@@ -128,7 +133,10 @@ function PropertyLine({ property }) {
 function OwnerCard({ appt, onAction, onChat, chatting, busy }) {
   const [rejecting, setRejecting] = useState(false)
   const [note, setNote] = useState('')
-  const isPending = appt.status === 'PENDING'
+  // A renter's counter-offer needs an answer exactly as much as a first request
+  // does. Gating on PENDING alone left it in the queue with nothing to press.
+  const proposed = appt.status === 'RESCHEDULE_REQUESTED'
+  const isPending = appt.status === 'PENDING' || proposed
   const past = bucketFor(appt.requestedDate) === 'Past'
 
   return (
@@ -197,6 +205,18 @@ function OwnerCard({ appt, onAction, onChat, chatting, busy }) {
         <Text style={styles.replyNote}><Text style={styles.replyNoteLabel}>Your reply: </Text>{appt.ownerNote}</Text>
       )}
 
+      {/* Says what changed, and says it before the buttons. The date block above
+          already shows the renter's NEW slot, so without this the card reads as
+          a fresh request at a time the owner never saw proposed. */}
+      {proposed && (
+        <View style={styles.proposedBox}>
+          <Text style={styles.proposedText}>
+            {personName(appt.tenant)} asked to move this to {new Date(appt.requestedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, {formatTime(appt.requestedTime)}
+          </Text>
+          {!!appt.tenantNote && <Text style={styles.proposedNote}>{appt.tenantNote}</Text>}
+        </View>
+      )}
+
       {isPending && !rejecting && (
         <View style={styles.actionRow}>
           <Pressable
@@ -255,14 +275,15 @@ function OwnerCard({ appt, onAction, onChat, chatting, busy }) {
   )
 }
 
-function TenantCard({ appt, onCancel, busy }) {
+function TenantCard({ appt, onCancel, onPropose, busy }) {
   const past = bucketFor(appt.requestedDate) === 'Past'
   // A request you made and can't withdraw is a dead end — the renter's only
   // route out was messaging the owner and hoping. CANCELLED was already a valid
   // status; until the backend opened this endpoint to the tenant, nothing could
   // set it. A visit that has already happened is history, not a plan, so Past
   // rows carry no button.
-  const cancellable = !past && ['PENDING', 'ACCEPTED', 'RESCHEDULED'].includes(appt.status)
+  const open = !past && ['PENDING', 'ACCEPTED', 'RESCHEDULED', 'RESCHEDULE_REQUESTED'].includes(appt.status)
+  const waitingOnOwner = appt.status === 'RESCHEDULE_REQUESTED'
 
   return (
     <View style={styles.card}>
@@ -285,17 +306,43 @@ function TenantCard({ appt, onCancel, busy }) {
         <Text style={styles.replyNote}><Text style={styles.replyNoteLabel}>Owner reply: </Text>{appt.ownerNote}</Text>
       )}
 
-      {cancellable && (
-        <Pressable
-          style={[styles.cancelVisitButton, busy && styles.busy]}
-          onPress={() => onCancel(appt)}
-          disabled={busy}
-          accessibilityRole="button"
-          accessibilityLabel={`Cancel your visit to ${appt.property?.title ?? 'this property'}`}
-          accessibilityState={{ disabled: busy }}
-        >
-          <Text style={styles.cancelVisitButtonText}>Cancel this visit</Text>
-        </Pressable>
+      {/* The same status the host queue labels "New time proposed" reads from
+          this side as "we are waiting" — because that is what it means here.
+          Without it the card shows a new date with no explanation of why it is
+          not confirmed. */}
+      {waitingOnOwner && (
+        <Text style={styles.waitingNote}>
+          Waiting on the owner to confirm this time.
+          {!!appt.tenantNote && <Text style={styles.waitingNoteSub}>{'\n'}You said: {appt.tenantNote}</Text>}
+        </Text>
+      )}
+
+      {open && (
+        // Two actions, and the reversible one leads. Proposing keeps the request
+        // and the thread alive; cancelling ends both, which is why it is the
+        // quieter of the two rather than the default.
+        <View style={styles.tenantActionRow}>
+          <Pressable
+            style={[styles.proposeButton, busy && styles.busy]}
+            onPress={() => onPropose(appt)}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel={`Propose a different time for your visit to ${appt.property?.title ?? 'this property'}`}
+            accessibilityState={{ disabled: busy }}
+          >
+            <Text style={styles.proposeButtonText}>Propose a different time</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.cancelVisitButton, busy && styles.busy]}
+            onPress={() => onCancel(appt)}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel={`Cancel your visit to ${appt.property?.title ?? 'this property'}`}
+            accessibilityState={{ disabled: busy }}
+          >
+            <Text style={styles.cancelVisitButtonText}>Cancel this visit</Text>
+          </Pressable>
+        </View>
       )}
     </View>
   )
@@ -364,17 +411,26 @@ export default function AppointmentsScreen({ navigation, route }) {
     enabled: !isIncoming,
   })
 
+  const [proposing, setProposing] = useState(null)
+
   const mutation = useMutation({
-    mutationFn: ({ id, status, ownerNote }) => appointmentService.updateStatus(id, { status, ownerNote }),
-    // Both lists: the host acts on incoming requests, the renter cancels their
-    // own. Only one is mounted at a time, and invalidating just the owner's
-    // meant a renter's cancellation left the card sitting there unchanged —
-    // the action looked like it had done nothing.
+    mutationFn: ({ id, ...body }) => appointmentService.updateStatus(id, body),
+    // Both lists: the host acts on incoming requests, the renter cancels or
+    // moves their own. Only one is mounted at a time, and invalidating just the
+    // owner's meant a renter's cancellation left the card sitting there
+    // unchanged — the action looked like it had done nothing.
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['owner-appointments'] })
       qc.invalidateQueries({ queryKey: ['my-appointments'] })
+      // Accepting commits a whole DAY (the same-date auto-reject), so every
+      // open booking form's day list is now wrong.
+      qc.invalidateQueries({ queryKey: ['visit-availability'] })
+      setProposing(null)
     },
-    onError: () => Alert.alert('Couldn’t update the visit', 'Please try again in a moment.'),
+    onError: (err) => Alert.alert(
+      'Couldn’t update the visit',
+      err?.message || 'Please try again in a moment.',
+    ),
   })
 
   function confirmCancel(appt) {
@@ -506,10 +562,18 @@ export default function AppointmentsScreen({ navigation, route }) {
                 onChat={() => openChat(item)}
                 onAction={(id, status, ownerNote) => mutation.mutate({ id, status, ownerNote })}
               />
-              : <TenantCard appt={item} busy={mutation.isPending} onCancel={confirmCancel} />
+              : <TenantCard appt={item} busy={mutation.isPending} onCancel={confirmCancel} onPropose={setProposing} />
           )}
         />
       )}
+
+      <ProposeTimeSheet
+        visible={!!proposing}
+        appt={proposing}
+        onClose={() => setProposing(null)}
+        saving={mutation.isPending}
+        onSubmit={(body) => mutation.mutate({ id: proposing.id, status: 'RESCHEDULE_REQUESTED', ...body })}
+      />
     </SafeAreaView>
   )
 }
@@ -622,7 +686,23 @@ const styles = StyleSheet.create({
   // Quiet, not red: calling off your own visit is reversible (you can request
   // another slot straight after), so it doesn't earn the weight the host's
   // Decline gets.
+  proposedBox: {
+    backgroundColor: colors.warning50, borderWidth: 1, borderColor: '#FDE68A',
+    borderRadius: radius.md, padding: spacing.sm + 4, marginTop: spacing.sm,
+  },
+  proposedText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: '#92400E', lineHeight: 18 },
+  proposedNote: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: '#B45309', marginTop: 2, lineHeight: 18 },
+  tenantActionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  proposeButton: {
+    flex: 1, minWidth: 150, minHeight: 44, borderRadius: radius.md,
+    backgroundColor: colors.brand50, borderWidth: 1, borderColor: colors.brand100,
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.sm,
+  },
+  proposeButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand700 },
+  waitingNote: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: '#B45309', marginTop: spacing.sm, lineHeight: 18 },
+  waitingNoteSub: { fontFamily: fonts.body, color: colors.slate500 },
   cancelVisitButton: {
+    flex: 1, minWidth: 150,
     minHeight: 44, borderRadius: radius.md,
     borderWidth: 1, borderColor: colors.slate200, backgroundColor: colors.white,
     alignItems: 'center', justifyContent: 'center',

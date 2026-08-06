@@ -1,7 +1,7 @@
 import { View, Text, Pressable, StyleSheet, Linking, Alert } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { authService } from '@services/auth.service'
-import FormSheet from './FormSheet'
+import FormSheet from '@components/common/FormSheet'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'

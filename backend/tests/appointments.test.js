@@ -18,6 +18,7 @@ import { notifyUser } from '../src/features/notifications/notifications.service.
 import {
   requestAppointment,
   updateAppointmentStatus,
+  getVisitAvailability,
 } from '../src/features/appointments/appointments.service.js'
 
 // A visit has to be in the FUTURE — `requestAppointment` rejects a slot that
@@ -249,5 +250,169 @@ describe('updateAppointmentStatus — tenant cancelling their own request', () =
     await expect(updateAppointmentStatus('appt-1', 'nosy-1', { status: 'CANCELLED' })).rejects.toMatchObject({
       statusCode: 403,
     })
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Availability, and the renter's counter-offer (both added 2026-08-07)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('requestAppointment — days the owner is not free', () => {
+  beforeEach(() => {
+    prismaMock.property.findUnique.mockResolvedValue({ id: 'prop-1', ownerId: 'owner-1', status: 'ACTIVE', riskScore: null })
+    prismaMock.appointment.findFirst.mockResolvedValue(null)
+    prismaMock.availabilityBlock.findFirst.mockResolvedValue(null)
+  })
+
+  it('refuses a day the owner already has an ACCEPTED visit on', async () => {
+    // findFirst is called twice in requestAppointment: once for this tenant's
+    // own pending request, then once inside isDateUnavailable.
+    prismaMock.appointment.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'other-appt' })
+
+    await expect(requestAppointment('tenant-1', 'prop-1', validRequestData)).rejects.toMatchObject({
+      statusCode: 409,
+    })
+    expect(prismaMock.appointment.create).not.toHaveBeenCalled()
+  })
+
+  it('refuses a day the owner blocked out themselves', async () => {
+    prismaMock.availabilityBlock.findFirst.mockResolvedValue({ id: 'block-1' })
+
+    await expect(requestAppointment('tenant-1', 'prop-1', validRequestData)).rejects.toMatchObject({
+      statusCode: 409,
+    })
+  })
+
+  it('a PENDING request from someone else blocks nothing', async () => {
+    // Only ACCEPTED counts. If PENDING blocked a day, anyone could freeze a
+    // listing's whole calendar with requests they never intend to keep.
+    prismaMock.appointment.create.mockResolvedValue(makeAppointment())
+
+    await expect(requestAppointment('tenant-1', 'prop-1', validRequestData)).resolves.toBeTruthy()
+    const isDateQuery = prismaMock.appointment.findFirst.mock.calls.at(-1)[0]
+    expect(isDateQuery.where.status).toBe('ACCEPTED')
+  })
+})
+
+describe('getVisitAvailability', () => {
+  it('merges accepted visits and owner blocks into one date list', async () => {
+    prismaMock.appointment.findMany.mockResolvedValue([
+      { requestedDate: new Date('2026-08-12T00:00:00.000Z') },
+    ])
+    prismaMock.availabilityBlock.findMany.mockResolvedValue([
+      { date: new Date('2026-08-14T00:00:00.000Z') },
+      // Same day as the accepted visit — must not appear twice.
+      { date: new Date('2026-08-12T00:00:00.000Z') },
+    ])
+
+    const result = await getVisitAvailability('prop-1')
+
+    expect(result.unavailableDates).toEqual(['2026-08-12', '2026-08-14'])
+  })
+
+  it('asks only for ACCEPTED appointments', async () => {
+    prismaMock.appointment.findMany.mockResolvedValue([])
+    prismaMock.availabilityBlock.findMany.mockResolvedValue([])
+
+    await getVisitAvailability('prop-1')
+
+    expect(prismaMock.appointment.findMany.mock.calls[0][0].where.status).toBe('ACCEPTED')
+  })
+})
+
+describe('updateAppointmentStatus — tenant proposing a different time', () => {
+  const NEW_DATE = daysFromNow(10)
+  const counterOffer = { status: 'RESCHEDULE_REQUESTED', requestedDate: NEW_DATE, requestedTime: '16:30', tenantNote: 'Work thing' }
+
+  beforeEach(() => {
+    prismaMock.appointment.findFirst.mockResolvedValue(null)
+    prismaMock.availabilityBlock.findFirst.mockResolvedValue(null)
+  })
+
+  it('writes the tenant’s own slot and note, and clears the owner’s stale time', async () => {
+    prismaMock.appointment.findUnique.mockResolvedValue(
+      makeAppointment({ status: 'ACCEPTED', scheduledAt: new Date(FUTURE_DATE) }),
+    )
+    prismaMock.appointment.update.mockResolvedValue(makeAppointment({ status: 'RESCHEDULE_REQUESTED' }))
+
+    await updateAppointmentStatus('appt-1', 'tenant-1', counterOffer)
+
+    const { data } = prismaMock.appointment.update.mock.calls[0][0]
+    expect(data.status).toBe('RESCHEDULE_REQUESTED')
+    expect(data.requestedTime).toBe('16:30')
+    expect(data.tenantNote).toBe('Work thing')
+    // The owner's confirmed time is no longer what is on the table — a card
+    // showing two times, one of them dead, is worse than showing one.
+    expect(data.scheduledAt).toBeNull()
+  })
+
+  it('never lets the tenant write the owner’s fields', async () => {
+    prismaMock.appointment.findUnique.mockResolvedValue(makeAppointment())
+    prismaMock.appointment.update.mockResolvedValue(makeAppointment({ status: 'RESCHEDULE_REQUESTED' }))
+
+    await updateAppointmentStatus('appt-1', 'tenant-1', {
+      ...counterOffer,
+      ownerNote: 'I said yes',
+      scheduledAt: new Date(NEW_DATE).toISOString(),
+    })
+
+    const { data } = prismaMock.appointment.update.mock.calls[0][0]
+    expect(data.ownerNote).toBeUndefined()
+    expect(data.scheduledAt).toBeNull()
+  })
+
+  it('notifies the OWNER, carrying the proposed time', async () => {
+    prismaMock.appointment.findUnique.mockResolvedValue(makeAppointment())
+    prismaMock.appointment.update.mockResolvedValue(makeAppointment({ status: 'RESCHEDULE_REQUESTED' }))
+
+    await updateAppointmentStatus('appt-1', 'tenant-1', counterOffer)
+
+    expect(notifyUser).toHaveBeenCalledWith('owner-1', expect.objectContaining({
+      audience: 'OWNER',
+      title: 'New time proposed',
+    }))
+    expect(notifyUser).not.toHaveBeenCalledWith('tenant-1', expect.anything())
+  })
+
+  it('refuses a proposal with no slot', async () => {
+    prismaMock.appointment.findUnique.mockResolvedValue(makeAppointment())
+
+    await expect(
+      updateAppointmentStatus('appt-1', 'tenant-1', { status: 'RESCHEDULE_REQUESTED' }),
+    ).rejects.toMatchObject({ statusCode: 400 })
+  })
+
+  it('refuses a proposal in the past — the same check the first request gets', async () => {
+    prismaMock.appointment.findUnique.mockResolvedValue(makeAppointment())
+
+    await expect(updateAppointmentStatus('appt-1', 'tenant-1', {
+      status: 'RESCHEDULE_REQUESTED', requestedDate: daysFromNow(-2), requestedTime: '10:00',
+    })).rejects.toMatchObject({ statusCode: 400 })
+  })
+
+  it('refuses a proposal on a day the owner is already booked', async () => {
+    prismaMock.appointment.findUnique.mockResolvedValue(makeAppointment())
+    prismaMock.appointment.findFirst.mockResolvedValue({ id: 'other-appt' })
+
+    await expect(updateAppointmentStatus('appt-1', 'tenant-1', counterOffer))
+      .rejects.toMatchObject({ statusCode: 409 })
+  })
+
+  it('refuses an OWNER sending the renter’s status', async () => {
+    // An owner does not request a reschedule of their own listing, they set
+    // one. Allowing it would render a card asking them to approve themselves.
+    prismaMock.appointment.findUnique.mockResolvedValue(makeAppointment())
+
+    await expect(updateAppointmentStatus('appt-1', 'owner-1', counterOffer))
+      .rejects.toMatchObject({ statusCode: 400 })
+  })
+
+  it('still refuses every other status from a tenant', async () => {
+    prismaMock.appointment.findUnique.mockResolvedValue(makeAppointment())
+
+    await expect(updateAppointmentStatus('appt-1', 'tenant-1', { status: 'ACCEPTED' }))
+      .rejects.toMatchObject({ statusCode: 403 })
   })
 })

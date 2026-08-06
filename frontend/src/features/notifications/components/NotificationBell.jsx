@@ -169,10 +169,13 @@ export default function NotificationBell({ onViewAll }) {
   // what the mode you're in can actually show you.
   const audience = useUiStore((s) => (s.hostMode ? 'OWNER' : 'TENANT'))
 
+  // No interval: the socket listener below splices new ones in as they arrive,
+  // and useUnreadBadges invalidates this key on reconnect for anything a dozing
+  // socket missed.
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications', audience],
     queryFn: () => notificationService.list(audience).then(r => r.data),
-    refetchInterval: 60000,
+    enabled: !!user,
   })
 
   useEffect(() => {

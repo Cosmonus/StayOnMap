@@ -253,7 +253,7 @@ export default function AreaInput({ value, city, onChange, onPlacePicked, onClea
                 onMouseDown={(e) => { e.preventDefault(); pick(feature) }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 transition-colors text-left"
               >
-                <MapPin size={13} fill="#f4511e" stroke="none" className="shrink-0 mt-0.5" />
+                <MapPin size={13} fill="#0d8a5f" stroke="none" className="shrink-0 mt-0.5" />
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-800 truncate">{name}</p>
                   {context && <p className="text-xs text-slate-500 truncate">{context}</p>}

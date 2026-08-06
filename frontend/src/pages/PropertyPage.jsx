@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { SearchX } from 'lucide-react'
 import { propertyService } from '@services/property.service'
-import { formatPrice } from '@utils/format'
+import { formatPrice, offerPriceSpec } from '@utils/format'
 import Header from '@components/layout/Header'
 import Footer from '@components/layout/Footer'
 import SEOMeta from '@components/common/SEOMeta'
@@ -99,14 +99,20 @@ export default function PropertyPage() {
       '@type': 'Offer',
       price: property.rent,
       priceCurrency: 'INR',
-      priceSpecification: { '@type': 'UnitPriceSpecification', priceType: 'monthly' },
+      businessFunction: property.pricingModel === 'SALE'
+        ? 'http://purl.org/goodrelations/v1#Sell'
+        : 'http://purl.org/goodrelations/v1#LeaseOut',
+      priceSpecification: offerPriceSpec(property),
     },
     address: {
       '@type': 'PostalAddress',
-      streetAddress: property.address ?? '',
+      // Omitted, never blanked, when the owner coarsened the pin — the backend
+      // nulls `address` in that case and an empty streetAddress would publish a
+      // field we deliberately withheld.
+      ...(property.address ? { streetAddress: property.address } : {}),
       addressLocality: property.city,
-      addressRegion: property.state ?? '',
-      postalCode: property.pincode ?? '',
+      ...(property.state ? { addressRegion: property.state } : {}),
+      ...(property.pincode ? { postalCode: property.pincode } : {}),
       addressCountry: 'IN',
     },
   }

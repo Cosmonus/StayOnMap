@@ -1,6 +1,7 @@
 import { View, ActivityIndicator } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import { useRealtimeUpdates } from '@/hooks/useRealtimeUpdates'
 import { colors } from '@theme/colors'
 import AuthStack from './AuthStack'
 import AppTabs from './AppTabs'
@@ -31,6 +32,13 @@ const linking = {
 
 export default function RootNavigator() {
   const { user, loading } = useAuth()
+
+  // Socket + live badge updates for every logged-in session. Above the
+  // navigator so it survives every tab and mode swap — AppTabs remounts
+  // wholesale when hostMode flips, and a listener living inside it would go
+  // with it. Called before the loading gate below because hooks cannot be
+  // conditional; it no-ops while `user` is null.
+  useRealtimeUpdates()
 
   // Brand green, not white. On a cold start this gate is never SEEN —
   // BrandSplash waits on this same `loading` flag, so it is still opaque above

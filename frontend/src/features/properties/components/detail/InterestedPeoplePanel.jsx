@@ -13,6 +13,7 @@ const STATUS_STYLE = {
   ACCEPTED:    { label: 'Accepted',    bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
   REJECTED:    { label: 'Rejected',    bg: 'bg-red-50',     text: 'text-red-600',     dot: 'bg-red-400' },
   RESCHEDULED: { label: 'Rescheduled', bg: 'bg-blue-50',    text: 'text-blue-700',    dot: 'bg-blue-400' },
+  RESCHEDULE_REQUESTED: { label: 'New time proposed', bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-400' },
   CANCELLED:   { label: 'Cancelled',   bg: 'bg-slate-100',  text: 'text-slate-500',   dot: 'bg-slate-400' },
 }
 

@@ -63,8 +63,9 @@ export default function NotificationsScreen({ navigation }) {
 
   const { data: notifications = [], isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['notifications', audience],
+    // No interval — useRealtimeUpdates owns this key. The screen's own
+    // `notification:new` listener below still splices arrivals in instantly.
     queryFn: () => notificationService.list(audience).then((r) => r.data),
-    refetchInterval: 60000,
   })
 
   useEffect(() => {

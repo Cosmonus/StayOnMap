@@ -10,7 +10,7 @@ import {
 } from 'chart.js'
 import {
   X, ChevronLeft, ChevronRight, Home, MapPin, Users, CircleCheck, ArrowLeft, Copy,
-  Star, Building2, Eye, EyeOff,
+  Star, Building2, Eye, EyeOff, User,
 } from 'lucide-react'
 import { adminService } from '@services/admin.service'
 import { formatPrice, formatCurrency, formatCompact, formatCompactPrice } from '@utils/format'
@@ -509,7 +509,7 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
               )}
             </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-slate-300">
+                        <div className="w-full h-full flex items-center justify-center text-slate-500">
               <Home className="w-10 h-10" />
             </div>
           )}
@@ -624,7 +624,7 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
             <div className="flex gap-2">
               {['PENDING', 'SUSPENDED', 'REJECTED'].includes(property.status) && (
                 <button onClick={onApprove} className="min-h-[44px] flex-1 py-3 text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 rounded-xl border border-green-200 transition-colors">
-                  {property.status === 'SUSPENDED' ? '▶ Reinstate' : '✓ Approve'}
+                  {property.status === 'SUSPENDED' ? 'Reinstate' : 'Approve'}
                 </button>
               )}
               {['ACTIVE', 'PENDING', 'OCCUPIED'].includes(property.status) && (
@@ -634,7 +634,7 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
               )}
               {property.status !== 'REJECTED' && property.status !== 'DRAFT' && (
                 <button onClick={onReject} className="min-h-[44px] flex-1 py-3 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl border border-red-200 transition-colors">
-                  ✕ Reject
+                  Reject
                 </button>
               )}
             </div>
@@ -769,8 +769,8 @@ function AdminPropertiesMap() {
     searchMarkerRef.current?.remove()
     searchMarkerRef.current = null
     const el = document.createElement('div')
-    el.style.filter = 'drop-shadow(0 3px 6px rgba(244,81,30,0.55))'
-    el.innerHTML = `<svg width="32" height="42" viewBox="0 0 32 42" fill="none"><path d="M16 0C7.163 0 0 7.163 0 16c0 10.5 16 26 16 26S32 26.5 32 16C32 7.163 24.837 0 16 0z" fill="#f4511e"/><circle cx="16" cy="16" r="6" fill="white"/></svg>`
+    el.style.filter = 'drop-shadow(0 3px 6px rgba(28,26,22,0.45))'
+    el.innerHTML = `<svg width="32" height="42" viewBox="0 0 32 42" fill="none"><path d="M16 0C7.163 0 0 7.163 0 16c0 10.5 16 26 16 26S32 26.5 32 16C32 7.163 24.837 0 16 0z" fill="#1c1a16"/><circle cx="16" cy="16" r="6" fill="white"/></svg>`
     if (mapRef.current) {
       searchMarkerRef.current = createHtmlMarker({ element: el, lat, lng, map: mapRef.current })
     }
@@ -1045,7 +1045,7 @@ function ReviewCard({ property, onSelect }) {
         {img ? (
           <img src={img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-300">
+                    <div className="w-full h-full flex items-center justify-center text-slate-500">
             <Home className="w-10 h-10" />
           </div>
         )}
@@ -1266,16 +1266,16 @@ function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend }
                     </div>
                     <div className="flex items-center gap-2 mt-2.5">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-100 text-[11px] font-semibold text-blue-700">
-                        📅 {u.appointmentCount} appt{u.appointmentCount !== 1 ? 's' : ''}
+                        {u.appointmentCount} appt{u.appointmentCount !== 1 ? 's' : ''}
                       </span>
                       {u.visitedCount > 0 && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-50 border border-green-100 text-[11px] font-semibold text-green-700">
-                          ✓ visited
+                          visited
                         </span>
                       )}
                       {u.hasConversation && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 border border-purple-100 text-[11px] font-semibold text-purple-700">
-                          💬 chatted
+                          chatted
                         </span>
                       )}
                     </div>
@@ -1286,7 +1286,7 @@ function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend }
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-3 text-2xl">
-                👥
+                <Users className="w-6 h-6" strokeWidth={1.8} aria-hidden="true" />
               </div>
               <p className="text-sm font-semibold text-slate-700">No contacts yet</p>
               <p className="text-xs text-slate-500 mt-1 max-w-[200px]">Nobody has reached out about this property</p>
@@ -1304,7 +1304,7 @@ function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend }
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-bold text-slate-800">{selectedUser.name || selectedUser.email?.split('@')[0]}</p>
                   <p className="text-xs text-slate-500 truncate mt-0.5">{selectedUser.email}</p>
-                  {selectedUser.phone && <p className="text-xs text-slate-500 mt-0.5">📞 {selectedUser.phone}</p>}
+                  {selectedUser.phone && <p className="text-xs text-slate-500 mt-0.5">{selectedUser.phone}</p>}
                 </div>
               </div>
 
@@ -1338,10 +1338,10 @@ function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend }
                     {userAppointments.map(a => (
                       <div key={a.id} className="p-3.5 rounded-xl border border-slate-100 space-y-2">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-medium text-slate-700">📅 {fmtDate(a.requestedDate)}{a.requestedTime ? ` at ${formatTime(a.requestedTime)}` : ''}</span>
+                          <span className="text-sm font-medium text-slate-700">{fmtDate(a.requestedDate)}{a.requestedTime ? ` at ${formatTime(a.requestedTime)}` : ''}</span>
                           <span className={`shrink-0 px-2 py-0.5 rounded-md text-[11px] font-semibold ${APPT_BADGE[a.status] ?? 'bg-slate-100 text-slate-600'}`}>{a.status}</span>
                         </div>
-                        {a.contactNumber && <p className="text-xs text-slate-500">📞 {a.contactNumber}</p>}
+                        {a.contactNumber && <p className="text-xs text-slate-500">{a.contactNumber}</p>}
                         {a.message && (
                           <div className="bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
                             <p className="text-xs text-slate-500 font-medium mb-0.5">Message</p>
@@ -1409,7 +1409,7 @@ function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend }
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4 text-3xl">
-                👤
+                <User className="w-6 h-6" strokeWidth={1.8} aria-hidden="true" />
               </div>
               <p className="text-sm font-semibold text-slate-700">Select a user</p>
               <p className="text-sm text-slate-500 mt-1 max-w-[220px]">Click on someone from the list to view their activity</p>
@@ -1612,7 +1612,7 @@ function UserDetailView({ userId, onBack }) {
               </div>
               <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>
               <p className="text-xs text-slate-500 mt-0.5">
-                {user.phone ? `📞 ${user.phone} · ` : ''}
+                {user.phone ? `${user.phone} · ` : ''}
                 {user.city ?? 'City unknown'} · Joined {fmtDate(user.createdAt)}
                 {user.lastLoginAt ? ` · Last seen ${fmtDate(user.lastLoginAt)}` : ''}
               </p>
@@ -2063,7 +2063,7 @@ function AdminReviewCard({ r, onAction, busy }) {
                 <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                   r.recommend ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
                 }`}>
-                  {r.recommend ? '👍 Recommends' : '👎 Not recommended'}
+                  {r.recommend ? 'Recommends' : 'Not recommended'}
                 </span>
               )}
             </div>
@@ -2141,7 +2141,7 @@ function AdminReviewCard({ r, onAction, busy }) {
                 disabled={busy}
                 className="min-h-[44px] flex-1 py-3 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 disabled:opacity-40 transition-colors"
               >
-                ✓ Approve
+                Approve
               </button>
               <button
                 onClick={() => onAction(r.id, 'FLAGGED')}
@@ -2155,7 +2155,7 @@ function AdminReviewCard({ r, onAction, busy }) {
                 disabled={busy}
                 className="min-h-[44px] flex-1 py-3 rounded-xl bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 disabled:opacity-40 transition-colors"
               >
-                ✕ Reject
+                Reject
               </button>
             </>
           ) : r.status === 'APPROVED' ? (
@@ -2486,7 +2486,7 @@ function AdminSettingsSection() {
           </div>
           {newAmenity.trim() && (
             <p className={`text-[11px] mt-1.5 ${hasMatchingIcon ? 'text-green-600' : 'text-slate-500'}`}>
-              {hasMatchingIcon ? '✓ Icon matched' : 'No icon match — will use default icon. Try browsing above.'}
+              {hasMatchingIcon ? 'Icon matched' : 'No icon match — will use default icon. Try browsing above.'}
             </p>
           )}
         </form>

@@ -1,0 +1,10 @@
+{
+  "strict": true,
+  "checks": [
+    { "context": "Guard (no env files / secrets)" },
+    { "context": "Backend (lint + test)" },
+    { "context": "Frontend (lint + test + build)" },
+    { "context": "Mobile (test + bundle smoke check)" },
+    { "context": "Enforce \"stayonmap - <title>\" format" }
+  ]
+}

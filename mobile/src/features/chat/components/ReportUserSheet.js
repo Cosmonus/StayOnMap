@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { View, Text, TextInput, Pressable, Alert, StyleSheet } from 'react-native'
 import { userService } from '@services/user.service'
-import FormSheet from '@features/profile/components/FormSheet'
+import FormSheet from '@components/common/FormSheet'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'

@@ -29,8 +29,8 @@ export default function MapRightPanel({ topClass = 'top-32', contained = false }
           {/* Sheet — same enriched content as the desktop popup (photo,
               trust badge, nearby highlights, pricing, directions, phone) */}
           <div
-            className="absolute bottom-0 inset-x-0 bg-white rounded-t-3xl overflow-y-auto"
-            style={{ maxHeight: '78vh', scrollbarWidth: 'none', boxShadow: '0 -8px 40px rgba(0,0,0,0.15)' }}
+            className="absolute bottom-0 inset-x-0 bg-white rounded-t-3xl overflow-y-auto shadow-sheet"
+            style={{ maxHeight: '78vh', scrollbarWidth: 'none' }}
           >
             <div className="flex justify-center pt-3 pb-2">
               <div className="w-10 h-1 bg-slate-200 rounded-full" />

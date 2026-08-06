@@ -15,6 +15,7 @@ export default function MissingDataNote({ missing }) {
       <ul className="space-y-1">
         {missing.map((note, i) => (
           <li key={i} className="text-[11px] text-slate-500 leading-snug flex gap-1.5">
+            {/* eslint-disable-next-line no-restricted-syntax -- aria-hidden separator dot, not text */}
             <span aria-hidden="true" className="text-slate-300 shrink-0">·</span>
             <span>{note}</span>
           </li>

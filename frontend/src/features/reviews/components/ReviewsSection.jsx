@@ -160,7 +160,7 @@ function WriteReviewForm({ propertyId, onCancel, onSuccess }) {
             {MIN_CHARS - form.body.trim().length} more character{MIN_CHARS - form.body.trim().length !== 1 ? 's' : ''} needed
           </p>
         ) : (
-          <p className="text-xs mt-1 text-emerald-500">Looks good ✓</p>
+          <p className="text-xs mt-1 text-emerald-600 flex items-center gap-1"><Check className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden="true" />Looks good</p>
         )}
       </div>
 

@@ -19,7 +19,10 @@ export default function Tooltip({
       {children}
       <span
         role="tooltip"
-        className={`absolute ${positions[position]} pointer-events-none z-50 whitespace-nowrap rounded-md bg-[#1c1c1c] px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100`}
+        // #1c1c1c was a fourth near-black in a palette that has exactly two
+        // (#111111 dark CTA, #2a2a2a its hover) plus slate-900. rounded-md is
+        // off the radius scale too.
+        className={`absolute ${positions[position]} pointer-events-none z-50 whitespace-nowrap rounded-lg bg-slate-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100`}
       >
         {text}
       </span>

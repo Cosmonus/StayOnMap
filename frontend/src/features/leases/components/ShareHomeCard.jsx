@@ -19,9 +19,21 @@ function drawCard(canvas, { area, city, month }) {
   ctx.fillRect(0, 0, SIZE, 18)
   ctx.fillRect(0, SIZE - 18, SIZE, 18)
 
+  // A jade disc carrying the wordmark's own S, not an emoji. This canvas is
+  // rasterised into a PNG that people post, so a 🏡 here shipped whatever house
+  // the exporting device's font vendor happened to draw — a different picture on
+  // an iPhone, an Android and a desktop browser, in an image that is supposed to
+  // be the brand.
   ctx.textAlign = 'center'
-  ctx.font = `140px ${FONT}`
-  ctx.fillText('🏡', SIZE / 2, 300)
+  ctx.fillStyle = '#12a374'
+  ctx.beginPath()
+  ctx.arc(SIZE / 2, 250, 90, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = '#ffffff'
+  ctx.font = `bold 110px ${FONT}`
+  ctx.textBaseline = 'middle'
+  ctx.fillText('S', SIZE / 2, 254)
+  ctx.textBaseline = 'alphabetic'
 
   ctx.fillStyle = '#0d0c0a'
   ctx.font = `bold 96px ${FONT}`
@@ -95,7 +107,7 @@ export default function ShareHomeButton({ lease }) {
         Share: I&apos;m home
       </button>
 
-      <Modal isOpen={open} onClose={() => setOpen(false)} title="You found a home 🎉">
+      <Modal isOpen={open} onClose={() => setOpen(false)} title="You found a home">
         <div className="space-y-4">
           <canvas ref={canvasRef} width={SIZE} height={SIZE} className="w-full rounded-2xl border border-slate-100" />
           <p className="text-xs text-slate-500 text-center">

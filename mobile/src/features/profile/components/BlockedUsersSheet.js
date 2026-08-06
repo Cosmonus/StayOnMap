@@ -1,7 +1,7 @@
 import { View, Text, Pressable, FlatList, ActivityIndicator, Alert, StyleSheet } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userService } from '@services/user.service'
-import FormSheet from './FormSheet'
+import FormSheet from '@components/common/FormSheet'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'

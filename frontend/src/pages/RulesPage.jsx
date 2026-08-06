@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   Shield, Camera, IndianRupee, Clock, Check, Heart, TriangleAlert, Ban,
   Copy, Lock, User, Wrench, Flag, MessageSquare, FileText, Mail, X, Info, CircleAlert,
+  House, KeyRound, Handshake,
 } from 'lucide-react'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
@@ -10,9 +11,9 @@ import { CITIES } from '@/config/cities'
 
 // ── Data ────────────────────────────────────────────────────────────
 const PERSONAS = [
-  { id: 'owners',  label: 'Owners',  emoji: '🏠', tagline: 'You list. You set the terms. You keep 100% of the rent.' },
-  { id: 'tenants', label: 'Tenants', emoji: '🔑', tagline: 'You browse. You contact. You move in — zero commission.' },
-  { id: 'brokers', label: 'Brokers', emoji: '🚫', tagline: 'Unauthorized commission demands are not welcome here.' },
+  { id: 'owners',  label: 'Owners',  icon: House,     tagline: 'You list. You set the terms. You keep 100% of the rent.' },
+  { id: 'tenants', label: 'Tenants', icon: KeyRound,  tagline: 'You browse. You contact. You move in — zero commission.' },
+  { id: 'brokers', label: 'Brokers', icon: Ban,       tagline: 'Unauthorized commission demands are not welcome here.' },
 ]
 
 const RULES = {
@@ -155,7 +156,7 @@ export default function RulesPage() {
       {/* ── Hero ────────────────────────────────────────────────── */}
       <section className="relative bg-[#111111] px-4 sm:px-6 pt-14 pb-16 overflow-hidden">
         {/* Gradient orbs */}
-        <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-15 pointer-events-none" style={{ background: 'radial-gradient(circle, #f4511e 0%, transparent 65%)', transform: 'translate(30%, -50%)' }} />
+        <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-15 pointer-events-none" style={{ background: 'radial-gradient(circle, #0d8a5f 0%, transparent 65%)', transform: 'translate(30%, -50%)' }} />
         <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full opacity-10 pointer-events-none" style={{ background: 'radial-gradient(circle, #ff8c42 0%, transparent 65%)', transform: 'translate(-20%, 40%)' }} />
         {/* Grid texture */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)', backgroundSize: '32px 32px' }} />
@@ -183,7 +184,7 @@ export default function RulesPage() {
 
           {/* Tab switcher */}
           <div className="inline-flex bg-white/10 backdrop-blur-sm rounded-2xl p-1 gap-0.5">
-            {PERSONAS.map(({ id, label, emoji }) => (
+            {PERSONAS.map(({ id, label, icon: PIcon }) => (
               <button
                 key={id}
                 onClick={() => setActive(id)}
@@ -194,7 +195,7 @@ export default function RulesPage() {
                     : 'text-white/50 hover:text-white/80',
                 ].join(' ')}
               >
-                <span className="text-base leading-none">{emoji}</span>
+                <PIcon className="w-4 h-4 shrink-0" strokeWidth={2} aria-hidden="true" />
                 {label}
               </button>
             ))}
@@ -206,8 +207,8 @@ export default function RulesPage() {
       <section className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
         {/* Persona header */}
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-2xl shrink-0">
-            {persona.emoji}
+          <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 shrink-0">
+            <persona.icon className="w-6 h-6" strokeWidth={1.8} aria-hidden="true" />
           </div>
           <div>
             <h2 className="font-display font-bold text-lg text-slate-900">Rules for {persona.label}</h2>
@@ -218,7 +219,7 @@ export default function RulesPage() {
         {/* Summary card */}
         <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 mb-6 flex items-start gap-3">
           <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center shrink-0 mt-0.5">
-            <Info size={14} color="#f4511e" strokeWidth={2} />
+            <Info size={14} color="#0d8a5f" strokeWidth={2} />
           </div>
           <div>
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">In short</p>
@@ -265,7 +266,7 @@ export default function RulesPage() {
         <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 mb-10">
           <div className="flex items-center gap-2.5 mb-5">
             <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center">
-              <Flag size={18} color="#f4511e" strokeWidth={2} />
+              <Flag size={18} color="#0d8a5f" strokeWidth={2} />
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-800">How reports are handled</h3>
@@ -291,10 +292,10 @@ export default function RulesPage() {
         {/* Community pledge */}
         <div className="rounded-2xl bg-[#111111] p-6 sm:p-8 relative overflow-hidden">
           <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)', backgroundSize: '24px 24px' }} />
-          <div className="absolute bottom-0 right-0 w-48 h-48 rounded-full opacity-20 pointer-events-none" style={{ background: 'radial-gradient(circle, #f4511e 0%, transparent 70%)', transform: 'translate(30%, 30%)' }} />
+          <div className="absolute bottom-0 right-0 w-48 h-48 rounded-full opacity-20 pointer-events-none" style={{ background: 'radial-gradient(circle, #0d8a5f 0%, transparent 70%)', transform: 'translate(30%, 30%)' }} />
 
           <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-5">
-            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-2xl shrink-0">🤝</div>
+            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white shrink-0"><Handshake className="w-6 h-6" strokeWidth={1.8} aria-hidden="true" /></div>
             <div className="flex-1">
               <h3 className="font-display font-bold text-base text-white mb-1">The StayOnMap Pledge</h3>
               <p className="text-sm text-slate-500 leading-relaxed">

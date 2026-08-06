@@ -31,12 +31,77 @@ function istSlotLabel(instant) {
   }).replace(',', '') + ' IST'
 }
 
-export async function requestAppointment(tenantId, propertyId, data) {
-  // A visit can't be requested for a time that has already happened. Nothing
-  // checked this, so "Today · 9:00 AM" booked at 3pm was accepted and sent to
-  // the owner as a real request — they get a notification about a slot that
-  // passed six hours ago and no way to tell it from a genuine one.
-  const slot = istSlotInstant(data.requestedDate, data.requestedTime)
+// A visit request stores `requestedDate` as UTC midnight of the chosen day
+// (the client sends `new Date('2026-08-12').toISOString()`), so day equality is
+// exact equality — which is also what the same-date auto-reject already relies
+// on. AvailabilityBlock.date is stored the same way.
+function utcMidnight(dateISO) {
+  const d = new Date(dateISO)
+  if (Number.isNaN(d.getTime())) return null
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+}
+
+const AVAILABILITY_DAYS = 30
+
+// The days a renter cannot ask for, and why they can't:
+//   • an ACCEPTED visit — the owner has committed the day to someone
+//   • an AvailabilityBlock — the owner marked the day unavailable themselves
+//
+// PENDING requests deliberately block NOTHING. They are unconfirmed, and if
+// they blocked a day then anyone could freeze a listing's whole calendar by
+// firing off requests they never intend to keep.
+//
+// The response is a bare list of dates: no times, no counts, no identities. It
+// says "the owner is busy", which is what any booking calendar says, and
+// nothing about who else is looking at the place.
+export async function getVisitAvailability(propertyId) {
+  const from = utcMidnight(new Date().toISOString())
+  const to = new Date(from.getTime() + AVAILABILITY_DAYS * 86_400_000)
+
+  const [booked, blocked] = await Promise.all([
+    prisma.appointment.findMany({
+      where: { propertyId, status: 'ACCEPTED', requestedDate: { gte: from, lte: to } },
+      select: { requestedDate: true },
+      distinct: ['requestedDate'],
+    }),
+    prisma.availabilityBlock.findMany({
+      where: { propertyId, isBlocked: true, date: { gte: from, lte: to } },
+      select: { date: true },
+    }),
+  ])
+
+  const dates = new Set([
+    ...booked.map((a) => a.requestedDate.toISOString().slice(0, 10)),
+    ...blocked.map((b) => b.date.toISOString().slice(0, 10)),
+  ])
+  return { unavailableDates: [...dates].sort() }
+}
+
+async function isDateUnavailable(propertyId, dateISO) {
+  const day = utcMidnight(dateISO)
+  if (!day) return false
+  const [booked, blocked] = await Promise.all([
+    prisma.appointment.findFirst({
+      where: { propertyId, status: 'ACCEPTED', requestedDate: day },
+      select: { id: true },
+    }),
+    prisma.availabilityBlock.findFirst({
+      where: { propertyId, isBlocked: true, date: day },
+      select: { id: true },
+    }),
+  ])
+  return Boolean(booked || blocked)
+}
+
+// A visit can't be asked for at a time that has already happened. Nothing
+// checked this, so "Today · 9:00 AM" booked at 3pm was accepted and sent to the
+// owner as a real request — a notification about a slot that passed six hours
+// ago, indistinguishable from a genuine one.
+//
+// Shared by the first request and by a renter's counter-offer: a proposed time
+// is a time, and both need exactly these two checks.
+function assertFutureSlot(dateISO, hhmm) {
+  const slot = istSlotInstant(dateISO, hhmm)
   if (Number.isNaN(slot.getTime())) {
     throw Object.assign(new Error('That date and time could not be read'), { statusCode: 400 })
   }
@@ -46,6 +111,10 @@ export async function requestAppointment(tenantId, propertyId, data) {
       { statusCode: 400 },
     )
   }
+}
+
+export async function requestAppointment(tenantId, propertyId, data) {
+  assertFutureSlot(data.requestedDate, data.requestedTime)
 
   const property = await prisma.property.findUnique({ where: { id: propertyId }, select: { id: true, ownerId: true, status: true, riskScore: true } })
   if (!property) throw Object.assign(new Error('Property not found'), { statusCode: 404 })
@@ -63,13 +132,30 @@ export async function requestAppointment(tenantId, propertyId, data) {
   const existing = await prisma.appointment.findFirst({ where: { tenantId, propertyId, status: 'PENDING' } })
   if (existing) throw Object.assign(new Error('You already have a pending request for this property'), { statusCode: 409 })
 
+  // A date the owner has already committed to, or blocked out, is not
+  // requestable. Nothing checked this: the request was accepted, and then
+  // updateAppointmentStatus below auto-rejected it the moment the owner touched
+  // the day's confirmed visit — so the renter got an acceptance-shaped
+  // rejection for a slot the platform knew was gone before they asked.
+  //
+  // The unit is the DAY, not the slot, because that is the unit the auto-reject
+  // uses ("Another visit was scheduled for this date"). Greying individual times
+  // would imply the owner runs several viewings a day, which the server does not
+  // believe.
+  if (await isDateUnavailable(propertyId, data.requestedDate)) {
+    throw Object.assign(
+      new Error('The owner already has a visit booked that day — pick another date.'),
+      { statusCode: 409 },
+    )
+  }
+
   const appt = await prisma.appointment.create({ data: { ...data, tenantId, propertyId, ownerId: property.ownerId, requestedDate: new Date(data.requestedDate) } })
   await notifyUser(property.ownerId, { type: 'APPOINTMENT_REQUEST', title: 'New Appointment Request', body: 'A tenant has requested to visit your property.', referenceId: appt.id, referenceType: 'Appointment', audience: 'OWNER' })
 
   // Auto-create chat conversation and send appointment summary
   try {
     const date = new Date(data.requestedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-    const chatMsg = `📅 Appointment Request\nDate: ${date}\nTime: ${data.requestedTime}\nPhone: ${data.contactNumber}${data.message ? `\n\n${data.message}` : ''}`
+    const chatMsg = `Visit requested\nDate: ${date}\nTime: ${data.requestedTime}\nPhone: ${data.contactNumber}${data.message ? `\n\n${data.message}` : ''}`
     const convo = await getOrCreateConversation(tenantId, propertyId)
     await sendMessage(convo.id, tenantId, chatMsg)
   } catch { /* best-effort — don't fail the appointment if chat fails */ }
@@ -78,7 +164,23 @@ export async function requestAppointment(tenantId, propertyId, data) {
 }
 
 export async function getTenantAppointments(tenantId) {
-  return prisma.appointment.findMany({ where: { tenantId }, include: { property: { select: { id: true, displayId: true, title: true, city: true, images: { where: { isPrimary: true }, take: 1 } } } }, orderBy: { createdAt: 'desc' } })
+  return prisma.appointment.findMany({
+    where: { tenantId },
+    include: {
+      property: {
+        select: {
+          id: true, displayId: true, title: true, city: true,
+          // The renter's counter-offer picker has to offer the same hours the
+          // booking form did. Without these it would fall back to the full
+          // 09:00-20:00 list and let someone propose a time the owner never
+          // agreed to be available for.
+          appointmentWindowStart: true, appointmentWindowEnd: true,
+          images: { where: { isPrimary: true }, take: 1 },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
 }
 
 export async function getOwnerAppointments(ownerId) {
@@ -102,7 +204,15 @@ export async function getPropertyAppointments(propertyId, ownerId) {
 // sides have moved on from.
 const SETTLED = new Set(['REJECTED', 'CANCELLED'])
 
-export async function updateAppointmentStatus(appointmentId, userId, { status, scheduledAt, ownerNote }) {
+// The only two a renter may set on their own request. Everything else — accept,
+// reject, move the slot — stays the owner's.
+const TENANT_STATUSES = new Set(['CANCELLED', 'RESCHEDULE_REQUESTED'])
+
+export async function updateAppointmentStatus(
+  appointmentId,
+  userId,
+  { status, scheduledAt, ownerNote, requestedDate, requestedTime, tenantNote },
+) {
   const appt = await prisma.appointment.findUnique({ where: { id: appointmentId }, include: { property: { select: { title: true } } } })
   if (!appt) throw Object.assign(new Error('Appointment not found'), { statusCode: 404 })
 
@@ -113,11 +223,23 @@ export async function updateAppointmentStatus(appointmentId, userId, { status, s
   // This endpoint was owner-only, so the person who ASKED for the visit had no
   // way to call it off — CANCELLED was a valid status nothing could ever set,
   // and a renter who changed their mind could only message the owner and hope.
-  // A tenant may cancel their own request; everything else stays the owner's.
-  if (isTenant && !isOwner && status !== 'CANCELLED') {
+  // RESCHEDULE_REQUESTED joined it 2026-08-07: until then a renter who could
+  // not make the owner's slot had to cancel and start over from an empty form,
+  // losing the thread's context and their place in the owner's queue.
+  const tenantOnly = isTenant && !isOwner
+  if (tenantOnly && !TENANT_STATUSES.has(status)) {
     throw Object.assign(
-      new Error('Only the owner can accept, reject or reschedule — you can cancel your request.'),
+      new Error('Only the owner can accept or reject — you can cancel, or propose a different time.'),
       { statusCode: 403 },
+    )
+  }
+  // An owner does not "request" a reschedule of their own listing; they set one
+  // (RESCHEDULED). Letting them send the renter's status would produce a card
+  // asking the owner to approve their own proposal.
+  if (!tenantOnly && status === 'RESCHEDULE_REQUESTED') {
+    throw Object.assign(
+      new Error('Use RESCHEDULED to move a visit — RESCHEDULE_REQUESTED is the renter proposing one.'),
+      { statusCode: 400 },
     )
   }
 
@@ -128,39 +250,79 @@ export async function updateAppointmentStatus(appointmentId, userId, { status, s
     )
   }
 
+  // A renter's counter-offer is a real slot and gets the same two checks the
+  // original request got — otherwise "propose a different time" is the hole
+  // through which a past or already-booked slot walks back in.
+  if (status === 'RESCHEDULE_REQUESTED') {
+    if (!requestedDate || !requestedTime) {
+      throw Object.assign(new Error('Pick the date and time you would prefer.'), { statusCode: 400 })
+    }
+    assertFutureSlot(requestedDate, requestedTime)
+    if (await isDateUnavailable(appt.propertyId, requestedDate)) {
+      throw Object.assign(
+        new Error('The owner already has a visit booked that day — pick another date.'),
+        { statusCode: 409 },
+      )
+    }
+  }
+
   // `ownerNote` renders on both clients labelled "Owner reply" / "Your reply",
   // and `scheduledAt` IS the owner's new time. Both are the owner's voice, and
   // the shared updateStatusSchema accepts them from whoever calls — so a
   // cancelling renter could put words in the owner's mouth on the owner's own
-  // card, and move a slot while calling the visit off. A tenant sets the status
-  // and nothing else.
-  const tenantOnly = isTenant && !isOwner
+  // card, and move a slot while calling the visit off. A tenant writes only
+  // their OWN fields: the slot they asked for, and their own note.
+  const tenantData = status === 'RESCHEDULE_REQUESTED'
+    ? {
+      status,
+      requestedDate: new Date(requestedDate),
+      requestedTime,
+      tenantNote,
+      // The owner's confirmed time is no longer what is on the table. Leaving
+      // it would render a card showing two different times, one of them dead.
+      scheduledAt: null,
+    }
+    : { status }
+
   const updated = await prisma.appointment.update({
     where: { id: appointmentId },
     data: tenantOnly
-      ? { status }
+      ? tenantData
       : { status, scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined, ownerNote },
   })
 
-  // A tenant cancelling has to reach the OWNER — the notification below is
-  // addressed to the tenant, which for this one case is the wrong person.
+  // A tenant cancelling or counter-offering has to reach the OWNER — the
+  // notification further down is addressed to the tenant, which for these two
+  // cases is the wrong person.
   if (tenantOnly) {
+    const proposed = status === 'RESCHEDULE_REQUESTED'
+      ? istSlotLabel(istSlotInstant(requestedDate, requestedTime))
+      : null
+    const title = proposed ? 'New time proposed' : 'Visit cancelled'
+    const body = proposed
+      ? `The renter asked to move their visit to “${appt.property?.title ?? 'your property'}” to ${proposed}.`
+      : `The renter cancelled their visit to “${appt.property?.title ?? 'your property'}”.`
+
     await notifyUser(appt.ownerId, {
       type: 'APPOINTMENT_STATUS',
-      title: 'Visit cancelled',
-      body: `The renter cancelled their visit to “${appt.property?.title ?? 'your property'}”.`,
+      title,
+      body: tenantNote && proposed ? `${body}\n\n${tenantNote}` : body,
       referenceId: appt.id,
       referenceType: 'Appointment',
-      // Same type as the reschedule below, opposite hat — which is exactly why
-      // audience can't be derived from `type`.
+      // Same type as the owner's reschedule below, opposite hat — which is
+      // exactly why audience can't be derived from `type`.
       audience: 'OWNER',
     })
-    // The thread already carries the request, so it should carry the withdrawal
-    // — otherwise the owner reads an open request that no longer exists.
+    // The thread already carries the request, so it should carry whatever
+    // happened to it — otherwise the owner reads an open request that no longer
+    // reflects reality.
     try {
+      const line = proposed
+        ? `Visit — new time proposed by the renter\n${proposed}${tenantNote ? `\n\n${tenantNote}` : ''}`
+        : 'Visit cancelled by the renter'
       const convo = await getOrCreateConversation(appt.tenantId, appt.propertyId)
-      await sendMessage(convo.id, appt.tenantId, '📋 Visit cancelled by the renter')
-    } catch { /* best-effort — chat must never fail the cancellation */ }
+      await sendMessage(convo.id, appt.tenantId, line)
+    } catch { /* best-effort — chat must never fail the status change */ }
     return updated
   }
 
@@ -220,8 +382,10 @@ export async function updateAppointmentStatus(appointmentId, userId, { status, s
 
   // Send status update to chat
   try {
-    const emoji = status === 'ACCEPTED' ? '✅' : status === 'REJECTED' ? '❌' : status === 'RESCHEDULED' ? '🔄' : '📋'
-    let chatMsg = `${emoji} Appointment ${status.toLowerCase()}`
+    // No emoji. These lines render inside a normal message bubble, where a tick
+    // or a cross is the one thing in the thread that looks like a system state
+    // — and the same two glyphs already mean "sent" and "read" ten pixels away.
+    let chatMsg = `Visit ${status.toLowerCase()}`
     if (newSlot) chatMsg += `\nNew time: ${newSlot}`
     if (ownerNote) chatMsg += `\n\n${ownerNote}`
     const convo = await getOrCreateConversation(appt.tenantId, appt.propertyId)

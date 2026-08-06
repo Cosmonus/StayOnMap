@@ -44,6 +44,7 @@ export function LegalPageLayout({ title, lastUpdated, sections, children }) {
         <div className="mt-12 rounded-2xl bg-[#111111] p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5">
           <div className="flex-1">
             <h3 className="font-display font-bold text-base text-white mb-1">Questions about this document?</h3>
+            {/* eslint-disable-next-line no-restricted-syntax -- the #111111 legal CTA card — slate-400 is ~8:1 on it, and correct */}
             <p className="text-sm text-slate-400 leading-relaxed">
               Reach out and we will get back to you.
             </p>

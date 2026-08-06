@@ -147,10 +147,10 @@ export default function MapView({ contained = false }) {
     if (!searchedPlace || pins.length === 0) return
 
     const el = document.createElement('div')
-    el.style.filter = 'drop-shadow(0 3px 6px rgba(244,81,30,0.55))'
+    el.style.filter = 'drop-shadow(0 3px 6px rgba(28,26,22,0.45))'
     el.innerHTML = `
       <svg width="32" height="42" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M16 0C7.163 0 0 7.163 0 16c0 10.5 16 26 16 26S32 26.5 32 16C32 7.163 24.837 0 16 0z" fill="#f4511e"/>
+        <path d="M16 0C7.163 0 0 7.163 0 16c0 10.5 16 26 16 26S32 26.5 32 16C32 7.163 24.837 0 16 0z" fill="#1c1a16"/>
         <circle cx="16" cy="16" r="6" fill="white"/>
       </svg>
     `
