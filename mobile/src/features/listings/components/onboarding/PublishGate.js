@@ -130,6 +130,18 @@ export default function PublishGate({ missing, profile }) {
               ? <ActivityIndicator color={colors.white} size="small" />
               : <Text style={styles.verifyText}>{verify.isSuccess ? 'Link sent — check your inbox' : 'Send verification link'}</Text>}
           </Pressable>
+          {/* Verification is the one requirement satisfied OUTSIDE the app — you
+              leave for an inbox and come back. Without a way to re-check, a
+              fully-satisfied gate sits there still closed, which is how this box
+              read as "the phone field doesn't work". */}
+          <Pressable
+            style={styles.recheckButton}
+            onPress={() => qc.invalidateQueries({ queryKey: ['me'] })}
+            accessibilityRole="button"
+            accessibilityLabel="I have verified my email, check again"
+          >
+            <Text style={styles.recheckText}>I&rsquo;ve verified — check again</Text>
+          </Pressable>
         </View>
       )}
 
@@ -157,6 +169,16 @@ const styles = StyleSheet.create({
   inputError: { borderColor: colors.danger },
   fieldError: { fontFamily: fonts.body, fontSize: 11, color: colors.danger, marginTop: spacing.xs, lineHeight: 16 },
   hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: spacing.xs, lineHeight: 16 },
+  recheckButton: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    marginTop: spacing.sm,
+  },
+  recheckText: { fontFamily: fonts.semibold, fontSize: fontSizes.sm, color: colors.slate800 },
   verifyButton: { minHeight: 48, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.warning700, borderRadius: radius.md, paddingHorizontal: spacing.md },
   verifyText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.white },
   disabled: { opacity: 0.6 },

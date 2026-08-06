@@ -238,6 +238,21 @@ export default function OnboardingWizard({ onDone }) {
 
   function next() {
     if (!categoryKey) { setBlockError('Pick what you’re listing to continue.'); return }
+    // Publish is no longer DISABLED for an incomplete profile — it explains
+    // itself. A greyed button that does nothing and says nothing is how this
+    // read as "the phone field is broken": an owner fills in the phone the gate
+    // asked for, the button stays dead, and nothing names the real blocker,
+    // which for most people is an unverified EMAIL satisfied in an inbox.
+    // (User report, 2026-08-07.) Mirrors the web fix in the same wizard.
+    if (isLast && missingProfile.length > 0) {
+      const labels = missingProfile.map((m) => m.label.toLowerCase())
+      setBlockError(
+        labels.length === 1
+          ? `One thing left before you can publish: ${labels[0]}. It’s in the box above.`
+          : `Before you can publish, finish these in the box above: ${labels.join(', ')}.`,
+      )
+      return
+    }
     // The one mid-flow gate: step branching and type derivation hang off it.
     if (step.k === 'basics' && draft.fields[DESCRIBE[categoryKey].k] === undefined) {
       setBlockError(`${DESCRIBE[categoryKey].q} Make a selection to continue.`)
@@ -290,7 +305,6 @@ export default function OnboardingWizard({ onDone }) {
     )
   }
 
-  const canPublish = isLast && missing.length === 0 && missingProfile.length === 0 && !isPending
   const stepProps = { categoryKey, draft, setDraft }
 
   return (
@@ -315,11 +329,11 @@ export default function OnboardingWizard({ onDone }) {
             hardware button, so the footer is one thumb-reachable target. */}
         <View style={styles.footer}>
           <Pressable
-            style={[styles.nextButton, isLast && styles.publishButton, (isPending || (isLast && !canPublish)) && styles.disabled]}
+            style={[styles.nextButton, isLast && styles.publishButton, (isPending || (isLast && missing.length > 0)) && styles.disabled]}
             onPress={next}
-            disabled={isPending || (isLast && !canPublish)}
+            disabled={isPending || (isLast && missing.length > 0)}
             accessibilityRole="button"
-            accessibilityState={{ disabled: isPending || (isLast && !canPublish) }}
+            accessibilityState={{ disabled: isPending || (isLast && missing.length > 0) }}
           >
             {isPending ? (
               <ActivityIndicator color={colors.white} size="small" />

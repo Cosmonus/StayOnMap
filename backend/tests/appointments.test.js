@@ -6,6 +6,9 @@
  *                             403 frozen bookings on risky properties; 409 duplicate pending request
  *   updateAppointmentStatus — 404 missing; 403 wrong owner; ACCEPTED auto-rejects
  *                             other PENDING requests for the same property + date
+ *   tenant cancellation     — the renter who ASKED for the visit may call it
+ *                             off, may do nothing else, and cannot write in the
+ *                             owner's voice while doing it
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
@@ -154,5 +157,97 @@ describe('updateAppointmentStatus', () => {
 
     expect(prismaMock.appointment.findMany).not.toHaveBeenCalled()
     expect(prismaMock.appointment.updateMany).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * This endpoint used to be owner-only, which made CANCELLED a status nothing
+ * could ever set: the person who asked for the visit had no way to withdraw it,
+ * and their only route out was messaging the owner and hoping. The tests below
+ * pin the narrow hole that was opened for them — narrow because the same
+ * request body is shared with the owner's accept/reject/reschedule, so an
+ * unguarded tenant path hands the renter the owner's controls.
+ */
+describe('updateAppointmentStatus — tenant cancelling their own request', () => {
+  it('lets the tenant cancel their own request', async () => {
+    const appt = makeAppointment()
+    prismaMock.appointment.findUnique.mockResolvedValue(appt)
+    prismaMock.appointment.update.mockResolvedValue({ ...appt, status: 'CANCELLED' })
+
+    const result = await updateAppointmentStatus('appt-1', 'tenant-1', { status: 'CANCELLED' })
+
+    expect(result.status).toBe('CANCELLED')
+  })
+
+  it.each(['ACCEPTED', 'REJECTED', 'RESCHEDULED'])(
+    'throws 403 when the tenant tries to set %s',
+    async (status) => {
+      prismaMock.appointment.findUnique.mockResolvedValue(makeAppointment())
+
+      await expect(updateAppointmentStatus('appt-1', 'tenant-1', { status })).rejects.toMatchObject({
+        statusCode: 403,
+      })
+      expect(prismaMock.appointment.update).not.toHaveBeenCalled()
+    },
+  )
+
+  it('notifies the OWNER, not the tenant, when the tenant cancels', async () => {
+    // The notification on the owner path is addressed to the tenant. Reusing it
+    // for a cancellation would tell the renter about their own action and leave
+    // the owner holding a request that no longer exists — and the audience must
+    // be OWNER, which is exactly why audience can't be derived from `type`
+    // (APPOINTMENT_STATUS goes to either hat depending on who acted).
+    const appt = makeAppointment()
+    prismaMock.appointment.findUnique.mockResolvedValue(appt)
+    prismaMock.appointment.update.mockResolvedValue({ ...appt, status: 'CANCELLED' })
+
+    await updateAppointmentStatus('appt-1', 'tenant-1', { status: 'CANCELLED' })
+
+    expect(notifyUser).toHaveBeenCalledTimes(1)
+    expect(notifyUser).toHaveBeenCalledWith('owner-1', expect.objectContaining({
+      type: 'APPOINTMENT_STATUS',
+      audience: 'OWNER',
+    }))
+  })
+
+  it('ignores ownerNote and scheduledAt sent by the tenant', async () => {
+    // updateStatusSchema is shared with the owner's actions, so it accepts both
+    // fields from whoever posts. `ownerNote` renders on both clients labelled
+    // "Owner reply" — a renter writing into it puts their words on the owner's
+    // card under the owner's name — and `scheduledAt` is the owner's new slot.
+    const appt = makeAppointment()
+    prismaMock.appointment.findUnique.mockResolvedValue(appt)
+    prismaMock.appointment.update.mockResolvedValue({ ...appt, status: 'CANCELLED' })
+
+    await updateAppointmentStatus('appt-1', 'tenant-1', {
+      status: 'CANCELLED',
+      ownerNote: 'The owner said this place is fine, honest',
+      scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+    })
+
+    expect(prismaMock.appointment.update).toHaveBeenCalledWith({
+      where: { id: 'appt-1' },
+      data: { status: 'CANCELLED' },
+    })
+  })
+
+  it('throws 409 when the visit is already settled', async () => {
+    // Two taps on "Cancel this visit" — or a cancel on something the owner
+    // already rejected — must not resurrect and re-close the exchange, nor
+    // fire a second notification about it.
+    prismaMock.appointment.findUnique.mockResolvedValue(makeAppointment({ status: 'CANCELLED' }))
+
+    await expect(updateAppointmentStatus('appt-1', 'tenant-1', { status: 'CANCELLED' })).rejects.toMatchObject({
+      statusCode: 409,
+    })
+    expect(prismaMock.appointment.update).not.toHaveBeenCalled()
+  })
+
+  it('throws 403 for a stranger cancelling someone else’s visit', async () => {
+    prismaMock.appointment.findUnique.mockResolvedValue(makeAppointment())
+
+    await expect(updateAppointmentStatus('appt-1', 'nosy-1', { status: 'CANCELLED' })).rejects.toMatchObject({
+      statusCode: 403,
+    })
   })
 })

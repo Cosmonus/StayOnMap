@@ -102,17 +102,35 @@ export default function PublishGate({ missing, profile }) {
         )}
       </div>
 
+      {/* Email verification is the one requirement satisfied OUTSIDE this tab —
+          you leave for an inbox, possibly on another device, and come back.
+          Without a way to re-check, a fully-satisfied gate sits there still
+          closed, which is how this box read as "the phone field doesn't work":
+          the owner fixes what they can see, nothing changes, and the real
+          blocker never announces itself. */}
       {need.has('email') && (
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+        <div className="mt-4 flex flex-col gap-2">
           <p className="text-sm text-amber-900">Verify your email — renters need a real way to reach you.</p>
-          <button
-            type="button"
-            onClick={() => verify.mutate()}
-            disabled={verify.isPending}
-            className="min-h-[44px] px-4 py-3 rounded-xl bg-amber-900 text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-          >
-            {verify.isPending ? 'Sending…' : 'Send verification link'}
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => verify.mutate()}
+              disabled={verify.isPending}
+              className="min-h-[44px] px-4 py-3 rounded-xl bg-amber-900 text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            >
+              {verify.isPending ? 'Sending…' : 'Send verification link'}
+            </button>
+            <button
+              type="button"
+              onClick={() => qc.invalidateQueries({ queryKey: ['me'] })}
+              className="min-h-[44px] px-4 py-3 rounded-xl border border-amber-300 text-amber-900 text-sm font-semibold hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            >
+              I&rsquo;ve verified &mdash; check again
+            </button>
+          </div>
+          <p className="text-xs text-amber-800">
+            Open the link in your inbox, then come back here.
+          </p>
         </div>
       )}
 

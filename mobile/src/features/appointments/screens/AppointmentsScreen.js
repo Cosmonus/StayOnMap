@@ -255,8 +255,15 @@ function OwnerCard({ appt, onAction, onChat, chatting, busy }) {
   )
 }
 
-function TenantCard({ appt }) {
+function TenantCard({ appt, onCancel, busy }) {
   const past = bucketFor(appt.requestedDate) === 'Past'
+  // A request you made and can't withdraw is a dead end — the renter's only
+  // route out was messaging the owner and hoping. CANCELLED was already a valid
+  // status; until the backend opened this endpoint to the tenant, nothing could
+  // set it. A visit that has already happened is history, not a plan, so Past
+  // rows carry no button.
+  const cancellable = !past && ['PENDING', 'ACCEPTED', 'RESCHEDULED'].includes(appt.status)
+
   return (
     <View style={styles.card}>
       <View style={styles.statusCorner}><StatusPill status={appt.status} /></View>
@@ -276,6 +283,19 @@ function TenantCard({ appt }) {
       )}
       {!!appt.ownerNote && (
         <Text style={styles.replyNote}><Text style={styles.replyNoteLabel}>Owner reply: </Text>{appt.ownerNote}</Text>
+      )}
+
+      {cancellable && (
+        <Pressable
+          style={[styles.cancelVisitButton, busy && styles.busy]}
+          onPress={() => onCancel(appt)}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel={`Cancel your visit to ${appt.property?.title ?? 'this property'}`}
+          accessibilityState={{ disabled: busy }}
+        >
+          <Text style={styles.cancelVisitButtonText}>Cancel this visit</Text>
+        </Pressable>
       )}
     </View>
   )
@@ -346,8 +366,31 @@ export default function AppointmentsScreen({ navigation, route }) {
 
   const mutation = useMutation({
     mutationFn: ({ id, status, ownerNote }) => appointmentService.updateStatus(id, { status, ownerNote }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['owner-appointments'] }),
+    // Both lists: the host acts on incoming requests, the renter cancels their
+    // own. Only one is mounted at a time, and invalidating just the owner's
+    // meant a renter's cancellation left the card sitting there unchanged —
+    // the action looked like it had done nothing.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['owner-appointments'] })
+      qc.invalidateQueries({ queryKey: ['my-appointments'] })
+    },
+    onError: () => Alert.alert('Couldn’t update the visit', 'Please try again in a moment.'),
   })
+
+  function confirmCancel(appt) {
+    Alert.alert(
+      'Cancel this visit?',
+      `Your visit to ${appt.property?.title ?? 'this property'} on ${new Date(appt.requestedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} at ${formatTime(appt.requestedTime)} will be called off, and the owner will be told. You can request another time afterwards.`,
+      [
+        { text: 'Keep it', style: 'cancel' },
+        {
+          text: 'Cancel visit',
+          style: 'destructive',
+          onPress: () => mutation.mutate({ id: appt.id, status: 'CANCELLED' }),
+        },
+      ],
+    )
+  }
 
   // startWithTenant is idempotent server-side — it returns the existing thread
   // for this (property, tenant) pair rather than making a second one.
@@ -463,7 +506,7 @@ export default function AppointmentsScreen({ navigation, route }) {
                 onChat={() => openChat(item)}
                 onAction={(id, status, ownerNote) => mutation.mutate({ id, status, ownerNote })}
               />
-              : <TenantCard appt={item} />
+              : <TenantCard appt={item} busy={mutation.isPending} onCancel={confirmCancel} />
           )}
         />
       )}
@@ -576,6 +619,15 @@ const styles = StyleSheet.create({
     flex: 1, minHeight: 48, backgroundColor: colors.danger, borderRadius: radius.md,
     alignItems: 'center', justifyContent: 'center',
   },
+  // Quiet, not red: calling off your own visit is reversible (you can request
+  // another slot straight after), so it doesn't earn the weight the host's
+  // Decline gets.
+  cancelVisitButton: {
+    minHeight: 44, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.slate200, backgroundColor: colors.white,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cancelVisitButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700 },
 
   empty: { alignItems: 'center', paddingVertical: spacing.xxl, gap: spacing.xs },
   emptyIcon: {

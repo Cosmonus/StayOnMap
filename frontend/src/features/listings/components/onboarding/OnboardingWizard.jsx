@@ -548,6 +548,23 @@ export default function OnboardingWizard({ profile }) {
 
   function next() {
     if (!categoryKey) { blockWith('Pick what you’re listing to continue.'); return }
+    // Publish is no longer DISABLED for an incomplete profile — it explains
+    // itself instead. A grey button that does nothing and says nothing is how
+    // this read as "the phone field is broken": an owner filled in the phone
+    // the gate asked for, the button stayed dead, and nothing on screen said
+    // the real blocker was an unverified email. (User report, 2026-08-07: "we
+    // have a phone number blocker if we enter ph number it doesnt work also".)
+    // .claude/ui-ux.md's rule is to disable AND show why; showing nothing is
+    // the half that was missing.
+    if (isLast && missingProfile.length > 0) {
+      const labels = missingProfile.map((m) => m.label.toLowerCase())
+      blockWith(
+        labels.length === 1
+          ? `One thing left before you can publish: ${labels[0]}. It’s in the box above.`
+          : `Before you can publish, finish these in the box above: ${labels.join(', ')}.`,
+      )
+      return
+    }
     // The one mid-flow gate: step branching and type derivation hang off it.
     if (step.k === 'basics' && draft.fields[DESCRIBE[categoryKey].k] === undefined) {
       blockWith(`${DESCRIBE[categoryKey].q} Make a selection to continue.`)
@@ -562,8 +579,6 @@ export default function OnboardingWizard({ profile }) {
     if (stepIdx > 0) { setStepIdx(stepIdx - 1); return }
     setStage(profile?.role === 'OWNER' ? 'listings' : 'become-host')
   }
-
-  const canPublish = isLast && missing.length === 0 && missingProfile.length === 0 && !isPending
 
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-white">
@@ -624,7 +639,11 @@ export default function OnboardingWizard({ profile }) {
           onBack={back}
           note={isLast ? 'Editable any time after publishing' : 'Autosaved · safe to close and come back'}
           nextLabel={isLast ? (isPending ? 'Publishing…' : 'Publish listing') : `Next — ${step.next}`}
-          nextDisabled={uploading || (isLast && !canPublish)}
+          // `uploading` and `isPending` are transient and self-explanatory —
+          // the label already says "Publishing…". A missing profile field is
+          // NOT transient, so it must be pressable and explain itself rather
+          // than leaving a dead control on screen.
+          nextDisabled={uploading || isPending || (isLast && missing.length > 0)}
           primary={isLast}
           onNext={next}
         />

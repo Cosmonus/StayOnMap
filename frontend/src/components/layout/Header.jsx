@@ -73,6 +73,48 @@ const MENU_ICON = {
   logout:        <LogOut size={17} strokeWidth={1.8} />,
 }
 
+// Tabs a person uses in BOTH hats, where switching hat should change whose
+// data you are looking at rather than which page you are on. `dashboard` is
+// deliberately absent: renter mode has no dashboard, and DashboardPage's own
+// redirect sends it to the map — the two must agree or they race.
+const SHARED_TABS = new Set(['messages', 'appointments', 'notifications', 'settings', 'support'])
+
+// A two-state switch, not a sixth tab. What shipped here was a lone pill —
+// same height, same radius, same text size and weight as the tabs beside it —
+// that replaced the entire navigation and threw you onto another screen when
+// pressed. A segmented control on a filled track says "you are in one of two
+// modes" before anybody touches it, which is the honest affordance for
+// something that changes the whole shell.
+function ModeSwitch({ hostMode, onSwitch, otherModeWaiting }) {
+  const segments = [
+    { key: 'renting', label: 'Renting', host: false },
+    { key: 'hosting', label: 'Hosting', host: true },
+  ]
+  return (
+    <div role="group" aria-label="Renting or hosting" className="hidden sm:flex items-center gap-1 p-1 rounded-full bg-slate-100 shrink-0">
+      {segments.map((s) => {
+        const active = s.host === hostMode
+        const waiting = !active && otherModeWaiting > 0
+        return (
+          <button
+            key={s.key}
+            type="button"
+            onClick={() => onSwitch(s.host)}
+            aria-pressed={active}
+            aria-label={waiting ? `${s.label} — ${otherModeWaiting} waiting` : s.label}
+            className={`relative min-h-[40px] px-4 rounded-full text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+              active ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            {s.label}
+            {waiting && <span aria-hidden="true" className="absolute top-1 right-2 w-2 h-2 rounded-full bg-red-500" />}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // The tab-row unread pill. ActionMenu carries its own copy for menu items.
 function Badge({ count }) {
   if (!count) return null
@@ -151,7 +193,7 @@ function GuestActions() {
 }
 
 // ── Traveler — logged in, not hosting ───────────────────────────────────────
-function TravelerActions({ unreadMessages, unreadOtherMode, onBecomeHost, profile }) {
+function TravelerActions({ unreadMessages, unreadOtherMode, onSwitchMode, isOwner, profile }) {
   const { pathname, search } = useLocation()
   const { signOut } = useAuth()
   const navigate = useNavigate()
@@ -183,7 +225,7 @@ function TravelerActions({ unreadMessages, unreadOtherMode, onBecomeHost, profil
     // Badged with the OTHER hat's unread, because the tab badge beside it now
     // counts only this one. Without it, a message waiting on your host side is
     // invisible from here and you'd have to switch modes on a hunch.
-    { key: 'switch-to-host', label: 'Switch to host', onClick: onBecomeHost,        icon: MENU_ICON.switch, badge: unreadOtherMode },
+    { key: 'switch-to-host', label: 'Switch to host', onClick: () => onSwitchMode(true), icon: MENU_ICON.switch, badge: unreadOtherMode },
     { key: 'logout',        label: 'Log out', danger: true, icon: MENU_ICON.logout, onClick: () => { signOut(); navigate('/') } },
   ]
 
@@ -193,12 +235,20 @@ function TravelerActions({ unreadMessages, unreadOtherMode, onBecomeHost, profil
         <NavTabs tabs={tabs} />
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <button
-          onClick={onBecomeHost}
-          className="hidden sm:inline-block text-sm font-semibold text-slate-700 hover:bg-slate-100 px-3 py-2 rounded-full transition-colors"
-        >
-          Become a host
-        </button>
+        {/* An owner wears both hats, so they get the switch. Someone who has
+            never listed is not switching between two things they have — they
+            are being invited to start, and a CTA is the honest shape for that
+            (operator decision, see .claude/architecture.md's Navigation Modes). */}
+        {isOwner ? (
+          <ModeSwitch hostMode={false} onSwitch={onSwitchMode} otherModeWaiting={unreadOtherMode} />
+        ) : (
+          <button
+            onClick={() => onSwitchMode(true)}
+            className="hidden sm:inline-flex items-center min-h-[40px] text-sm font-semibold text-slate-700 border border-slate-200 hover:border-slate-400 px-4 rounded-full transition-colors"
+          >
+            Become a host
+          </button>
+        )}
         {/* NotificationBell existed, complete with an unread badge and a live
             `notification:new` socket listener, and NOTHING rendered it — so
             real-time notifications arrived on web with no indicator anywhere,
@@ -216,7 +266,7 @@ function TravelerActions({ unreadMessages, unreadOtherMode, onBecomeHost, profil
 }
 
 // ── Host mode — persistent, replaces the traveler nav everywhere ───────────
-function HostActions({ unreadMessages, unreadOtherMode, onSwitchToTraveling, profile }) {
+function HostActions({ unreadMessages, unreadOtherMode, onSwitchMode, profile }) {
   const { pathname, search } = useLocation()
   const { signOut } = useAuth()
   const navigate = useNavigate()
@@ -241,7 +291,7 @@ function HostActions({ unreadMessages, unreadOtherMode, onSwitchToTraveling, pro
     { key: 'divider',            divider: true },
     // See the matching note in TravelerActions: this badge is the renter-side
     // unread, which host mode's Inbox deliberately does not list.
-    { key: 'switch-to-tenant',   label: 'Switch to tenant',    onClick: onSwitchToTraveling, icon: MENU_ICON.switch, badge: unreadOtherMode },
+    { key: 'switch-to-tenant',   label: 'Switch to tenant',    onClick: () => onSwitchMode(false), icon: MENU_ICON.switch, badge: unreadOtherMode },
     { key: 'logout',             label: 'Log out', danger: true, icon: MENU_ICON.logout, onClick: () => { signOut(); navigate('/') } },
   ]
 
@@ -251,12 +301,7 @@ function HostActions({ unreadMessages, unreadOtherMode, onSwitchToTraveling, pro
         <NavTabs tabs={tabs} />
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <button
-          onClick={onSwitchToTraveling}
-          className="hidden sm:inline-block text-sm font-semibold text-slate-700 hover:bg-slate-100 px-3 py-2 rounded-full transition-colors"
-        >
-          Exit hosting
-        </button>
+        <ModeSwitch hostMode onSwitch={onSwitchMode} otherModeWaiting={unreadOtherMode} />
         {/* NotificationBell existed, complete with an unread badge and a live
             `notification:new` socket listener, and NOTHING rendered it — so
             real-time notifications arrived on web with no indicator anywhere,
@@ -274,7 +319,7 @@ function HostActions({ unreadMessages, unreadOtherMode, onSwitchToTraveling, pro
 }
 
 export default function Header() {
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const navigate = useNavigate()
   const { user } = useAuth()
   const hostMode = useUiStore((s) => s.hostMode)
@@ -319,14 +364,24 @@ export default function Header() {
     staleTime: 5 * 60 * 1000,
   })
 
-  function handleBecomeHost() {
-    setHostMode(true)
-    navigate('/user?tab=dashboard')
-  }
+  const isOwner = profile?.role === 'OWNER'
 
-  function handleSwitchToTraveling() {
-    setHostMode(false)
-    navigate('/')
+  // Switching hats moves you as little as it can. Messages, Appointments,
+  // Notifications, Account and Support exist for both hats and show the same
+  // page with the other side's data, so a switch there is a switch, not a
+  // journey — being thrown onto the map from your own inbox is what made this
+  // control read as broken.
+  //
+  // Everything else lands on that hat's home. `?tab=dashboard` MUST be one of
+  // those: renter mode has no dashboard, and DashboardPage's own redirect sends
+  // it to '/' — the mode flips while that tab is still mounted, so the two
+  // navigate calls race and whichever fires last wins. They have to agree.
+  function switchMode(next) {
+    if (next === hostMode) return
+    setHostMode(next)
+    const tab = new URLSearchParams(search).get('tab')
+    if (pathname === '/user' && SHARED_TABS.has(tab)) return
+    navigate(next ? '/user?tab=dashboard' : '/')
   }
 
   const lastY = useRef(0)
@@ -358,9 +413,9 @@ export default function Header() {
         {!user ? (
           <GuestActions />
         ) : hostMode ? (
-          <HostActions unreadMessages={unreadMessages} unreadOtherMode={unreadOtherMode} onSwitchToTraveling={handleSwitchToTraveling} profile={profile ?? user} />
+          <HostActions unreadMessages={unreadMessages} unreadOtherMode={unreadOtherMode} onSwitchMode={switchMode} profile={profile ?? user} />
         ) : (
-          <TravelerActions unreadMessages={unreadMessages} unreadOtherMode={unreadOtherMode} onBecomeHost={handleBecomeHost} profile={profile ?? user} />
+          <TravelerActions unreadMessages={unreadMessages} unreadOtherMode={unreadOtherMode} onSwitchMode={switchMode} isOwner={isOwner} profile={profile ?? user} />
         )}
       </div>
 

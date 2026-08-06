@@ -4,8 +4,10 @@ import { useNavigation } from '@react-navigation/native'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
 import { chatService } from '@services/chat.service'
+import { useAuth } from '@features/auth/hooks/useAuth'
 import Icon from '@components/common/Icon'
 import { VISIT_SLOTS, formatTime } from '@utils/time'
+import { normalizePhone, isValidPhone } from '@utils/phone'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -21,16 +23,33 @@ const UPCOMING_DATES = Array.from({ length: 30 }, (_, i) => {
 export default function AppointmentForm({ propertyId, windowStart, windowEnd, onSuccess }) {
   const navigation = useNavigation()
   const queryClient = useQueryClient()
-  const [form, setForm] = useState({ requestedDate: '', requestedTime: '', message: '', contactNumber: '' })
+  const { user } = useAuth()
+  // `contactNumber: null` means "the person hasn't touched this field", which
+  // is what lets the profile number below fill it. Once they type — including
+  // typing nothing, i.e. clearing it — it becomes a string and stops falling
+  // back, so we never re-impose a number they deliberately deleted.
+  const [form, setForm] = useState({ requestedDate: '', requestedTime: '', message: '', contactNumber: null })
   const [submitted, setSubmitted] = useState(false)
   const [chatLoading, setChatLoading] = useState(false)
+
+  // The number is already on the account — `/auth/me` returns the whole User
+  // row, so `user.phone` is right here — and the form asked for it again every
+  // single time. Derived rather than seeded into state by an effect: AuthContext
+  // rehydrates the profile asynchronously at launch, so `user` is often still
+  // null on this screen's first render, and a derivation picks it up when it
+  // lands without a second render pass. Normalised, because a stored
+  // "+91 98450 12345" is exactly what the server's /^[6-9]\d{9}$/ rejects.
+  const profilePhone = isValidPhone(user?.phone) ? normalizePhone(user.phone) : ''
+  const contactNumber = form.contactNumber ?? profilePhone
 
   const mutation = useMutation({
     mutationFn: (data) => {
       const payload = {
         requestedDate: new Date(data.requestedDate).toISOString(),
         requestedTime: data.requestedTime,
-        contactNumber: data.contactNumber,
+        // Normalised on the way out too: the field accepts what a person
+        // actually types, the wire only ever carries ten digits.
+        contactNumber: normalizePhone(data.contactNumber),
       }
       if (data.message?.trim()) payload.message = data.message.trim()
       return appointmentService.request(propertyId, payload)
@@ -64,7 +83,7 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
   }
 
   const slots = VISIT_SLOTS.filter((t) => (!windowStart || t >= windowStart) && (!windowEnd || t <= windowEnd))
-  const isValid = form.requestedDate && form.requestedTime && /^[6-9]\d{9}$/.test(form.contactNumber)
+  const isValid = form.requestedDate && form.requestedTime && isValidPhone(contactNumber)
 
   if (submitted) {
     return (
@@ -97,6 +116,22 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
             )}
           </Pressable>
         </View>
+
+        {/* Where the request now lives. Without this the flow ends on a tick
+            and the renter is left to discover, unaided, that visits sit behind
+            Profile — which is the "found the Visits in Profile, not a very
+            visible touch point" complaint. Renter-mode visits are in the
+            Profile stack, so this crosses tabs; `initial: false` keeps
+            ProfileHome underneath so back lands somewhere sensible. */}
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => navigation.getParent()?.navigate('Profile', { screen: 'Appointments', initial: false })}
+          accessibilityRole="button"
+          accessibilityLabel="View all your visits"
+        >
+          <Icon name="calendar" size={14} color={colors.slate700} />
+          <Text style={styles.secondaryButtonText}>View all your visits</Text>
+        </Pressable>
       </View>
     )
   }
@@ -146,12 +181,16 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
       <View style={styles.labelRow}><Icon name="phone" size={12} color={colors.slate500} /><Text style={styles.label}>Mobile number</Text></View>
       <TextInput
         style={styles.input}
-        value={form.contactNumber}
+        value={contactNumber}
         onChangeText={(v) => setForm((f) => ({ ...f, contactNumber: v }))}
         placeholder="10-digit mobile number"
         placeholderTextColor={colors.slate500}
         keyboardType="phone-pad"
-        maxLength={10}
+        // 10 truncated a pasted "+91 98450 12345" to "+91 98450 " — a number
+        // the person had just copied from their own contacts, silently cut
+        // into something the button stays greyed out for. normalizePhone
+        // handles the shape; the field only has to accept it.
+        maxLength={16}
       />
 
       <View style={styles.labelRow}><Icon name="messageCircle" size={12} color={colors.slate500} /><Text style={styles.label}>Message (optional)</Text></View>
@@ -169,7 +208,7 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
 
       <Pressable
         style={[styles.submitButton, (!isValid || mutation.isPending) && styles.disabled]}
-        onPress={() => mutation.mutate(form)}
+        onPress={() => mutation.mutate({ ...form, contactNumber })}
         disabled={!isValid || mutation.isPending}
         accessibilityRole="button"
         accessibilityLabel="Request visit"
@@ -219,4 +258,10 @@ const styles = StyleSheet.create({
   chatNudgeBody: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.brand700, opacity: 0.7, marginTop: 2, marginBottom: spacing.sm },
   primaryButton: { flexDirection: 'row', gap: 6, backgroundColor: colors.brand600, borderRadius: radius.md, paddingVertical: spacing.sm + 4, alignItems: 'center', justifyContent: 'center', minHeight: 48, },
   primaryButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
+  secondaryButton: {
+    flexDirection: 'row', gap: 6, minHeight: 48, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.slate200, backgroundColor: colors.white,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  secondaryButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700 },
 })

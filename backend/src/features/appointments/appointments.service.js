@@ -128,11 +128,23 @@ export async function updateAppointmentStatus(appointmentId, userId, { status, s
     )
   }
 
-  const updated = await prisma.appointment.update({ where: { id: appointmentId }, data: { status, scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined, ownerNote } })
+  // `ownerNote` renders on both clients labelled "Owner reply" / "Your reply",
+  // and `scheduledAt` IS the owner's new time. Both are the owner's voice, and
+  // the shared updateStatusSchema accepts them from whoever calls — so a
+  // cancelling renter could put words in the owner's mouth on the owner's own
+  // card, and move a slot while calling the visit off. A tenant sets the status
+  // and nothing else.
+  const tenantOnly = isTenant && !isOwner
+  const updated = await prisma.appointment.update({
+    where: { id: appointmentId },
+    data: tenantOnly
+      ? { status }
+      : { status, scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined, ownerNote },
+  })
 
   // A tenant cancelling has to reach the OWNER — the notification below is
   // addressed to the tenant, which for this one case is the wrong person.
-  if (isTenant && !isOwner) {
+  if (tenantOnly) {
     await notifyUser(appt.ownerId, {
       type: 'APPOINTMENT_STATUS',
       title: 'Visit cancelled',

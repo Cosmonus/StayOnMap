@@ -82,8 +82,13 @@ export default function LocationStep({ categoryKey, draft, setDraft }) {
                 }}
                 placeholder="Select city"
                 options={CITY_NAMES.map((n) => ({ value: n, label: n }))}
+                // Through Select's own `hint`, not a sibling <p>. A sibling sits
+                // 6px below the trigger, which is exactly where the panel opens
+                // — flush here rather than slicing, but the same latent overlap
+                // that made the signup city field unreadable (bug 1, 2026-08-07).
+                // Select owns the spacing so the two numbers cannot drift.
+                hint={`Live in ${CITY_LIST_LABEL}`}
               />
-              <p className="text-xs text-slate-500 mt-1.5">Live in {CITY_LIST_LABEL}</p>
             </div>
             <div>
               <FieldLabel>Pincode</FieldLabel>

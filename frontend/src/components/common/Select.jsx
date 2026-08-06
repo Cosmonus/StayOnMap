@@ -1,18 +1,32 @@
 // Custom dropdown — replaces a native <select> (whose open option list can't
 // be styled at all, just renders the OS/browser default). Portal-based, same
 // visual language as CityDropdown.jsx's floating panel.
-// Props: label, error, options [{ value, label, hint? }], placeholder, value, onChange(value), disabled
+// Props: label, hint, error, options [{ value, label, hint? }], placeholder, value, onChange(value), disabled
 //
-// `hint` renders as a muted second line inside the panel and nothing in the
-// trigger — it's for choices that need a word of explanation to pick between
-// ("Villa — premium standalone home"), which is why the listing wizard can use
-// this instead of a row of pills.
-import { useState, useEffect, useRef } from 'react'
+// An option's `hint` renders as a muted second line inside the panel and
+// nothing in the trigger — it's for choices that need a word of explanation to
+// pick between ("Villa — premium standalone home"), which is why the listing
+// wizard can use this instead of a row of pills. The FIELD's `hint` is the
+// help line under the control; see the clearance note on PANEL_GAP.
+import { useState, useEffect, useRef, useId } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
 
+// How far below the trigger the floating panel opens. Anything the field
+// renders under the control must clear this, or the panel lands mid-line and
+// SLICES it instead of covering it — a 2px sliver of help text wedged under
+// the dropdown, which is exactly what "the text is overlapping the dropdown"
+// looked like when callers hand-rolled a `<p className="mt-1">` sibling. Hence
+// `hint` living in here, spaced to clear the gap, rather than at each callsite.
+const PANEL_GAP = 6
+
+// gap-1 (4px) from the flex column + mt-1 (4px) = 8px, clear of PANEL_GAP.
+const BELOW_CONTROL = 'mt-1 text-xs'
+
 export default function Select({
+  id,
   label,
+  hint,
   error,
   options = [],
   placeholder = 'Select…',
@@ -23,6 +37,15 @@ export default function Select({
 }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState(null)
+  // Stable ids so the label, the trigger and the panel can point at each other.
+  // A <label htmlFor> cannot target a <button>, so the association is made with
+  // aria-labelledby instead — without it a screen reader announced every
+  // dropdown in the app as a bare "button", with no idea which field it was.
+  const autoId = useId()
+  const baseId = id ?? autoId
+  const labelId = `${baseId}-label`
+  const panelId = `${baseId}-panel`
+  const hintId = `${baseId}-hint`
   const triggerRef = useRef(null)
   const panelRef = useRef(null)
 
@@ -42,7 +65,7 @@ export default function Select({
       const r = el.getBoundingClientRect()
       const vw = window.innerWidth
       const vh = window.innerHeight
-      const GAP = 6, MARGIN = 8, PANEL_MAX = 256
+      const GAP = PANEL_GAP, MARGIN = 8, PANEL_MAX = 256
       const below = vh - r.bottom - GAP - MARGIN
       const above = r.top - GAP - MARGIN
       const openUp = below < 160 && above > below
@@ -87,12 +110,23 @@ export default function Select({
 
   return (
     <div className="flex flex-col gap-1">
-      {label && <label className="text-sm font-medium text-slate-700">{label}</label>}
+      {label && <span id={labelId} className="text-sm font-medium text-slate-700">{label}</span>}
       <div ref={triggerRef}>
         <button
           type="button"
+          id={baseId}
           disabled={disabled}
           onClick={() => setOpen((v) => !v)}
+          // combobox, not a bare button: this opens a list and holds a value,
+          // and `aria-expanded` is what tells a screen-reader user whether the
+          // list is currently open. `aria-labelledby` carries the field name
+          // that <label htmlFor> cannot.
+          role="combobox"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={open ? panelId : undefined}
+          {...(label ? { 'aria-labelledby': labelId } : {})}
+          {...(hint ? { 'aria-describedby': hintId } : {})}
           className={[
             // py-3/rounded-xl so a dropdown lines up with the text inputs
             // beside it and clears the 44px target minimum (was py-2.5 and
@@ -120,6 +154,9 @@ export default function Select({
         {open && pos && createPortal(
           <div
             ref={panelRef}
+            id={panelId}
+            role="listbox"
+            {...(label ? { 'aria-labelledby': labelId } : {})}
             // zIndex above the login modal's 9999 — a tie leaves paint order
             // to DOM position, which is how the city list vanished behind it.
             style={{ position: 'fixed', ...pos, zIndex: 10000 }}
@@ -131,6 +168,8 @@ export default function Select({
                 <button
                   key={opt.value}
                   type="button"
+                  role="option"
+                  aria-selected={isSelected}
                   onClick={() => handlePick(opt.value)}
                   className={[
                     'w-full flex items-center justify-between gap-3 px-4 py-3 text-sm text-left transition-colors',
@@ -152,7 +191,8 @@ export default function Select({
           document.body
         )}
       </div>
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {hint   && <p id={hintId} className={`${BELOW_CONTROL} text-slate-500`}>{hint}</p>}
+      {error  && <p className={`${BELOW_CONTROL} text-red-500`}>{error}</p>}
     </div>
   )
 }

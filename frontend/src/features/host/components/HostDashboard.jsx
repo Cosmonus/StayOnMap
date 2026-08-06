@@ -4,6 +4,7 @@ import { Plus, MoreHorizontal, X } from 'lucide-react'
 import { hostService } from '@services/host.service'
 import { appointmentService } from '@services/appointment.service'
 import { reviewService } from '@services/review.service'
+import { authService } from '@services/auth.service'
 import { toast } from '@components/common/Toaster'
 import Modal from '@components/common/Modal'
 import TimeSelect from '@components/common/TimeSelect'
@@ -138,6 +139,31 @@ function StatCard({ value, label, sub }) {
   )
 }
 
+// Someone who has not listed anything has no owner dashboard to fail at
+// loading — they have a listing they have not made yet. Mirrors mobile's
+// HostDashboardScreen (PR #170) and leads into the same wizard Add listing does.
+function NotAHostYet({ onAddListing }) {
+  return (
+    <div className="max-w-lg bg-white rounded-2xl border border-slate-200 p-6">
+      <h1 className="font-display text-xl font-bold text-slate-900 tracking-tight">
+        You haven&apos;t listed anything yet
+      </h1>
+      <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+        Put your place on the map and renters contact you directly. No brokers, no brokerage,
+        and listing is free.
+      </p>
+      <button
+        type="button"
+        onClick={onAddListing}
+        className="mt-6 inline-flex items-center gap-2 min-h-[44px] px-5 py-3 text-sm font-bold text-white rounded-xl bg-[#111111] hover:bg-[#2a2a2a] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+      >
+        <Plus size={15} strokeWidth={2.4} />
+        Add your first listing
+      </button>
+    </div>
+  )
+}
+
 // "+6 vs last month" only when there IS a previous period to compare with — on
 // a new listing "+0 vs last month" reads as failure rather than as no history.
 function deltaLabel(now, prev) {
@@ -154,10 +180,38 @@ export default function HostDashboard({ onAddListing }) {
   const [suggestion, setSuggestion] = useState({ date: '', time: '' })
   const [replyText, setReplyText] = useState('')
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  // GET /host/dashboard is authMiddleware + requireOwner, so a non-owner gets a
+  // 403 that React Query reports as isError — and this screen rendered that as
+  // "We couldn't load your dashboard" with a Retry that could never succeed.
+  //
+  // TWO guards, because either one alone leaves the bug reachable. DashboardPage
+  // already renders this only when its own ['me'] says OWNER, but ['me'] is a
+  // SHARED React Query cache that is never cleared on sign-out and is served
+  // stale-while-revalidate — so it still says OWNER for the tenant who signs in
+  // after an owner on the same tab, and stays wrong for as long as the /auth/me
+  // refetch keeps failing (a 429 off /auth's strictLimiter is enough). The
+  // `enabled` gate stops the request whenever the client knows; OWNER_REQUIRED
+  // is the server saying the client was wrong, and the server is the authority.
+  const {
+    data: profile, isPending: profilePending, isError: profileFailed, refetch: refetchProfile,
+  } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => authService.getMe().then((r) => r.data),
+  })
+  // Positively, on the role. "Not yet known to be a tenant" was tried here and
+  // is the same bug wearing a different word: it is TRUE while the profile
+  // loads, so a tenant's first render fires the owner-only query anyway.
+  // Undefined is falsy, so nothing goes out until we actually know, and the
+  // wait is a skeleton rather than a request nobody is allowed to make.
+  const isOwner = profile?.role === 'OWNER'
+
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['host-dashboard'],
     queryFn: () => hostService.dashboard().then((r) => r.data),
+    enabled: isOwner,
   })
+
+  const notAHostYet = (!!profile && !isOwner) || error?.error === 'OWNER_REQUIRED'
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['host-dashboard'] })
@@ -181,7 +235,11 @@ export default function HostDashboard({ onAddListing }) {
     onError: (err) => toast.error('Couldn’t reply', err.message ?? 'Please try again'),
   })
 
-  if (isLoading) {
+  if (notAHostYet) {
+    return <NotAHostYet onAddListing={onAddListing} />
+  }
+
+  if (profilePending || isLoading) {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => <div key={i} className="h-[84px] rounded-2xl bg-slate-100 animate-pulse" />)}
@@ -189,11 +247,17 @@ export default function HostDashboard({ onAddListing }) {
     )
   }
 
-  if (isError) {
+  // A profile we never loaded is a load failure like any other — without this
+  // the query stays disabled and the page renders a dashboard of zeroes, which
+  // is a worse lie than admitting we could not fetch it.
+  if (profileFailed || isError) {
     return (
       <div className="text-center py-16">
         <p className="text-sm text-slate-600">We couldn&apos;t load your dashboard.</p>
-        <button onClick={() => refetch()} className="min-h-[44px] mt-3 px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:border-slate-400">
+        <button
+          onClick={() => { refetchProfile(); refetch() }}
+          className="min-h-[44px] mt-3 px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:border-slate-400"
+        >
           Try again
         </button>
       </div>

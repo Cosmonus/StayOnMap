@@ -41,6 +41,7 @@ import authRoutes        from './features/auth/auth.routes.js'
 import propertyRoutes    from './features/properties/properties.routes.js'
 import hostRoutes from './features/host/host.routes.js'
 import userRoutes        from './features/users/users.routes.js'
+import seoRoutes         from './features/seo/seo.routes.js'
 import uploadRoutes      from './features/uploads/uploads.routes.js'
 import savedRoutes       from './features/saved/saved.routes.js'
 import listingDraftRoutes from './features/listingDraft/listingDraft.routes.js'
@@ -113,6 +114,12 @@ app.use('/api/v1/auth',          authRoutes)
 app.use('/api/v1/properties',    propertyRoutes)
 app.use('/api/v1/host',          hostRoutes)
 app.use('/api/v1/users',         userRoutes)
+
+// Mounted at the ROOT, not under /api/v1: a crawler fetches
+// https://www.stayonmap.com/sitemap.xml and nowhere else. nginx routes both
+// paths here (infra/server/nginx/stayonmap.conf) so they win over the static
+// files that used to serve them.
+app.use('/',                     seoRoutes)
 app.use('/api/v1/uploads',       uploadLimiter, uploadRoutes)
 app.use('/api/v1/saved',         savedRoutes)
 app.use('/api/v1/listing-draft', listingDraftRoutes)

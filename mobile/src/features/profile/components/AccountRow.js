@@ -67,7 +67,32 @@ export function AccountRow({ label, count, onPress, danger, last }) {
 // mark here, a visit request for your flat is invisible from renting and
 // nothing on screen suggests switching. A dot, not a number: this says "there
 // is something over there", and the count itself belongs on the tab you land on.
-export function ModeSwitch({ hostMode, onChange, waiting = 0 }) {
+// `isOwner` gates the SWITCH itself. A two-segment control offers Hosting as a
+// place you already have, and a TENANT tapping it lands on the become-a-host
+// intro instead — a mode that does not exist for them yet. Web settled this on
+// 2026-08-07: owners get the switch, everyone else gets a "Become a host" CTA,
+// because that is onboarding rather than a mode change (.claude/architecture.md's
+// "Navigation Modes"). Rendering nothing for a tenant would be worse — the way
+// into hosting has to stay visible.
+export function ModeSwitch({ hostMode, onChange, waiting = 0, isOwner = true, onBecomeHost }) {
+  if (!isOwner && !hostMode) {
+    return (
+      <Pressable
+        style={styles.becomeHost}
+        onPress={() => (onBecomeHost ? onBecomeHost() : onChange(true))}
+        accessibilityRole="button"
+        accessibilityLabel="Become a host"
+        accessibilityHint="Starts listing your first property"
+      >
+        <Icon name="key" size={16} color={colors.brand700} />
+        <Text style={styles.becomeHostText}>Become a host</Text>
+      </Pressable>
+    )
+  }
+  return _ModeSwitch({ hostMode, onChange, waiting })
+}
+
+function _ModeSwitch({ hostMode, onChange, waiting = 0 }) {
   return (
     <View style={styles.segment}>
       {[false, true].map((isHost) => {
@@ -130,6 +155,23 @@ const styles = StyleSheet.create({
   // A full pill, like every segmented control people already know how to
   // read. The mint track with a brand-100 hairline reads as the control's own
   // recessed surface; the selected half is a raised brand pill sitting IN it.
+  becomeHost: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.brand600,
+    backgroundColor: colors.white,
+  },
+  becomeHostText: {
+    fontFamily: fonts.semibold,
+    fontSize: fontSizes.sm,
+    color: colors.brand700,
+  },
   segment: {
     flexDirection: 'row',
     backgroundColor: colors.brand50,

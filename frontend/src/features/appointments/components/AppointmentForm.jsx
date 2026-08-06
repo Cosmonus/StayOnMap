@@ -1,13 +1,15 @@
 import { useState, useMemo, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { Check, LoaderCircle, MessageSquare } from 'lucide-react'
+import { Calendar, Check, LoaderCircle, MessageSquare } from 'lucide-react'
 import { appointmentService } from '@services/appointment.service'
 import { chatService } from '@services/chat.service'
+import { useAuth } from '@features/auth/hooks/useAuth'
 import { toast } from '@components/common/Toaster'
 import Select from '@components/common/Select'
 import TimeSelect from '@components/common/TimeSelect'
 import { VISIT_SLOTS, formatTime } from '@utils/time'
+import { normalizePhone, isValidPhone } from '@utils/validation'
 
 // Nobody can act on a request made for 20 minutes' time, and offering it
 // invites a slot that's stale before the owner opens the notification.
@@ -34,16 +36,34 @@ function upcomingDates() {
 
 export default function AppointmentForm({ propertyId, onSuccess, windowStart, windowEnd }) {
   const navigate = useNavigate()
-  const [form, setForm] = useState({ requestedDate: '', requestedTime: '', message: '', contactNumber: '' })
+  const { user } = useAuth()
+  // `contactNumber: null` means "the person hasn't touched this field", which
+  // is what lets the profile number below fill it. Once they type — including
+  // typing nothing, i.e. clearing it — it becomes a string and stops falling
+  // back, so we never re-impose a number they deliberately deleted.
+  const [form, setForm] = useState({ requestedDate: '', requestedTime: '', message: '', contactNumber: null })
   const [submitted, setSubmitted] = useState(false)
   const [chatLoading, setChatLoading] = useState(false)
+
+  // The number is already on the account — `/auth/me` returns the whole User
+  // row, so `user.phone` is right here — and the form asked for it again every
+  // single time. Derived rather than seeded into state by an effect: AuthContext
+  // rehydrates the profile asynchronously, so on the first render of a
+  // deep-linked property page `user` is still null, and a derivation picks it up
+  // when it lands without a second render pass. Normalised, because a stored
+  // "+91 98450 12345" is exactly what the server's /^[6-9]\d{9}$/ rejects — the
+  // prefill has to arrive already valid.
+  const profilePhone = isValidPhone(user?.phone) ? normalizePhone(user.phone) : ''
+  const contactNumber = form.contactNumber ?? profilePhone
 
   const mutation = useMutation({
     mutationFn: (data) => {
       const payload = {
         requestedDate: new Date(data.requestedDate).toISOString(),
         requestedTime: data.requestedTime,
-        contactNumber: data.contactNumber,
+        // Normalised on the way out too: the field accepts what a person
+        // actually types, the wire only ever carries ten digits.
+        contactNumber: normalizePhone(data.contactNumber),
       }
       if (data.message?.trim()) payload.message = data.message.trim()
       return appointmentService.request(propertyId, payload)
@@ -109,7 +129,7 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
 
   const set = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }))
   const setValue = (key) => (value) => setForm(f => ({ ...f, [key]: value }))
-  const isValid = form.requestedDate && form.requestedTime && /^[6-9]\d{9}$/.test(form.contactNumber)
+  const isValid = form.requestedDate && form.requestedTime && isValidPhone(contactNumber)
 
   if (submitted) {
     return (
@@ -141,6 +161,18 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
             Message the owner
           </button>
         </div>
+
+        {/* Where the request now lives. Without this the flow ends on a green
+            tick and the renter has to discover, unaided, that visits are a
+            dashboard tab — which is how they end up messaging the owner to ask
+            whether the request went through. */}
+        <Link
+          to="/user?tab=appointments"
+          className="min-h-[44px] flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 no-underline hover:bg-slate-50 transition-colors"
+        >
+          <Calendar size={14} strokeWidth={2} />
+          View all your visits
+        </Link>
       </div>
     )
   }
@@ -177,7 +209,7 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
         <input
           type="tel"
           placeholder="10-digit mobile number"
-          value={form.contactNumber}
+          value={contactNumber}
           onChange={set('contactNumber')}
           className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         />
@@ -197,7 +229,7 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
       )}
       <button
         disabled={!isValid || mutation.isPending}
-        onClick={() => mutation.mutate(form)}
+        onClick={() => mutation.mutate({ ...form, contactNumber })}
         className="w-full py-3 rounded-xl bg-brand-600 text-white font-semibold text-sm hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {mutation.isPending ? 'Sending…' : "I'm Interested — Request Visit"}

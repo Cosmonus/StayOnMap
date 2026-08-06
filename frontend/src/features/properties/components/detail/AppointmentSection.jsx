@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
 import AppointmentForm from '@features/appointments/components/AppointmentForm'
@@ -55,6 +56,15 @@ export default function AppointmentSection({ propertyId, windowStart, windowEnd 
         {existing.ownerNote && (
           <p className={`text-xs italic ${cfg.text} opacity-70`}>&ldquo;{existing.ownerNote}&rdquo;</p>
         )}
+        {/* This card was the end of the road: it told you a visit existed and
+            offered nothing to do about it, so changing your mind meant finding
+            the Appointments tab yourself. Cancelling lives there. */}
+        <Link
+          to="/user?tab=appointments"
+          className={`inline-block text-xs font-semibold underline underline-offset-2 ${cfg.text} hover:opacity-80`}
+        >
+          Manage this visit
+        </Link>
       </div>
     )
   }

@@ -8,6 +8,7 @@ import { chatService } from '@services/chat.service'
 import { savedService } from '@services/saved.service'
 import { appointmentService } from '@services/appointment.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import { propertyUrl } from '@config/links'
 import TrustBadge from '@components/common/TrustBadge'
 import RiskAlert from '@components/common/RiskAlert'
 import TrustScoreWidget from '@features/trust/components/TrustScoreWidget'
@@ -118,10 +119,17 @@ export default function PropertyDetailScreen({ route, navigation }) {
     saveMutation.mutate(!isSaved)
   }
 
+  // The link goes INSIDE `message`, not in Share.share's `url` field: Android
+  // drops `url` entirely and sends only the message, so a listing shared from
+  // an Android phone arrived as a price and a city with nothing to tap. Web has
+  // always shared its URL; this is the half that was missing.
   function handleShare() {
     if (!property) return
     const unit = priceUnit(property)
-    Share.share({ message: `${property.title} — ${formatCompact(Number(property.rent))}${unit} in ${property.city}` })
+    const price = `${formatCompact(Number(property.rent))}${unit}`
+    Share.share({
+      message: `${property.title} — ${price} in ${property.city}\n${propertyUrl(property.id)}`,
+    })
   }
 
   async function handleMessageOwner() {
@@ -365,10 +373,22 @@ export default function PropertyDetailScreen({ route, navigation }) {
             )}
           </Pressable>
           {apptStatus ? (
-            <View style={[styles.apptStatus, { backgroundColor: apptStatus.bg }]}>
+            // Tappable, not a label. This sat in the footer as an inert View:
+            // it announced that a visit existed and offered no way to reach it,
+            // so changing your mind meant leaving the listing and finding
+            // Visits under Profile unaided. Renter-mode visits live in the
+            // Profile stack, hence the cross-tab navigate; `initial: false`
+            // leaves ProfileHome underneath so back goes somewhere sensible.
+            <Pressable
+              style={[styles.apptStatus, { backgroundColor: apptStatus.bg }]}
+              onPress={() => navigation.getParent()?.navigate('Profile', { screen: 'Appointments', initial: false })}
+              accessibilityRole="button"
+              accessibilityLabel={`${apptStatus.label} — view or cancel this visit`}
+            >
               <Icon name={apptStatus.icon} size={16} color={apptStatus.iconColor} />
               <Text style={[styles.apptStatusText, { color: apptStatus.fg }]}>{apptStatus.label}</Text>
-            </View>
+              <Icon name="chevronRight" size={14} color={apptStatus.fg} />
+            </Pressable>
           ) : (
             <Pressable
               style={styles.bookButton}

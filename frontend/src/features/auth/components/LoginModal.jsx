@@ -17,13 +17,22 @@ const QUOTES = [
   { text: 'We find you houses. It\'s your responsibility to make it a home.', author: 'StayOnMap' },
 ]
 
-function InputField({ label, type = 'text', value, onChange, placeholder, children }) {
+// `id` + `autoComplete` are REQUIRED, not decoration. Without them the browser
+// has no idea what a field holds: the name box was an unnamed type="text" in a
+// form whose next field is type="email", and Chrome duly offered email
+// addresses to autofill a person's name. The label can't rescue it either
+// while it carries no htmlFor — an unassociated label is invisible to autofill
+// and to a screen reader alike.
+function InputField({ id, label, type = 'text', autoComplete, value, onChange, placeholder, children }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-700 mb-1.5">{label}</label>
+      <label htmlFor={id} className="block text-sm font-medium text-slate-700 mb-1.5">{label}</label>
       <div className="relative">
         <input
+          id={id}
+          name={id}
           type={type}
+          autoComplete={autoComplete}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
@@ -278,7 +287,7 @@ export default function LoginModal() {
                 </div>
               ) : (
                 <form onSubmit={handleForgot} className="space-y-4">
-                  <InputField label="Email address" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
+                  <InputField id="forgot-email" label="Email address" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
                   {error && (
                     <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-100">
                       <p className="text-sm text-red-600">{error}</p>
@@ -299,8 +308,8 @@ export default function LoginModal() {
               )
             ) : tab === 'login' ? (
               <form onSubmit={handleLogin} className="space-y-4">
-                <InputField label="Email address" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
-                <InputField label="Password" type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••">
+                <InputField id="login-email" label="Email address" type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
+                <InputField id="login-password" label="Password" type={showPw ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••">
                   <button
                     type="button"
                     onClick={() => setShowPw(v => !v)}
@@ -337,18 +346,18 @@ export default function LoginModal() {
                   <div className="flex-1 h-px bg-slate-200" />
                 </div>
 
-                {/* Sign-in code + social providers share one row (wraps 2-up
-                    if more providers are configured later) */}
-                <div className="flex flex-wrap gap-2">
+                {/* Stacked, not a shared row: Google's sanctioned button text
+                    is "Sign in with Google" in full, which doesn't fit half of
+                    a 343px column. */}
+                <div className="space-y-2">
                   <button
                     type="button" onClick={() => switchTab('otp')}
-                    aria-label="Email me a sign-in code"
-                    className="flex-1 min-w-[45%] py-3 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 flex items-center justify-center gap-2"
+                    className="w-full min-h-[44px] py-3 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 flex items-center justify-center gap-3"
                   >
-                    <MailCheck size={16} strokeWidth={2} className="text-brand-600" />
-                    Sign-in code
+                    <MailCheck size={18} strokeWidth={2} className="text-brand-600" />
+                    Email me a sign-in code
                   </button>
-                  <SocialLoginButtons row />
+                  <SocialLoginButtons />
                 </div>
 
                 <p className="text-sm text-center text-slate-500">
@@ -379,15 +388,21 @@ export default function LoginModal() {
               </div>
             ) : (
               <form onSubmit={handleSignup} className="space-y-4">
-                <InputField label="Full name" value={name} onChange={e => setName(e.target.value)} placeholder="Ravi Kumar" />
-                <InputField label="Email address" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
+                <InputField id="signup-name" label="Full name" autoComplete="name" value={name} onChange={e => setName(e.target.value)} placeholder="Ravi Kumar" />
+                <InputField id="signup-email" label="Email address" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
 
                 <div>
+                  {/* The waitlist line is the FIELD's hint, not a sibling
+                      paragraph — a `<p className="mt-1">` here sat 4px under
+                      the trigger while the open panel starts 6px under it, so
+                      the dropdown sliced the line in half instead of covering
+                      it. Select owns that clearance now. */}
                   <Select
                     label="City"
                     value={city}
                     onChange={setCity}
                     placeholder="Select your city"
+                    hint={`We're only live in ${CITY_LIST_LABEL} right now — other cities go on our waitlist.`}
                     options={[
                       ...CITY_NAMES.map((c) => ({ value: c, label: c })),
                       { value: '__other__', label: "My city isn't listed" },
@@ -395,20 +410,21 @@ export default function LoginModal() {
                   />
                   {city === '__other__' && (
                     <input
+                      id="signup-other-city"
+                      name="signup-other-city"
                       type="text"
+                      autoComplete="address-level2"
                       value={otherCity}
                       onChange={e => setOtherCity(e.target.value)}
                       placeholder="Which city are you in?"
                       required
+                      aria-label="Your city"
                       className="mt-2 w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 transition-all bg-slate-50 placeholder:text-slate-500"
                     />
                   )}
-                  <p className="text-xs text-slate-500 mt-1">
-                    We&apos;re only live in {CITY_LIST_LABEL} right now — other cities go on our waitlist.
-                  </p>
                 </div>
 
-                <InputField label="Password" type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters">
+                <InputField id="signup-password" label="Password" type={showPw ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters">
                   <button
                     type="button"
                     onClick={() => setShowPw(v => !v)}

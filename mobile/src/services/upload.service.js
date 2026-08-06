@@ -1,5 +1,10 @@
 import { api } from '@lib/api'
-import * as ImageManipulator from 'expo-image-manipulator'
+// Named imports, NOT `import * as ImageManipulator`. The module exports a
+// member that is itself called `ImageManipulator` (`export { ExpoImageManipulator
+// as ImageManipulator }`), so the namespace object has no `manipulate` on it —
+// `ImageManipulator.manipulate` was `undefined`, and calling it threw straight
+// into the catch below. See the note on prepareForUpload.
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator'
 
 const MAX_UPLOAD_WIDTH = 1920
 
@@ -8,13 +13,25 @@ const MAX_UPLOAD_WIDTH = 1920
 // upload time and data cost and what the server has to re-encode. Best-effort:
 // an already-small image or a manipulation failure just uses the original —
 // uploading must never hard-fail here (the server still resizes regardless).
+//
+// ⚠ That best-effort catch is also how this silently did NOTHING until
+// 2026-08-06. The call was `ImageManipulator.manipulate(...)` against the
+// module NAMESPACE, which has no such member, so every invocation threw a
+// TypeError, was swallowed here, and returned the original asset. Every photo
+// left the phone at full camera size — a few MB instead of a few hundred KB,
+// on Indian mobile data. Nothing surfaced it: uploads still worked, just
+// slowly, and the only visible trace was an eslint `import/namespace` warning.
+//
+// The lesson is about the catch, not the import: a fallback that silently
+// substitutes a WORSE result hides its own failure. Anything degraded here
+// should be observable.
 async function prepareForUpload(asset) {
   if (asset.width && asset.width <= MAX_UPLOAD_WIDTH) return asset
   try {
     const context = ImageManipulator.manipulate(asset.uri)
     context.resize({ width: MAX_UPLOAD_WIDTH })
     const rendered = await context.renderAsync()
-    const out = await rendered.saveAsync({ format: ImageManipulator.SaveFormat.JPEG, compress: 0.7 })
+    const out = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.7 })
     const stem = (asset.fileName ?? `photo-${Date.now()}`).replace(/\.\w+$/, '')
     return { ...asset, uri: out.uri, mimeType: 'image/jpeg', fileName: `${stem}.jpg` }
   } catch {
