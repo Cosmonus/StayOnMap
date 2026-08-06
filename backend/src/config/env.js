@@ -44,6 +44,12 @@ export const env = {
   port: Number(process.env.PORT) || 4000,
   nodeEnv: process.env.NODE_ENV || 'development',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  // Where `vite build` wrote the SPA shell. The API reads index.html from here
+  // to inject per-listing <head> tags (features/seo/prerender.service.js).
+  // Default is the repo layout, which is also the layout on the prod VM
+  // (/srv/stayonmap/{backend,frontend}). An unreadable path is a SUPPORTED
+  // state: nginx falls back to serving the plain shell.
+  frontendDist: process.env.FRONTEND_DIST || '../frontend/dist',
   jwtSecret: process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   aiProvider: process.env.AI_PROVIDER || 'stub',

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { SearchX } from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { track } from '@lib/analytics'
-import { formatPrice, offerPriceSpec } from '@utils/format'
+import { formatPrice } from '@utils/format'
 import Header from '@components/layout/Header'
 import Footer from '@components/layout/Footer'
 import SEOMeta from '@components/common/SEOMeta'
@@ -91,40 +91,20 @@ export default function PropertyPage() {
   const seoDesc = [
     bhkLabel, formatType(property.type),
     property.pricingModel === 'SALE' ? 'for sale in' : 'for rent in',
-    property.area ? `${property.area}, ` : '', property.city,
+    // `landmark`, not `area` — Property.area is SIZE in sq.ft, so this read
+    // "2 BHK Apartment for rent in 950, Chennai" on every listing that had one.
+    property.landmark ? `${property.landmark}, ` : '', property.city,
     '—', formatPrice(property), property.furnished ? `· ${formatFurnished(property.furnished)}` : '',
     '· No brokerage ·', BRAND.name,
   ].filter(Boolean).join(' ')
 
-  const propertyJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'RealEstateListing',
-    name: property.title,
-    description: property.description ?? seoDesc,
-    url: canonical(`/property/${id}`),
-    image: primaryImage ?? undefined,
-    offers: {
-      '@type': 'Offer',
-      price: property.rent,
-      priceCurrency: 'INR',
-      businessFunction: property.pricingModel === 'SALE'
-        ? 'http://purl.org/goodrelations/v1#Sell'
-        : 'http://purl.org/goodrelations/v1#LeaseOut',
-      priceSpecification: offerPriceSpec(property),
-    },
-    address: {
-      '@type': 'PostalAddress',
-      // Omitted, never blanked, when the owner coarsened the pin — the backend
-      // nulls `address` in that case and an empty streetAddress would publish a
-      // field we deliberately withheld.
-      ...(property.address ? { streetAddress: property.address } : {}),
-      addressLocality: property.city,
-      ...(property.state ? { addressRegion: property.state } : {}),
-      ...(property.pincode ? { postalCode: property.pincode } : {}),
-      addressCountry: 'IN',
-    },
-  }
-
+  // NO client-side JSON-LD here any more (removed 2026-08-07). The server now
+  // injects `RealEstateListing` into the initial HTML for this route
+  // (backend features/seo/listingMeta.js), which is the only version a
+  // link-preview crawler can see at all — those never execute JS. Keeping a
+  // second copy here meant two implementations of the same structured data,
+  // and they had already drifted: this one described the price with
+  // `offerPriceSpec` while the server used the type-aware label.
   return (
     <Shell>
         {/* ── Page-level SEO ───────────────────────────────────────── */}
@@ -133,7 +113,6 @@ export default function PropertyPage() {
           description={seoDesc.slice(0, 160)}
           image={primaryImage}
           canonical={canonical(`/property/${id}`)}
-          jsonLd={propertyJsonLd}
         />
         {/* ── Scrollable main content ──────────────────────────────── */}
         <main className="flex-1 overflow-y-auto">

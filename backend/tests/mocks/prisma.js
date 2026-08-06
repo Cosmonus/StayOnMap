@@ -9,6 +9,9 @@ export const prismaMock = {
     findUnique: vi.fn(),
     findFirst:  vi.fn(),
     count:      vi.fn(),
+    // Locality pages group listings by (city, landmark). Defaults to "no
+    // inventory", which is what a fresh database has.
+    groupBy:    vi.fn().mockResolvedValue([]),
     create:     vi.fn(),
     update:     vi.fn(),
     delete:     vi.fn(),

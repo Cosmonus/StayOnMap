@@ -60,7 +60,15 @@ describe('sitemap', () => {
     expect(where.status).toBe('ACTIVE')
     // The owner's own privacy choice. A HIDDEN or LOGGED_IN listing in a public
     // sitemap is us advertising something they asked us not to.
-    expect(where.listingVisibility).toBe('PUBLIC')
+    //
+    // ⚠ Nested under `owner`, and this assertion is the whole reason to care:
+    // `listingVisibility` is a column on USER, not on Property. The first
+    // version of this test asserted `where.listingVisibility` and passed
+    // against a MOCK, while the real Prisma client validates the shape and
+    // THROWS — so /sitemap.xml 500'd in production for the whole day it
+    // shipped. A mock cannot check a schema; only the field's real home can.
+    expect(where.owner).toEqual({ listingVisibility: 'PUBLIC' })
+    expect(where.listingVisibility).toBeUndefined()
     // Sitemaps cap at 50k URLs; a cap that lives only in a comment is not one.
     expect(take).toBeLessThanOrEqual(45_000)
   })
