@@ -15,6 +15,7 @@ import PropertyPin from './PropertyPin'
 import ClusterMarker from './ClusterMarker'
 import MetroLines from './MetroLines'
 import MapViewportBar from './MapViewportBar'
+import { track, trackOnce } from '@lib/analytics'
 import { spacing } from '@theme/spacing'
 
 const IT_CORRIDOR_COLORS = { major: '#2563eb', moderate: '#60a5fa' }
@@ -172,11 +173,18 @@ export default function MapView({ onPinPress, onDeselect }) {
       return
     }
     selectPin(id)
+    // Funnel step 2. Only on OPEN — closing a preview is not a second
+    // expression of interest in the same listing.
+    track('pin_tap', { propertyId: id })
     onPinPress?.(id)
   }
 
   // Tapping empty map area (not a marker) deselects whichever card is open —
   // Marker's onPress stops propagation, so this only fires on true empty taps.
+  // Funnel step 1 — the denominator every other rate is measured against.
+  // Once per app run, so exploring the map cannot make conversion look worse.
+  useEffect(() => { trackOnce('map_view') }, [])
+
   function handleMapPress() {
     if (!selectedPinId && !selectedAreaSlug) return
     clearSelection()

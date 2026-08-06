@@ -1,7 +1,9 @@
+import { useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { SearchX } from 'lucide-react'
 import { propertyService } from '@services/property.service'
+import { track } from '@lib/analytics'
 import { formatPrice, offerPriceSpec } from '@utils/format'
 import Header from '@components/layout/Header'
 import Footer from '@components/layout/Footer'
@@ -44,6 +46,12 @@ export default function PropertyPage() {
     queryKey: ['property', id],
     queryFn: () => propertyService.getById(id).then(r => r.data),
   })
+
+  // Funnel step 3. Keyed on the id so a navigation between two listings counts
+  // twice, and a re-render or a background refetch counts once.
+  useEffect(() => {
+    if (property?.id) track('property_view', { propertyId: property.id, city: property.city })
+  }, [property?.id, property?.city])
 
   // Layout wrapper (shared header + footer, logged-in or guest)
   const Shell = ({ children }) => (

@@ -314,6 +314,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   emailOtps           EmailOtp[]
   phoneOtps           PhoneOtp[]
+  analyticsEvents     AnalyticsEvent[]
   pointsLedger        PointsLedger[]
   socialAccounts      SocialAccount[]
   authSessions        AuthSession[]
@@ -515,6 +516,40 @@ model EmailOtp {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+// Product telemetry — first-party, in our own database.
+//
+// No vendor: PostHog/Plausible/GA would each be a new processor in /privacy,
+// would send our users' behaviour to someone else, and would need a cookie
+// story the policy currently does not have ("we do not use third-party
+// advertising trackers or analytics cookies"). We already run Postgres. Same
+// reasoning as self-hosting the OSM POIs rather than paying Google per call.
+//
+// `sessionId` is client-generated, random, and lives for one session — it
+// stitches a funnel together without identifying anybody. `userId` is the only
+// personal link here, which is why it is a real relation with **SetNull**:
+// deleting an account must remove the link (DPDP, and /privacy promises it)
+// without deleting the aggregate history, which would silently rewrite past
+// funnel numbers. `propertyId` is a plain string on purpose — a listing id is
+// not personal data, and a FK on a high-write table costs more than it buys.
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  name       String   // constrained to features/analytics/events.js, not free text
+  sessionId  String
+  userId     String?
+  propertyId String?
+  city       String?
+  props      Json?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // The funnel query's access path: count by step within a window.
+  @@index([name, createdAt])
+  // Stitching one session's steps together, and the retention prune.
+  @@index([sessionId])
+  @@index([createdAt])
 }
 
 // SMS codes proving control of a phone number. Shaped like EmailOtp, with one

@@ -1,5 +1,6 @@
 import * as service from './admin.service.js'
 import { latestReports } from '../spatial/dataQuality.js'
+import * as productAnalytics from '../analytics/analytics.service.js'
 import { ok, created } from '../../utils/response.js'
 
 export async function login(req, res, next) {
@@ -7,6 +8,19 @@ export async function login(req, res, next) {
 }
 export async function analytics(req, res, next) {
   try { ok(res, await service.getDashboardAnalytics()) } catch (err) { next(err) }
+}
+// The product funnel, separate from /analytics above — that one counts rows in
+// the database (how many listings, how many users), this one counts behaviour
+// (how many of the people who saw the map ever booked). Different questions.
+export async function funnel(req, res, next) {
+  try {
+    const days = req.query.days ? Number(req.query.days) : undefined
+    const [funnelData, timeToPublish] = await Promise.all([
+      productAnalytics.getFunnel({ days }),
+      productAnalytics.getTimeToPublish(),
+    ])
+    ok(res, { funnel: funnelData, timeToPublish })
+  } catch (err) { next(err) }
 }
 export async function waitlist(req, res, next) {
   try { ok(res, await service.listWaitlist(req.query)) } catch (err) { next(err) }

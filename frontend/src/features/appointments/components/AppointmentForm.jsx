@@ -11,6 +11,7 @@ import Field from '@components/common/Field'
 import { DayStrip, TimeGrid, buildDays } from './VisitSlotPicker'
 import { VISIT_SLOTS, formatTime } from '@utils/time'
 import { normalizePhone, isValidPhone } from '@utils/validation'
+import { track } from '@lib/analytics'
 
 // Nobody can act on a request made for 20 minutes' time, and offering it
 // invites a slot that's stale before the owner opens the notification.
@@ -62,6 +63,9 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
     },
     onSuccess: () => {
       setSubmitted(true)
+      // Funnel step 5, the one that matters. Fired on the SERVER's confirmed
+      // success, never on submit — a request that 400s is not a booking.
+      track('appointment_created', { propertyId })
       toast.success('Request sent', 'The owner will respond within 24 hours')
       // The day list is now stale for anyone who reopens the form — and for
       // this renter, who now has a pending request on it.

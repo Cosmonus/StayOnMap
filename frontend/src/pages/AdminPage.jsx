@@ -39,6 +39,7 @@ import { toast } from '@components/common/Toaster'
 import { confirm } from '@components/common/ConfirmDialog'
 import AdminMonitorSection from '@features/admin/components/AdminMonitorSection'
 import VerificationsSection from '@features/admin/components/VerificationsSection'
+import FunnelCard from '@features/admin/components/FunnelCard'
 import { formatTime } from '@utils/time'
 
 // ── Shared chart card shell ────────────────────────────────────────────────
@@ -277,6 +278,10 @@ function OverviewSection() {
         <StatTile label="Tenants placed" value={data?.tenancy?.occupiedNow} hint="currently occupied" />
         <StatTile label="Leases signed"  value={data?.tenancy?.leasesSigned} hint="all time" />
       </div>
+
+      {/* Behaviour, above the row-count charts: how many of the people who
+          arrived ever booked is the question those charts cannot answer. */}
+      <FunnelCard />
 
       {/* Row 1: Total Users full width */}
       <ChartCard

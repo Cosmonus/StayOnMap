@@ -65,6 +65,15 @@ export const prismaMock = {
     upsert:     vi.fn(),
     deleteMany: vi.fn(),
   },
+  // Product telemetry. Defaults are "nothing recorded, nothing to read", which
+  // is a fresh install's real state and the one every other test runs in —
+  // publishing a property now reads listingDraft and may write here.
+  analyticsEvent: {
+    createMany: vi.fn().mockResolvedValue({ count: 0 }),
+    groupBy:    vi.fn().mockResolvedValue([]),
+    findMany:   vi.fn().mockResolvedValue([]),
+    deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+  },
   propertyDailyView: {
     aggregate: vi.fn(),
     upsert:    vi.fn(),
