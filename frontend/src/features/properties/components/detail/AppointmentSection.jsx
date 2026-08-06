@@ -1,15 +1,23 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { Clock, CircleCheck, RefreshCw } from 'lucide-react'
 import { appointmentService } from '@services/appointment.service'
 import AppointmentForm from '@features/appointments/components/AppointmentForm'
 import { formatTime } from '@utils/time'
 
 // ── Appointment section — aware of existing bookings ────────────────────────
+// Lucide, not emoji: an emoji renders in the OS font, so this card was the one
+// element on the page drawn by Apple or Google rather than by us, and it changes
+// shape per platform.
+//
+// RESCHEDULED used to be labelled "Reschedule requested", which is now the other
+// status's meaning entirely. It says who moved it.
 const APPT_DISPLAY = {
-  PENDING:     { icon: '🕐', label: 'Visit requested',      bg: 'bg-amber-50',   border: 'border-amber-200',   text: 'text-amber-800'   },
-  ACCEPTED:    { icon: '✅', label: 'Visit confirmed',       bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800' },
-  RESCHEDULED: { icon: '🔄', label: 'Reschedule requested', bg: 'bg-blue-50',    border: 'border-blue-200',    text: 'text-blue-800'    },
+  PENDING:              { icon: Clock,     label: 'Visit requested',        bg: 'bg-amber-50',   border: 'border-amber-200',   text: 'text-amber-800'   },
+  ACCEPTED:             { icon: CircleCheck, label: 'Visit confirmed',      bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800' },
+  RESCHEDULED:          { icon: RefreshCw, label: 'Owner proposed a new time', bg: 'bg-blue-50', border: 'border-blue-200',    text: 'text-blue-800'    },
+  RESCHEDULE_REQUESTED: { icon: Clock,     label: 'Waiting on the owner',   bg: 'bg-amber-50',   border: 'border-amber-200',   text: 'text-amber-800'   },
 }
 
 export default function AppointmentSection({ propertyId, windowStart, windowEnd }) {
@@ -37,7 +45,8 @@ export default function AppointmentSection({ propertyId, windowStart, windowEnd 
   }
 
   if (!showForm && existing) {
-    const cfg = APPT_DISPLAY[existing.status]
+    const cfg = APPT_DISPLAY[existing.status] ?? APPT_DISPLAY.PENDING
+    const CfgIcon = cfg.icon
     const date = existing.requestedDate
       ? new Date(existing.requestedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
       : null
@@ -45,7 +54,7 @@ export default function AppointmentSection({ propertyId, windowStart, windowEnd 
     return (
       <div className={`rounded-xl border p-4 space-y-2 ${cfg.bg} ${cfg.border}`}>
         <div className="flex items-center gap-2">
-          <span className="text-base leading-none">{cfg.icon}</span>
+          <CfgIcon size={17} strokeWidth={2} className={cfg.text} aria-hidden="true" />
           <span className={`text-sm font-bold ${cfg.text}`}>{cfg.label}</span>
         </div>
         {date && (
@@ -55,6 +64,11 @@ export default function AppointmentSection({ propertyId, windowStart, windowEnd 
         )}
         {existing.ownerNote && (
           <p className={`text-xs italic ${cfg.text} opacity-70`}>&ldquo;{existing.ownerNote}&rdquo;</p>
+        )}
+        {existing.status === 'RESCHEDULE_REQUESTED' && (
+          <p className={`text-xs ${cfg.text} opacity-80`}>
+            You asked to move this — the owner has to confirm before it is set.
+          </p>
         )}
         {/* This card was the end of the road: it told you a visit existed and
             offered nothing to do about it, so changing your mind meant finding

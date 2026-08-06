@@ -129,11 +129,20 @@ describe('getHostDashboard', () => {
     expect(needsYouToday.map((i) => i.id)).toEqual(['newer', 'older'])
   })
 
-  it('asks for PENDING visits and unanswered APPROVED reviews only', async () => {
+  it('asks for unanswered visits and unanswered APPROVED reviews only', async () => {
     await getHostDashboard('owner-1')
 
+    // Both statuses that are waiting on the OWNER for a yes or no. A renter's
+    // counter-offer (RESCHEDULE_REQUESTED, added 2026-08-07) needs exactly the
+    // same answer a first request does; leaving it out parked it in the queue
+    // this dashboard exists to empty.
     expect(prismaMock.appointment.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ ownerId: 'owner-1', status: 'PENDING' }) })
+      expect.objectContaining({
+        where: expect.objectContaining({
+          ownerId: 'owner-1',
+          status: { in: ['PENDING', 'RESCHEDULE_REQUESTED'] },
+        }),
+      })
     )
     expect(prismaMock.communityReview.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ status: 'APPROVED', ownerResponse: null }) })

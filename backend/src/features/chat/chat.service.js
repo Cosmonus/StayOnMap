@@ -91,7 +91,7 @@ async function visitContextFor(conversations) {
     where: {
       propertyId: { in: [...new Set(conversations.map((c) => c.propertyId))] },
       tenantId: { in: [...new Set(conversations.map((c) => c.tenantId))] },
-      status: { in: ['PENDING', 'ACCEPTED', 'RESCHEDULED'] },
+      status: { in: ['PENDING', 'ACCEPTED', 'RESCHEDULED', 'RESCHEDULE_REQUESTED'] },
     },
     select: { propertyId: true, tenantId: true, status: true, requestedDate: true, requestedTime: true, scheduledAt: true },
     orderBy: { requestedDate: 'desc' },

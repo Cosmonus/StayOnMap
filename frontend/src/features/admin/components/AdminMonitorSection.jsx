@@ -392,6 +392,7 @@ function AppointmentsCard({ appointmentByStatus }) {
     { s: 'PENDING',     label: 'Waiting for owner response', color: 'text-amber-700'  },
     { s: 'ACCEPTED',    label: 'Owner confirmed the visit',  color: 'text-green-700'  },
     { s: 'RESCHEDULED', label: 'Owner proposed a new time',  color: 'text-blue-600'   },
+    { s: 'RESCHEDULE_REQUESTED', label: 'Renter proposed a new time', color: 'text-amber-600' },
     { s: 'REJECTED',    label: 'Owner declined',             color: 'text-red-500'    },
     { s: 'CANCELLED',   label: 'Tenant cancelled',           color: 'text-slate-500'  },
   ]

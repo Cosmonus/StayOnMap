@@ -7,6 +7,7 @@ import { toast } from '@components/common/Toaster'
 import { confirm } from '@components/common/ConfirmDialog'
 import { useUiStore } from '@store/uiStore'
 import { formatTime } from '@utils/time'
+import ProposeTimeModal from './ProposeTimeModal'
 
 // ── Helpers ─────────────────────────────────────────────────────────
 const STATUS = {
@@ -14,8 +15,16 @@ const STATUS = {
   ACCEPTED:    { bg: 'bg-green-50',  text: 'text-green-700',  dot: 'bg-green-400', label: 'Accepted' },
   REJECTED:    { bg: 'bg-red-50',    text: 'text-red-600',    dot: 'bg-red-400',   label: 'Rejected' },
   RESCHEDULED: { bg: 'bg-brand-50',  text: 'text-brand-700',  dot: 'bg-brand-400', label: 'Rescheduled' },
+  // Deliberately worded from the OWNER's side, because the owner's queue is
+  // where a decision is owed. The renter's card says "Waiting on the owner"
+  // below, from the same status — one row, two truthful readings.
+  RESCHEDULE_REQUESTED: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-400', label: 'New time proposed' },
   CANCELLED:   { bg: 'bg-slate-50',  text: 'text-slate-500',  dot: 'bg-slate-400', label: 'Cancelled' },
 }
+
+// Statuses where the exchange is still live, so the renter may still move it or
+// call it off, and the owner still owes an answer.
+const OPEN = ['PENDING', 'ACCEPTED', 'RESCHEDULED', 'RESCHEDULE_REQUESTED']
 
 function StatusDot({ status }) {
   const s = STATUS[status] ?? STATUS.PENDING
@@ -48,6 +57,7 @@ function personInitial(u) {
 const OWNER_FILTERS = [
   { key: 'all',      label: 'All' },
   { key: 'PENDING',  label: 'Pending' },
+  { key: 'RESCHEDULE_REQUESTED', label: 'New time proposed' },
   { key: 'ACCEPTED', label: 'Accepted' },
   { key: 'REJECTED', label: 'Rejected' },
 ]
@@ -69,7 +79,11 @@ function EmptyState({ title = 'No appointments', message }) {
 function OwnerCard({ appt, onAction }) {
   const [rejecting, setRejecting] = useState(false)
   const [note, setNote] = useState('')
-  const isPending = appt.status === 'PENDING'
+  // A renter's counter-offer needs an answer exactly as much as a first request
+  // does, so it gets the same two buttons. Gating on PENDING alone would have
+  // left it sitting in the queue with nothing to press.
+  const proposed = appt.status === 'RESCHEDULE_REQUESTED'
+  const needsAnswer = appt.status === 'PENDING' || proposed
   const thumb = appt.property?.images?.[0]?.url
 
   return (
@@ -124,10 +138,24 @@ function OwnerCard({ appt, onAction }) {
         </p>
       )}
 
-      {isPending && !rejecting && (
+      {/* Says what changed, and says it before the buttons. The slot above is
+          already the renter's new one, so without this line the card reads as a
+          fresh request at a time the owner never saw proposed. */}
+      {proposed && (
+        <div className="mb-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5">
+          <p className="text-xs font-semibold text-amber-800">
+            {personName(appt.tenant)} asked to move this to {shortDate(appt.requestedDate)}, {formatTime(appt.requestedTime)}
+          </p>
+          {appt.tenantNote && (
+            <p className="text-xs text-amber-700 mt-1 leading-relaxed">{appt.tenantNote}</p>
+          )}
+        </div>
+      )}
+
+      {needsAnswer && !rejecting && (
         <div className="flex gap-2">
           <button onClick={() => onAction(appt.id, 'ACCEPTED')} className="flex-1 min-h-[44px] py-3 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-colors" style={{ background: '#111111' }}>
-            Accept
+            {proposed ? 'Accept new time' : 'Accept'}
           </button>
           <button onClick={() => setRejecting(true)} className="flex-1 min-h-[44px] py-3 rounded-lg bg-red-50 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors">
             Reject
@@ -135,7 +163,7 @@ function OwnerCard({ appt, onAction }) {
         </div>
       )}
 
-      {isPending && rejecting && (
+      {needsAnswer && rejecting && (
         <div className="space-y-2">
           <textarea rows={2} placeholder="Reason (optional)" value={note} onChange={(e) => setNote(e.target.value)} className="min-h-[44px] w-full border border-slate-200 rounded-lg px-3 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-red-300 resize-none" />
           <div className="flex gap-2">
@@ -149,12 +177,13 @@ function OwnerCard({ appt, onAction }) {
 }
 
 // ── Tenant card (my requests — read-only) ───────────────────────────
-function TenantCard({ appt, onCancel }) {
+function TenantCard({ appt, onCancel, onPropose }) {
   const thumb = appt.property?.images?.[0]?.url
   // A request you've made and can't withdraw is a dead end — the renter's only
   // route out used to be messaging the owner and hoping. CANCELLED was already
   // a valid status; nothing could set it.
-  const cancellable = ['PENDING', 'ACCEPTED', 'RESCHEDULED'].includes(appt.status)
+  const open = OPEN.includes(appt.status)
+  const waitingOnOwner = appt.status === 'RESCHEDULE_REQUESTED'
 
   return (
     <div className="bg-white rounded-xl border border-slate-100 p-4 hover:border-slate-200 transition-colors">
@@ -193,13 +222,35 @@ function TenantCard({ appt, onCancel }) {
         </p>
       )}
 
-      {cancellable && (
-        <button
-          onClick={() => onCancel(appt)}
-          className="mt-3 w-full min-h-[44px] py-3 rounded-lg bg-slate-50 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-        >
-          Cancel this visit
-        </button>
+      {/* The same status the owner's queue labels "New time proposed" reads
+          from this side as "we are waiting" — because that is what it means
+          here. Without it the card just shows a new date with no explanation of
+          why it is not confirmed. */}
+      {waitingOnOwner && (
+        <p className="mt-2 text-xs font-medium text-amber-700">
+          Waiting on the owner to confirm this time.
+          {appt.tenantNote && <span className="block font-normal text-slate-500 mt-0.5">You said: {appt.tenantNote}</span>}
+        </p>
+      )}
+
+      {open && (
+        // Two actions, and the reversible one leads. Proposing a time keeps the
+        // request and the thread alive; cancelling ends both, which is why it is
+        // the quieter of the two rather than the default.
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <button
+            onClick={() => onPropose(appt)}
+            className="flex-1 min-h-[44px] py-3 rounded-lg bg-brand-50 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
+            Propose a different time
+          </button>
+          <button
+            onClick={() => onCancel(appt)}
+            className="flex-1 min-h-[44px] py-3 rounded-lg bg-slate-50 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
+            Cancel this visit
+          </button>
+        </div>
       )}
     </div>
   )
@@ -228,14 +279,25 @@ export default function AppointmentManager() {
     enabled: !hostMode,
   })
 
+  const [proposing, setProposing] = useState(null)
+
   const mutation = useMutation({
-    mutationFn: ({ id, status, ownerNote }) => appointmentService.updateStatus(id, { status, ownerNote }),
+    mutationFn: ({ id, ...body }) => appointmentService.updateStatus(id, body),
     onSuccess: (_, { status }) => {
-      // Both lists: the owner acts on incoming requests, the renter cancels
-      // their own, and only one of the two is mounted at a time.
+      // Both lists: the owner acts on incoming requests, the renter cancels or
+      // moves their own, and only one of the two is mounted at a time.
       qc.invalidateQueries({ queryKey: ['owner-appointments'] })
       qc.invalidateQueries({ queryKey: ['my-appointments'] })
-      toast.success('Updated', `Appointment ${status.toLowerCase()}`)
+      // Accepting commits a whole DAY (the same-date auto-reject), so the day
+      // list every open booking form is holding is now wrong.
+      qc.invalidateQueries({ queryKey: ['visit-availability'] })
+      setProposing(null)
+      toast.success(
+        'Updated',
+        status === 'RESCHEDULE_REQUESTED'
+          ? 'The owner has been asked to confirm your new time'
+          : `Appointment ${status.toLowerCase()}`,
+      )
     },
     onError: (err) => {
       toast.error('Error', err?.message || 'Failed to update')
@@ -320,11 +382,19 @@ export default function AppointmentManager() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {myAppts.map(appt => (
-              <TenantCard key={appt.id} appt={appt} onCancel={handleCancel} />
+              <TenantCard key={appt.id} appt={appt} onCancel={handleCancel} onPropose={setProposing} />
             ))}
           </div>
         )
       )}
+
+      <ProposeTimeModal
+        appt={proposing}
+        open={!!proposing}
+        onClose={() => setProposing(null)}
+        pending={mutation.isPending}
+        onSubmit={(body) => mutation.mutate({ id: proposing.id, status: 'RESCHEDULE_REQUESTED', ...body })}
+      />
     </div>
   )
 }

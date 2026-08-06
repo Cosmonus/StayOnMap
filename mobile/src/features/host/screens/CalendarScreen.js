@@ -26,7 +26,7 @@ const EVENT_TYPE_LABEL = { appointment: 'Visit request', 'lease-start': 'Lease s
 // filter by nothing. Plotting all of them puts dates on the calendar that are
 // never going to happen: a visit the host already rejected, or a lease offer
 // the renter turned down, sat there looking exactly like a live booking.
-const LIVE_APPOINTMENT = new Set(['PENDING', 'ACCEPTED', 'RESCHEDULED'])
+const LIVE_APPOINTMENT = new Set(['PENDING', 'ACCEPTED', 'RESCHEDULED', 'RESCHEDULE_REQUESTED'])
 // OFFERED/ACTIVE are ahead of you and EXPIRED ran its course, so its dates are
 // accurate history. REJECTED never became a tenancy at all, and a TERMINATED
 // one ended on `terminatedAt` — the `endDate` still on the row is the date it

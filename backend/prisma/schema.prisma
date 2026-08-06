@@ -59,7 +59,14 @@ enum AppointmentStatus {
   PENDING
   ACCEPTED
   REJECTED
+  // The OWNER moved the visit. Carries `scheduledAt` + `ownerNote`.
   RESCHEDULED
+  // The RENTER proposed a different time. Carries the renter's own
+  // `requestedDate`/`requestedTime` + `tenantNote`, and never touches the
+  // owner's two fields — a counter-offer must not be able to put words in the
+  // owner's mouth on the owner's own card. Added 2026-08-07; before it, a
+  // renter who could not make the slot could only cancel and start again.
+  RESCHEDULE_REQUESTED
   CANCELLED
 }
 
@@ -914,6 +921,9 @@ model Appointment {
   status        AppointmentStatus @default(PENDING)
   scheduledAt   DateTime?
   ownerNote     String?
+  // The renter's voice, mirroring ownerNote. Written only by the renter, only
+  // on RESCHEDULE_REQUESTED.
+  tenantNote    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -143,6 +143,7 @@ function VisitBanner({ visit }) {
 
   const heading = visit.status === 'ACCEPTED' ? 'Visit confirmed'
     : visit.status === 'RESCHEDULED' ? 'Visit rescheduled'
+    : visit.status === 'RESCHEDULE_REQUESTED' ? 'New time proposed'
     : 'Visit requested'
 
   return (

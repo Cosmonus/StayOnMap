@@ -2,7 +2,7 @@ import { View, Text, Pressable, StyleSheet, Alert, ActivityIndicator } from 'rea
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
-import FormSheet from './FormSheet'
+import FormSheet from '@components/common/FormSheet'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
