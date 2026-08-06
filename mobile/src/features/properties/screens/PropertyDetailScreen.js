@@ -308,7 +308,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
           <ZeroBrokerageBanner brokerage={property.brokerage} />
           <HouseRulesSection rules={property.rules} />
 
-          <LocationMapCard lat={lat} lng={lng} />
+          <LocationMapCard lat={lat} lng={lng} approximate={!!property?.approximateLocation} />
           {/* The spatial layer supersedes AreaIntelligenceSection and
               PropertyAreaInsightCard (2026-07-19, matching web) — context
               arrives joined on the property payload, already filtered to this

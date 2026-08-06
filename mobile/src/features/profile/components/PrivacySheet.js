@@ -90,7 +90,13 @@ export default function PrivacySheet({ visible, onClose, settings }) {
       <SettingsToggle
         icon="mapPin"
         label="Show exact address"
-        hint={showExactLocation ? 'Full address visible' : 'Area & city only'}
+        // Describes what the server actually does (applyLocationPrivacy): the
+        // street address is withheld and the pin snaps to a ~150m cell. The old
+        // copy promised more coarsening than is applied, on a backend that read
+        // the flag nowhere at all.
+        hint={showExactLocation
+          ? 'Your full address is shown on the listing'
+          : 'Address hidden; the map pin shows the area, not the building'}
         value={showExactLocation}
         onChange={setShowExactLocation}
       />

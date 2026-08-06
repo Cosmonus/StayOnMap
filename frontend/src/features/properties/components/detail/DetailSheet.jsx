@@ -168,6 +168,18 @@ export default function DetailSheet({ property, variant, isOwner, directionsUrl 
           }
         >
           <PropertyLocationMap lat={property.lat} lng={property.lng} />
+          {/* The owner chose to hide their exact address, so the pin is snapped
+              to a ~150m cell. Say so: a precise-looking marker at a place we
+              deliberately made imprecise is the same "confidently wrong" failure
+              as the assumed walk times, and it also explains to a renter why
+              Directions stops at the corner rather than the door. */}
+          {property.approximateLocation && (
+            <p className="mt-3 text-sm text-slate-500 leading-relaxed">
+              Approximate location — this owner shares the area rather than the
+              exact address. You&apos;ll get directions to the door once you
+              arrange a visit.
+            </p>
+          )}
         </SheetSection>
       )}
 

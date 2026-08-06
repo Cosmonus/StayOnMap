@@ -11,7 +11,7 @@ import { spacing, radius } from '@theme/spacing'
 // rather than trying to render turn-by-turn directions ourselves. Doesn't
 // repeat the address text — PropertyDetailScreen already shows it under the
 // title, right above this card.
-export default function LocationMapCard({ lat, lng }) {
+export default function LocationMapCard({ lat, lng, approximate = false }) {
   if (lat == null || lng == null) return null
 
   function openDirections() {
@@ -42,11 +42,29 @@ export default function LocationMapCard({ lat, lng }) {
           <Marker coordinate={{ latitude: lat, longitude: lng }} />
         </NativeMapView>
       </Pressable>
+
+      {/* The owner chose to hide their exact address, so the pin is snapped to a
+          ~150m cell. Say so: a precise-looking marker at a place we deliberately
+          made imprecise is the same "confidently wrong" failure as the assumed
+          walk times, and it explains why Directions stops at the corner. */}
+      {approximate && (
+        <Text style={styles.approximateNote}>
+          Approximate location — this owner shares the area rather than the exact
+          address. You&apos;ll get directions to the door once you arrange a visit.
+        </Text>
+      )}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
+  approximateNote: {
+    fontFamily: fonts.regular,
+    fontSize: fontSizes.sm,
+    color: colors.slate500,
+    lineHeight: 21,
+    marginTop: spacing.sm,
+  },
   section: { marginTop: spacing.lg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   sectionTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.slate800 },
