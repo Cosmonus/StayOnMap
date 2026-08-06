@@ -58,6 +58,28 @@ jobs:
             ./gitleaks detect --source . --config .gitleaks.toml --log-opts="-1" --redact -v
           fi
 
+      - name: Scan the whole checkout for secrets
+        # The scan above only covers a COMMIT RANGE, so a secret that landed
+        # outside any range it ever examined — a force-push, or anything
+        # committed before this job existed — stays invisible forever. This one
+        # asks a different question: is there a secret in the tree RIGHT NOW,
+        # regardless of when it arrived.
+        #
+        # `--no-git` means "scan files on disk, not history". That is only safe
+        # HERE: a CI checkout contains tracked files and nothing else, so it
+        # sees exactly what the repo ships. Do not copy this to a developer
+        # machine — run against a real working tree it also reads .env,
+        # mobile/credentials.json, the Play service-account key and
+        # node_modules, and reports hundreds of findings that are all correctly
+        # gitignored. (Measured 2026-08-06: 464 locally, 0 on the tracked tree.)
+        #
+        # Verified before being added, by exporting the tracked tree with
+        # `git archive HEAD` and scanning that — it passes clean today, so this
+        # cannot turn master red on arrival.
+        run: |
+          set -e
+          ./gitleaks detect --source . --config .gitleaks.toml --no-git --redact -v
+
   backend:
     name: Backend (lint + test)
     runs-on: ubuntu-latest
