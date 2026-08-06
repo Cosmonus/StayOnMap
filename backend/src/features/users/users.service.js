@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma.js'
 import { requestPasswordReset, stripPasswordHash } from '../auth/auth.service.js'
 import { awardPoints } from '../points/points.service.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
+import { smsConfigured } from '../../lib/smsSender.js'
 import { getPoints } from '../points/points.service.js'
 
 // Completeness per docs/points-and-sharing.md: name + avatar + city + phone.
@@ -45,6 +46,16 @@ export async function updateUser(id, data) {
   if (update.city !== undefined && !SUPPORTED_CITIES.includes(update.city)) {
     delete update.city
   }
+
+  // A verified badge belongs to a NUMBER, not to an account. Editing the phone
+  // here therefore drops the verification — otherwise anyone verifies one SIM
+  // and then swaps in whatever number they like while keeping the tick.
+  // Re-verifying is a separate, deliberate act (auth/phone.service.js).
+  if (update.phone !== undefined) {
+    const current = await prisma.user.findUnique({ where: { id }, select: { phone: true } })
+    if (current && current.phone !== update.phone) update.phoneVerifiedAt = null
+  }
+
   const user = await prisma.user.update({ where: { id }, data: update })
   // Fire-and-forget — idempotent via the ledger's unique (userId, action, '').
   if (isProfileComplete(user)) awardPoints(id, 'PROFILE_COMPLETED').catch(() => {})
@@ -52,15 +63,19 @@ export async function updateUser(id, data) {
 }
 
 export async function getSettings(id) {
-  return prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id },
     select: {
-      displayId: true, name: true, phone: true, avatarUrl: true, bio: true,
+      displayId: true, name: true, phone: true, phoneVerifiedAt: true, avatarUrl: true, bio: true,
       socialLinks: true, email: true, role: true, isVerified: true, city: true,
       listingVisibility: true, contactVisibility: true, showExactLocation: true,
       emailNotifs: true, pushNotifs: true,
     },
   })
+  // Whether this deployment can verify a phone at all. The settings UI hides
+  // the Verify affordance when it's false — the same "no dead buttons" rule
+  // GET /auth/oauth/providers follows, and cheaper than a second endpoint.
+  return user && { ...user, phoneVerificationAvailable: smsConfigured() }
 }
 
 export async function changePassword(email) {

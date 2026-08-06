@@ -269,6 +269,11 @@ model User {
   email         String    @unique
   name          String
   phone         String?
+  // Set only by the SMS code flow (features/auth/phone.service.js). NULL is the
+  // honest state for every number that was merely typed in — which is all of
+  // them before this shipped. Cleared whenever `phone` changes, or a verified
+  // badge would outlive the number that earned it.
+  phoneVerifiedAt DateTime?
   city          String? // self-reported at signup — one of config/cities.js's SUPPORTED_CITIES (users outside these go to WaitlistEntry instead of getting an account)
   avatarUrl     String?
   bio           String?
@@ -308,6 +313,7 @@ model User {
   ownerTrustScore     OwnerTrustScore?
   passwordResetTokens PasswordResetToken[]
   emailOtps           EmailOtp[]
+  phoneOtps           PhoneOtp[]
   pointsLedger        PointsLedger[]
   socialAccounts      SocialAccount[]
   authSessions        AuthSession[]
@@ -508,6 +514,32 @@ model EmailOtp {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([expiresAt])
+}
+
+// SMS codes proving control of a phone number. Shaped like EmailOtp, with one
+// column that changes the security properties: `phone`. A code is issued FOR a
+// specific number, so changing the number mid-flow cannot be verified by the
+// code already in transit — and the per-destination daily cap (which EmailOtp
+// needs no equivalent of, since it only ever mails a registered address) is
+// what stops this endpoint being used to text-bomb a number the sender does
+// not own.
+model PhoneOtp {
+  id         String    @id @default(cuid())
+  userId     String
+  phone      String
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  // The per-destination throttle's access path: count sends to THIS number
+  // since a cutoff, regardless of which account asked.
+  @@index([phone, createdAt])
   @@index([expiresAt])
 }
 

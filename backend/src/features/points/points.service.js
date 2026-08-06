@@ -12,6 +12,7 @@
 // a points failure must never break the action that earned them.
 import { prisma } from '../../lib/prisma.js'
 import { notifyUser } from '../notifications/notifications.service.js'
+import { smsConfigured } from '../../lib/smsSender.js'
 
 // Points are deliberately lopsided toward things that cost the user effort and
 // help strangers. Verifying your own phone helps you; reviewing a flat you left
@@ -113,12 +114,18 @@ export async function getPointsSummary(userId) {
 
   // Which one-time actions are still available — this is what makes the UI a
   // checklist ("verify your email → +50") instead of an opaque number.
-  // PHONE_VERIFIED is deliberately NOT listed: the platform has no phone
-  // verification flow (no SMS), so advertising it would be a checklist item
-  // nobody can complete. The POINTS entry stays for when such a flow exists —
-  // awarding it for merely typing a number would pay for unverified data.
+  //
+  // PHONE_VERIFIED was unlisted until 2026-08-07 because no phone verification
+  // flow existed; it does now (features/auth/phone.service.js). The rule that
+  // kept it out survives intact and is why it is CONDITIONAL rather than
+  // constant: a deployment with no SMS provider configured cannot verify a
+  // phone, and listing an item nobody there can complete is the same broken
+  // checklist by a different route.
   const earned = new Set(rows.map((r) => r.action))
-  const available = ['EMAIL_VERIFIED', 'PROFILE_COMPLETED']
+  const offerable = ['EMAIL_VERIFIED', 'PROFILE_COMPLETED']
+  if (smsConfigured()) offerable.push('PHONE_VERIFIED')
+
+  const available = offerable
     .filter((a) => !earned.has(a))
     .map((a) => ({ action: a, points: POINTS[a] }))
 
