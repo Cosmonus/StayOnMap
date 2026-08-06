@@ -5,6 +5,14 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  # Manual trigger. Without this there is NO way to start a run by hand: pushes
+  # only fire on master, and everything else rides the pull_request event — so
+  # when GitHub drops or never queues a `synchronize` (which it did on
+  # 2026-08-07, leaving three commits with no run at all and the PR stuck on
+  # mergeable: UNKNOWN), the only recourse was closing and reopening the PR.
+  #
+  # `gh workflow run ci.yml --ref <branch>` once this is on the default branch.
+  workflow_dispatch:
 
 jobs:
   guard:
