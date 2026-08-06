@@ -76,3 +76,30 @@ export const updateProfileSchema = z.object({
   emailNotifs:       z.boolean().optional(),
   pushNotifs:        z.boolean().optional(),
 })
+
+// ─── User safety: reporting a person ─────────────────────────────────────────
+
+// Deliberately NOT ReportCategory (that enum is for listings — a person cannot
+// have FAKE_PHOTOS and a listing cannot HARASS). Kept in step with
+// `UserReportCategory` in schema.prisma; the clients render this same list.
+export const USER_REPORT_CATEGORIES = [
+  'HARASSMENT',
+  'SPAM',
+  'SCAM_OR_FRAUD',
+  'IMPERSONATION',
+  'HATE_OR_ABUSE',
+  'OTHER',
+]
+
+export const reportUserSchema = z.object({
+  category: z.enum(USER_REPORT_CATEGORIES),
+  // Bounded for the same reason `name`/`bio` are: an admin reads this in a
+  // moderation queue, and an unbounded field is a way to make that queue
+  // unusable. The floor is there so "asdf" isn't a report a moderator has to
+  // act on.
+  description: z.string().trim().min(10, 'Please describe what happened').max(2000),
+  // Optional: a report can come from a profile as well as a thread. The service
+  // checks the reporter is actually in the conversation they cite — without
+  // that, any thread on the platform could be attached to a stranger's name.
+  conversationId: z.string().cuid().optional(),
+})

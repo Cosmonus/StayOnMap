@@ -10,6 +10,7 @@ import { CITY_NAMES } from '@/config/cities'
 import Select from '@components/common/Select'
 import LinkedAccountsCard from './LinkedAccountsCard'
 import DevicesCard from './DevicesCard'
+import BlockedUsersCard from './BlockedUsersCard'
 import PointsCard from '@features/points/components/PointsCard'
 
 const ICONS = { user: User, camera: Camera, globe: Globe, eye: Eye, eyeOff: EyeOff, lock: Lock, bell: Bell, save: Save, shield: Shield, trash: Trash2 }
@@ -377,7 +378,14 @@ export default function SettingsPanel() {
               checked={form.showExactLocation}
               onChange={v => set('showExactLocation', v)}
               label="Show exact address"
-              description={form.showExactLocation ? 'Full address visible' : 'Area & city only'}
+              // Describes what the server actually does (properties.service.js's
+              // applyLocationPrivacy): the street address is withheld and the pin
+              // snaps to a ~150m cell. The old copy said "Area & city only",
+              // which promised more coarsening than is applied AND was describing
+              // a backend that read the flag nowhere at all.
+              description={form.showExactLocation
+                ? 'Your full address is shown on the listing'
+                : 'Address hidden; the map pin shows the area, not the building'}
             />
           </div>
         </Card>
@@ -450,6 +458,8 @@ export default function SettingsPanel() {
           <LinkedAccountsCard />
 
           <DevicesCard />
+
+          <BlockedUsersCard />
 
           <Card icon={ICONS.trash} title="Danger Zone" danger>
             <div className="flex items-center justify-between">

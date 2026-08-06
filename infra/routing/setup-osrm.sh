@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # StayOnMap routing server — one-shot setup for a fresh Ubuntu 24.04 box
-# (Hetzner CX32/8GB is the tested target; any x86 VPS with 8GB+ works).
+# (any x86 Ubuntu box with 8GB+ works; 8GB matters for the one-time graph build).
 #
 # What it does, in order:
 #   1. Docker + osmium install
@@ -63,4 +63,4 @@ sleep 3
 curl -s "http://localhost:5000/route/v1/foot/77.5946,12.9716;77.6046,12.9816?overview=false" | head -c 300
 echo
 echo "== DONE. Point the backend at this box: ROUTING_URL=http://<this-ip>:5000 =="
-echo "== (restrict :5000 to the backend's egress IP in the Hetzner firewall) =="
+echo "== (restrict :5000 to the API VM: VPC rule on its internal IP, or loopback) =="

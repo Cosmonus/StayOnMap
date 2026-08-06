@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Check, CheckCheck, Search, MessageCircle, CalendarDays, FileText, Pencil, Trash2, Home, Phone,
+  MoreVertical, Ban, Flag,
 } from 'lucide-react'
 import { chatService } from '@services/chat.service'
 import { getSocket } from '@lib/socket'
@@ -11,6 +12,9 @@ import { confirm } from '@components/common/ConfirmDialog'
 import { formatTime } from '@utils/time'
 import { imgUrl } from '@utils/format'
 import Modal from '@components/common/Modal'
+import ActionMenu from '@components/common/ActionMenu'
+import { userService } from '@services/user.service'
+import ReportUserModal from './ReportUserModal'
 import Avatar from './Avatar'
 import InputBar from './InputBar'
 import { chatTime, dateSeparator, displayName, isImageAttachment, replyTimeLabel } from './chatFormat'
@@ -29,7 +33,7 @@ function ReadReceipt({ isRead }) {
 // `counterpartRole` is the word for the OTHER person — "Owner" on the tenant
 // surface, "Renter" on the owner's. It is passed in rather than derived here so
 // this component never has to know which hat it is serving.
-function ThreadHeader({ conversation, other, counterpartRole, replyMinutes, typingUser, searchOpen, onToggleSearch }) {
+function ThreadHeader({ conversation, other, counterpartRole, replyMinutes, typingUser, searchOpen, onToggleSearch, onBlock, onReport }) {
   if (!conversation) return null
 
   // "Owner · replies in about an hour" — the role plus, only when we've measured
@@ -72,6 +76,23 @@ function ThreadHeader({ conversation, other, counterpartRole, replyMinutes, typi
           >
             <Phone className="w-[18px] h-[18px]" strokeWidth={2} aria-hidden="true" />
           </a>
+        )}
+        {/* Safety lives behind the overflow, not beside the call button:
+            ui-ux.md caps a row at two visible controls plus ActionMenu, and this
+            header already carries call, search and view-listing. Block is
+            destructive-ish but reversible; reporting is the one that reaches a
+            human, so it sits above it. */}
+        {other?.id && (
+          <ActionMenu
+            label={`More actions for ${displayName(other)}`}
+            trigger={<MoreVertical className="w-[18px] h-[18px]" strokeWidth={2} aria-hidden="true" />}
+            triggerClassName="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            width="w-60"
+            items={[
+              { key: 'report', label: `Report ${displayName(other)}`, icon: <Flag className="w-4 h-4" strokeWidth={2} />, onClick: onReport },
+              { key: 'block', label: `Block ${displayName(other)}`, icon: <Ban className="w-4 h-4" strokeWidth={2} />, onClick: onBlock, danger: true },
+            ]}
+          />
         )}
         <button
           onClick={onToggleSearch}
@@ -321,6 +342,7 @@ export default function MessageThread({
   conversation, conversationId, userId, counterpartRole, replyMinutes, emptyPrompt,
 }) {
   const qc = useQueryClient()
+  const [reportOpen, setReportOpen] = useState(false)
   const [typing, setTyping] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [msgSearch, setMsgSearch] = useState('')
@@ -523,6 +545,32 @@ export default function MessageThread({
   const visibleMessages = searchQuery.length > 0 ? searchResults : messages
   const other = conversation?.tenantId === userId ? conversation?.owner : conversation?.tenant
 
+  // Blocking severs messaging BOTH ways and hides the thread — say so before
+  // doing it, because the person doing the blocking is usually upset and the
+  // consequence is not obvious from the word alone. Reversible from Settings,
+  // which is the sentence that makes it safe to press.
+  const handleBlock = async () => {
+    const name = displayName(other)
+    const ok = await confirm({
+      title: `Block ${name}?`,
+      message: `${name} will not be able to message you, and this conversation will disappear from your inbox. You can undo this in Settings.`,
+      confirmLabel: 'Block',
+      danger: true,
+    })
+    if (!ok) return
+    try {
+      await userService.blockUser(other.id)
+      // The thread is gone from the list and the open one is no longer
+      // reachable, so both have to be refetched — leaving the conversation on
+      // screen after blocking would be the app disagreeing with itself.
+      qc.invalidateQueries({ queryKey: ['conversations'] })
+      qc.invalidateQueries({ queryKey: ['chat-unread'] })
+      toast.success(`${name} is blocked`)
+    } catch (err) {
+      toast.error(err?.response?.data?.message ?? 'Could not block this person')
+    }
+  }
+
   return (
     // min-h-0 so MessageArea's `flex-1 overflow-y-auto` scrolls instead of
     // stretching this column past its parent — see the note in ChatSurface.
@@ -535,6 +583,14 @@ export default function MessageThread({
         typingUser={typing}
         searchOpen={searchOpen}
         onToggleSearch={() => { setSearchOpen(o => !o); setMsgSearch('') }}
+        onBlock={handleBlock}
+        onReport={() => setReportOpen(true)}
+      />
+      <ReportUserModal
+        isOpen={reportOpen}
+        onClose={() => setReportOpen(false)}
+        user={other}
+        conversationId={conversationId}
       />
       <VisitBanner visit={conversation?.visit} />
       {searchOpen && (

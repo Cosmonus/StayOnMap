@@ -17,6 +17,7 @@ import PrivacySheet from '@features/profile/components/PrivacySheet'
 import DeleteAccountSheet from '@features/profile/components/DeleteAccountSheet'
 import LinkedAccountsSheet from '@features/profile/components/LinkedAccountsSheet'
 import DevicesSheet from '@features/profile/components/DevicesSheet'
+import BlockedUsersSheet from '@features/profile/components/BlockedUsersSheet'
 import PointsCard from '@features/points/components/PointsCard'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
@@ -231,6 +232,12 @@ export default function SettingsScreen({ navigation }) {
           hint="See where you're signed in"
           onPress={() => setActiveSheet('devices')}
         />
+        <MenuItem
+          icon="ban"
+          label="Blocked people"
+          hint="Manage who can't message you"
+          onPress={() => setActiveSheet('blocked')}
+        />
         {!isOwner && (
           <MenuItem
             icon="home"
@@ -267,6 +274,7 @@ export default function SettingsScreen({ navigation }) {
       <DeleteAccountSheet visible={activeSheet === 'delete'} onClose={() => setActiveSheet(null)} />
       <LinkedAccountsSheet visible={activeSheet === 'linked'} onClose={() => setActiveSheet(null)} />
       <DevicesSheet visible={activeSheet === 'devices'} onClose={() => setActiveSheet(null)} />
+      <BlockedUsersSheet visible={activeSheet === 'blocked'} onClose={() => setActiveSheet(null)} />
     </SafeAreaView>
   )
 }

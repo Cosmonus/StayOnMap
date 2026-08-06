@@ -10,8 +10,8 @@
 //
 // Node races connection attempts across resolved addresses (Happy Eyeballs) and
 // abandons each after `autoSelectFamilyAttemptTimeout`, which defaults to
-// 250 ms. A TCP + TLS handshake from a GCP VM in India to a Hetzner host in
-// Germany needs three round trips — comfortably more than 250 ms. Node was
+// 250 ms. A TCP + TLS handshake from a Google Cloud VM in India to a host in
+// Europe needs three round trips — comfortably more than 250 ms. Node was
 // hanging up mid-handshake and reporting the result as ETIMEDOUT, which reads
 // exactly like "the host is down".
 //

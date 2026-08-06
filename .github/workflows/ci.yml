@@ -126,10 +126,11 @@ jobs:
           EXPO_PUBLIC_API_BASE_URL: http://localhost:4000/api/v1
           EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: ci-placeholder
 
-  # Auto-deploy to the self-hosted VM after a merge to master, but ONLY once
-  # every build job is green. SSHes in as the deploy user and runs the same
-  # deploy.sh an operator would run by hand (pull → migrate → build → restart →
-  # nginx reload → /health). Replaces Railway's old push-to-deploy.
+  # Auto-deploy to the self-hosted Google Cloud VM after a merge to master, but
+  # ONLY once every build job is green. SSHes in as the deploy user and runs the
+  # same deploy.sh an operator would run by hand (pull → migrate → build →
+  # restart → nginx reload → /health). This IS the deployment path — there is no
+  # platform push-to-deploy behind it.
   #
   # Setup (one-time, done in GitHub + on the box) is in
   # infra/server/README-server.md → "Continuous deployment (GitHub Actions)":

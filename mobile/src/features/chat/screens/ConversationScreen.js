@@ -14,6 +14,8 @@ import { formatTime } from '@utils/time'
 import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
 import ScreenHeader from '@components/common/ScreenHeader'
+import ReportUserSheet from '../components/ReportUserSheet'
+import { userService } from '@services/user.service'
 import ReadReceipt from '../components/ReadReceipt'
 import ChatPropertyCard from '../components/ChatPropertyCard'
 import { colors } from '@theme/colors'
@@ -119,6 +121,7 @@ export default function ConversationScreen({ route, navigation }) {
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
   const [msgSearch, setMsgSearch] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [editingId, setEditingId] = useState(null)
@@ -139,6 +142,49 @@ export default function ConversationScreen({ route, navigation }) {
   const property = conversation?.property
 
   const otherName = other?.name || other?.email?.split('@')[0] || 'Chat'
+
+  // Two destructive-ish actions behind ONE overflow press, not two more icons
+  // beside call and search: mobile/AGENTS.md caps the header the same way
+  // ui-ux.md caps a row. Alert is the native action sheet here — no new dep,
+  // and `destructive` styles Block correctly on iOS.
+  const openSafetyMenu = () => {
+    Alert.alert(otherName, undefined, [
+      { text: `Report ${otherName}`, onPress: () => setReportOpen(true) },
+      { text: `Block ${otherName}`, style: 'destructive', onPress: confirmBlock },
+      { text: 'Cancel', style: 'cancel' },
+    ])
+  }
+
+  // Blocking severs messaging BOTH ways and hides the thread. Say so before
+  // doing it — the consequence is not obvious from the word, and the person
+  // pressing it is usually upset. "Undo in Settings" is what makes it safe to
+  // press, and Settings genuinely has the list.
+  const confirmBlock = () => {
+    Alert.alert(
+      `Block ${otherName}?`,
+      `${otherName} will not be able to message you, and this conversation will disappear from your inbox. You can undo this in Settings.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await userService.blockUser(other.id)
+              // The thread is gone from the list and this screen is no longer
+              // reachable — leaving it open would be the app disagreeing with
+              // itself.
+              qc.invalidateQueries({ queryKey: ['conversations'] })
+              qc.invalidateQueries({ queryKey: ['chat-unread'] })
+              navigation.goBack()
+            } catch (err) {
+              Alert.alert('Could not block', err?.response?.data?.message ?? 'Please try again.')
+            }
+          },
+        },
+      ],
+    )
+  }
   // Server-gated by the counterpart's own contactVisibility (chat.service.js's
   // gateParticipantPhones) — absent means they chose not to share it, and the
   // call button simply doesn't render. The conversation payload wins over the
@@ -454,6 +500,17 @@ export default function ConversationScreen({ route, navigation }) {
                 <Icon name="phone" size={20} color={colors.slate500} />
               </Pressable>
             )}
+            {!!other?.id && (
+              <Pressable
+                style={styles.headerSearchButton}
+                onPress={openSafetyMenu}
+                accessibilityRole="button"
+                accessibilityLabel={`More actions for ${otherName}`}
+                hitSlop={8}
+              >
+                <Icon name="more" size={20} color={colors.slate500} />
+              </Pressable>
+            )}
             <Pressable
               style={styles.headerSearchButton}
               onPress={() => { setSearchOpen((o) => !o); setMsgSearch('') }}
@@ -466,6 +523,12 @@ export default function ConversationScreen({ route, navigation }) {
             </Pressable>
           </View>
         )}
+      />
+      <ReportUserSheet
+        visible={reportOpen}
+        onClose={() => setReportOpen(false)}
+        user={other}
+        conversationId={conversationId}
       />
       {/* `behavior="padding"` on BOTH platforms (mobile/AGENTS.md §7). The old
           house pattern — undefined on Android, leaning on adjustResize — died

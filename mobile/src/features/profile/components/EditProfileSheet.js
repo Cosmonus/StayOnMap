@@ -66,7 +66,7 @@ export default function EditProfileSheet({ visible, onClose, settings }) {
         value={phone}
         onChangeText={setPhone}
         error={errors.phone}
-        placeholder="98765 43210"
+        placeholder="9876543210"
         keyboardType="phone-pad"
       />
       <Text style={styles.cityLabel}>City</Text>

@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma.js'
 import { notifyUser } from '../notifications/notifications.service.js'
 import { getOrCreateConversation, sendMessage } from '../chat/chat.service.js'
+import { blockExistsBetween, blockedError } from '../users/safety.service.js'
 
 // India-only platform, so a wall-clock slot is always IST. The server may run
 // anywhere (production is a UTC VM), which is exactly why this can't lean on
@@ -50,6 +51,12 @@ export async function requestAppointment(tenantId, propertyId, data) {
   if (!property) throw Object.assign(new Error('Property not found'), { statusCode: 404 })
   if (property.status !== 'ACTIVE') throw Object.assign(new Error('Property is not available'), { statusCode: 400 })
   if (property.ownerId === tenantId) throw Object.assign(new Error('Cannot book your own property'), { statusCode: 400 })
+  // Blocking has to cover the doorstep, not just the inbox. Someone you have
+  // shut out of chat turning up at your home is strictly worse than a message,
+  // and a visit request is the one action on this platform that produces a
+  // physical meeting. Same neutral error as chat — it must not reveal which
+  // side did the blocking.
+  if (await blockExistsBetween(tenantId, property.ownerId)) throw blockedError()
   if (property.riskScore?.level === 'HIGH' || property.riskScore?.level === 'SUSPICIOUS') {
     throw Object.assign(new Error('Bookings frozen for this property'), { statusCode: 403 })
   }

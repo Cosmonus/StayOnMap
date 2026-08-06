@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma.js'
 import { notifyUser, markMessageNotificationsRead } from '../notifications/notifications.service.js'
 import { emitToConversation, emitToUser } from '../../lib/socket.js'
+import { blockExistsBetween, blockedUserIds, blockedError } from '../users/safety.service.js'
 
 // `requesterId` is the authenticated caller. It differs from `tenantId` only
 // when an owner opens a thread with one of their tenants — in which case the
@@ -13,6 +14,12 @@ export async function getOrCreateConversation(tenantId, propertyId, requesterId 
   if (requesterId !== tenantId && requesterId !== property.ownerId) {
     throw Object.assign(new Error('Access denied'), { statusCode: 403 })
   }
+
+  // Blocked either way? Then this thread cannot be opened — including the case
+  // where it already exists, because returning it would show the blocker a
+  // conversation their own list deliberately hides.
+  const counterpart = requesterId === tenantId ? property.ownerId : tenantId
+  if (await blockExistsBetween(requesterId, counterpart)) throw blockedError()
 
   const existing = await prisma.conversation.findUnique({
     where: { propertyId_tenantId: { propertyId, tenantId } },
@@ -45,11 +52,20 @@ function gateParticipantPhones(convo) {
 }
 
 export async function getUserConversations(userId) {
-  const conversations = await prisma.conversation.findMany({
+  // One query for every block touching this user, applied in JS rather than as
+  // a NOT-IN on two columns — the set is small (a person blocks a handful, not
+  // thousands) and this keeps the block rule in one readable place instead of
+  // spread across the where clause.
+  const blocked = await blockedUserIds(userId)
+
+  const rows = await prisma.conversation.findMany({
     where: { OR: [{ tenantId: userId }, { ownerId: userId }] },
     include: conversationInclude(userId),
     orderBy: { lastMessageAt: 'desc' },
   })
+  const conversations = blocked.size === 0
+    ? rows
+    : rows.filter((c) => !blocked.has(c.tenantId === userId ? c.ownerId : c.tenantId))
   if (conversations.length === 0) return conversations
 
   const [visits, replyMinutes] = await Promise.all([
@@ -211,6 +227,12 @@ export async function sendMessage(conversationId, senderId, body, attachment = {
     throw Object.assign(new Error('Access denied'), { statusCode: 403 })
   }
 
+  // The gate that matters. Checked on the SEND, not just on opening the thread:
+  // a client that already has the conversation open — or one written by
+  // somebody else entirely — must not be able to deliver a message anyway.
+  const recipientId = convo.tenantId === senderId ? convo.ownerId : convo.tenantId
+  if (await blockExistsBetween(senderId, recipientId)) throw blockedError()
+
   const [message] = await prisma.$transaction([
     prisma.message.create({
       data: {
@@ -230,7 +252,6 @@ export async function sendMessage(conversationId, senderId, body, attachment = {
   ])
 
   // Real-time: emit to conversation room + recipient's personal channel
-  const recipientId = convo.tenantId === senderId ? convo.ownerId : convo.tenantId
   emitToConversation(conversationId, 'message:new', message)
   emitToUser(recipientId, 'message:notification', { conversationId, message })
 

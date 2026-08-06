@@ -9,6 +9,7 @@ import {
   Image as ImageIcon, FileText, Link2, ArrowRight,
   ArrowUpDown, Dumbbell, WavesLadder, Video, Zap, Droplet, Wind, Refrigerator, WashingMachine,
   TreePine, DoorClosed, SquareParking,
+  EllipsisVertical, Ban, Flag,
 } from 'lucide-react-native'
 import { colors } from '@theme/colors'
 
@@ -64,6 +65,10 @@ const ICONS = {
   bell: Bell,
   shield: Shield,
   shieldCheck: ShieldCheck,
+  // User safety — the chat overflow menu and the blocked-people list.
+  more: EllipsisVertical,
+  ban: Ban,
+  flag: Flag,
   clock: Clock,
   calendar: Calendar,
   eye: Eye,

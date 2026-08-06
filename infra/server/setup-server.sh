@@ -2,7 +2,7 @@
 # ============================================================================
 # StayOnMap — single-VM server bootstrap. Run ONCE as root on a fresh
 # Ubuntu 24.04 box (GCP e2-standard-2 now; portable to any Ubuntu VM, e.g.
-# Hetzner CX32, later — same script, new IP).
+# a replacement VM, later — same script, new IP).
 #
 #   sudo bash setup-server.sh
 #

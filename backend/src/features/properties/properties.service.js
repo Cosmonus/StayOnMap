@@ -8,7 +8,7 @@ import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { intelError } from '../../lib/intelLog.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
 import { buildFilterWhere, filterCacheKey } from './filters.registry.js'
-import { encode } from '../../lib/geohash.js'
+import { encode, decode } from '../../lib/geohash.js'
 import { resolveProximityFilter, proximityCacheKey } from './proximityFilter.js'
 import { notifyUser } from '../notifications/notifications.service.js'
 
@@ -33,13 +33,83 @@ export function stripPrivateRecords(property, userId = null) {
   return property
 }
 
+// ─── Owner location privacy (User.showExactLocation) ────────────────────────
+//
+// The toggle shipped on both clients and NOTHING read it: an owner who switched
+// it off was told their address was coarsened while the API kept returning the
+// full street address and 7-decimal coordinates to anyone, signed in or not.
+// That is worse than not having the control — a privacy promise the backend
+// does not keep, on the one field where an owner's HOME is at stake.
+//
+// What it does now, and the boundary is deliberate:
+//   • `address` (flat number, street) is removed entirely. That is the field
+//     that turns a listing into a doorstep, and it has no map value.
+//   • lat/lng are snapped to the centroid of their geohash-7 cell (~153 m), so
+//     every listing in that cell reports the same point.
+//   • `landmark`, `area`, `city` and `pincode` stay. They are how somebody
+//     decides whether the place is worth asking about, and a pincode already
+//     covers several square kilometres.
+//
+// Why 153 m and not a kilometre: the map IS the product. A pin that lands in
+// the wrong neighbourhood does not protect the owner any better — a determined
+// visitor still walks the block either way — but it does make the map lie to
+// every honest renter, which is the failure mode this codebase keeps removing
+// (the flood score, the assumed walk times). 153 m removes the building without
+// moving the listing somewhere it isn't.
+//
+// And because the pin is then approximate, the payload SAYS so
+// (`approximateLocation: true`) rather than letting a precise-looking marker
+// imply a precision we deliberately gave up.
+const LOCATION_PRIVACY_PRECISION = 7
+
+export function applyLocationPrivacy(property, userId = null) {
+  if (!property) return property
+  // The owner always sees their own listing exactly as it is — they are
+  // choosing what everyone ELSE sees, not hiding it from themselves.
+  if (userId && property.ownerId === userId) return property
+
+  const exact = property.owner?.showExactLocation
+  // `undefined` means the caller didn't select the flag. Defaulting to "hide"
+  // there would silently coarsen every listing the day someone forgets the
+  // select; defaulting to "show" is the current behaviour and the visible bug.
+  // Neither is safe to guess, so read it explicitly and let the tests hold the
+  // selects in place — same rule as chat's contactVisibility.
+  if (exact !== false) {
+    if (property.owner) delete property.owner.showExactLocation
+    return property
+  }
+
+  property.address = null
+  property.approximateLocation = true
+
+  const lat = property.lat != null ? Number(property.lat) : null
+  const lng = property.lng != null ? Number(property.lng) : null
+  if (lat != null && lng != null && !Number.isNaN(lat) && !Number.isNaN(lng)) {
+    const cell = decode(encode(lat, lng, LOCATION_PRIVACY_PRECISION))
+    property.lat = cell.lat
+    property.lng = cell.lng
+  }
+
+  delete property.owner.showExactLocation
+  return property
+}
+
+// Both gates in the order they must run: records first (cheap field deletes),
+// then location. One call site per read path so a new path can't pick up half
+// the rules.
+export function publicView(property, userId = null) {
+  return applyLocationPrivacy(stripPrivateRecords(property, userId), userId)
+}
+
 const FULL_INCLUDE = {
   images:    { orderBy: { order: 'asc' } },
   amenities: { include: { amenity: true } },
   rules:     true,
   trustScore: true,
   riskScore:  true,
-  owner:         { select: { id: true, name: true, avatarUrl: true, createdAt: true } },
+  // showExactLocation rides along so applyLocationPrivacy can read it; it is
+  // deleted from the payload there and never reaches a client.
+  owner:         { select: { id: true, name: true, avatarUrl: true, createdAt: true, showExactLocation: true } },
   currentTenant: { select: { id: true, name: true, avatarUrl: true } },
 }
 
@@ -54,7 +124,7 @@ export async function listProperties(filters, { skip, limit }, userId = null) {
   if (proximity) Object.assign(where, proximity.where)
 
   const [properties, total] = await Promise.all([
-    prisma.property.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' }, include: { images: { where: { isPrimary: true }, take: 1 }, trustScore: true, riskScore: true } }),
+    prisma.property.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' }, include: { images: { where: { isPrimary: true }, take: 1 }, trustScore: true, riskScore: true, owner: { select: { showExactLocation: true } } } }),
     prisma.property.count({ where }),
   ])
 
@@ -63,7 +133,7 @@ export async function listProperties(filters, { skip, limit }, userId = null) {
   // the one surface with nowhere to put a provenance chip, so the count travels
   // with the response instead.
   return {
-    properties: properties.map((p) => stripPrivateRecords(p, userId)),
+    properties: properties.map((p) => publicView(p, userId)),
     total,
     ...(proximity && {
       proximity: { unknown: proximity.unknown, label: proximity.label },
@@ -85,7 +155,12 @@ export async function getPinsInBounds(bounds, filters, userId = null) {
   const cacheKey = `pins:${JSON.stringify(roundedBounds)}:${filterCacheKey(filters ?? {})}:${proximityCacheKey(filters)}:${!!userId}`
 
   const cached = await cacheGet(cacheKey)
-  if (cached) return cached
+  // Privacy is applied on the way OUT, not before the cache write, for two
+  // reasons: the cache key varies only by `!!userId` (not by WHICH user), so a
+  // coarsened-then-cached pin would be wrong for the owner looking at their own
+  // listing; and cacheGet JSON.parses a fresh object per read, so mutating the
+  // result cannot corrupt the entry.
+  if (cached) return cached.map((p) => publicView(p, userId))
 
   const where = {
     status: 'ACTIVE',
@@ -105,12 +180,12 @@ export async function getPinsInBounds(bounds, filters, userId = null) {
     // pricingModel is here so a pin can LABEL itself: the same 4500000 in
     // `rent` is "₹45K/mo" on a rental and "₹45L" on a sale, and a pin that
     // guessed wrong would misprice every plot and flat on the map.
-    select: { id: true, lat: true, lng: true, rent: true, pricingModel: true, type: true, bhk: true, sharing: true, trustScore: { select: { badge: true } } },
+    select: { id: true, ownerId: true, lat: true, lng: true, rent: true, pricingModel: true, type: true, bhk: true, sharing: true, trustScore: { select: { badge: true } }, owner: { select: { showExactLocation: true } } },
     take: 200,
   })
 
   await cacheSet(cacheKey, pins, 30)
-  return pins
+  return pins.map((p) => publicView(p, userId))
 }
 
 // Live "Show N homes" count for the filter modal — same where-clause as
@@ -235,7 +310,7 @@ export async function getPropertyById(id, userId = null) {
   Promise.resolve(recordView(id, userId))
     .catch((err) => intelError('property.view_count_failed', err, { propertyId: id }))
 
-  return stripPrivateRecords(property, userId)
+  return publicView(property, userId)
 }
 
 export async function getPropertiesByOwner(ownerId) {

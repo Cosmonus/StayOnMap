@@ -197,10 +197,18 @@ const HOST_TABS = [
 function useTabBadges(hostMode) {
   const { user } = useAuth()
 
+  // Gated on the ROLE, not just the mode. `hostMode` is a UI preference a
+  // TENANT can set — ProfileScreen's ModeSwitch checks no role — so this fired
+  // an owner-only request that could only ever 403. Nothing broke visibly (the
+  // badge just never appeared), which is why it outlived the same bug being
+  // fixed on HostDashboardScreen. Pinned by
+  // backend/tests/role-gated-queries.test.js.
+  const isOwner = user?.role === 'OWNER'
+
   const { data: dashboard } = useQuery({
     queryKey: ['host-dashboard'],
     queryFn: () => hostService.dashboard().then((r) => r.data),
-    enabled: hostMode && !!user,
+    enabled: hostMode && !!user && isOwner,
   })
 
   const { data: conversations = [] } = useQuery({

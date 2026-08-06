@@ -9,6 +9,14 @@ export const userService = {
   // Sends a password-reset link to the logged-in user's email (no in-app old/new flow).
   changePassword: () => api.post('/users/change-password'),
   deleteAccount: () => api.delete('/users/account'),
+
+  // User safety. Blocking is per PERSON and severs messaging in BOTH
+  // directions — the server enforces it on every send, so these change what is
+  // possible, not just what is shown.
+  blockUser: (userId) => api.post(`/users/${userId}/block`),
+  unblockUser: (userId) => api.delete(`/users/${userId}/block`),
+  listBlocked: () => api.get('/users/blocked'),
+  reportUser: (userId, data) => api.post(`/users/${userId}/report`, data),
   // asset: an expo-image-picker result asset { uri, mimeType, fileName }.
   // The backend stores the file and sets User.avatarUrl itself.
   uploadAvatar: (asset) => {
