@@ -56,6 +56,23 @@ export const priceUnit = (property) => {
 export const formatPrice = (property) =>
   `${formatCurrency(Number(property?.rent))}${priceUnit(property)}`
 
+// The same rule as priceUnit, expressed for schema.org. Lives here so the two
+// cannot drift: a page that printed "₹18,00,000 lease" while publishing
+// "18,00,000 per month" to Google would be telling a search engine something
+// nobody on the page was told. UN/CEFACT unit codes — MON month, DAY day.
+// A lease lump sum and an asking price have no period at all, so they get a
+// plain PriceSpecification rather than a unit-per-something one.
+export const offerPriceSpec = (property) => {
+  const base = { price: Number(property?.rent), priceCurrency: 'INR' }
+  if (property?.type === 'SHORT_STAY') {
+    return { '@type': 'UnitPriceSpecification', ...base, unitCode: 'DAY' }
+  }
+  if (property?.pricingModel === 'SALE' || property?.pricingModel === 'LEASE') {
+    return { '@type': 'PriceSpecification', ...base }
+  }
+  return { '@type': 'UnitPriceSpecification', ...base, unitCode: 'MON' }
+}
+
 export const formatArea = (sqft) =>
   `${Number(sqft).toLocaleString(locale)} sq.ft`
 

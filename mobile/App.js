@@ -71,6 +71,12 @@ export default function App() {
       if (socket && !socket.connected) socket.connect()
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
       queryClient.invalidateQueries({ queryKey: ['conversations'] })
+      // The unread COUNTS behind the tab badges and the mode-switch dot. They
+      // were missing here, and once the polls went (2026-08-07) this handler is
+      // one of only two catch-ups a dozed socket has — so a badge could stay
+      // stale for as long as the app stayed open.
+      queryClient.invalidateQueries({ queryKey: ['chat-unread'] })
+      queryClient.invalidateQueries({ queryKey: ['notification-unread'] })
     })
     return () => sub.remove()
   }, [])

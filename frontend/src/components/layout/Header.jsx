@@ -333,11 +333,14 @@ export default function Header() {
   // badged "Inbox · 1" for a message sitting in a thread host mode does not
   // list — the badge pointed at an empty inbox and the message was reachable
   // only by guessing that you had to switch modes.
+  //
+  // No refetchInterval on either query: useRealtimeUpdates (mounted app-wide in
+  // App.jsx) invalidates both keys off the socket events the backend already
+  // emits to the personal room, and re-syncs on reconnect and window focus.
   const { data: unread } = useQuery({
     queryKey: ['chat-unread'],
     queryFn: () => chatService.unreadCount().then((r) => r.data),
     enabled: !!user,
-    refetchInterval: 30000,
   })
   // Notifications are per hat too, and the switch is the only place that can
   // say so — a visit request for your flat is invisible from renter mode, and
@@ -346,7 +349,6 @@ export default function Header() {
     queryKey: ['notification-unread'],
     queryFn: () => notificationService.unread().then((r) => r.data),
     enabled: !!user,
-    refetchInterval: 60000,
   })
 
   const unreadMessages = (hostMode ? unread?.asOwner : unread?.asTenant) ?? 0

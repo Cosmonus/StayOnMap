@@ -28,7 +28,7 @@ export function useOtherHatWaiting() {
     queryKey: ['notification-unread'],
     queryFn: () => notificationService.unread().then((r) => r.data),
     enabled: !!user,
-    refetchInterval: 60000,
+    // No interval — useRealtimeUpdates owns both keys this hook reads.
   })
 
   const messages = conversations

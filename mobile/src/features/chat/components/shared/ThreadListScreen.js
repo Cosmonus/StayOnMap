@@ -28,8 +28,9 @@ export default function ThreadListScreen({ navigation, side, title, counterpartR
 
   const { data: allConversations = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['conversations'],
+    // No interval: useRealtimeUpdates invalidates this key off
+    // `message:notification` and on socket reconnect.
     queryFn: () => chatService.conversations().then((r) => r.data),
-    refetchInterval: 15000,
   })
 
   // Opening the inbox is seeing that these messages exist, so the notification
