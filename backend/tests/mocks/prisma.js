@@ -126,6 +126,21 @@ export const prismaMock = {
     findUnique: vi.fn(),
     findMany:   vi.fn(),
     create:     vi.fn(),
+    update:     vi.fn(),
+  },
+  // User-to-user blocking. The defaults are "nobody has blocked anybody", which
+  // is every existing test's world — chat.service now consults these on every
+  // send and every list, so an unmocked findFirst would return undefined and
+  // read as a block rather than as an absent one.
+  userBlock: {
+    findFirst:  vi.fn().mockResolvedValue(null),
+    findMany:   vi.fn().mockResolvedValue([]),
+    upsert:     vi.fn(),
+    deleteMany: vi.fn(),
+  },
+  userReport: {
+    create:   vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
   },
   notification: {
     findUnique: vi.fn(),

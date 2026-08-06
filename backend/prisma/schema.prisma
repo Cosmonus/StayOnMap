@@ -306,6 +306,14 @@ model User {
   authSessions        AuthSession[]
   listingDraft        ListingDraft?
 
+  // Blocks and reports the user MADE, and the ones aimed AT them. Both sides
+  // are needed: "who have I blocked" powers the settings list, "who has blocked
+  // me" is what the message gate actually reads.
+  blocksMade      UserBlock[]  @relation("BlocksMade")
+  blocksReceived  UserBlock[]  @relation("BlocksReceived")
+  reportsMade     UserReport[] @relation("UserReportsMade")
+  reportsReceived UserReport[] @relation("UserReportsAgainst")
+
   lastLoginAt DateTime?
   // When they last opened their saved list. Powers "since you last looked" —
   // which has to mean something, so it is measured rather than approximated with
@@ -618,14 +626,14 @@ model Property {
   // and Gujarat, pahani/ROR in Telangana, porcha in West Bengal, and
   // freehold/leasehold/GPA in Delhi. One field labelled "Patta number" would be
   // wrong in five of the six states we operate in.
-  surveyNumber       String?
-  subdivisionNumber  String?
-  landRecordType     String? // the state's record kind, see config/landRecords.js
-  landRecordNumber   String?
-  conversionStatus   String? // Converted | Not converted | Not applicable
-  ecAvailable        Boolean? // encumbrance certificate on hand
-  ecYears            Int? // how many years it covers (13 and 30 are the norms)
-  guidelineValue     Decimal? @db.Decimal(12, 2) // government circle/guideline rate
+  surveyNumber      String?
+  subdivisionNumber String?
+  landRecordType    String? // the state's record kind, see config/landRecords.js
+  landRecordNumber  String?
+  conversionStatus  String? // Converted | Not converted | Not applicable
+  ecAvailable       Boolean? // encumbrance certificate on hand
+  ecYears           Int? // how many years it covers (13 and 30 are the norms)
+  guidelineValue    Decimal? @db.Decimal(12, 2) // government circle/guideline rate
 
   // COMMERCIAL (shop/office/showroom/warehouse)
   commercialType String? // Retail shop | Office | Showroom | Warehouse
@@ -1157,7 +1165,7 @@ model Notification {
   // honest value, and defaulting them to either hat would hide real
   // notifications from the other one. NULL means "unclassified" and shows in
   // BOTH modes — the only behaviour that can't lose someone's notification.
-  audience      NotificationAudience?
+  audience NotificationAudience?
 
   createdAt DateTime @default(now())
 
@@ -1171,16 +1179,17 @@ model Notification {
 // ─────────────────────────────────────────────────────────────────
 
 model Conversation {
-  id            String    @id @default(cuid())
+  id            String       @id @default(cuid())
   propertyId    String
-  property      Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  property      Property     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   tenantId      String
-  tenant        User      @relation("TenantConversations", fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        User         @relation("TenantConversations", fields: [tenantId], references: [id], onDelete: Cascade)
   ownerId       String
-  owner         User      @relation("OwnerConversations", fields: [ownerId], references: [id], onDelete: Cascade)
+  owner         User         @relation("OwnerConversations", fields: [ownerId], references: [id], onDelete: Cascade)
   messages      Message[]
-  lastMessageAt DateTime  @default(now())
-  createdAt     DateTime  @default(now())
+  userReports   UserReport[]
+  lastMessageAt DateTime     @default(now())
+  createdAt     DateTime     @default(now())
 
   @@unique([propertyId, tenantId])
   @@index([tenantId])
@@ -1362,11 +1371,11 @@ model PropertyPriceHistory {
 // comfortably fast at a few hundred thousand rows. See
 // docs/spatial-intelligence.md §3 for when that stops being true.
 model PoiIndex {
-  id       String  @id @default(cuid())
+  id           String  @id @default(cuid())
   // OSM element identity, e.g. "node/1234567". Unique so a re-run updates in
   // place instead of duplicating the whole dataset.
-  osmId    String  @unique
-  category String // normalised to the spatial layer's own vocabulary, not raw OSM tags
+  osmId        String  @unique
+  category     String // normalised to the spatial layer's own vocabulary, not raw OSM tags
   // The OSM tag this row was classified FROM, e.g. "leisure=garden".
   //
   // Without it the mapping is lossy and irreversible: a park row could have come
@@ -1378,17 +1387,17 @@ model PoiIndex {
   //
   // Nullable because rows seeded before this column exist and are not worth
   // discarding — null means "seeded before we recorded this", not "no tag".
-  sourceTag String?
-  name     String?
+  sourceTag    String?
+  name         String?
   // Straight from OSM tags where a mapper recorded them — sparse in India and
   // shown only when present, never inferred. brand falls back to operator
   // (helps search: "ICICI" matches a branch whose name is just "ICICI Bank
   // ATM" or whose brand tag carries the chain).
   brand        String?
   openingHours String?
-  lat      Decimal @db.Decimal(10, 7)
-  lng      Decimal @db.Decimal(10, 7)
-  city     String
+  lat          Decimal @db.Decimal(10, 7)
+  lng          Decimal @db.Decimal(10, 7)
+  city         String
 
   fetchedAt DateTime @default(now())
 
@@ -1413,10 +1422,10 @@ model PoiIndex {
 // locality module then reports UNAVAILABLE, which reads as "we don't know
 // which ward this is", never as "this place has no ward".
 model Boundary {
-  id         String @id @default(cuid())
+  id         String  @id @default(cuid())
   // OSM relation identity, e.g. "relation/1234567" — unique so a re-run
   // updates in place instead of duplicating the dataset.
-  osmId      String @unique
+  osmId      String  @unique
   name       String
   // name:en where a mapper recorded one. Indian boundaries are frequently
   // tagged only in the state language; carrying both lets the UI show a
@@ -1429,11 +1438,11 @@ model Boundary {
   // every refetch.
   adminLevel Int
   city       String?
-  source     String @default("openstreetmap")
+  source     String  @default("openstreetmap")
 
   // GeoJSON coordinate rings (Polygon or MultiPolygon). Json for the same
   // reason SpatialContext.modules is: read whole, never filtered on.
-  geometry   Json
+  geometry Json
 
   // The prefilter. Real indexed columns precisely because this IS the filter —
   // the rule PoiIndex's comment states, applied.
@@ -1447,7 +1456,6 @@ model Boundary {
   @@index([adminLevel, minLat, maxLat])
   @@index([city])
 }
-
 
 // Where the water is — lakes, rivers, tanks, reservoirs and canals, as polygons.
 //
@@ -1502,7 +1510,6 @@ model WaterBody {
   @@index([city])
 }
 
-
 // Motorable roads, as lines. Closes `road_access` for `landContext` — at 0.19
 // against a ceiling of 0.50, the weakest module in the layer.
 //
@@ -1522,11 +1529,11 @@ model WaterBody {
 // Same no-PostGIS pattern as WaterBody, one shape simpler: a road has no
 // inside, so nearest-point is the only question (geometryDistance.js).
 model RoadSegment {
-  id     String @id @default(cuid())
-  osmId  String @unique
+  id      String   @id @default(cuid())
+  osmId   String   @unique
   // Frequently absent and that is fine — an unnamed residential street still
   // proves access. The class carries the meaning here, not the name.
-  name   String?
+  name    String?
   // OSM's own `highway=` value, unmapped. Same reasoning as Boundary.adminLevel:
   // it is what the source data, every other OSM consumer and the seeder all
   // speak, and a private renumbering would need translating back on refetch.
@@ -1539,7 +1546,7 @@ model RoadSegment {
   // the same as unpaved and must never be rendered as it.
   paved   Boolean?
   city    String?
-  source  String @default("openstreetmap")
+  source  String   @default("openstreetmap")
 
   // LineString or MultiLineString.
   geometry Json
@@ -1558,7 +1565,6 @@ model RoadSegment {
   @@index([minLng, maxLng])
   @@index([city])
 }
-
 
 // One row per ETL run, per dataset.
 //
@@ -1586,13 +1592,13 @@ model CellPoiSummary {
 
   // Null means "none of this category within the search radius" — distinct
   // from 0, and distinct from a missing row, which means "never computed".
-  nearestM   Int?
+  nearestM     Int?
   // Network walking metres to that same nearest POI, from the self-hosted
   // router (routingProvider.js). Null = router absent at compute time, or the
   // POI didn't snap to the street network — "not measured", never 0.
   nearestWalkM Int?
-  count800M  Int @default(0)
-  count1600M Int @default(0)
+  count800M    Int  @default(0)
+  count1600M   Int  @default(0)
 
   computedAt DateTime @default(now())
 
@@ -1621,11 +1627,11 @@ model CellPoiSummary {
 // Seeded by scripts/fetch-pincode-directory.mjs from data.gov.in (free, the
 // same key as CPCB). Pincodes change glacially; yearly refresh is plenty.
 model PincodeDirectory {
-  id         String  @id @default(cuid())
+  id         String   @id @default(cuid())
   pincode    String
   officeName String
   officeType String? // 'S.O' | 'B.O' | 'H.O'
-  delivery   Boolean @default(true)
+  delivery   Boolean  @default(true)
   taluk      String?
   division   String?
   region     String?
@@ -1646,23 +1652,91 @@ model PincodeDirectory {
 // bit sparse — indistinguishable from an area that genuinely is sparse, which
 // is the one ambiguity this whole layer exists to avoid.
 model DataQualityReport {
-  id      String @id @default(cuid())
+  id      String   @id @default(cuid())
   dataset String // 'poi_index' | 'boundaries' | 'weather_normals'
   // City, or null for a run that isn't city-scoped.
   scope   String?
   runAt   DateTime @default(now())
 
-  recordCount Int
+  recordCount     Int
   // % of rows carrying the fields that make a row useful — for POIs, a name.
   // Null when the dataset has no meaningful notion of partial completeness.
   completenessPct Float?
   // False when the run knew it was incomplete (a failed tile, a dead
   // endpoint). The single most important column here: it separates "this area
   // is sparse" from "we failed to fetch it".
-  complete Boolean @default(true)
+  complete        Boolean @default(true)
 
   // Per-dataset detail — category counts, failed tiles, endpoints tried.
   notes Json?
 
   @@index([dataset, runAt])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// User safety — blocking and reporting a PERSON
+// ─────────────────────────────────────────────────────────────────
+
+// One row per (blocker, blocked) pair. Directional as a record — we always know
+// who did the blocking — but the messaging gate reads it in BOTH directions:
+// blocking someone must stop them reaching you, which is the entire point.
+//
+// Distinct from `User.isBlocked`, which is an ADMIN suspending an account
+// platform-wide. This is one user protecting themselves from another, and the
+// two must never be confused: a UserBlock has no effect on anything except the
+// pair it names.
+model UserBlock {
+  id        String @id @default(cuid())
+  blocker   User   @relation("BlocksMade", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockerId String
+  blocked   User   @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+  blockedId String
+
+  createdAt DateTime @default(now())
+
+  // Idempotent by construction: blocking twice is the same fact, not two.
+  @@unique([blockerId, blockedId])
+  // The gate's access path — "is there a block between these two", asked on
+  // every send and every conversation list.
+  @@index([blockedId])
+}
+
+// A report against a PERSON, as opposed to PropertyReport's report against a
+// listing. Kept separate rather than bolting a nullable userId onto that model:
+// the categories barely overlap (a person cannot have FAKE_PHOTOS, a listing
+// cannot HARASS), the moderation response differs, and a shared table would
+// make every existing property-report query say "and where userId is null".
+model UserReport {
+  id         String @id @default(cuid())
+  reporter   User   @relation("UserReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
+  reporterId String
+  reported   User   @relation("UserReportsAgainst", fields: [reportedId], references: [id], onDelete: Cascade)
+  reportedId String
+
+  category    UserReportCategory
+  description String
+
+  // The thread it happened in, when there is one. SetNull rather than Cascade:
+  // deleting a conversation must not destroy the report that cites it — the
+  // report is the evidence, and losing it because the abuser's thread went away
+  // would be exactly backwards.
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  conversationId String?
+
+  status    ReportStatus @default(PENDING)
+  adminNote String?
+
+  createdAt DateTime @default(now())
+
+  @@index([reportedId])
+  @@index([status])
+}
+
+enum UserReportCategory {
+  HARASSMENT
+  SPAM
+  SCAM_OR_FRAUD
+  IMPERSONATION
+  HATE_OR_ABUSE
+  OTHER
 }
