@@ -102,8 +102,15 @@ const FILES = proseFiles(REPO).map((path) => ({
 describe('prose files carry no live credentials', () => {
   // Canary: if the walk stops finding files, every assertion below passes
   // vacuously and this suite becomes decoration.
+  //
+  // Anchored on a file that is TRACKED, not on a count. The first version
+  // asserted `> 20` and passed locally while failing in CI, because almost all
+  // of this repo's prose is gitignored (.gitignore blocks `*.md` except
+  // READMEs, plus `docs/` and `.claude/`): a working tree has 100+ prose files
+  // and a fresh clone has 8. A count calibrated on one is wrong on the other —
+  // and the number that matters is "more than zero", not "more than twenty".
   it('has documentation to scan', () => {
-    expect(FILES.length).toBeGreaterThan(20)
+    expect(FILES.map((f) => f.path)).toContain('README.md')
   })
 
   for (const { name, re, detect } of PATTERNS) {
