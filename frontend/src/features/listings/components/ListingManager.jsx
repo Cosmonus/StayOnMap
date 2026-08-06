@@ -4,6 +4,7 @@ import { propertyService } from '@services/property.service'
 import { formatPrice, formatAge } from '@utils/format'
 import PropertyStatusPill from '@components/common/PropertyStatusPill'
 import ActionMenu from '@components/common/ActionMenu'
+import Button from '@components/common/Button'
 
 // The owner's listing list. A ROW per listing, not a card in a grid: the four
 // things an owner comes here for — what state it's in, what it earns, who is
@@ -68,22 +69,15 @@ function Thumb({ property }) {
   )
 }
 
-// Full-width on a phone (nothing to sit beside it), auto on desktop. 44px tall
-// either way — the documented minimum, which px-4 py-2.5 was one pixel under.
-function Button({ children, onClick, variant = 'outline' }) {
-  const styles = {
-    primary: 'bg-brand-600 hover:bg-brand-700 text-white border-transparent',
-    dark: 'bg-[#111111] hover:bg-[#2a2a2a] text-white border-transparent',
-    outline: 'bg-white hover:border-slate-400 text-slate-700 border-slate-200',
-  }[variant]
+// Full-width on a phone (nothing to sit beside it), auto on desktop. The rest —
+// the 44px floor, the variants, the focus ring — is the shared Button now; this
+// file carried a private copy of it, including its own `dark`, which is why
+// `dark` is a variant of the real one.
+function RowButton({ children, onClick, variant = 'outline' }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full sm:w-auto shrink-0 min-h-[44px] px-4 py-3 rounded-xl border text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${styles}`}
-    >
+    <Button variant={variant} onClick={onClick} className="w-full sm:w-auto shrink-0">
       {children}
-    </button>
+    </Button>
   )
 }
 
@@ -266,8 +260,8 @@ function ListingRow({ property, ...handlers }) {
       )}
 
       <div className="flex items-center gap-2 shrink-0">
-        {primary && <Button variant={primary.variant} onClick={primary.onClick}>{primary.label}</Button>}
-        {secondary && <Button onClick={secondary.onClick}>{secondary.label}</Button>}
+        {primary && <RowButton variant={primary.variant} onClick={primary.onClick}>{primary.label}</RowButton>}
+        {secondary && <RowButton onClick={secondary.onClick}>{secondary.label}</RowButton>}
         {menu.length > 0 && (
           <ActionMenu
             label={`More actions for ${property.title}`}
@@ -305,7 +299,7 @@ function LocalDraftRow({ draft, label, onResume, onDiscard }) {
         <p className="text-xs text-slate-500 mt-0.5">{saved}</p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        <Button variant="primary" onClick={onResume}>Resume</Button>
+        <RowButton variant="primary" onClick={onResume}>Resume</RowButton>
         <ActionMenu
           label="More actions for this draft"
           items={[{ key: 'discard', label: 'Delete draft', icon: <Trash2 size={16} strokeWidth={1.8} />, danger: true, onClick: onDiscard }]}

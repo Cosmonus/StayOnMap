@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect, useId } from 'react'
+import { X } from 'lucide-react'
 
 const SIZE_CLASS = {
   sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg', xl: 'max-w-xl',
@@ -6,23 +7,99 @@ const SIZE_CLASS = {
   full: 'max-w-[95vw]',
 }
 
-// `footer` (sticky action bar) and `sheet` (bottom sheet on mobile, swipe
-// down to close) opt into a structured layout; without them the original
-// single-scroll panel renders unchanged for all existing callers.
+const FOCUSABLE =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+// The app's ONE overlay primitive, in both shapes: a centred dialog, and — with
+// `sheet` — a bottom sheet on mobile that swipes down to close. There was a
+// second, unused `components/layout/BottomSheet.jsx` offering a worse version of
+// the sheet half (no dismissal, no semantics, snap dots as unlabelled buttons);
+// it was deleted rather than promoted, because two overlays is how they drift.
+//
+// Dialog behaviour lives here so no caller has to remember it. Until 2026-08-07
+// none of it existed: every modal in the app rendered as a plain <div>, so a
+// screen reader never announced one opening, Escape did nothing, Tab walked
+// straight out into the page behind, focus never came back to whatever opened
+// it, and the background scrolled under the backdrop.
 export default function Modal({ isOpen, onClose, title, size = 'md', children, footer, sheet = false }) {
   const dragStartY = useRef(null)
   const [dragOffset, setDragOffset] = useState(0)
+  const panelRef = useRef(null)
+  const titleId = useId()
+
+  // Escape to close, Tab trapped inside, focus moved in on open and restored to
+  // the opener on close. One effect because they share a lifetime.
+  useEffect(() => {
+    if (!isOpen) return
+    const opener = document.activeElement
+
+    function onKeyDown(e) {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        onClose?.()
+        return
+      }
+      if (e.key !== 'Tab') return
+      const panel = panelRef.current
+      if (!panel) return
+      const items = Array.from(panel.querySelectorAll(FOCUSABLE)).filter(
+        (el) => el.offsetParent !== null || el === document.activeElement,
+      )
+      if (items.length === 0) {
+        e.preventDefault()
+        panel.focus()
+        return
+      }
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    // Scroll lock. Read the previous value rather than assuming '' — nested
+    // overlays would otherwise unlock the page when the inner one closes.
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    // Focus the first control, or the panel itself when there is none, so the
+    // reading position starts inside the dialog either way.
+    const panel = panelRef.current
+    const target = panel?.querySelector(FOCUSABLE) ?? panel
+    target?.focus?.({ preventScroll: true })
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = previousOverflow
+      if (opener instanceof HTMLElement) opener.focus?.({ preventScroll: true })
+    }
+  }, [isOpen, onClose])
 
   if (!isOpen) return null
 
   const sizeClass = SIZE_CLASS[size] ?? SIZE_CLASS.md
+  const dialogProps = {
+    ref: panelRef,
+    role: 'dialog',
+    'aria-modal': true,
+    tabIndex: -1,
+    ...(title ? { 'aria-labelledby': titleId } : { 'aria-label': 'Dialog' }),
+  }
 
   if (!footer && !sheet) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
-        <div className={`relative z-10 w-full ${sizeClass} max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-panel border border-slate-200`}>
-          {title && <ModalHeader title={title} onClose={onClose} />}
+        <div
+          {...dialogProps}
+          className={`relative z-10 w-full ${sizeClass} max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-panel border border-slate-200 focus:outline-none`}
+        >
+          {title && <ModalHeader title={title} titleId={titleId} onClose={onClose} />}
           {children}
         </div>
       </div>
@@ -44,8 +121,9 @@ export default function Modal({ isOpen, onClose, title, size = 'md', children, f
     <div className={`fixed inset-0 z-50 flex justify-center ${sheet ? 'items-end md:items-center md:p-4' : 'items-center p-4'}`}>
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
       <div
+        {...dialogProps}
         style={dragOffset ? { transform: `translateY(${dragOffset}px)` } : undefined}
-        className={`relative z-10 w-full ${sizeClass} flex flex-col overflow-hidden bg-white shadow-panel border border-slate-200 transition-transform
+        className={`relative z-10 w-full ${sizeClass} flex flex-col overflow-hidden bg-white shadow-panel border border-slate-200 transition-transform focus:outline-none
           ${sheet ? 'max-h-[92vh] md:max-h-[86vh] rounded-t-3xl md:rounded-2xl' : 'max-h-[90vh] rounded-2xl'}`}
       >
         {sheet && (
@@ -58,7 +136,7 @@ export default function Modal({ isOpen, onClose, title, size = 'md', children, f
         )}
         {title && (
           <div className="shrink-0 px-6 pt-4 pb-3 border-b border-slate-100">
-            <ModalHeader title={title} onClose={onClose} tight />
+            <ModalHeader title={title} titleId={titleId} onClose={onClose} tight />
           </div>
         )}
         <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
@@ -80,15 +158,20 @@ export default function Modal({ isOpen, onClose, title, size = 'md', children, f
   )
 }
 
-function ModalHeader({ title, onClose, tight = false }) {
+function ModalHeader({ title, titleId, onClose, tight = false }) {
   return (
-    <div className={`flex items-center justify-between ${tight ? '' : 'mb-4'}`}>
-      <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
+    <div className={`flex items-center justify-between gap-3 ${tight ? '' : 'mb-4'}`}>
+      <h2 id={titleId} className="text-lg font-semibold text-slate-800">{title}</h2>
+      {/* 44px target around a 20px glyph — the button is sized, not the icon.
+          It used to be a bare "✕" in a 28px box with no accessible name, so
+          TalkBack and VoiceOver read it as an unlabelled button. */}
       <button
+        type="button"
         onClick={onClose}
-        className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+        aria-label="Close dialog"
+        className="shrink-0 -mr-2 w-11 h-11 flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors"
       >
-        ✕
+        <X className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
       </button>
     </div>
   )
