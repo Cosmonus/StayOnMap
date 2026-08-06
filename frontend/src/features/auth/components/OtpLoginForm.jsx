@@ -65,8 +65,9 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, onSignup,
     return (
       <form onSubmit={send} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Email address</label>
+          <label htmlFor="otp-email" className="block text-sm font-medium text-slate-700 mb-1.5">Email address</label>
           <input
+            id="otp-email" name="otp-email" autoComplete="username"
             type="email" value={email} onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com" required autoFocus
             className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-brand-600 transition-all bg-slate-50 placeholder:text-slate-500"

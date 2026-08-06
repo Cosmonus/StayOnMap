@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { authService } from '@services/auth.service'
 import { toast } from '@components/common/Toaster'
 import { useUiStore } from '@store/uiStore'
@@ -9,6 +10,9 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
   const [loading, setLoading] = useState(true)
+  // AuthProvider sits INSIDE QueryClientProvider (main.jsx), so this is the
+  // same client every query uses.
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     const token = localStorage.getItem('user_token')
@@ -56,6 +60,25 @@ export function AuthProvider({ children }) {
     // half-written listing, which is exactly how it behaved before the draft
     // belonged to an account.
     clearLocalDraftOnSignOut()
+    // Every SERVER query goes with them too, for exactly the reason stated
+    // above about the draft — and this was the half that was missing.
+    //
+    // React Query's cache is keyed by query, not by account. Without this, the
+    // next person to sign in on this machine gets served the previous user's
+    // cached data until each key happens to refetch: their profile, their
+    // unread counts, their notifications, their leases, their saved homes.
+    //
+    // `['me']` is the one that bites hardest, because it is an AUTHORISATION
+    // input. `isOwner` is derived from it, and `HostDashboard`'s render gate
+    // reads that — so a fresh TENANT signing in after an owner inherited
+    // `role: 'OWNER'`, mounted the host dashboard, and got a 403 rendered as
+    // "We couldn't load your dashboard" with a Retry that could never work.
+    // That is the 2026-08-07 bug 4 report, and the stale cache is its root
+    // cause rather than anything in the dashboard itself.
+    //
+    // clear(), not invalidate: invalidation keeps the stale value on screen
+    // while it refetches, which is the whole problem.
+    queryClient.clear()
     setUser(null)
     toast.info('Signed out', 'You have been logged out')
   }

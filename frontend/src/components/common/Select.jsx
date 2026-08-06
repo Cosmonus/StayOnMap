@@ -1,18 +1,31 @@
 // Custom dropdown — replaces a native <select> (whose open option list can't
 // be styled at all, just renders the OS/browser default). Portal-based, same
 // visual language as CityDropdown.jsx's floating panel.
-// Props: label, error, options [{ value, label, hint? }], placeholder, value, onChange(value), disabled
+// Props: label, hint, error, options [{ value, label, hint? }], placeholder, value, onChange(value), disabled
 //
-// `hint` renders as a muted second line inside the panel and nothing in the
-// trigger — it's for choices that need a word of explanation to pick between
-// ("Villa — premium standalone home"), which is why the listing wizard can use
-// this instead of a row of pills.
+// An option's `hint` renders as a muted second line inside the panel and
+// nothing in the trigger — it's for choices that need a word of explanation to
+// pick between ("Villa — premium standalone home"), which is why the listing
+// wizard can use this instead of a row of pills. The FIELD's `hint` is the
+// help line under the control; see the clearance note on PANEL_GAP.
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
 
+// How far below the trigger the floating panel opens. Anything the field
+// renders under the control must clear this, or the panel lands mid-line and
+// SLICES it instead of covering it — a 2px sliver of help text wedged under
+// the dropdown, which is exactly what "the text is overlapping the dropdown"
+// looked like when callers hand-rolled a `<p className="mt-1">` sibling. Hence
+// `hint` living in here, spaced to clear the gap, rather than at each callsite.
+const PANEL_GAP = 6
+
+// gap-1 (4px) from the flex column + mt-1 (4px) = 8px, clear of PANEL_GAP.
+const BELOW_CONTROL = 'mt-1 text-xs'
+
 export default function Select({
   label,
+  hint,
   error,
   options = [],
   placeholder = 'Select…',
@@ -42,7 +55,7 @@ export default function Select({
       const r = el.getBoundingClientRect()
       const vw = window.innerWidth
       const vh = window.innerHeight
-      const GAP = 6, MARGIN = 8, PANEL_MAX = 256
+      const GAP = PANEL_GAP, MARGIN = 8, PANEL_MAX = 256
       const below = vh - r.bottom - GAP - MARGIN
       const above = r.top - GAP - MARGIN
       const openUp = below < 160 && above > below
@@ -152,7 +165,8 @@ export default function Select({
           document.body
         )}
       </div>
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {hint   && <p className={`${BELOW_CONTROL} text-slate-500`}>{hint}</p>}
+      {error  && <p className={`${BELOW_CONTROL} text-red-500`}>{error}</p>}
     </div>
   )
 }

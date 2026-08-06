@@ -6,6 +6,7 @@ import { leaseService } from '@services/lease.service'
 import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { formatCurrency } from '@utils/format'
+import { WEB_ORIGIN } from '@config/links'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ErrorState from '@components/common/ErrorState'
@@ -70,7 +71,7 @@ function LeaseCard({ lease, currentUserId }) {
     const month = new Date(lease.signedAt || lease.startDate).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
     const place = area && area !== city ? `${area}, ${city}` : city
     try {
-      await Share.share({ message: `🏡 I'm home! ${place} · ${month}\nFound broker-free on StayOnMap — https://www.stayonmap.com` })
+      await Share.share({ message: `🏡 I'm home! ${place} · ${month}\nFound broker-free on StayOnMap — ${WEB_ORIGIN}` })
     } catch { /* share sheet dismissed */ }
   }
 

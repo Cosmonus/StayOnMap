@@ -381,7 +381,11 @@ describe('createProperty', () => {
     prismaMock.property.count.mockResolvedValue(0)
     prismaMock.property.create.mockResolvedValue(created)
 
-    const result = await createProperty('owner-1', { ...validData, city: 'Chennai' })
+    // The pin moves with the city. This fixture used to flip `city` alone and
+    // leave validData's Bengaluru coordinates in place — the exact contradiction
+    // that shipped a "Bengaluru" listing pinned in Chennai to production. See
+    // tests/city-coordinate-match.test.js.
+    const result = await createProperty('owner-1', { ...validData, city: 'Chennai', lat: 13.0827, lng: 80.2707 })
 
     expect(result.status).toBe('DRAFT')
   })

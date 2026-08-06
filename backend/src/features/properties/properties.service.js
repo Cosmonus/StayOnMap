@@ -7,6 +7,7 @@ import { generatePropertyDisplayId } from '../../utils/idGenerator.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { intelError } from '../../lib/intelLog.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
+import { cityMismatch } from '../../config/cityCenters.js'
 import { buildFilterWhere, filterCacheKey } from './filters.registry.js'
 import { encode, decode } from '../../lib/geohash.js'
 import { resolveProximityFilter, proximityCacheKey } from './proximityFilter.js'
@@ -346,10 +347,41 @@ function assertAllowedCity(city) {
   }
 }
 
+// The city dropdown and the map pin are two independent inputs, and until this
+// existed nothing reconciled them: a listing could claim Bengaluru while its pin
+// sat in Chennai, and every surface then disagreed with every other. The pin
+// decides where it draws on the map and which geohash cell describes its
+// neighbourhood; the `city` column decides which city filter finds it. One
+// listing, two cities, no error anywhere.
+//
+// The only pre-existing coordinate-vs-city check ran in intelligence.service.js
+// AFTER the write, fire-and-forget, and merely logged + fed a stubbed AI — so in
+// production it changed nothing at all. This is the same question asked in front
+// of the write, where it can still be answered by the person who mistyped it.
+//
+// It is a 400, not a fraud signal: the two inputs contradict each other, and we
+// deliberately do not presume which one is wrong. The message names both and
+// leaves the choice to the owner, because the fix is one drag of the pin or one
+// change of the dropdown and we cannot know which they meant.
+function assertCoordsMatchCity(city, lat, lng) {
+  const mismatch = cityMismatch(city, Number(lat), Number(lng))
+  if (!mismatch) return
+
+  const looksLike = mismatch.looksLike ? ` — it looks like it is in ${mismatch.looksLike}` : ''
+  throw Object.assign(
+    new Error(
+      `The map pin is ${mismatch.distanceKm} km from ${city}${looksLike}. ` +
+      'Move the pin to the property, or change the city to match it.'
+    ),
+    { statusCode: 400 }
+  )
+}
+
 export async function createProperty(ownerId, data) {
   const { amenityIds = [], images = [], rules, availableFrom, type, ...propertyData } = data
 
   assertAllowedCity(data.city)
+  assertCoordsMatchCity(data.city, data.lat, data.lng)
 
   // No listing cap. There was a 3-active-listing free-tier limit until
   // 2026-07-27; it was removed because the tier it belonged to does not exist —
@@ -400,6 +432,25 @@ export async function updateProperty(id, ownerId, data) {
     if (!existing) throw Object.assign(new Error('Property not found or access denied'), { statusCode: 404 })
 
     const movedCoords = propertyData.lat !== undefined || propertyData.lng !== undefined
+
+    // Same check as createProperty, against the MERGED triple — each of the
+    // three is independently optional here, so `{ city: 'Bengaluru' }` alone has
+    // to be judged against the coordinates already on the row, and `{ lat }`
+    // alone against the existing city. Reading only the payload would let either
+    // half of a contradiction in one field at a time.
+    //
+    // Gated on the location actually being touched, matching the `movedCoords`
+    // and re-evaluation idioms below: a listing that already holds a mismatch
+    // must not have its title edit rejected for it. The moment its owner touches
+    // the location, though, they have to resolve it — which is how the rows that
+    // predate this check get repaired rather than frozen.
+    if (propertyData.city !== undefined || movedCoords) {
+      assertCoordsMatchCity(
+        propertyData.city ?? existing.city,
+        propertyData.lat ?? existing.lat,
+        propertyData.lng ?? existing.lng
+      )
+    }
 
     if (amenityIds !== undefined) {
       await tx.propertyAmenity.deleteMany({ where: { propertyId: id } })

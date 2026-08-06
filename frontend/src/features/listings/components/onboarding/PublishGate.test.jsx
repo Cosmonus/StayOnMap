@@ -101,3 +101,50 @@ describe('publish gate — phone', () => {
     expect(userService.updateProfile).not.toHaveBeenCalled()
   })
 })
+
+/**
+ * The other half of the 2026-08-07 report — and the half that was actually
+ * broken.
+ *
+ * "there we have a phone number blocker if we enter ph number it doesnt work
+ * also". The phone field was fine; the tests above prove it saves. What was
+ * broken is that Publish was DISABLED whenever any profile requirement was
+ * outstanding, with nothing on screen naming which one — and for most people
+ * the outstanding one is a VERIFIED EMAIL, satisfied in an inbox rather than in
+ * this form. So an owner fills in the phone the box asked for, the button stays
+ * grey, pressing it does nothing and says nothing, and the only interactive
+ * thing in sight is the phone field. Of course it reads as a broken phone field.
+ *
+ * `.claude/ui-ux.md` says to disable AND show why. Showing nothing was the
+ * missing half.
+ */
+describe('publish gate — email verification', () => {
+  const MISSING_EMAIL = [{ field: 'email', label: 'Verified email' }]
+  const COMPLETE = { name: 'Priya', city: 'Chennai', phone: '9845012345' }
+
+  it('offers a way to re-check after verifying somewhere else', async () => {
+    // The requirement is satisfied in an inbox, possibly on another device.
+    // Without this, a fully-satisfied gate can sit there closed with a page
+    // reload as the only escape.
+    const { user, client } = renderWithProviders(
+      <PublishGate missing={MISSING_EMAIL} profile={COMPLETE} />,
+    )
+    const spy = vi.spyOn(client, 'invalidateQueries')
+
+    await user.click(screen.getByRole('button', { name: /check again/i }))
+
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['me'] }))
+  })
+
+  it('names the email as what is outstanding', () => {
+    renderWithProviders(<PublishGate missing={MISSING_EMAIL} profile={COMPLETE} />)
+    expect(screen.getByText(/verify your email/i)).toBeInTheDocument()
+  })
+
+  it('shows no phone field when the phone is not what is missing', () => {
+    // The mis-attribution at the heart of the report: if the phone is fine, the
+    // box must not present a phone field for the owner to blame.
+    renderWithProviders(<PublishGate missing={MISSING_EMAIL} profile={COMPLETE} />)
+    expect(screen.queryByLabelText(/contact number/i)).not.toBeInTheDocument()
+  })
+})
