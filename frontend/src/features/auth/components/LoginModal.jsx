@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Phone, MapPin, Eye, EyeOff, MailCheck } from 'lucide-react'
+import { X, Phone, MapPin, Eye, EyeOff, MailCheck, KeyRound, House } from 'lucide-react'
 import { authService } from '@services/auth.service'
 import { useAuth } from '../hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
@@ -141,8 +141,8 @@ export default function LoginModal() {
     >
       <div
         onClick={e => e.stopPropagation()}
-        className="relative w-full max-w-3xl rounded-3xl overflow-hidden flex"
-        style={{ maxHeight: '90vh', boxShadow: '0 40px 100px rgba(0,0,0,0.45)' }}
+        className="relative w-full max-w-3xl rounded-3xl overflow-hidden flex shadow-panel"
+        style={{ maxHeight: '90vh' }}
       >
         {/* Left panel */}
         <div
@@ -450,7 +450,7 @@ export default function LoginModal() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1.5">I am a</label>
                   <div className="grid grid-cols-2 gap-2">
-                    {[['TENANT', '🔑', 'Tenant / Renter'], ['OWNER', '🏠', 'Property Owner']].map(([v, emoji, label]) => (
+                    {[['TENANT', KeyRound, 'Tenant / Renter'], ['OWNER', House, 'Property Owner']].map(([v, RIcon, label]) => (
                       <button
                         key={v} type="button" onClick={() => setRole(v)}
                         className={[
@@ -460,7 +460,7 @@ export default function LoginModal() {
                             : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:bg-brand-50',
                         ].join(' ')}
                       >
-                        <span>{emoji}</span> {label}
+                        <RIcon className="w-4 h-4 shrink-0" strokeWidth={2} aria-hidden="true" /> {label}
                       </button>
                     ))}
                   </div>

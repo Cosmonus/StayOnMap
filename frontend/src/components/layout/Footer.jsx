@@ -66,6 +66,7 @@ export default function Footer() {
                 Stay<span className="text-brand-500">OnMap</span>
               </span>
             </Link>
+            {/* eslint-disable-next-line no-restricted-syntax -- the #111111 footer, where slate-400 is ~8:1 and the correct muted tone */}
             <p className="text-sm text-slate-400 leading-relaxed mb-6 max-w-xs">
               Owner-direct rentals in {CITY_LIST_LABEL}. No broker. No commission. Just a home and the person who owns it.
             </p>
@@ -79,6 +80,7 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
+                  // eslint-disable-next-line no-restricted-syntax -- the #111111 footer, where slate-400 is ~8:1 and the correct muted tone
                   className="w-9 h-9 rounded-lg bg-white/5 hover:bg-brand-600 flex items-center justify-center text-slate-400 hover:text-white transition-colors duration-150"
                 >
                   {icon}
@@ -96,6 +98,7 @@ export default function Footer() {
                   <li key={label}>
                     <Link
                       to={to}
+                      // eslint-disable-next-line no-restricted-syntax -- the #111111 footer, where slate-400 is ~8:1 and the correct muted tone
                       className="text-sm text-slate-400 hover:text-white transition-colors duration-150 no-underline"
                     >
                       {label}
@@ -134,6 +137,7 @@ export default function Footer() {
             href="https://www.srigokulkrishnan.com"
             target="_blank"
             rel="noopener noreferrer"
+            // eslint-disable-next-line no-restricted-syntax -- the #111111 footer, where slate-400 is ~8:1 and the correct muted tone
             className="text-slate-400 hover:text-white transition-colors duration-150 no-underline"
           >
             Sri Gokul Krishnan

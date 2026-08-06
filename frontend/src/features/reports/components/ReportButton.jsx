@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Flag } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import { reportService } from '@services/report.service'
 import Select from '@components/common/Select'
@@ -42,7 +43,7 @@ export default function ReportButton({ propertyId }) {
         onClick={() => setOpen(true)}
         className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-red-600 transition-colors"
       >
-        <span className="text-base leading-none">&#9872;</span> Report listing
+        <Flag className="w-4 h-4 shrink-0" strokeWidth={2} aria-hidden="true" /> Report listing
       </button>
     )
   }

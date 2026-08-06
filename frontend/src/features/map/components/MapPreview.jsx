@@ -47,12 +47,12 @@ export default function MapPreview() {
           gap: 8px;
         `
         pill.innerHTML = `
-          <div style="width:30px;height:30px;background:#f4511e;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:800;color:white;letter-spacing:-0.02em;">
+          <div style="width:30px;height:30px;background:#0d8a5f;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:800;color:white;letter-spacing:-0.02em;">
             ${name.charAt(0)}
           </div>
           <div>
             <div style="font-size:10px;font-weight:600;color:#64748b;line-height:1;">${name}</div>
-            <div style="font-size:13px;font-weight:800;color:#111111;line-height:1.4;">${count} <span style="font-size:10px;font-weight:500;color:#f4511e;">prop.</span></div>
+            <div style="font-size:13px;font-weight:800;color:#111111;line-height:1.4;">${count} <span style="font-size:10px;font-weight:500;color:#0d8a5f;">prop.</span></div>
           </div>
         `
         createHtmlMarker({ element: pill, lat, lng, map })

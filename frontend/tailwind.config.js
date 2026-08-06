@@ -33,12 +33,16 @@ export default {
           950: '#060504',
         },
 
-        // ── Map accent — Sun Orange (search pin, navigation) ───────────────
-        accent: {
-          400: '#ff6b3d',
-          500: '#f4511e',
-          600: '#c93d11',
-        },
+        // The `accent` Sun Orange ramp (#ff6b3d / #f4511e / #c93d11) was
+        // RETIRED 2026-07-26 by operator decision: "Green, not orange. The
+        // palette is jade end to end", explicitly including the map's
+        // searched-place marker, which is now slate-800 — distinct from listing
+        // pins by weight and shape rather than by a second hue.
+        //
+        // It is gone from the token layer as well as from the components
+        // (2026-08-07) because leaving it here is an invitation: zero `accent-*`
+        // classes existed, but ten hardcoded #f4511e literals did, which is
+        // exactly what a retired-but-still-defined token produces.
 
         // ── Semantic state colors ──────────────────────────────────────────
         error: {

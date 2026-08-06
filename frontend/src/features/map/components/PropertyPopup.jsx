@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Lock, X, Navigation, Phone, ArrowRight, ImageOff } from 'lucide-react'
+import {
+  Lock, X, Navigation, Phone, ArrowRight, ImageOff,
+  Bed, Ruler, Users, Sofa, Home, Building2, LandPlot, Store, Luggage,
+} from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { useMapStore } from '@store/mapStore'
 import { useAuth } from '@features/auth/hooks/useAuth'
@@ -10,14 +13,36 @@ import { factIcon } from '@features/spatial/factIcons'
 import TrustBadge from '@components/common/TrustBadge'
 import RiskAlert from '@components/common/RiskAlert'
 
-function Pill({ children, color = 'slate' }) {
+// The words and glyphs mobile's config/propertyTypes.js already declares —
+// "Plot", not "Land"; "Stay", not "Short stay" — and the same six lucide icons
+// useMapPins.js inlines as SVG for the pins themselves.
+//
+// All three chips were built from EMOJI until 2026-08-07. An emoji renders in
+// the OS font, so the pills were the one part of this card drawn by Apple or
+// Google rather than by us, at a size and weight we do not control, and several
+// read as near-identical little houses at 12px. The labels were derived from the
+// enum too, so a plot said "Land" here and "Plot" everywhere else on both
+// platforms.
+const TYPE_ICON = {
+  APARTMENT: Building2, HOUSE: Home, VILLA: Home, INDEPENDENT_HOUSE: Home,
+  LAND: LandPlot, PG: Bed, COMMERCIAL: Store, SHORT_STAY: Luggage,
+}
+const TYPE_LABEL = {
+  APARTMENT: 'Apartment', HOUSE: 'House', VILLA: 'Villa',
+  INDEPENDENT_HOUSE: 'Independent house', LAND: 'Plot', PG: 'PG',
+  COMMERCIAL: 'Commercial', SHORT_STAY: 'Stay',
+}
+const FURNISHED_LABEL = { FULLY: 'Furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
+
+function Pill({ icon: Icon, children, color = 'slate' }) {
   const styles = {
     slate:  'bg-slate-100 text-slate-600',
     brand:  'bg-brand-50 text-brand-700',
     violet: 'bg-violet-50 text-violet-700',
   }
   return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${styles[color] ?? styles.slate}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${styles[color] ?? styles.slate}`}>
+      {Icon && <Icon className="w-3.5 h-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />}
       {children}
     </span>
   )
@@ -70,22 +95,20 @@ export default function PropertyPopup({ bare = false }) {
 
   // Spec chip is per-type: BHK means nothing on a plot, sharing is the number
   // that matters for a PG, guests for a short stay, carpet area for a shop.
-  const bhkLabel = !property ? null
-    : property.type === 'PG' ? `🏘️ ${property.sharing}-Sharing PG`
-    : property.type === 'LAND' ? (property.extent ? `📐 ${property.extent} ${(property.extentUnit ?? '').toLowerCase()}`.trim() : null)
-    : property.type === 'SHORT_STAY' ? (property.maxGuests ? `👥 Up to ${property.maxGuests} guests` : null)
-    : property.type === 'COMMERCIAL' ? (property.carpetArea ? `📐 ${property.carpetArea} sq.ft carpet` : null)
-    : property.bhk === 0 ? '🛏️ Studio'
-    : property.bhk ? `🛏️ ${property.bhk} BHK` : null
+  const spec = !property ? null
+    : property.type === 'PG' ? { Icon: Bed, text: `${property.sharing}-Sharing PG` }
+    : property.type === 'LAND' ? (property.extent ? { Icon: Ruler, text: `${property.extent} ${(property.extentUnit ?? '').toLowerCase()}`.trim() } : null)
+    : property.type === 'SHORT_STAY' ? (property.maxGuests ? { Icon: Users, text: `Up to ${property.maxGuests} guests` } : null)
+    : property.type === 'COMMERCIAL' ? (property.carpetArea ? { Icon: Ruler, text: `${property.carpetArea} sq.ft carpet` } : null)
+    : property.bhk === 0 ? { Icon: Bed, text: 'Studio' }
+    : property.bhk ? { Icon: Bed, text: `${property.bhk} BHK` } : null
 
-  const FURNISHED_EMOJI = { FULLY: '🛋️', SEMI: '🪑', UNFURNISHED: '📦' }
   const furnished = property?.furnished
-    ? `${FURNISHED_EMOJI[property.furnished] ?? ''} ${property.furnished.charAt(0) + property.furnished.slice(1).toLowerCase().replace('_', ' ')}`.trim()
+    ? { Icon: Sofa, text: FURNISHED_LABEL[property.furnished] ?? property.furnished }
     : null
 
-  const TYPE_EMOJI = { APARTMENT: '🏢', HOUSE: '🏠', VILLA: '🏡', PG: '🏘️', INDEPENDENT_HOUSE: '🏠', COMMERCIAL: '🏪', LAND: '🏞️', SHORT_STAY: '🏨' }
-  const typeLabel = property?.type
-    ? `${TYPE_EMOJI[property.type] ?? '🏠'} ${property.type.replace(/_/g, ' ').charAt(0) + property.type.replace(/_/g, ' ').slice(1).toLowerCase()}`
+  const type = property?.type
+    ? { Icon: TYPE_ICON[property.type] ?? Home, text: TYPE_LABEL[property.type] ?? 'Property' }
     : null
 
   // Nightly for a short stay; formatPrice covers rent vs lease vs sale for the
@@ -112,8 +135,7 @@ export default function PropertyPopup({ bare = false }) {
 
   return (
     <div
-      className={bare ? 'w-full bg-white' : 'w-full bg-white rounded-2xl overflow-hidden border border-slate-100'}
-      style={bare ? undefined : { boxShadow: '0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)' }}
+      className={bare ? 'w-full bg-white' : 'w-full bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-md'}
     >
       {/* ── Photo ── */}
       {isLoading ? (
@@ -123,7 +145,7 @@ export default function PropertyPopup({ bare = false }) {
           {images[0]?.url ? (
             <img src={imgUrl(images[0].url, 'card')} alt={property?.title ?? ''} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-slate-300">
+            <div className="w-full h-full flex items-center justify-center text-slate-500">
               <ImageOff size={28} strokeWidth={1.5} />
             </div>
           )}
@@ -168,12 +190,12 @@ export default function PropertyPopup({ bare = false }) {
         {!isLoading && property?.riskScore && <RiskAlert riskScore={property.riskScore} />}
 
         {/* Pills */}
-        {!isLoading && (bhkLabel || furnished || typeLabel || property?.trustScore?.badge) && (
+        {!isLoading && (spec || furnished || type || property?.trustScore?.badge) && (
           <div className="flex flex-wrap items-center gap-1.5">
             {property?.trustScore?.badge && <TrustBadge badge={property.trustScore.badge} size="sm" />}
-            {bhkLabel  && <Pill color="brand">{bhkLabel}</Pill>}
-            {furnished && <Pill>{furnished}</Pill>}
-            {typeLabel && <Pill color="violet">{typeLabel}</Pill>}
+            {spec      && <Pill color="brand" icon={spec.Icon}>{spec.text}</Pill>}
+            {furnished && <Pill icon={furnished.Icon}>{furnished.text}</Pill>}
+            {type      && <Pill color="violet" icon={type.Icon}>{type.text}</Pill>}
           </div>
         )}
 

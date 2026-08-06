@@ -58,6 +58,7 @@ function RenterPreview({ categoryKey, draft, priceLabel, price }) {
       <div className="flex items-center gap-2 mt-4">
         {['DRAFT', 'PENDING', 'ACTIVE'].map((s, i) => (
           <span key={s} className="flex items-center gap-2">
+            {/* eslint-disable-next-line no-restricted-syntax -- aria-hidden breadcrumb separator, not text */}
             {i > 0 && <span className="text-slate-300" aria-hidden="true">›</span>}
             <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${i <= 1 ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-500'}`}>{s}</span>
           </span>

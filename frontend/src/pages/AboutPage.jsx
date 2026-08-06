@@ -87,7 +87,7 @@ export default function AboutPage() {
       {/* ── HERO ── */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 -z-10">
-          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full opacity-[0.06]" style={{ background: 'radial-gradient(circle, #f4511e 0%, transparent 70%)' }} />
+          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full opacity-[0.06]" style={{ background: 'radial-gradient(circle, #0d8a5f 0%, transparent 70%)' }} />
           <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full opacity-[0.04]" style={{ background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)' }} />
         </div>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-32 pb-16 text-center">
