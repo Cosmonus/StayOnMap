@@ -31,6 +31,68 @@ function istSlotLabel(instant) {
   }).replace(',', '') + ' IST'
 }
 
+// A visit request stores `requestedDate` as UTC midnight of the chosen day
+// (the client sends `new Date('2026-08-12').toISOString()`), so day equality is
+// exact equality — which is also what the same-date auto-reject already relies
+// on. AvailabilityBlock.date is stored the same way.
+function utcMidnight(dateISO) {
+  const d = new Date(dateISO)
+  if (Number.isNaN(d.getTime())) return null
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+}
+
+const AVAILABILITY_DAYS = 30
+
+// The days a renter cannot ask for, and why they can't:
+//   • an ACCEPTED visit — the owner has committed the day to someone
+//   • an AvailabilityBlock — the owner marked the day unavailable themselves
+//
+// PENDING requests deliberately block NOTHING. They are unconfirmed, and if
+// they blocked a day then anyone could freeze a listing's whole calendar by
+// firing off requests they never intend to keep.
+//
+// The response is a bare list of dates: no times, no counts, no identities. It
+// says "the owner is busy", which is what any booking calendar says, and
+// nothing about who else is looking at the place.
+export async function getVisitAvailability(propertyId) {
+  const from = utcMidnight(new Date().toISOString())
+  const to = new Date(from.getTime() + AVAILABILITY_DAYS * 86_400_000)
+
+  const [booked, blocked] = await Promise.all([
+    prisma.appointment.findMany({
+      where: { propertyId, status: 'ACCEPTED', requestedDate: { gte: from, lte: to } },
+      select: { requestedDate: true },
+      distinct: ['requestedDate'],
+    }),
+    prisma.availabilityBlock.findMany({
+      where: { propertyId, isBlocked: true, date: { gte: from, lte: to } },
+      select: { date: true },
+    }),
+  ])
+
+  const dates = new Set([
+    ...booked.map((a) => a.requestedDate.toISOString().slice(0, 10)),
+    ...blocked.map((b) => b.date.toISOString().slice(0, 10)),
+  ])
+  return { unavailableDates: [...dates].sort() }
+}
+
+async function isDateUnavailable(propertyId, dateISO) {
+  const day = utcMidnight(dateISO)
+  if (!day) return false
+  const [booked, blocked] = await Promise.all([
+    prisma.appointment.findFirst({
+      where: { propertyId, status: 'ACCEPTED', requestedDate: day },
+      select: { id: true },
+    }),
+    prisma.availabilityBlock.findFirst({
+      where: { propertyId, isBlocked: true, date: day },
+      select: { id: true },
+    }),
+  ])
+  return Boolean(booked || blocked)
+}
+
 export async function requestAppointment(tenantId, propertyId, data) {
   // A visit can't be requested for a time that has already happened. Nothing
   // checked this, so "Today · 9:00 AM" booked at 3pm was accepted and sent to
@@ -62,6 +124,23 @@ export async function requestAppointment(tenantId, propertyId, data) {
   }
   const existing = await prisma.appointment.findFirst({ where: { tenantId, propertyId, status: 'PENDING' } })
   if (existing) throw Object.assign(new Error('You already have a pending request for this property'), { statusCode: 409 })
+
+  // A date the owner has already committed to, or blocked out, is not
+  // requestable. Nothing checked this: the request was accepted, and then
+  // updateAppointmentStatus below auto-rejected it the moment the owner touched
+  // the day's confirmed visit — so the renter got an acceptance-shaped
+  // rejection for a slot the platform knew was gone before they asked.
+  //
+  // The unit is the DAY, not the slot, because that is the unit the auto-reject
+  // uses ("Another visit was scheduled for this date"). Greying individual times
+  // would imply the owner runs several viewings a day, which the server does not
+  // believe.
+  if (await isDateUnavailable(propertyId, data.requestedDate)) {
+    throw Object.assign(
+      new Error('The owner already has a visit booked that day — pick another date.'),
+      { statusCode: 409 },
+    )
+  }
 
   const appt = await prisma.appointment.create({ data: { ...data, tenantId, propertyId, ownerId: property.ownerId, requestedDate: new Date(data.requestedDate) } })
   await notifyUser(property.ownerId, { type: 'APPOINTMENT_REQUEST', title: 'New Appointment Request', body: 'A tenant has requested to visit your property.', referenceId: appt.id, referenceType: 'Appointment', audience: 'OWNER' })

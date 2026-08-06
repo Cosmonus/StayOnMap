@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { appointmentService } from '@services/appointment.service'
 import { chatService } from '@services/chat.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
@@ -12,13 +12,21 @@ import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-const UPCOMING_DATES = Array.from({ length: 30 }, (_, i) => {
-  const d = new Date()
-  d.setDate(d.getDate() + i)
-  const iso = d.toISOString().split('T')[0]
-  const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
-  return { value: iso, label }
-})
+// Nobody can act on a request made for 20 minutes' time, and offering it
+// invites a slot that's stale before the owner opens the notification. Web has
+// had this since the "Today · 9:00 AM at 3pm" bug; mobile never did, so the
+// chip was offered, tapped, and refused by the server.
+const LEAD_MINUTES = 30
+
+const pad = (n) => String(n).padStart(2, '0')
+
+// Local date parts, NOT toISOString(). The ISO string is UTC, so between
+// midnight and 05:30 IST it names YESTERDAY — and the chip labelled "Today"
+// carried yesterday's date, which the server then rejects as a past slot. This
+// file used `d.toISOString().split('T')[0]` until 2026-08-07.
+function localISO(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
 
 export default function AppointmentForm({ propertyId, windowStart, windowEnd, onSuccess }) {
   const navigation = useNavigation()
@@ -82,7 +90,58 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
     }
   }
 
-  const slots = VISIT_SLOTS.filter((t) => (!windowStart || t >= windowStart) && (!windowEnd || t <= windowEnd))
+  const withinWindow = VISIT_SLOTS.filter((t) => (!windowStart || t >= windowStart) && (!windowEnd || t <= windowEnd))
+  const todayISO = localISO(new Date())
+
+  const slotsFor = useCallback((dateISO) => {
+    if (dateISO !== todayISO) return withinWindow
+    const cutoff = new Date(Date.now() + LEAD_MINUTES * 60_000)
+    const hhmm = `${pad(cutoff.getHours())}:${pad(cutoff.getMinutes())}`
+    return withinWindow.filter((t) => t > hhmm)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todayISO, windowStart, windowEnd])
+
+  // Days the owner has already committed or blocked out. A failed fetch
+  // degrades to "nothing known to be taken" — the server still refuses a taken
+  // day, so the worst case is the behaviour this screen had before.
+  const { data: availability } = useQuery({
+    queryKey: ['visit-availability', propertyId],
+    queryFn: () => appointmentService.availability(propertyId).then((r) => r.data),
+    enabled: !!user && !!propertyId,
+    staleTime: 60_000,
+  })
+
+  const days = useMemo(() => {
+    const taken = new Set(availability?.unavailableDates ?? [])
+    return Array.from({ length: 30 }, (_, i) => {
+      const d = new Date()
+      d.setDate(d.getDate() + i)
+      const value = localISO(d)
+      const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow'
+        : d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
+      // Two different reasons, and they must not read as one: the owner is
+      // busy, or the day is simply over.
+      const reason = taken.has(value)
+        ? 'the owner already has a visit booked'
+        : slotsFor(value).length === 0
+          ? 'no visiting hours left today'
+          : null
+      return { value, label, disabled: Boolean(reason), reason }
+    })
+  }, [availability, slotsFor])
+
+  const slots = form.requestedDate ? slotsFor(form.requestedDate) : withinWindow
+
+  // A date change can invalidate the chosen time (picking Today late in the
+  // day). Clearing it beats submitting a combination the server refuses.
+  function pickDate(value) {
+    setForm((f) => ({
+      ...f,
+      requestedDate: value,
+      requestedTime: slotsFor(value).includes(f.requestedTime) ? f.requestedTime : '',
+    }))
+  }
+
   const isValid = form.requestedDate && form.requestedTime && isValidPhone(contactNumber)
 
   if (submitted) {
@@ -145,37 +204,55 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
 
       <View style={styles.labelRow}><Icon name="calendar" size={12} color={colors.slate500} /><Text style={styles.label}>Preferred date</Text></View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-        {UPCOMING_DATES.map(({ value, label }) => (
+        {days.map(({ value, label, disabled, reason }) => (
           <Pressable
             key={value}
-            style={[styles.chip, form.requestedDate === value && styles.chipActive]}
-            onPress={() => setForm((f) => ({ ...f, requestedDate: value }))}
+            style={[
+              styles.chip,
+              disabled && styles.chipDisabled,
+              !disabled && form.requestedDate === value && styles.chipActive,
+            ]}
+            onPress={() => pickDate(value)}
+            disabled={disabled}
             hitSlop={{ top: 6, bottom: 6 }}
             accessibilityRole="radio"
-            accessibilityLabel={`Select date ${label}`}
-            accessibilityState={{ checked: form.requestedDate === value }}
+            // The reason is IN the name, not only in the styling. A disabled
+            // control with no stated reason sends the blame to whatever is
+            // interactive beside it — which is how a working phone field got
+            // reported as broken.
+            accessibilityLabel={disabled ? `${label} — unavailable, ${reason}` : `Select date ${label}`}
+            accessibilityState={{ checked: form.requestedDate === value, disabled }}
           >
-            <Text style={[styles.chipText, form.requestedDate === value && styles.chipTextActive]}>{label}</Text>
+            <Text style={[
+              styles.chipText,
+              disabled && styles.chipTextDisabled,
+              !disabled && form.requestedDate === value && styles.chipTextActive,
+            ]}>{label}</Text>
           </Pressable>
         ))}
       </ScrollView>
+      <Text style={styles.hint}>Greyed-out days are already booked by the owner.</Text>
 
       <View style={styles.labelRow}><Icon name="clock" size={12} color={colors.slate500} /><Text style={styles.label}>Preferred time</Text></View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-        {slots.map((t) => (
-          <Pressable
-            key={t}
-            style={[styles.chip, form.requestedTime === t && styles.chipActive]}
-            onPress={() => setForm((f) => ({ ...f, requestedTime: t }))}
-            hitSlop={{ top: 6, bottom: 6 }}
-            accessibilityRole="radio"
-            accessibilityLabel={`Select time ${formatTime(t)}`}
-            accessibilityState={{ checked: form.requestedTime === t }}
-          >
-            <Text style={[styles.chipText, form.requestedTime === t && styles.chipTextActive]}>{formatTime(t)}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      {slots.length === 0 ? (
+        <Text style={styles.emptySlots}>No times left on this day. Pick another day.</Text>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+          {slots.map((t) => (
+            <Pressable
+              key={t}
+              style={[styles.chip, form.requestedTime === t && styles.chipActive]}
+              onPress={() => setForm((f) => ({ ...f, requestedTime: t }))}
+              hitSlop={{ top: 6, bottom: 6 }}
+              accessibilityRole="radio"
+              accessibilityLabel={`Select time ${formatTime(t)}`}
+              accessibilityState={{ checked: form.requestedTime === t }}
+            >
+              <Text style={[styles.chipText, form.requestedTime === t && styles.chipTextActive]}>{formatTime(t)}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
       {windowStart && windowEnd && <Text style={styles.hint}>Owner available {formatTime(windowStart)} – {formatTime(windowEnd)}</Text>}
 
       <View style={styles.labelRow}><Icon name="phone" size={12} color={colors.slate500} /><Text style={styles.label}>Mobile number</Text></View>
@@ -236,8 +313,17 @@ const styles = StyleSheet.create({
   chipScroll: { gap: spacing.sm, paddingVertical: 4 },
   chip: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.white },
   chipActive: { backgroundColor: colors.brand600, borderColor: colors.brand600 },
+  chipDisabled: { backgroundColor: colors.slate50, borderColor: colors.slate200 },
   chipText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate600 },
   chipTextActive: { color: colors.white },
+  // slate400 is a disabled state, which WCAG exempts from the contrast floor —
+  // the one place in this app it is still correct.
+  chipTextDisabled: { color: colors.slate400, textDecorationLine: 'line-through' },
+  emptySlots: {
+    fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500,
+    backgroundColor: colors.slate50, borderWidth: 1, borderColor: colors.slate200,
+    borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4,
+  },
   hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 2 },
   input: {
     borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md,

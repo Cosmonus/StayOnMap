@@ -5,5 +5,6 @@ export const appointmentService = {
   mine: () => api.get('/appointments/mine'),
   owner: () => api.get('/appointments/owner'),
   forProperty: (propertyId) => api.get(`/properties/${propertyId}/appointments`),
+  availability: (propertyId) => api.get(`/properties/${propertyId}/appointments/availability`),
   updateStatus: (id, data) => api.patch(`/appointments/${id}/status`, data),
 }

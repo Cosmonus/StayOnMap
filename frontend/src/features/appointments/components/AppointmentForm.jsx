@@ -1,13 +1,14 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
-import { Calendar, Check, LoaderCircle, MessageSquare } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Calendar, Check, MessageSquare } from 'lucide-react'
 import { appointmentService } from '@services/appointment.service'
 import { chatService } from '@services/chat.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { toast } from '@components/common/Toaster'
-import Select from '@components/common/Select'
-import TimeSelect from '@components/common/TimeSelect'
+import Button from '@components/common/Button'
+import Field from '@components/common/Field'
+import { DayStrip, TimeGrid, buildDays } from './VisitSlotPicker'
 import { VISIT_SLOTS, formatTime } from '@utils/time'
 import { normalizePhone, isValidPhone } from '@utils/validation'
 
@@ -24,18 +25,9 @@ function localISO(d) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-function upcomingDates() {
-  return Array.from({ length: 30 }, (_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() + i)
-    const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow'
-      : d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
-    return { value: localISO(d), label }
-  })
-}
-
 export default function AppointmentForm({ propertyId, onSuccess, windowStart, windowEnd }) {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const { user } = useAuth()
   // `contactNumber: null` means "the person hasn't touched this field", which
   // is what lets the profile number below fill it. Once they type — including
@@ -71,6 +63,9 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
     onSuccess: () => {
       setSubmitted(true)
       toast.success('Request sent', 'The owner will respond within 24 hours')
+      // The day list is now stale for anyone who reopens the form — and for
+      // this renter, who now has a pending request on it.
+      qc.invalidateQueries({ queryKey: ['visit-availability', propertyId] })
       onSuccess?.()
     },
     onError: (err) => {
@@ -100,8 +95,7 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
     (!windowStart || t >= windowStart) && (!windowEnd || t <= windowEnd)
   )
 
-  const dates = useMemo(upcomingDates, [])
-  const todayISO = dates[0]?.value
+  const todayISO = localISO(new Date())
 
   const slotsFor = useCallback((dateISO) => {
     if (dateISO !== todayISO) return withinWindow
@@ -111,11 +105,26 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todayISO, windowStart, windowEnd])
 
-  const slots = slotsFor(form.requestedDate)
+  // The days the owner has already committed or blocked out. A failed fetch
+  // degrades to "nothing known to be taken" rather than to an unusable form —
+  // the server still refuses a taken day, so the worst case is the behaviour
+  // this screen had before the endpoint existed.
+  const { data: availability } = useQuery({
+    queryKey: ['visit-availability', propertyId],
+    queryFn: () => appointmentService.availability(propertyId).then(r => r.data),
+    enabled: !!user && !!propertyId,
+    staleTime: 60_000,
+  })
 
-  // Today drops off the list once its last slot has passed, rather than sitting
-  // there as a date that can only lead to an empty time dropdown.
-  const dateOptions = slotsFor(todayISO).length ? dates : dates.slice(1)
+  const days = useMemo(
+    () => buildDays({
+      unavailable: availability?.unavailableDates ?? [],
+      hasSlots: (d) => slotsFor(d).length > 0,
+    }),
+    [availability, slotsFor],
+  )
+
+  const slots = form.requestedDate ? slotsFor(form.requestedDate) : []
 
   // A date change can invalidate the chosen time (picking Today late in the
   // day). Clearing it here beats submitting a combination the server refuses.
@@ -148,92 +157,94 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
         <div className="rounded-xl bg-brand-50 border border-brand-100 p-4">
           <p className="text-xs font-semibold text-brand-700 mb-1">Want to ask the owner something?</p>
           <p className="text-xs text-brand-600/70 mb-3">Chat directly — get faster answers about the property.</p>
-          <button
-            onClick={handleChat}
-            disabled={chatLoading}
-            className="min-h-[44px] flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-brand-600 text-white text-xs font-bold hover:bg-brand-700 transition-colors disabled:opacity-60"
-          >
-            {chatLoading ? (
-              <LoaderCircle className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <MessageSquare size={14} strokeWidth={2} />
-            )}
+          <Button fullWidth loading={chatLoading} onClick={handleChat}>
+            {!chatLoading && <MessageSquare size={16} strokeWidth={2} aria-hidden="true" />}
             Message the owner
-          </button>
+          </Button>
         </div>
 
         {/* Where the request now lives. Without this the flow ends on a green
             tick and the renter has to discover, unaided, that visits are a
             dashboard tab — which is how they end up messaging the owner to ask
             whether the request went through. */}
-        <Link
-          to="/user?tab=appointments"
-          className="min-h-[44px] flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 no-underline hover:bg-slate-50 transition-colors"
-        >
-          <Calendar size={14} strokeWidth={2} />
+        <Button fullWidth variant="outline" to="/user?tab=appointments">
+          <Calendar size={16} strokeWidth={2} aria-hidden="true" />
           View all your visits
-        </Link>
+        </Button>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <h3 className="font-semibold text-slate-800">Request a visit</h3>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Preferred Date</label>
-          <Select
-            value={form.requestedDate}
-            onChange={pickDate}
-            placeholder="Select date"
-            options={dateOptions}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Preferred Time</label>
-          <TimeSelect
-            value={form.requestedTime}
-            onChange={setValue('requestedTime')}
-            slots={slots}
-          />
-          {windowStart && windowEnd && (
-            <p className="text-[11px] text-slate-500 mt-1">
-              Owner available {formatTime(windowStart)} – {formatTime(windowEnd)}
-            </p>
-          )}
-        </div>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">Mobile Number</label>
-        <input
-          type="tel"
-          placeholder="10-digit mobile number"
-          value={contactNumber}
-          onChange={set('contactNumber')}
-          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">Message <span className="text-slate-500">(optional)</span></label>
-        <textarea
-          rows={3}
-          placeholder="Anything the owner should know..."
-          value={form.message}
-          onChange={set('message')}
-          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 resize-none"
-        />
-      </div>
-      {mutation.isError && (
-        <p className="text-sm text-red-600">{mutation.error?.message || 'Failed to send request.'}</p>
-      )}
-      <button
-        disabled={!isValid || mutation.isPending}
-        onClick={() => mutation.mutate({ ...form, contactNumber })}
-        className="w-full py-3 rounded-xl bg-brand-600 text-white font-semibold text-sm hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+
+      <Field label="Pick a day" hint="Greyed-out days are already booked by the owner." htmlFor="visit-day">
+        {() => <DayStrip days={days} value={form.requestedDate} onChange={pickDate} />}
+      </Field>
+
+      <Field
+        label="Pick a time"
+        hint={windowStart && windowEnd
+          ? `The owner shows the place between ${formatTime(windowStart)} and ${formatTime(windowEnd)}.`
+          : undefined}
+        htmlFor="visit-time"
       >
-        {mutation.isPending ? 'Sending…' : "I'm Interested — Request Visit"}
-      </button>
+        {() => form.requestedDate
+          ? <TimeGrid slots={slots} value={form.requestedTime} onChange={setValue('requestedTime')} />
+          : <p className="text-sm text-slate-500 rounded-xl bg-slate-50 border border-slate-200 px-3 py-3">Choose a day first.</p>}
+      </Field>
+
+      <Field
+        label="Mobile number"
+        required
+        hint="Shared with this owner only, so they can confirm the visit."
+        error={form.contactNumber !== null && contactNumber && !isValidPhone(contactNumber)
+          ? 'Enter a 10-digit Indian mobile number.'
+          : undefined}
+      >
+        {(p) => (
+          <input
+            {...p}
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel"
+            placeholder="10-digit mobile number"
+            value={contactNumber}
+            onChange={set('contactNumber')}
+            className="w-full min-h-[44px] border border-slate-200 rounded-xl px-3 py-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          />
+        )}
+      </Field>
+
+      <Field label="Message" hint="Optional — anything the owner should know.">
+        {(p) => (
+          <textarea
+            {...p}
+            rows={3}
+            placeholder="Anything the owner should know…"
+            value={form.message}
+            onChange={set('message')}
+            className="w-full border border-slate-200 rounded-xl px-3 py-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 resize-none"
+          />
+        )}
+      </Field>
+
+      {mutation.isError && (
+        <p role="alert" className="text-sm font-medium text-red-600">
+          {mutation.error?.message || 'Failed to send request.'}
+        </p>
+      )}
+
+      <Button
+        fullWidth
+        size="lg"
+        disabled={!isValid}
+        loading={mutation.isPending}
+        onClick={() => mutation.mutate({ ...form, contactNumber })}
+      >
+        {mutation.isPending ? 'Sending…' : "I'm interested — request a visit"}
+      </Button>
     </div>
   )
 }

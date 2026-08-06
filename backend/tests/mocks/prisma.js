@@ -38,6 +38,10 @@ export const prismaMock = {
     count:        vi.fn(),
     groupBy:      vi.fn(),
   },
+  availabilityBlock: {
+    findFirst: vi.fn(),
+    findMany:  vi.fn(),
+  },
   lease: {
     findUnique: vi.fn(),
     findMany:   vi.fn(),
