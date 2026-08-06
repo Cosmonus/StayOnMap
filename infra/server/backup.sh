@@ -10,10 +10,11 @@
 # stayonmap, prunes older, then pushes offsite if an offsite target is set in
 # /etc/stayonmap/api.env (see the OFFSITE PUSH section below).
 #
-#  >>> READ THIS: self-hosting means BACKUPS ARE NOW YOUR RESPONSIBILITY. <<<
-#  Railway snapshotted Postgres automatically; this VM does not. A backup that
-#  only lives on the same disk as the DB is not a backup — set an offsite
-#  target before you rely on this in anger.
+#  >>> READ THIS: self-hosting means BACKUPS ARE YOUR RESPONSIBILITY. <<<
+#  Nothing snapshots this Postgres for you — the VM does not, and there is no
+#  managed platform underneath it. A backup that only lives on the same disk as
+#  the DB is not a backup — set an offsite target before you rely on this in
+#  anger.
 #
 # Schedule it with the units next door — this script does nothing on its own:
 #   sudo cp /srv/stayonmap/infra/server/systemd/stayonmap-backup.* /etc/systemd/system/

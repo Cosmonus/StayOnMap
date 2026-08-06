@@ -8,9 +8,9 @@
 //                         path (2026-07-21 decision).
 //   resend / brevo      — same shape, kept as alternatives.
 //
-// Why the HTTPS paths exist: the previous host (Railway) blocked outbound SMTP
-// ports (25/465/587/2525), so SMTP failed there no matter how it was configured
-// and an HTTPS API was the only way to send. The self-hosted VM allows SMTP, but
+// Why the HTTPS paths exist: a previous host blocked outbound SMTP ports
+// (25/465/587/2525), so SMTP failed there no matter how it was configured and an
+// HTTPS API was the only way to send. The Google Cloud VM allows SMTP, but
 // ZeptoMail's HTTPS path stays the production default (avoids re-verifying sender
 // DNS). Nothing else in the app knows or cares which path is active.
 //

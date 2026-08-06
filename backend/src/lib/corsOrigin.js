@@ -1,9 +1,10 @@
 // Shared between Express's CORS middleware (index.js) and Socket.io's CORS
 // config (socket.js) — they used to duplicate this check, and drifted: when
 // the custom domain (stayonmap.com) went live, Express's PROD_ORIGINS list
-// covered it but Socket.io's config only checked FRONTEND_URL (still the old
-// Railway subdomain), silently breaking chat/notifications for anyone on the
-// real production domain. One shared function means this can't diverge again.
+// covered it but Socket.io's config only checked FRONTEND_URL (still pointing
+// at a stale host subdomain), silently breaking chat/notifications for anyone
+// on the real production domain. One shared function means this can't diverge
+// again.
 const PROD_ORIGINS = ['https://stayonmap.com', 'https://www.stayonmap.com']
 
 export function corsOriginHandler(origin, cb) {
