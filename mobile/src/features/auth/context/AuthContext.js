@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { authService } from '@services/auth.service'
 import { connectSocket, disconnectSocket } from '@lib/socket'
@@ -16,6 +17,9 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const hadUser = useRef(false)
+  // AuthProvider sits inside QueryClientProvider (App.js), so this is the same
+  // client every query uses.
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     Promise.all([AsyncStorage.getItem('user_token'), AsyncStorage.getItem(HOST_MODE_KEY)])
@@ -67,6 +71,20 @@ export function AuthProvider({ children }) {
       await AsyncStorage.removeItem('user_refresh_token')
     }
     await AsyncStorage.removeItem('user_token')
+    // Every SERVER query goes with them, for the same reason the local draft
+    // above does. React Query's cache is keyed by query, not by account, so
+    // without this the next person to sign in on this phone is served the
+    // previous user's data until each key happens to refetch: their profile,
+    // unread counts, notifications, leases, saved homes.
+    //
+    // `['me']` matters most because it is an AUTHORISATION input — `role` is
+    // read from it to decide which mode and which screens a person gets. Web
+    // had the identical hole and it is what produced the "couldn't load your
+    // dashboard" report on 2026-08-07.
+    //
+    // clear(), not invalidate: invalidation keeps serving the stale value while
+    // it refetches, which is the window the bug lives in.
+    queryClient.clear()
     setUser(null)
     hadUser.current = false
     // hostMode deliberately survives sign-out — a host logging back in lands

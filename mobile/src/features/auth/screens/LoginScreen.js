@@ -25,7 +25,11 @@ const ROLES = [
 // A `secureTextEntry` field gets a show/hide eye, matching web's password
 // inputs. The toggle lives here rather than at each call site so every password
 // field on this screen (login + signup) gets it from one place.
-function Field({ label, icon, style, secureTextEntry, ...props }) {
+// `autoCapitalize` defaults to 'none' because most fields here are emails and
+// passwords — but it is overridable, because forcing a lowercase first letter on
+// someone's own NAME is wrong, and a name field with no autocomplete hint is
+// what made the keyboard offer email addresses (bug 3, 2026-08-07).
+function Field({ label, icon, style, secureTextEntry, autoCapitalize = 'none', ...props }) {
   const [reveal, setReveal] = useState(false)
   return (
     <View style={{ marginBottom: spacing.md }}>
@@ -35,7 +39,7 @@ function Field({ label, icon, style, secureTextEntry, ...props }) {
         <TextInput
           style={[styles.input, style]}
           placeholderTextColor={colors.slate500}
-          autoCapitalize="none"
+          autoCapitalize={autoCapitalize}
           secureTextEntry={secureTextEntry && !reveal}
           {...props}
         />
@@ -204,7 +208,10 @@ export default function LoginScreen() {
           ) : tab === 'login' ? (
             <>
               <Field icon="mail" label="Email address" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" />
-              <Field icon="lock" label="Password" value={password} onChangeText={setPassword} placeholder="••••••••" secureTextEntry />
+              <Field
+                icon="lock" label="Password" value={password} onChangeText={setPassword} placeholder="••••••••"
+                secureTextEntry autoComplete="current-password" textContentType="password"
+              />
               <Pressable onPress={() => switchTab('forgot')} style={{ alignSelf: 'flex-end', marginBottom: spacing.md }} accessibilityRole="button" hitSlop={{ top: 8, bottom: 8 }}>
                 <Text style={styles.linkText}>Forgot password?</Text>
               </Pressable>
@@ -224,19 +231,22 @@ export default function LoginScreen() {
                 <View style={styles.dividerLine} />
               </View>
 
-              {/* Sign-in code + social providers share one row (wraps 2-up
-                  if more providers are configured later) */}
-              <View style={styles.altSignInRow}>
+              {/* Stacked, not a 2-up row. The row existed so two half-width
+                  buttons would fit, which is why the Google one was shortened to
+                  "[G] Google" — a wording Google's branding guidelines do not
+                  sanction. The full label wins over the compactness, so both
+                  buttons go full width and say what they do. Same call web made
+                  on 2026-08-07. */}
+              <View style={styles.altSignInStack}>
                 <Pressable
-                  style={[styles.secondaryButton, styles.altSignInButton]}
+                  style={styles.secondaryButton}
                   onPress={() => switchTab('otp')}
                   accessibilityRole="button"
-                  accessibilityLabel="Email me a sign-in code"
                 >
                   <Icon name="mail" size={16} color={colors.brand600} />
-                  <Text style={styles.secondaryButtonText}>Sign-in code</Text>
+                  <Text style={styles.secondaryButtonText}>Email me a sign-in code</Text>
                 </Pressable>
-                <SocialLoginButtons row />
+                <SocialLoginButtons />
               </View>
             </>
           ) : waitlisted ? (
@@ -251,8 +261,14 @@ export default function LoginScreen() {
             </View>
           ) : (
             <>
-              <Field icon="users" label="Full name" value={name} onChangeText={setName} placeholder="Ravi Kumar" />
-              <Field icon="mail" label="Email address" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" />
+              <Field
+                icon="users" label="Full name" value={name} onChangeText={setName} placeholder="Ravi Kumar"
+                autoCapitalize="words" autoComplete="name" textContentType="name"
+              />
+              <Field
+                icon="mail" label="Email address" value={email} onChangeText={setEmail} placeholder="you@example.com"
+                keyboardType="email-address" autoComplete="email" textContentType="emailAddress"
+              />
 
               <Text style={styles.label}>City</Text>
               <Dropdown
@@ -267,7 +283,10 @@ export default function LoginScreen() {
               )}
               <Text style={styles.hint}>We&apos;re only live in {CITY_NAMES.join(', ')} right now — other cities go on our waitlist.</Text>
 
-              <Field icon="lock" label="Password" value={password} onChangeText={setPassword} placeholder="Min. 8 characters" secureTextEntry />
+              <Field
+                icon="lock" label="Password" value={password} onChangeText={setPassword} placeholder="Min. 8 characters"
+                secureTextEntry autoComplete="new-password" textContentType="newPassword"
+              />
 
               <Text style={styles.label}>I am a</Text>
               <View style={styles.roleRow}>
@@ -349,8 +368,7 @@ const styles = StyleSheet.create({
   dividerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginVertical: spacing.md },
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.slate200 },
   dividerText: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500 },
-  altSignInRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  altSignInButton: { flexGrow: 1, flexBasis: '45%' },
+  altSignInStack: { gap: spacing.sm },
   secondaryButton: {
     flexDirection: 'row',
     gap: spacing.sm,

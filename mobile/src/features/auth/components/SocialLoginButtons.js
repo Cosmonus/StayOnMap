@@ -16,9 +16,12 @@ import { spacing, radius } from '@theme/spacing'
  * open /auth/oauth/<provider>?platform=mobile → provider → backend callback →
  * stayonmap://oauth-complete#… deep link → OAuthRedirectHandler finishes up.
  *
- * `row` renders flex-item buttons (provider name only) for a caller that
- * pairs them with the sign-in-code button in one row — the login tab does.
- * The full wording stays in the accessibility label.
+ * `row` USED to render provider-name-only buttons so the login tab could pair
+ * them with the sign-in-code button on one line. That produced "[G] Google",
+ * which is none of the three wordings Google's branding guidelines sanction
+ * ("Sign in with" / "Sign up with" / "Continue with", or logo-only) — reported
+ * 2026-08-07 and fixed on web the same day. The visible label is now always the
+ * full wording; `row` only affects layout.
  */
 export default function SocialLoginButtons({ mode = 'login', row = false }) {
   const { data: providers } = useQuery({
@@ -47,7 +50,7 @@ export default function SocialLoginButtons({ mode = 'login', row = false }) {
       accessibilityLabel={`${verb} with ${p.label}`}
     >
       <Icon name="link" size={15} color={colors.slate500} />
-      <Text style={styles.label}>{row ? p.label : `${verb} with ${p.label}`}</Text>
+      <Text style={styles.label} numberOfLines={1}>{`${verb} with ${p.label}`}</Text>
     </Pressable>
   ))
 
