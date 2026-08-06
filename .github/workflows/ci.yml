@@ -12,6 +12,11 @@ on:
   # mergeable: UNKNOWN), the only recourse was closing and reopening the PR.
   #
   # `gh workflow run ci.yml --ref <branch>` once this is on the default branch.
+  #
+  # On master this DEPLOYS — see the deploy job's `if:`. It did not until
+  # 2026-08-07, which made the escape hatch useless in the one case it exists
+  # for: GitHub also dropped the `push` event on the PR #176 merge, so master
+  # was seven hours ahead of production with no way to close the gap by hand.
   workflow_dispatch:
 
 jobs:
@@ -171,9 +176,23 @@ jobs:
     name: Deploy to production VM
     runs-on: ubuntu-latest
     needs: [guard, backend, frontend, mobile]
-    # Only on a real push to master — never on a pull_request run (which also
-    # has the master base) and never from a fork.
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    # Master only — never on a pull_request run (which also has the master
+    # base) and never from a fork.
+    #
+    # `workflow_dispatch` is here as of 2026-08-07 and is the whole point of the
+    # manual trigger. It was NOT, and that made the escape hatch useless in the
+    # exact situation it exists for: GitHub dropped the `push` event on the
+    # merge of PR #176, so no run was queued, so nothing deployed. Dispatching
+    # by hand then ran every check and skipped the one job that mattered —
+    # "Deploy to production VM: This job was skipped" — because the event was
+    # `workflow_dispatch`, not `push`.
+    #
+    # Widening this is safe for the reason the two other conditions already
+    # cover: the ref must be master, and dispatch requires write access, which
+    # is the same bar as pushing to a protected master in the first place.
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     # Serialize deploys so two quick merges can't build/restart on top of each
     # other; queue, don't cancel — a half-finished release must complete.
     concurrency:
