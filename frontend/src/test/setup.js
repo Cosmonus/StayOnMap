@@ -30,6 +30,9 @@ globalThis.ResizeObserver ??= class {
 
 globalThis.scrollTo ??= () => {}
 Element.prototype.scrollIntoView ??= () => {}
+// jsdom has window.scrollTo but not Element.prototype.scrollTo. Anything that
+// keeps a list pinned to the bottom (the chat thread) calls the element one.
+Element.prototype.scrollTo ??= () => {}
 
 // The Maps SDK is never loaded in a test — it needs a real key, a network, and
 // a canvas. Anything that touches it is stubbed per-test; this only stops an

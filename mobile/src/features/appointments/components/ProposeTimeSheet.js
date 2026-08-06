@@ -40,6 +40,9 @@ export default function ProposeTimeSheet({ visible, appt, onClose, onSubmit, sav
   const slotsFor = useCallback((dateISO) => {
     if (dateISO !== todayISO) return withinWindow
     const cutoff = new Date(Date.now() + LEAD_MINUTES * 60_000)
+    // Past 23:30 the cutoff lands on tomorrow and its clock time wraps to
+    // '00:00', against which every slot still compares as available.
+    if (localISO(cutoff) !== todayISO) return []
     const hhmm = `${pad(cutoff.getHours())}:${pad(cutoff.getMinutes())}`
     return withinWindow.filter((t) => t > hhmm)
     // eslint-disable-next-line react-hooks/exhaustive-deps

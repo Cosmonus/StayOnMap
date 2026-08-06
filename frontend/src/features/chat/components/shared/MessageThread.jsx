@@ -435,7 +435,16 @@ export default function MessageThread({
       qc.setQueryData(['chat-messages', conversationId], (old = []) => [...old, res.data])
       qc.invalidateQueries({ queryKey: ['conversations'] })
     },
-    onError: () => toast.error('Error', 'Failed to send message'),
+    // The server's own words, when it has any. A block comes back as 403
+    // BLOCKED with "You can no longer message this person" — a real, actionable
+    // sentence that this handler used to throw away and replace with "Failed to
+    // send message", which reads as a network glitch and invites the person to
+    // keep hammering send at a wall. Same lesson as the publish gate: a refusal
+    // with no stated reason sends the blame somewhere else.
+    onError: (err) => toast.error(
+      err?.code === 'BLOCKED' ? 'Message not sent' : 'Error',
+      err?.message || 'Failed to send message',
+    ),
   })
 
   const { mutate: editMsg } = useMutation({

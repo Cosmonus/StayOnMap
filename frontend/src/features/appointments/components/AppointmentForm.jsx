@@ -100,6 +100,11 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
   const slotsFor = useCallback((dateISO) => {
     if (dateISO !== todayISO) return withinWindow
     const cutoff = new Date(Date.now() + LEAD_MINUTES * 60_000)
+    // Past 23:30 the cutoff lands on TOMORROW, and its clock time wraps to
+    // "00:00" — against which every slot compares as still available, so late
+    // at night today re-opened completely. If the cutoff has left today, today
+    // has nothing left, full stop.
+    if (localISO(cutoff) !== todayISO) return []
     const hhmm = `${pad(cutoff.getHours())}:${pad(cutoff.getMinutes())}`
     return withinWindow.filter(t => t > hhmm)
     // eslint-disable-next-line react-hooks/exhaustive-deps
