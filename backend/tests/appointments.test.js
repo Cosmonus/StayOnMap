@@ -17,8 +17,24 @@ import {
   updateAppointmentStatus,
 } from '../src/features/appointments/appointments.service.js'
 
+// A visit has to be in the FUTURE — `requestAppointment` rejects a slot that
+// has already passed, which is correct behaviour and was also a time bomb in
+// this file: the fixture hardcoded `2026-08-01`, which was comfortably ahead
+// when it was written and silently became the past on 2026-08-01. Five tests
+// then failed for a reason that had nothing to do with the code they cover,
+// and because deploys are gated on the suite, a green branch stopped shipping.
+//
+// Derive it instead. Any date literal in a test that feeds a future-dated
+// validator is a countdown, not a fixture.
+function daysFromNow(n) {
+  const d = new Date(Date.now() + n * 24 * 60 * 60 * 1000)
+  return d.toISOString().slice(0, 10) // yyyy-mm-dd, what the API accepts
+}
+
+const FUTURE_DATE = daysFromNow(7)
+
 const validRequestData = {
-  requestedDate: '2026-08-01',
+  requestedDate: FUTURE_DATE,
   requestedTime: '10:00',
   contactNumber: '9876543210',
 }
@@ -30,7 +46,7 @@ function makeAppointment(overrides = {}) {
     ownerId: 'owner-1',
     propertyId: 'prop-1',
     status: 'PENDING',
-    requestedDate: new Date('2026-08-01'),
+    requestedDate: new Date(FUTURE_DATE),
     property: { title: 'Test flat' },
     ...overrides,
   }
