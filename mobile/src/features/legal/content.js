@@ -19,7 +19,7 @@
 //   { note }               small print
 import { CITY_LIST_LABEL } from '@config/cities'
 
-export const LAST_UPDATED = 'July 27, 2026'
+export const LAST_UPDATED = 'August 7, 2026'
 
 const ADDRESS = 'Vivekanandar Street, Gandhi Nagar, Avadi, Ambattur, Tiruvallur – 600054, Tamil Nadu'
 const CONTACT_EMAIL = 'hello@cosmonus.com'
@@ -74,13 +74,13 @@ export const PRIVACY = {
           { lead: 'Supabase', text: '— stores uploaded property images and verification documents' },
           { lead: 'Google Cloud Platform', text: '— hosts our application servers and database' },
           { lead: 'Google Maps Platform', text: '— powers map display, address search, and geocoding (search queries and coordinates are sent to Google to resolve locations)' },
-          { lead: 'Our email provider', text: '— delivers transactional emails (appointment updates, password resets, sign-in codes). Depending on configuration this is either an SMTP provider (currently Google, via Gmail) or Resend’s transactional API. Your email address and the message content pass through whichever is active.' },
+          { lead: 'Zoho ZeptoMail', text: '— delivers transactional emails (appointment updates, password resets, sign-in codes). Your email address and the message content pass through it. Where ZeptoMail is not configured, an SMTP provider is used instead.' },
           { lead: 'Expo', text: '— and through it Google (FCM) on Android or Apple (APNs) on iOS, delivers push notifications to your device. The notification’s title and text pass through these services.' },
           { lead: 'Upstash', text: '— Redis used for caching and rate limiting; holds short-lived technical data, not profile information' },
           { lead: 'Sentry', text: '— error monitoring, when enabled. Receives crash and error reports, which can incidentally include the request path and account id involved.' },
         ] },
         { p: 'We do not share data with these providers for their own marketing purposes.' },
-        { lead: 'Not currently enabled.', p: 'The Platform can use an AI provider (Anthropic) to help detect fraudulent listings and fake reviews. This is switched off today and no listing or review content is sent to any AI provider. If we turn it on, we will update this policy before doing so.' },
+        { lead: 'Not currently enabled.', p: 'Two features are built but switched off, and we will update this policy before turning either on. The Platform can use an AI provider (Anthropic) to help detect fraudulent listings and fake reviews — today no listing or review content is sent to any AI provider. The Platform can also verify a phone number by texting you a code, which would send your number to an SMS provider — today no phone number is sent to any SMS provider, and phone verification is unavailable.' },
         { lead: 'Legal & safety.', p: 'Information may be disclosed if required by law, to enforce our Terms of Service, or to protect the rights, safety, or property of StayOnMap, our users, or the public.' },
         { lead: 'Business transfers.', p: 'If StayOnMap is involved in a merger, acquisition, or asset sale, information may be transferred as part of that transaction, subject to this policy.' },
       ],

@@ -27,7 +27,7 @@ export default function PrivacyPolicyPage() {
         description="How StayOnMap collects, uses, and protects your personal data — including owner verification documents."
         canonical={canonical('/privacy')}
       />
-      <LegalPageLayout title="Privacy Policy" lastUpdated="July 27, 2026" sections={SECTIONS}>
+      <LegalPageLayout title="Privacy Policy" lastUpdated="August 7, 2026" sections={SECTIONS}>
 
         <Section id="scope" title="1. Scope & who we are">
           <p>
@@ -112,16 +112,19 @@ export default function PrivacyPolicyPage() {
             <li><strong>Supabase</strong> &mdash; stores uploaded property images and verification documents</li>
             <li><strong>Google Cloud Platform</strong> &mdash; hosts our application servers and database</li>
             <li><strong>Google Maps Platform</strong> &mdash; powers map display, address search, and geocoding (search queries and coordinates are sent to Google to resolve locations)</li>
-            <li><strong>Our email provider</strong> &mdash; delivers transactional emails (appointment updates, password resets, sign-in codes). Depending on configuration this is either an SMTP provider (currently Google, via Gmail) or <strong>Resend</strong>&rsquo;s transactional API. Your email address and the message content pass through whichever is active.</li>
+            <li><strong>Zoho ZeptoMail</strong> &mdash; delivers transactional emails (appointment updates, password resets, sign-in codes). Your email address and the message content pass through it. Where ZeptoMail is not configured, an SMTP provider is used instead.</li>
             <li><strong>Expo</strong>, and through it <strong>Google (FCM)</strong> on Android or <strong>Apple (APNs)</strong> on iOS &mdash; deliver push notifications to your device. The notification&rsquo;s title and text pass through these services.</li>
             <li><strong>Upstash</strong> &mdash; Redis used for caching and rate limiting; holds short-lived technical data, not profile information</li>
             <li><strong>Sentry</strong> &mdash; error monitoring, when enabled. Receives crash and error reports, which can incidentally include the request path and account id involved.</li>
           </ul>
           <p>We do not share data with these providers for their own marketing purposes.</p>
-          <p><strong>Not currently enabled.</strong> The Platform can use an AI provider
-            (Anthropic) to help detect fraudulent listings and fake reviews. This is switched
-            off today and no listing or review content is sent to any AI provider. If we turn
-            it on, we will update this policy before doing so.</p>
+          <p><strong>Not currently enabled.</strong> Two features are built but switched off,
+            and we will update this policy before turning either on. The Platform can use an
+            AI provider (Anthropic) to help detect fraudulent listings and fake reviews &mdash;
+            today no listing or review content is sent to any AI provider. The Platform can
+            also verify a phone number by texting you a code, which would send your number to
+            an SMS provider &mdash; today no phone number is sent to any SMS provider, and
+            phone verification is unavailable.</p>
           <p><strong>Legal &amp; safety.</strong> Information may be disclosed if required by law,
             to enforce our Terms of Service, or to protect the rights, safety, or property of
             StayOnMap, our users, or the public.</p>
