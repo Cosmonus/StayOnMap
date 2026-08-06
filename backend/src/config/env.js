@@ -44,6 +44,12 @@ export const env = {
   port: Number(process.env.PORT) || 4000,
   nodeEnv: process.env.NODE_ENV || 'development',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  // Where `vite build` wrote the SPA shell. The API reads index.html from here
+  // to inject per-listing <head> tags (features/seo/prerender.service.js).
+  // Default is the repo layout, which is also the layout on the prod VM
+  // (/srv/stayonmap/{backend,frontend}). An unreadable path is a SUPPORTED
+  // state: nginx falls back to serving the plain shell.
+  frontendDist: process.env.FRONTEND_DIST || '../frontend/dist',
   jwtSecret: process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   aiProvider: process.env.AI_PROVIDER || 'stub',
@@ -76,6 +82,22 @@ export const env = {
   // — set MAIL_DAILY_CAP=100 when MAIL_PROVIDER=resend. Brevo's free tier is
   // 300/day. SMTP_DAILY_CAP is still read for backwards compatibility.
   mailDailyCap: Number(process.env.MAIL_DAILY_CAP) || Number(process.env.SMTP_DAILY_CAP) || 450,
+  // SMS (lib/smsSender.js) — phone verification codes, and nothing else.
+  //   SMS_PROVIDER=msg91 (default) → MSG91's OTP API. Needs MSG91_AUTH_KEY and
+  //     MSG91_TEMPLATE_ID (a DLT-approved template — the message text lives in
+  //     their console, not in this repo).
+  //   SMS_PROVIDER=fast2sms        → same shape, one key.
+  // Unset in development → codes print to the server console (dev-echo), so the
+  // flow works on a fresh checkout. Unset in production → phone verification is
+  // unavailable and the UI hides it rather than offering a button that 503s.
+  smsProvider:     process.env.SMS_PROVIDER      || 'msg91',
+  msg91AuthKey:    process.env.MSG91_AUTH_KEY    || null,
+  msg91TemplateId: process.env.MSG91_TEMPLATE_ID || null,
+  fast2smsApiKey:  process.env.FAST2SMS_API_KEY  || null,
+  // A runaway guard, not a plan: at ~₹0.20 per SMS this caps a bad day at
+  // ~₹40. The per-user and per-destination limits in phone.service.js are what
+  // actually stop abuse; this is the backstop behind them.
+  smsDailyCap:     Number(process.env.SMS_DAILY_CAP) || 200,
   vapidPublicKey:  process.env.VAPID_PUBLIC_KEY  || null,
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || null,
   vapidSubject:    process.env.VAPID_SUBJECT     || 'mailto:hello@stayonmap.com',

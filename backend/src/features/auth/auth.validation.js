@@ -62,6 +62,17 @@ export const verifyOtpSchema = z.object({
   code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code'),
 })
 
+// Same rule users.validation.js applies to a saved phone — a number this
+// rejects could never be stored, so accepting it here would spend an SMS on a
+// verification that could not land anywhere.
+export const requestPhoneCodeSchema = z.object({
+  phone: z.string().trim().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number'),
+})
+
+export const verifyPhoneCodeSchema = z.object({
+  code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code'),
+})
+
 export const updateRoleSchema = z.object({
   role: z.enum(['OWNER']),
 })

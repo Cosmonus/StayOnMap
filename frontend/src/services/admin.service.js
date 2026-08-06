@@ -8,6 +8,9 @@ export const adminService = {
 
   // All other calls use the admin JWT
   analytics:     ()             => adminApi.get('/admin/analytics'),
+  // Behaviour, not row counts — how many of the people who saw the map ever
+  // booked, and how long a listing takes to publish.
+  funnel:        (days)         => adminApi.get('/admin/analytics/funnel', { params: { days } }),
   users:         (params)       => adminApi.get('/admin/users', { params }),
   waitlist:      (params)       => adminApi.get('/admin/waitlist', { params }),
   userDetail:    (id)           => adminApi.get(`/admin/users/${id}`),

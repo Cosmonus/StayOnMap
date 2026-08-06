@@ -11,6 +11,7 @@ import { normalizePhone, isValidPhone } from '@utils/phone'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
+import { track } from '@lib/analytics'
 
 // Nobody can act on a request made for 20 minutes' time, and offering it
 // invites a slot that's stale before the owner opens the notification. Web has
@@ -64,6 +65,9 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
     },
     onSuccess: () => {
       setSubmitted(true)
+      // Funnel step 5. On the SERVER's confirmed success, never on submit —
+      // a request that 400s is not a booking.
+      track('appointment_created', { propertyId })
       // So the property page's footer flips to "Visit requested" on return.
       queryClient.invalidateQueries({ queryKey: ['my-appointments'] })
       onSuccess?.()

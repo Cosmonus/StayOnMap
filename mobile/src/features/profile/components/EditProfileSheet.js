@@ -69,6 +69,13 @@ export default function EditProfileSheet({ visible, onClose, settings }) {
         placeholder="9876543210"
         keyboardType="phone-pad"
       />
+      {/* Said before the save, not discovered after it: the badge belongs to
+          the NUMBER, so the server drops it when the number changes. */}
+      {settings?.phoneVerifiedAt && normalizePhone(phone) !== normalizePhone(settings.phone ?? '') && (
+        <Text style={styles.phoneWarning}>
+          Saving a different number removes your verified badge until you verify the new one.
+        </Text>
+      )}
       <Text style={styles.cityLabel}>City</Text>
       <View style={styles.cityRow}>
         {CITY_NAMES.map((c) => {
@@ -116,4 +123,8 @@ const styles = StyleSheet.create({
   cityChipText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate600 },
   cityChipTextSelected: { fontFamily: fonts.bodySemiBold, color: colors.brand700 },
   submitError: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.danger, marginTop: spacing.sm },
+  phoneWarning: {
+    fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.warning700,
+    marginTop: -spacing.sm, marginBottom: spacing.sm,
+  },
 })

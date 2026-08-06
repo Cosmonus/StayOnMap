@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { trackOnce } from '@lib/analytics'
 import { googleMapsReady, createHtmlMarker, resolvePlace } from '@lib/googleMaps'
 import { useFilterStore } from '@store/filterStore'
 import { useMapStore } from '@store/mapStore'
@@ -32,6 +33,11 @@ export default function MapView({ contained = false }) {
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
+
+    // Funnel step 1 — the denominator every other rate is measured against.
+    // trackOnce, because firing this on every pan would inflate it and make
+    // conversion look worse the more someone explores.
+    trackOnce('map_view')
 
     let cancelled = false
 

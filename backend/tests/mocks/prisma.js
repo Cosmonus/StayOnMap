@@ -9,6 +9,9 @@ export const prismaMock = {
     findUnique: vi.fn(),
     findFirst:  vi.fn(),
     count:      vi.fn(),
+    // Locality pages group listings by (city, landmark). Defaults to "no
+    // inventory", which is what a fresh database has.
+    groupBy:    vi.fn().mockResolvedValue([]),
     create:     vi.fn(),
     update:     vi.fn(),
     delete:     vi.fn(),
@@ -24,6 +27,10 @@ export const prismaMock = {
   },
   user: {
     findUnique: vi.fn(),
+    // Defaults to null: the only current caller is phone.service.js asking
+    // "is this number already verified on another account", and undefined
+    // there would read as a claim rather than the absence of one.
+    findFirst:  vi.fn().mockResolvedValue(null),
     update:     vi.fn(),
     updateMany: vi.fn(),
     create:     vi.fn(),
@@ -61,6 +68,15 @@ export const prismaMock = {
     upsert:     vi.fn(),
     deleteMany: vi.fn(),
   },
+  // Product telemetry. Defaults are "nothing recorded, nothing to read", which
+  // is a fresh install's real state and the one every other test runs in —
+  // publishing a property now reads listingDraft and may write here.
+  analyticsEvent: {
+    createMany: vi.fn().mockResolvedValue({ count: 0 }),
+    groupBy:    vi.fn().mockResolvedValue([]),
+    findMany:   vi.fn().mockResolvedValue([]),
+    deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+  },
   propertyDailyView: {
     aggregate: vi.fn(),
     upsert:    vi.fn(),
@@ -82,6 +98,15 @@ export const prismaMock = {
     findFirst: vi.fn(),
     count:     vi.fn(),
     update:    vi.fn(),
+  },
+  // Phone verification codes. `user.findFirst` (the "already verified by
+  // someone else" check) lives on the shared user mock below and defaults to
+  // null there — nobody has claimed the number.
+  phoneOtp: {
+    create:    vi.fn().mockResolvedValue({}),
+    findFirst: vi.fn().mockResolvedValue(null),
+    count:     vi.fn().mockResolvedValue(0),
+    update:    vi.fn().mockResolvedValue({}),
   },
   // Defaults, not bare vi.fn(): every login path now issues a session as a
   // side effect, and a mock returning undefined where an array is expected

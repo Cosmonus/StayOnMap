@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
+import { listLocalities } from './locality.service.js'
 
 // The sitemap, generated from live data.
 //
@@ -59,7 +60,12 @@ const isoDate = (d) => new Date(d).toISOString().slice(0, 10)
  */
 export async function buildSitemap() {
   const properties = await prisma.property.findMany({
-    where: { status: 'ACTIVE', listingVisibility: 'PUBLIC' },
+    // `listingVisibility` lives on USER, not Property — it is the owner's
+    // account setting. Filtering it directly on Property (as this did until
+    // 2026-08-07) is not a no-op: Prisma validates the shape and THROWS, so
+    // the whole sitemap route 500'd. properties.service.js had it right all
+    // along; this was a copy that dropped the nesting.
+    where: { status: 'ACTIVE', owner: { listingVisibility: 'PUBLIC' } },
     select: { id: true, updatedAt: true, city: true },
     orderBy: { updatedAt: 'desc' },
     take: MAX_URLS,
@@ -91,10 +97,31 @@ export async function buildSitemap() {
     })
   }
 
+  // Locality pages, derived from live inventory rather than from a list of
+  // known area names. Only areas that HAVE listings get a URL — see
+  // locality.service.js: with ~5 listings, a page per known area name would be
+  // hundreds of near-empty pages, which is thin content and burns the crawl
+  // budget of a small site on nothing.
+  const localities = await listLocalities()
+  for (const l of localities) {
+    urls.push({
+      loc: `${ORIGIN}/rent/${l.citySlug}/${l.localitySlug}`,
+      changefreq: 'daily',
+      // Above a single listing: a locality page stays useful as its listings
+      // turn over, which is exactly what a crawler should prefer to re-visit.
+      priority: '0.85',
+    })
+  }
+
   const body = urls.map(urlTag).join('\n')
   return {
     xml: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`,
-    counts: { total: urls.length, properties: properties.length, cities: citiesWithStock.size },
+    counts: {
+      total: urls.length,
+      properties: properties.length,
+      cities: citiesWithStock.size,
+      localities: localities.length,
+    },
   }
 }
 

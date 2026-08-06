@@ -7,6 +7,7 @@ import { createHtmlMarker } from '@lib/googleMaps'
 import { useMapStore } from '@store/mapStore'
 import { computeClusters, getExpansionZoom } from '../utils/clustering'
 import { formatCompact, priceUnit } from '@utils/format'
+import { track } from '@lib/analytics'
 
 // BHK is the more useful at-a-glance signal for renters scanning the map —
 // shown instead of the property type (Apt/House/Villa etc.)
@@ -229,7 +230,12 @@ export function useMapPins(mapRef) {
           el.addEventListener('click', () => {
             const { selectedPinId } = useMapStore.getState()
             if (selectedPinId === pinId) clearSelection()
-            else selectPin(pinId, el.getBoundingClientRect())
+            else {
+              selectPin(pinId, el.getBoundingClientRect())
+              // Funnel step 2. Only on OPEN — closing a preview is not a
+              // second expression of interest in the same listing.
+              track('pin_tap', { propertyId: pinId })
+            }
           })
 
           pinMarkersRef.current.set(pinId, marker)

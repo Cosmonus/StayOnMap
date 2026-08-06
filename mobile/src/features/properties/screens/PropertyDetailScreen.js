@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions, Share, Animated } from 'react-native'
 import { Image } from 'expo-image'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -29,6 +29,7 @@ import { colors } from '@theme/colors'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
+import { track } from '@lib/analytics'
 
 const FURNISHED_LABEL = { FULLY: 'Fully furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
 const SCREEN_WIDTH = Dimensions.get('window').width
@@ -95,6 +96,12 @@ export default function PropertyDetailScreen({ route, navigation }) {
     enabled: !!propertyId,
   })
 
+  // Funnel step 3. Keyed on the id so opening a second listing counts twice
+  // and a background refetch counts once.
+  useEffect(() => {
+    if (property?.id) track('property_view', { propertyId: property.id, city: property.city })
+  }, [property?.id, property?.city])
+
   const { data: savedList } = useQuery({
     queryKey: ['saved'],
     queryFn: () => savedService.getMySaved().then((r) => r.data),
@@ -133,6 +140,9 @@ export default function PropertyDetailScreen({ route, navigation }) {
   }
 
   async function handleMessageOwner() {
+    // Funnel step 4. Fired on the ATTEMPT: pressing "message the owner" is the
+    // intent, and a failed request is our problem rather than a change of mind.
+    track('contact_intent', { propertyId, city: property?.city, props: { via: 'chat' } })
     setChatLoading(true)
     try {
       const convo = await chatService.startConversation(propertyId).then((r) => r.data)

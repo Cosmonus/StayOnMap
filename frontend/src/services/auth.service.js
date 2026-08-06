@@ -16,6 +16,11 @@ export const authService = {
   requestLoginOtp: (data) => api.post('/auth/otp/request', data),
   verifyLoginOtp: (data) => api.post('/auth/otp/verify', data),
 
+  // Phone verification — authenticated; you verify your own number. Both send
+  // and consume a 6-digit SMS code (see backend features/auth/phone.service.js).
+  requestPhoneCode: (data) => api.post('/auth/phone/request', data),
+  verifyPhoneCode: (data) => api.post('/auth/phone/verify', data),
+
   // Sessions / devices
   logout: (data) => api.post('/auth/logout', data),
   logoutAll: () => api.post('/auth/logout-all'),

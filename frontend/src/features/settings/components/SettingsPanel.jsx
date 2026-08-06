@@ -11,6 +11,7 @@ import Select from '@components/common/Select'
 import LinkedAccountsCard from './LinkedAccountsCard'
 import DevicesCard from './DevicesCard'
 import BlockedUsersCard from './BlockedUsersCard'
+import VerifyPhoneModal from './VerifyPhoneModal'
 import PointsCard from '@features/points/components/PointsCard'
 
 const ICONS = { user: User, camera: Camera, globe: Globe, eye: Eye, eyeOff: EyeOff, lock: Lock, bell: Bell, save: Save, shield: Shield, trash: Trash2 }
@@ -122,6 +123,7 @@ export default function SettingsPanel() {
   const [pushPending, setPushPending] = useState(false)
   const [pushDenied, setPushDenied] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showPhoneModal, setShowPhoneModal] = useState(false)
 
   useEffect(() => {
     registerServiceWorker()
@@ -221,6 +223,12 @@ export default function SettingsPanel() {
         />
       )}
 
+      <VerifyPhoneModal
+        isOpen={showPhoneModal}
+        onClose={() => setShowPhoneModal(false)}
+        currentPhone={settings.phone}
+      />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-slate-900">Settings</h1>
@@ -284,6 +292,13 @@ export default function SettingsPanel() {
               </Field>
               <Field label="Phone">
                 <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="9876543210" className={INPUT} />
+                {/* Said before the save, not discovered after it: the badge
+                    belongs to the number, so editing it here drops the badge. */}
+                {settings.phoneVerifiedAt && form.phone !== settings.phone && (
+                  <p className="text-[11px] text-amber-700 mt-1">
+                    Saving a different number removes your verified badge until you verify the new one.
+                  </p>
+                )}
               </Field>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -440,6 +455,34 @@ export default function SettingsPanel() {
                 </button>
               )}
             </div>
+            {/* Phone verification. Hidden entirely when the deployment has no
+                SMS provider — a Verify button that can only 503 is worse than
+                no row, and it's the same "no dead buttons" rule the social
+                login buttons follow. */}
+            {settings.phoneVerificationAvailable && (
+              <div className="flex items-center justify-between py-3 border-b border-slate-50">
+                <div>
+                  <p className="text-sm font-medium text-slate-800">Phone verification</p>
+                  <p className="text-[11px] text-slate-500">
+                    {settings.phoneVerifiedAt
+                      ? `${settings.phone} is confirmed`
+                      : 'Confirm your number with a code — one number, one account'}
+                  </p>
+                </div>
+                {settings.phoneVerifiedAt ? (
+                  <span className="px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-[11px] font-bold shrink-0">
+                    Verified
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => setShowPhoneModal(true)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 shrink-0"
+                  >
+                    Verify
+                  </button>
+                )}
+              </div>
+            )}
             <div className="flex items-center justify-between pt-3">
               <div>
                 <p className="text-sm font-medium text-slate-800">Password</p>

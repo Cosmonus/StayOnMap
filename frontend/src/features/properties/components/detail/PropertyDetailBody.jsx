@@ -17,6 +17,7 @@ import PricingCard from './PricingCard'
 import DetailTopBar from './DetailTopBar'
 import MobileActionBar from './MobileActionBar'
 import { availabilityTag, formatType, formatFurnished, bhkLabelFor, directionsUrlFor } from './detailUtils'
+import { track } from '@lib/analytics'
 
 // The full presentational body of a property detail — extracted from
 // PropertyPage.jsx so the admin panel can show the identical page.
@@ -48,6 +49,10 @@ export default function PropertyDetailBody({ property, variant = 'public' }) {
   const directionsUrl = directionsUrlFor(property.lat, property.lng)
 
   async function startChat() {
+    // Funnel step 4. Fired on the ATTEMPT, not on the API's success: pressing
+    // "message the owner" is the intent, and a failed request is our problem
+    // rather than a person who changed their mind.
+    track('contact_intent', { propertyId: property.id, city: property.city, props: { via: 'chat' } })
     try {
       await chatService.startConversation(property.id)
       navigate('/user?tab=messages')

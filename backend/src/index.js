@@ -54,6 +54,8 @@ import pushRoutes         from './features/push/push.routes.js'
 import trustRoutes        from './features/trust/trust.routes.js'
 import placeRoutes        from './features/places/places.routes.js'
 import spatialRoutes      from './features/spatial/spatial.routes.js'
+import analyticsRoutes    from './features/analytics/analytics.routes.js'
+import localityRoutes     from './features/seo/locality.routes.js'
 import { startRefresher } from './features/spatial/refresher.js'
 import aiRoutes          from './features/ai/ai.routes.js'
 import areaRoutes        from './features/areas/areas.routes.js'
@@ -132,6 +134,8 @@ app.use('/api/v1/push',          pushRoutes)
 app.use('/api/v1/areas',         areaRoutes)
 app.use('/api/v1/places',        placeRoutes)
 app.use('/api/v1/spatial',       spatialRoutes)
+app.use('/api/v1/analytics',     analyticsRoutes)
+app.use('/api/v1/localities',    localityRoutes)
 app.use('/api/v1/metro',         metroRoutes)
 app.use('/api/v1/it-corridors',  itCorridorRoutes)
 

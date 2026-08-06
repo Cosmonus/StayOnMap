@@ -18,6 +18,7 @@ import DeleteAccountSheet from '@features/profile/components/DeleteAccountSheet'
 import LinkedAccountsSheet from '@features/profile/components/LinkedAccountsSheet'
 import DevicesSheet from '@features/profile/components/DevicesSheet'
 import BlockedUsersSheet from '@features/profile/components/BlockedUsersSheet'
+import VerifyPhoneSheet from '@features/profile/components/VerifyPhoneSheet'
 import PointsCard from '@features/points/components/PointsCard'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
@@ -27,7 +28,7 @@ import { spacing, radius } from '@theme/spacing'
 
 export default function SettingsScreen({ navigation }) {
   const qc = useQueryClient()
-  const [activeSheet, setActiveSheet] = useState(null) // 'profile' | 'social' | 'privacy' | 'delete'
+  const [activeSheet, setActiveSheet] = useState(null) // 'profile' | 'social' | 'privacy' | 'delete' | 'linked' | 'devices' | 'blocked' | 'phone'
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   const { data: settings, isLoading, isError, refetch } = useQuery({
@@ -214,6 +215,32 @@ export default function SettingsScreen({ navigation }) {
             onPress={() => !sendingVerification && resendVerification()}
           />
         )}
+        {/* Phone verification. The whole row is hidden where the deployment
+            has no SMS provider — a row that can only fail is worse than none,
+            the same rule the social sign-in buttons follow. */}
+        {settings?.phoneVerificationAvailable && (
+          settings?.phoneVerifiedAt ? (
+            <View style={styles.verifiedRow}>
+              <View style={styles.verifiedIcon}>
+                <Icon name="shieldCheck" size={16} color={colors.brand600} />
+              </View>
+              <View style={styles.verifiedLabels}>
+                <Text style={styles.verifiedLabel}>Phone verification</Text>
+                <Text style={styles.verifiedHint}>{settings.phone} is confirmed</Text>
+              </View>
+              <View style={styles.verifiedPill}>
+                <Text style={styles.verifiedPillText}>Verified</Text>
+              </View>
+            </View>
+          ) : (
+            <MenuItem
+              icon="phone"
+              label="Verify phone"
+              hint="Confirm your number with a code — one number, one account"
+              onPress={() => setActiveSheet('phone')}
+            />
+          )
+        )}
         <MenuItem
           icon="lock"
           label={sendingReset ? 'Sending...' : 'Reset password'}
@@ -275,6 +302,11 @@ export default function SettingsScreen({ navigation }) {
       <LinkedAccountsSheet visible={activeSheet === 'linked'} onClose={() => setActiveSheet(null)} />
       <DevicesSheet visible={activeSheet === 'devices'} onClose={() => setActiveSheet(null)} />
       <BlockedUsersSheet visible={activeSheet === 'blocked'} onClose={() => setActiveSheet(null)} />
+      <VerifyPhoneSheet
+        visible={activeSheet === 'phone'}
+        onClose={() => setActiveSheet(null)}
+        currentPhone={settings?.phone}
+      />
     </SafeAreaView>
   )
 }

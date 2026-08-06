@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { authMiddleware } from '../../middlewares/auth.middleware.js'
 import { validate } from '../../middlewares/validate.middleware.js'
 import { strictLimiter } from '../../middlewares/rateLimit.middleware.js'
-import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, verifyEmailSchema, updateRoleSchema, requestOtpSchema, verifyOtpSchema, refreshSchema, logoutSchema, oauthCompleteSchema } from './auth.validation.js'
+import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, verifyEmailSchema, updateRoleSchema, requestOtpSchema, verifyOtpSchema, refreshSchema, logoutSchema, oauthCompleteSchema, requestPhoneCodeSchema, verifyPhoneCodeSchema } from './auth.validation.js'
 import * as controller from './auth.controller.js'
 
 const router = Router()
@@ -28,6 +28,14 @@ router.post('/otp/verify',  strictLimiter, validate(verifyOtpSchema),  controlle
 
 // Sends an email → keep it on the tight bucket to protect the mail quota.
 router.post('/send-verification', strictLimiter, authMiddleware, controller.sendVerification)
+
+// Phone verification. Authenticated, so there is no account-enumeration angle —
+// but the DESTINATION is caller-supplied, which the email flows never are, so
+// strictLimiter guards the spend and phone.service.js adds a per-user cooldown,
+// a per-user daily cap AND a per-destination daily cap. The last one is what
+// stops this being an on-demand way to text a number you don't own.
+router.post('/phone/request', strictLimiter, authMiddleware, validate(requestPhoneCodeSchema), controller.requestPhoneCode)
+router.post('/phone/verify',  strictLimiter, authMiddleware, validate(verifyPhoneCodeSchema),  controller.verifyPhoneCode)
 
 router.get('/me', authMiddleware, controller.getMe)
 router.patch('/role', authMiddleware, validate(updateRoleSchema), controller.updateRole)

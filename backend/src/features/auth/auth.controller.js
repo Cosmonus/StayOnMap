@@ -1,4 +1,5 @@
 import * as service from './auth.service.js'
+import * as phone from './phone.service.js'
 import * as sessions from './session.service.js'
 import * as oauth from './oauth.service.js'
 import { enabledProviders } from './oauth.providers.js'
@@ -67,6 +68,20 @@ export async function verifyOtp(req, res, next) {
   try {
     const result = await service.verifyLoginOtp(req.body.email, req.body.code, loginCtx(req))
     ok(res, result)
+  } catch (err) { next(err) }
+}
+
+// ── Phone verification (authenticated — you verify your own number) ─────────
+
+export async function requestPhoneCode(req, res, next) {
+  try {
+    ok(res, await phone.requestPhoneOtp(req.user.id, req.body.phone))
+  } catch (err) { next(err) }
+}
+
+export async function verifyPhoneCode(req, res, next) {
+  try {
+    ok(res, await phone.verifyPhoneOtp(req.user.id, req.body.code))
   } catch (err) { next(err) }
 }
 

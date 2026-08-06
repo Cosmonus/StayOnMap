@@ -12,6 +12,7 @@ import { buildFilterWhere, filterCacheKey } from './filters.registry.js'
 import { encode, decode } from '../../lib/geohash.js'
 import { resolveProximityFilter, proximityCacheKey } from './proximityFilter.js'
 import { notifyUser } from '../notifications/notifications.service.js'
+import { record } from '../analytics/analytics.service.js'
 
 // The land-record IDENTIFIERS, which never leave the server for anyone but the
 // listing's own owner. Enforced here rather than by omitting them from a
@@ -577,8 +578,40 @@ export async function publishProperty(id, ownerId) {
   // sees a current risk score, not the one from draft creation time
   evaluateListing(id, 'publish')
   ensureContextForProperty(property.lat, property.lng, property.type).catch(() => {})
+  recordPublishDuration(id, ownerId, property.city).catch(() => {})
 
   return updated
+}
+
+// Time-to-publish: the number that says whether the wizard is the reason there
+// are five listings. Measured from the owner's draft row rather than a client
+// "wizard opened" event — the server already knows when the draft began and
+// its clock is the one to trust.
+//
+// A missing draft is the normal case for an owner who published in one sitting
+// without the 2s autosave ever firing, and for every listing created before
+// this shipped. It records nothing rather than guessing a duration, so the
+// median stays honest about what it actually measured.
+// `async` + try/catch rather than a bare .then().catch(): a promise chain only
+// catches a REJECTION, and the lookup can also fail synchronously. It did —
+// two publish tests went red on a TypeError thrown before any promise existed,
+// which would have been a failed publish in production over a telemetry
+// lookup. The rule this feature is built on is that recording can never break
+// the thing being recorded, and a .catch() alone does not buy it.
+async function recordPublishDuration(propertyId, ownerId, city) {
+  try {
+    const draft = await prisma.listingDraft.findUnique({
+      where: { userId: ownerId },
+      select: { createdAt: true },
+    })
+    if (!draft?.createdAt) return
+    record('listing_publish_completed', {
+      userId: ownerId,
+      propertyId,
+      city,
+      props: { msSinceDraftStart: Date.now() - draft.createdAt.getTime() },
+    })
+  } catch { /* a lost measurement is never worth a failed publish */ }
 }
 
 export async function toggleStatus(id, ownerId) {

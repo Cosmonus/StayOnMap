@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { sendEmail, adminPasswordChangedEmail } from '../../services/email.service.js'
 import { mailStatus } from '../../lib/mailer.js'
+import { smsStatus } from '../../lib/smsSender.js'
 import { ADMIN_FILTERS, buildFilterWhere } from '../properties/filters.registry.js'
 import { parseBounds, boundsFilter } from '../../utils/geo.js'
 import { getContext, STATUS_FAILED } from '../spatial/spatial.service.js'
@@ -505,6 +506,7 @@ export async function getMonitorStatus() {
     pendingModerationRaw,
     dbStatus,
     mail,
+    sms,
     webPushSubscriptions,
     mobilePushDevices,
   ] = await Promise.all([
@@ -528,6 +530,9 @@ export async function getMonitorStatus() {
     // live (was inferred from SMTP_HOST — false on a prod box sending via
     // ZeptoMail's REST API), and how many endpoints each push path can reach.
     mailStatus().catch(() => ({ provider: 'unknown', configured: false, usedToday: 0, dailyCap: 0 })),
+    // Same question for SMS: phone verification is invisible in the product
+    // when no provider is configured, so "is it on" needs somewhere to be read.
+    smsStatus().catch(() => ({ provider: 'unknown', configured: false, usedToday: 0, dailyCap: 0 })),
     prisma.pushSubscription.count(),
     prisma.expoPushToken.count(),
   ])
@@ -554,6 +559,7 @@ export async function getMonitorStatus() {
       emailEnabled: mail.configured,
       pushEnabled:  !!process.env.VAPID_PUBLIC_KEY,
       mail,
+      sms,
       webPush:    { enabled: !!process.env.VAPID_PUBLIC_KEY, subscriptions: webPushSubscriptions },
       // Expo push needs no server key — the send path is always available;
       // the number that means anything is how many devices registered a token.

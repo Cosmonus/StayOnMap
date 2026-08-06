@@ -153,6 +153,19 @@ export const placesIntelLimiter = makeLimiter({
   message: { success: false, message: 'Too many area lookups, try again later', statusCode: 429 },
 })
 
+// Telemetry ingest. Its own bucket because it is public, unauthenticated and
+// batched: a real session flushes a handful of times, but sharing the 600-req
+// default bucket would let a busy map session's analytics starve its own
+// /pins calls. Each request carries up to 50 events, so 60 requests is 3,000
+// events per IP per window — far above any honest client, and the write is a
+// single createMany.
+export const analyticsLimiter = makeLimiter({
+  prefix: 'rl:analytics:',
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: { success: false, message: 'Too many events', statusCode: 429 },
+})
+
 // Admin users are trusted operators — generous limit so moderation actions never get throttled
 export const adminLimiter = makeLimiter({
   prefix: 'rl:admin:',

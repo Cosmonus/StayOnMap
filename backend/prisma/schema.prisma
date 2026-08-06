@@ -269,6 +269,11 @@ model User {
   email         String    @unique
   name          String
   phone         String?
+  // Set only by the SMS code flow (features/auth/phone.service.js). NULL is the
+  // honest state for every number that was merely typed in — which is all of
+  // them before this shipped. Cleared whenever `phone` changes, or a verified
+  // badge would outlive the number that earned it.
+  phoneVerifiedAt DateTime?
   city          String? // self-reported at signup — one of config/cities.js's SUPPORTED_CITIES (users outside these go to WaitlistEntry instead of getting an account)
   avatarUrl     String?
   bio           String?
@@ -308,6 +313,8 @@ model User {
   ownerTrustScore     OwnerTrustScore?
   passwordResetTokens PasswordResetToken[]
   emailOtps           EmailOtp[]
+  phoneOtps           PhoneOtp[]
+  analyticsEvents     AnalyticsEvent[]
   pointsLedger        PointsLedger[]
   socialAccounts      SocialAccount[]
   authSessions        AuthSession[]
@@ -508,6 +515,66 @@ model EmailOtp {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([expiresAt])
+}
+
+// Product telemetry — first-party, in our own database.
+//
+// No vendor: PostHog/Plausible/GA would each be a new processor in /privacy,
+// would send our users' behaviour to someone else, and would need a cookie
+// story the policy currently does not have ("we do not use third-party
+// advertising trackers or analytics cookies"). We already run Postgres. Same
+// reasoning as self-hosting the OSM POIs rather than paying Google per call.
+//
+// `sessionId` is client-generated, random, and lives for one session — it
+// stitches a funnel together without identifying anybody. `userId` is the only
+// personal link here, which is why it is a real relation with **SetNull**:
+// deleting an account must remove the link (DPDP, and /privacy promises it)
+// without deleting the aggregate history, which would silently rewrite past
+// funnel numbers. `propertyId` is a plain string on purpose — a listing id is
+// not personal data, and a FK on a high-write table costs more than it buys.
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  name       String   // constrained to features/analytics/events.js, not free text
+  sessionId  String
+  userId     String?
+  propertyId String?
+  city       String?
+  props      Json?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // The funnel query's access path: count by step within a window.
+  @@index([name, createdAt])
+  // Stitching one session's steps together, and the retention prune.
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
+// SMS codes proving control of a phone number. Shaped like EmailOtp, with one
+// column that changes the security properties: `phone`. A code is issued FOR a
+// specific number, so changing the number mid-flow cannot be verified by the
+// code already in transit — and the per-destination daily cap (which EmailOtp
+// needs no equivalent of, since it only ever mails a registered address) is
+// what stops this endpoint being used to text-bomb a number the sender does
+// not own.
+model PhoneOtp {
+  id         String    @id @default(cuid())
+  userId     String
+  phone      String
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  // The per-destination throttle's access path: count sends to THIS number
+  // since a cutoff, regardless of which account asked.
+  @@index([phone, createdAt])
   @@index([expiresAt])
 }
 
