@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, TextInput, Pressable, FlatList, KeyboardAvoidingView, ActivityIndicator, Alert, AppState, Linking, Modal, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useIsFocused } from '@react-navigation/native'
+import { referenceDestination } from '@navigation/navigationRef'
+import { useUiStore } from '@store/uiStore'
 import { Image } from 'expo-image'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as ImagePicker from 'expo-image-picker'
@@ -77,7 +79,11 @@ function SenderAvatar({ sender }) {
 //
 // Renders nothing when there is no live appointment — an empty "no visit
 // booked" strip would be noise on every thread that is still just a question.
-function VisitBanner({ visit }) {
+// It is TAPPABLE (2026-08-07). It named the visit and then left you to find it:
+// the only way to cancel, or to read what the owner replied, was to work out
+// unaided that visits live behind another tab. Naming a thing and not opening
+// it is the same dead end the notification list had.
+function VisitBanner({ visit, onOpen }) {
   if (!visit) return null
 
   const when = visit.scheduledAt ?? visit.requestedDate
@@ -91,13 +97,19 @@ function VisitBanner({ visit }) {
     : 'Visit requested'
 
   return (
-    <View style={styles.visitBanner}>
+    <Pressable
+      style={styles.visitBanner}
+      onPress={onOpen}
+      accessibilityRole="button"
+      accessibilityLabel={`${heading}${date ? ` — ${date}${time}` : ''}. Open this visit.`}
+    >
       <Icon name="calendar" size={16} color={colors.brand700} />
       <Text style={styles.visitBannerText}>
         <Text style={styles.visitBannerHeading}>{heading}</Text>
-        {date ? ` — ${date}${time}.` : '.'} This thread is about that visit.
+        {date ? ` — ${date}${time}.` : '.'} <Text style={styles.visitBannerLink}>Open this visit</Text>
       </Text>
-    </View>
+      <Icon name="chevronRight" size={16} color={colors.brand700} />
+    </Pressable>
   )
 }
 
@@ -118,6 +130,7 @@ export default function ConversationScreen({ route, navigation }) {
   const { conversationId, other: otherParam, otherRole } = route.params
   const { user } = useAuth()
   const qc = useQueryClient()
+  const hostMode = useUiStore((s) => s.hostMode)
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -445,6 +458,16 @@ export default function ConversationScreen({ route, navigation }) {
     navigation.navigate('PropertyDetail', { propertyId: property.id })
   }
 
+  // The visit queue, in whichever mode we're in — Chat and Inbox are the SAME
+  // stack, so this always crosses tabs, and the two modes park the queue in
+  // different places. referenceDestination already knows both (it is what an
+  // Appointment push resolves to), so this reuses it rather than hand-rolling a
+  // second copy of the routing that would drift from it.
+  function openVisit() {
+    const destination = referenceDestination({ referenceType: 'Appointment' }, hostMode)
+    if (destination) navigation.getParent()?.navigate(...destination)
+  }
+
   // Search hits the backend once the box settles (300ms debounce); otherwise
   // show the live-loaded page. Both are annotated chronologically with
   // date-separator + grouping flags, then reversed for the inverted list.
@@ -568,7 +591,7 @@ export default function ConversationScreen({ route, navigation }) {
       )}
 
       {/* Which listing, then what is happening about it. */}
-      <VisitBanner visit={conversation?.visit} />
+      <VisitBanner visit={conversation?.visit} onOpen={openVisit} />
 
       {isLoading ? (
         <View style={styles.center}><ActivityIndicator color={colors.brand600} /></View>
@@ -759,6 +782,7 @@ const styles = StyleSheet.create({
   },
   visitBannerText: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.brand900, lineHeight: 20 },
   visitBannerHeading: { fontFamily: fonts.bodySemiBold },
+  visitBannerLink: { fontFamily: fonts.bodySemiBold, textDecorationLine: 'underline' },
   // Tinted, not white: this strip is a link to the listing the whole
   // conversation is about, and as a plain white block between a white header
   // and a white message canvas it read as a slab rather than something to tap.

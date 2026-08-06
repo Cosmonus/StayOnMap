@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Check, CheckCheck, Search, MessageCircle, CalendarDays, FileText, Pencil, Trash2, Home, Phone,
-  MoreVertical, Ban, Flag,
+  MoreVertical, Ban, Flag, ChevronRight,
 } from 'lucide-react'
 import { chatService } from '@services/chat.service'
 import { getSocket } from '@lib/socket'
@@ -127,6 +127,11 @@ function ThreadHeader({ conversation, other, counterpartRole, replyMinutes, typi
 //
 // Renders nothing when there is no live appointment — an empty banner saying
 // "no visit booked" would be noise on every thread that is still just a question.
+//
+// It is a LINK (2026-08-07). It named the visit and then left you to find it:
+// the only way to cancel, or to see what the owner replied, was to work out
+// unaided that visits are a different tab and go there by hand. Naming a thing
+// and not opening it is the same dead end the notification bell had.
 function VisitBanner({ visit }) {
   if (!visit) return null
 
@@ -141,13 +146,20 @@ function VisitBanner({ visit }) {
     : 'Visit requested'
 
   return (
-    <div className="shrink-0 flex items-start gap-3 px-4 sm:px-6 py-3.5 bg-brand-50">
+    <Link
+      to="/user?tab=appointments"
+      className="group shrink-0 flex items-start gap-3 px-4 sm:px-6 py-3.5 bg-brand-50 hover:bg-brand-100 no-underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
+    >
       <CalendarDays size={17} strokeWidth={2} className="mt-0.5 shrink-0 text-brand-700" aria-hidden="true" />
-      <p className="text-sm text-brand-900 leading-relaxed">
+      <p className="flex-1 text-sm text-brand-900 leading-relaxed">
         <strong className="font-bold">{heading}</strong>
-        {date && <> — {date}{time}.</>} This thread is about that visit.
+        {date && <> — {date}{time}.</>}{' '}
+        <span className="underline underline-offset-2 decoration-brand-300 group-hover:decoration-brand-600">
+          Open this visit
+        </span>
       </p>
-    </div>
+      <ChevronRight size={17} strokeWidth={2} className="mt-0.5 shrink-0 text-brand-700" aria-hidden="true" />
+    </Link>
   )
 }
 
