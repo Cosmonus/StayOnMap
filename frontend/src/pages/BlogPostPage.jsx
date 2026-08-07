@@ -4,12 +4,14 @@ import { ArrowLeft, Clock } from 'lucide-react'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
 import { blogService } from '@services/blog.service'
+import { useMediaQuery } from '@hooks/useMediaQuery'
 import NotFoundPage from '@pages/NotFoundPage'
 import ArticleBody from '@features/blog/components/ArticleBody'
 import TableOfContents from '@features/blog/components/TableOfContents'
 import FaqAccordion from '@features/blog/components/FaqAccordion'
 import RelatedPosts from '@features/blog/components/RelatedPosts'
 import { formatPostDate, showsUpdated } from '@features/blog/format'
+import { hasTableOfContents } from '@features/blog/markdown'
 
 // One article. Thin composer.
 //
@@ -37,6 +39,11 @@ function ArticleSkeleton() {
 
 export default function BlogPostPage() {
   const { slug } = useParams()
+  // The contents list is ONE mounted component, not two hidden by CSS — it
+  // renders a `<nav>` with a fixed `id`, and two of those in a document is a
+  // duplicate-id a11y bug, not just wasted markup. `lg` = the sidebar's
+  // breakpoint below.
+  const isWide = useMediaQuery('(min-width: 1024px)')
 
   const { data: post, isLoading, isError, error } = useQuery({
     queryKey: ['blog', 'post', slug],
@@ -52,6 +59,12 @@ export default function BlogPostPage() {
   // served the plain shell and this is what fills it.
   if (isError && error?.response?.status === 404) return <NotFoundPage />
 
+  // The extra width exists to hold the contents sidebar. An article too short
+  // to have one (under four sections) keeps the original single-column page
+  // rather than stranding a 68ch text column against the left edge of a
+  // 1152px one.
+  const showSidebar = isWide && !!post?.body && hasTableOfContents(post.body)
+
   return (
     <div className="min-h-screen bg-slate-50 pt-16">
       {post && (
@@ -62,7 +75,10 @@ export default function BlogPostPage() {
         />
       )}
 
-      <article className="mx-auto max-w-3xl px-4 md:px-8 py-8 md:py-12">
+      {/* The page is wide; the TEXT is not. `ArticleBody` caps itself at 68ch
+          and the header matches, so the extra width goes to the contents
+          sidebar rather than stretching lines nobody can read. */}
+      <article className={`mx-auto px-4 md:px-8 py-8 md:py-12 ${showSidebar ? 'max-w-6xl' : 'max-w-3xl'}`}>
         <Link
           to="/blog"
           className="inline-flex min-h-[44px] items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-800"
@@ -87,7 +103,7 @@ export default function BlogPostPage() {
 
         {post && (
           <>
-            <header className="mt-6">
+            <header className="mt-6 max-w-[68ch]">
               <span className="text-badge font-semibold uppercase tracking-wide text-brand-700">
                 {post.clusterLabel}
               </span>
@@ -115,36 +131,55 @@ export default function BlogPostPage() {
 
             <hr className="my-8 border-slate-200" />
 
-            <TableOfContents markdown={post.body} />
+            {/* Columns are sized to their CONTENT, not to fractions of the
+                page: prose at its 68ch measure, contents at 16rem, and
+                `justify-between` puts the slack in the middle so the sidebar
+                sits on the right edge instead of floating mid-page. */}
+            <div className={showSidebar ? 'grid grid-cols-[minmax(0,68ch)_16rem] items-start justify-between gap-12' : ''}>
+              <div className="min-w-0 max-w-[68ch]">
+                {!showSidebar && <TableOfContents markdown={post.body} />}
 
-            <ArticleBody markdown={post.body} />
+                <ArticleBody markdown={post.body} />
 
-            {post.sources?.length > 0 && (
-              <section aria-labelledby="sources-heading" className="mt-12 rounded-2xl bg-white ring-1 ring-slate-200 p-5">
-                <h2 id="sources-heading" className="text-sm font-semibold text-slate-800 mb-3">
-                  Sources
-                </h2>
-                <ol className="space-y-2">
-                  {post.sources.map((s, i) => (
-                    <li key={i} className="flex gap-3 text-sm leading-relaxed">
-                      <span aria-hidden="true" className="font-mono text-xs text-slate-500 min-w-[1.25rem]">
-                        {i + 1}.
-                      </span>
-                      <a
-                        href={s.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-brand-700 underline underline-offset-2 hover:text-brand-600"
-                      >
-                        {s.label}
-                      </a>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-            )}
+                {post.sources?.length > 0 && (
+                  <section aria-labelledby="sources-heading" className="mt-12 rounded-2xl bg-white ring-1 ring-slate-200 p-5">
+                    <h2 id="sources-heading" className="text-sm font-semibold text-slate-800 mb-3">
+                      Sources
+                    </h2>
+                    <ol className="space-y-2">
+                      {post.sources.map((s, i) => (
+                        <li key={i} className="flex gap-3 text-sm leading-relaxed">
+                          <span aria-hidden="true" className="font-mono text-xs text-slate-500 min-w-[1.25rem]">
+                            {i + 1}.
+                          </span>
+                          <a
+                            href={s.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-brand-700 underline underline-offset-2 hover:text-brand-600"
+                          >
+                            {s.label}
+                          </a>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+                )}
 
-            <FaqAccordion items={post.faq} />
+                <FaqAccordion items={post.faq} />
+              </div>
+
+              {/* Sticky, but capped and scrollable — the property page's lesson
+                  is that a sticky column TALLER than the viewport pins on
+                  contact and strands what is below it. A contents list is short
+                  by construction (h2s only, hidden under four), so the cap is a
+                  backstop for a monster article, not the normal case. */}
+              {showSidebar && (
+                <aside className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
+                  <TableOfContents markdown={post.body} />
+                </aside>
+              )}
+            </div>
 
             <RelatedPosts posts={post.related} />
 

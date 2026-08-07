@@ -178,3 +178,14 @@ export function tableOfContents(markdown) {
     .filter((b) => b.type === 'h2')
     .map((b) => ({ id: b.id, text: b.text }))
 }
+
+/**
+ * Under four sections it is not navigation, it is a list of the article.
+ *
+ * Lives here rather than inside the component because the PAGE has to know the
+ * same answer — it reserves a sidebar column for the contents, and reserving it
+ * for a list that renders nothing leaves the article visibly off-centre.
+ */
+export const TOC_MIN_SECTIONS = 4
+export const hasTableOfContents = (markdown) =>
+  tableOfContents(markdown).length >= TOC_MIN_SECTIONS

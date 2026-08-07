@@ -13,7 +13,9 @@ export default function RelatedPosts({ posts }) {
       <h2 id="related-heading" className="text-2xl font-bold text-slate-800 mb-5">
         Keep reading
       </h2>
-      <div className="grid gap-4 sm:grid-cols-2">
+      {/* Three across, matching the index — the article page is wide enough
+          for it now, and `related` resolves to at most three posts. */}
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {posts.map((p) => <PostCard key={p.slug} post={p} />)}
       </div>
     </section>

@@ -1,20 +1,23 @@
-import { tableOfContents } from '../markdown'
+import { tableOfContents, hasTableOfContents } from '../markdown'
 
 /**
  * Section links, built from the article's own h2s so it can never list a
  * section that was renamed or removed.
  *
- * Rendered inline above the article on every breakpoint rather than as a
- * sticky sidebar: the property page already learned that a sticky column
+ * Inline above the article below `lg`, and a sticky sidebar at `lg` and up —
+ * BlogPostPage decides which, and mounts exactly one (this renders a `<nav>`
+ * with a fixed id, so two copies would collide).
+ *
+ * The sticky half carries the property page's lesson with it: a sticky column
  * taller than the viewport pins on contact and strands everything below it
- * (see .claude/ui-ux.md), and a 2,500-word guide has more sections than a
- * listing has cards.
+ * (see .claude/ui-ux.md), so the sidebar is height-capped. That is a backstop —
+ * this list is h2s only and hides itself under four of them, so a 2,500-word
+ * guide still produces a short list.
  */
 export default function TableOfContents({ markdown }) {
   const items = tableOfContents(markdown)
 
-  // Under four sections it is not navigation, it is a list of the article.
-  if (items.length < 4) return null
+  if (!hasTableOfContents(markdown)) return null
 
   return (
     <nav aria-labelledby="toc-heading" className="my-8 rounded-2xl bg-slate-50 ring-1 ring-slate-200 p-5">

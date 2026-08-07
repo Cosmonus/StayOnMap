@@ -19,6 +19,10 @@ const DESCRIPTION =
   'Practical guides to renting in India: agreements, deposits, tenant rights, '
   + 'city and neighbourhood comparisons, and what the data actually says.'
 
+// One grid, declared once, so the skeletons cannot land in a different shape
+// than the cards that replace them.
+const GRID = 'grid gap-6 sm:grid-cols-2 lg:grid-cols-3'
+
 function SkeletonCard() {
   return <div className="h-48 rounded-2xl bg-slate-100 animate-pulse" />
 }
@@ -38,15 +42,16 @@ export default function BlogPage() {
   // that leads to an empty list is a promise the content plan has not kept yet.
   const available = Object.entries(clusters).filter(([key]) => posts.some((p) => p.cluster === key))
   const visible = cluster ? posts.filter((p) => p.cluster === cluster) : posts
-  const [lead, ...rest] = visible
 
   return (
     <div className="min-h-screen bg-slate-50 pt-16">
       <SEOMeta title={TITLE} description={DESCRIPTION} canonical={canonical('/blog')} />
 
-      <div className="mx-auto max-w-5xl px-4 md:px-8 py-10 md:py-14">
+      <div className="mx-auto max-w-7xl px-4 md:px-8 py-10 md:py-14">
         <header className="mb-8">
           <h1 className="text-4xl font-bold text-slate-800 leading-tight">Renting, explained</h1>
+          {/* Prose stays at 60ch even though the grid below is full width —
+              a line of body text spanning 1280px is unreadable. */}
           <p className="mt-3 max-w-[60ch] text-base text-slate-600 leading-relaxed">
             Deposits, agreements, tenant rights, and how to read a neighbourhood before you
             sign. Written by people who have moved cities, argued with landlords, and lost a
@@ -85,8 +90,8 @@ export default function BlogPage() {
         )}
 
         {isLoading && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+          <div className={GRID}>
+            <SkeletonCard /><SkeletonCard /><SkeletonCard />
           </div>
         )}
 
@@ -119,14 +124,9 @@ export default function BlogPage() {
         )}
 
         {!isLoading && !isError && visible.length > 0 && (
-          <>
-            <PostCard post={lead} featured />
-            {rest.length > 0 && (
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                {rest.map((p) => <PostCard key={p.slug} post={p} />)}
-              </div>
-            )}
-          </>
+          <div className={GRID}>
+            {visible.map((p) => <PostCard key={p.slug} post={p} />)}
+          </div>
         )}
       </div>
     </div>
