@@ -2,8 +2,10 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Heart, ImageIcon } from 'lucide-react'
 import { savedService } from '@services/saved.service'
-import { formatCurrency, priceUnit, imgUrl } from '@utils/format'
+import { formatCurrency, imgUrl } from '@utils/format'
 import { formatTime } from '@utils/time'
+import Price from '@components/listing/Price'
+import SpecLine from '@components/listing/SpecLine'
 
 // Saved homes — the one page a renter comes BACK to, so every row says what
 // CHANGED since they saved it. Mirrors mobile's SavedScreen: same three
@@ -12,13 +14,6 @@ import { formatTime } from '@utils/time'
 // It replaced a grid of generic PropertyCards. Those are right for a search
 // result and wrong here: they repeat what the renter already decided on and
 // have nowhere to put the reason they came back.
-
-const FURNISHED = { FULLY: 'Furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
-
-function metaLine(p) {
-  const size = p.bhk ? `${p.bhk} BHK` : p.sharing ? `${p.sharing}-sharing` : null
-  return [size, FURNISHED[p.furnished]].filter(Boolean).join(' · ') || p.landmark || p.city
-}
 
 function visitLabel(visit) {
   const when = visit.scheduledAt ?? visit.requestedDate
@@ -52,12 +47,13 @@ function SavedRow({ item }) {
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="font-mono text-xl font-bold text-slate-900">
-          {formatCurrency(Number(p.rent))}
-          <span className="text-sm font-normal text-slate-500">{priceUnit(p)}</span>
-        </p>
+        <Price property={p} size="card" />
         <p className="text-base font-semibold text-slate-900 truncate mt-0.5">{p.title}</p>
-        <p className="text-sm text-slate-500 truncate mt-0.5">{metaLine(p)}</p>
+        {/* The row's own meta line used to be BHK-or-sharing plus furnishing,
+            so a saved PLOT or SHORT STAY fell through to its landmark and a
+            saved shop said nothing about its size. `text-sm` rather than
+            SpecLine's default: this row is denser than a grid card. */}
+        <SpecLine property={p} className="!text-sm mt-0.5" />
 
         {/* At most one chip — the most actionable wins. Stacked chips turn a row
             into a noticeboard. */}

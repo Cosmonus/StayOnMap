@@ -5,22 +5,16 @@ import { Heart, Home, MapPin } from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
 import { savedService } from '@services/saved.service'
-import { imgUrl, formatCompact, priceUnit, formatAge, isAvailableToday } from '@utils/format'
+import { imgUrl, formatCompact, formatAge, isAvailableToday } from '@utils/format'
 import TrustBadge from '@components/common/TrustBadge'
+import Price from '@components/listing/Price'
+import SpecLine from '@components/listing/SpecLine'
 
 // Plain text, no emoji/color — Airbnb's restraint: one muted line under the
-// title carries all the spec info, instead of a row of colored chips.
-const FURNISHED_LABEL = {
-  FULLY: 'Furnished',
-  SEMI: 'Semi furnished',
-  UNFURNISHED: 'Unfurnished',
-}
-
-const TYPE_LABEL = {
-  APARTMENT: 'Apartment', HOUSE: 'House', VILLA: 'Villa',
-  PG: 'PG', INDEPENDENT_HOUSE: 'Independent house', COMMERCIAL: 'Commercial',
-}
-
+// title carries all the spec info, instead of a row of colored chips. The line
+// itself is `SpecLine` now: this file's own TYPE_LABEL was missing LAND and
+// SHORT_STAY, and its spec was `bhk` only, so a plot showed neither its type
+// nor its extent and a PG never mentioned sharing.
 function HeartIcon({ filled }) {
   return <Heart size={18} fill={filled ? '#ef4444' : 'none'} stroke={filled ? '#ef4444' : 'white'} strokeWidth={2} />
 }
@@ -55,13 +49,6 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
 
   const availableNow = isAvailableToday(property.availableFrom)
   const postedAge = formatAge(property.createdAt)
-  const bhkLabel = property.bhk === 0 ? 'Studio' : property.bhk ? `${property.bhk} BHK` : null
-  const specLine = [
-    bhkLabel,
-    FURNISHED_LABEL[property.furnished],
-    property.type && TYPE_LABEL[property.type],
-    property.area && `${Math.round(Number(property.area))} sq.ft`,
-  ].filter(Boolean).join(' · ')
 
   return (
     <div className="group relative h-full flex flex-col">
@@ -143,12 +130,7 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
       <div className="pt-3 flex-1 flex flex-col">
         {/* Price — primary decision variable for a rental search */}
         <div className="flex items-baseline justify-between gap-2 mb-1">
-          <p className="text-xl font-bold text-slate-900 font-mono leading-none">
-            {formatCompact(Number(property.rent))}
-            {priceUnit(property) && (
-              <span className="text-xs font-normal text-slate-500 ml-1">{priceUnit(property)}</span>
-            )}
-          </p>
+          <Price property={property} size="card" compact />
           {property.deposit > 0 && (
             <p className="text-xs text-slate-500 shrink-0">
               {formatCompact(Number(property.deposit))} {property.pricingModel === 'SALE' ? 'advance' : 'dep.'}
@@ -162,9 +144,7 @@ export default function PropertyCard({ property, isSaved: initialSaved = false }
         </h3>
 
         {/* Specs — one muted line instead of colored chips */}
-        {specLine && (
-          <p className="text-xs text-slate-500 truncate mb-1.5">{specLine}</p>
-        )}
+        <SpecLine property={property} className="mb-1.5" />
 
         {/* Location + posted age — pinned to bottom */}
         <div className="flex items-center justify-between gap-2 mt-auto pt-1">
