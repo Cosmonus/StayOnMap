@@ -1,9 +1,11 @@
 import { Router } from 'express'
 import { buildSitemap, buildRobots } from './sitemap.service.js'
-import { loadTemplate, renderHead } from './prerender.service.js'
+import { loadTemplate, renderHead, SHELL_CSP } from './prerender.service.js'
 import { metaForProperty } from './listingMeta.js'
 import { metaForLocality } from './localityMeta.js'
+import { metaForPost, metaForBlogIndex } from './blogMeta.js'
 import { getLocality, isPubliclyListed } from './locality.service.js'
+import { listPosts, getPost } from '../blog/blog.service.js'
 import { getPropertyById } from '../properties/properties.service.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 
@@ -53,10 +55,14 @@ router.get('/robots.txt', (req, res) => {
 // crawler for an hour.
 const HTML_CACHE = 'public, max-age=60'
 
-async function sendWithHead(res, meta) {
+// Overrides helmet()'s default policy on the shell only — see SHELL_CSP.
+const shellHeaders = (res, cache) =>
+  res.type('html').set('Cache-Control', cache).set('Content-Security-Policy', SHELL_CSP)
+
+async function sendWithHead(res, meta, cache = HTML_CACHE) {
   const template = await loadTemplate()
   if (!template) return false
-  res.type('html').set('Cache-Control', HTML_CACHE).send(renderHead(template, meta))
+  shellHeaders(res, cache).send(renderHead(template, meta))
   return true
 }
 
@@ -88,6 +94,34 @@ router.get('/rent/:citySlug/:localitySlug', async (req, res, next) => {
     const locality = await getLocality(req.params.citySlug, req.params.localitySlug)
     if (!locality) return res.status(404).end()
     if (!(await sendWithHead(res, metaForLocality(locality)))) res.status(404).end()
+  } catch (err) { next(err) }
+})
+
+// ── Blog ────────────────────────────────────────────────────────────────────
+//
+// The one surface here whose whole reason for existing is to be found. A
+// listing page is shared; an article is SEARCHED, and a search result is built
+// from the <title> and description in the first response. Posts are served
+// from memory (see features/blog/blog.service.js), so these two routes cost a
+// map lookup and a string replace.
+//
+// Cache-Control is longer than a listing's 60s: an article does not go off
+// market, and its facts do not change between a crawl and a click.
+const BLOG_CACHE = 'public, max-age=600'
+
+router.get('/blog', async (req, res, next) => {
+  try {
+    if (!(await sendWithHead(res, metaForBlogIndex(listPosts()), BLOG_CACHE))) res.status(404).end()
+  } catch (err) { next(err) }
+})
+
+router.get('/blog/:slug', async (req, res, next) => {
+  try {
+    const post = getPost(req.params.slug)
+    // Unknown slug → 404 → nginx @spa → the SPA renders its own not-found.
+    // Never a server-rendered head describing an article that does not exist.
+    if (!post) return res.status(404).end()
+    if (!(await sendWithHead(res, metaForPost(post), BLOG_CACHE))) res.status(404).end()
   } catch (err) { next(err) }
 })
 

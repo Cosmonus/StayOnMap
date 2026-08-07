@@ -106,3 +106,20 @@ backend/data/metro-compare/
 .ds-sync/
 ds-bundle/
 frontend/.ds-styles.css
+
+# ─────────────────────────────────────────────
+# Mobile native credential files (added 2026-08-07)
+#
+# CI's `guard` job already denylists these by name, so committing one fails the
+# build — but only AFTER it is in a commit. mobile/google-services.json was
+# untracked and unignored, so a `git add -A` picked it up silently and the
+# denylist would have been the first thing to notice. Ignoring them means the
+# staging step never sees them at all.
+#
+# These belong on the build machine and in EAS secrets, never in the repo.
+# ─────────────────────────────────────────────
+google-services.json
+GoogleService-Info.plist
+*.mobileprovision
+*.jks
+*.keystore

@@ -7,6 +7,7 @@ const LINKS = {
     { label: 'Map',        to: '/' },
     { label: 'Properties', to: '/properties' },
     { label: 'Services',   to: '/services' },
+    { label: 'Guides',     to: '/blog' },
     { label: 'About',      to: '/about' },
     { label: 'Intelligence', to: '/intelligence' },
     { label: 'Contact',    to: '/contact' },
