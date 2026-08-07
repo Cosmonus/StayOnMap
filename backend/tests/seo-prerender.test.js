@@ -21,7 +21,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { prismaMock } from './mocks/prisma.js'
-import { renderHead } from '../src/features/seo/prerender.service.js'
+import { renderHead, SHELL_CSP } from '../src/features/seo/prerender.service.js'
 import { titleFor, descriptionFor, jsonLdFor, metaForProperty } from '../src/features/seo/listingMeta.js'
 import { slugify, listLocalities, getLocality } from '../src/features/seo/locality.service.js'
 import { metaForLocality } from '../src/features/seo/localityMeta.js'
@@ -100,6 +100,45 @@ describe('head injection', () => {
     expect(plain).not.toContain('noindex')
     const hidden = renderHead(TEMPLATE, { title: 'T', description: 'D', canonical: 'C', noindex: true })
     expect(hidden).toContain('content="noindex,follow"')
+  })
+})
+
+/**
+ * Found live on 2026-08-07: /property/:id is the ONE page type served through
+ * Express, so it alone carried `helmet()`'s default `script-src 'self';
+ * img-src 'self' data:` — which blocked the Google Maps SDK, every Supabase
+ * photo and the Google Analytics tag on the page most often shared, while the
+ * byte-identical shell at `/` (nginx, no CSP) loaded all three.
+ *
+ * The trap is that this looks like debt worth tidying. Tightening these two
+ * directives does not fail a test, does not fail a deploy, and breaks the
+ * property page silently — so the intent is pinned here instead.
+ */
+describe('the served shell is not stricter than the static one', () => {
+  const here = path.dirname(fileURLToPath(import.meta.url))
+  const shell = readFileSync(path.resolve(here, '../../frontend/index.html'), 'utf8')
+
+  it('permits every third-party origin the shell actually loads', () => {
+    const origins = [...shell.matchAll(/(?:src|href)="(https:\/\/[^/"]+)/g)].map((m) => m[1])
+    // Google Maps, Fonts and now googletagmanager — if the shell gains another,
+    // this still holds, because the policy names no host to keep in sync.
+    expect(origins.length).toBeGreaterThan(0)
+    expect(SHELL_CSP).not.toMatch(/script-src|img-src|connect-src|style-src|font-src/)
+    expect(SHELL_CSP).toMatch(/default-src \*/)
+  })
+
+  it('still refuses plugins, injected <base> and framing — those cost nothing', () => {
+    expect(SHELL_CSP).toContain("object-src 'none'")
+    expect(SHELL_CSP).toContain("base-uri 'self'")
+    expect(SHELL_CSP).toContain("frame-ancestors 'self'")
+  })
+
+  it('carries the analytics tag in the shell, so every route reports', () => {
+    // renderHead only strips title/description/og/twitter/canonical, so a tag in
+    // the template survives into the server-rendered pages for free.
+    expect(shell).toContain('googletagmanager.com/gtag/js')
+    expect(renderHead(shell, { title: 'T', description: 'D', canonical: 'C' }))
+      .toContain('googletagmanager.com/gtag/js')
   })
 })
 

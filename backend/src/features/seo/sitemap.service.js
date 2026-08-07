@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
 import { listLocalities } from './locality.service.js'
+import { allSlugs } from '../blog/blog.service.js'
 
 // The sitemap, generated from live data.
 //
@@ -113,6 +114,26 @@ export async function buildSitemap() {
     })
   }
 
+  // Articles. Unlike everything above, these do not depend on inventory — they
+  // are the one part of the sitemap that is worth crawling on day one, when
+  // there are five listings and nothing else here says anything a stranger
+  // was searching for. `lastmod` is the post's own updatedAt, so a corrected
+  // article invites a re-crawl and an untouched one does not.
+  const posts = allSlugs()
+  if (posts.length) {
+    urls.push({ loc: `${ORIGIN}/blog`, changefreq: 'weekly', priority: '0.7' })
+  }
+  for (const p of posts) {
+    urls.push({
+      loc: `${ORIGIN}/blog/${p.slug}`,
+      lastmod: isoDate(p.updatedAt),
+      // Articles change rarely but stay relevant, which is the opposite of a
+      // listing: low changefreq, high priority.
+      changefreq: 'monthly',
+      priority: '0.8',
+    })
+  }
+
   const body = urls.map(urlTag).join('\n')
   return {
     xml: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`,
@@ -121,6 +142,7 @@ export async function buildSitemap() {
       properties: properties.length,
       cities: citiesWithStock.size,
       localities: localities.length,
+      posts: posts.length,
     },
   }
 }

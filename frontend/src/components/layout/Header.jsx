@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
-  Map as MapIcon, Home, ConciergeBell, Menu, User,
+  Map as MapIcon, Home, ConciergeBell, BookOpen, Menu, User,
   LayoutDashboard, MessageSquare, CalendarCheck, CalendarDays, Building2,
   Bell, UserRound, LifeBuoy, LogOut, ArrowLeftRight, Heart, KeyRound,
 } from 'lucide-react'
@@ -33,6 +33,16 @@ const NAV_TABS = [
     label: 'Services',
     to: '/services',
     icon: <ConciergeBell size={20} strokeWidth={1.8} />,
+  },
+  // Added with the blog (2026-08-07). "Guides", not "Blog": the word describes
+  // what the articles are for, and it is what someone deciding where to live
+  // would look for. Both the guest and traveler hamburgers map over NAV_TABS
+  // with `md:hidden`, so this reaches mobile for free — a tab added here but
+  // not to those menus would be invisible below md.
+  {
+    label: 'Guides',
+    to: '/blog',
+    icon: <BookOpen size={20} strokeWidth={1.8} />,
   },
 ]
 

@@ -91,12 +91,36 @@ export function renderHead(template, meta) {
     `<meta name="twitter:title" content="${escapeHtml(meta.title)}" />`,
     `<meta name="twitter:description" content="${escapeHtml(meta.description)}" />`,
     meta.image ? `<meta name="twitter:image" content="${escapeHtml(meta.image)}" />` : null,
-    meta.jsonLd
-      ? `<script type="application/ld+json">${safeJsonLd(meta.jsonLd)}</script>`
-      : null,
+    // One block, or several. An article carries BlogPosting and FAQPage, and
+    // they go in separate <script> tags rather than an @graph array so a
+    // malformed FAQ cannot invalidate the article markup sitting beside it.
+    ...(meta.jsonLd
+      ? [].concat(meta.jsonLd).map((o) => `<script type="application/ld+json">${safeJsonLd(o)}</script>`)
+      : []),
   ].filter(Boolean).join('\n    ')
 
   return stripDefaults(template).replace('</head>', `    ${tags}\n  </head>`)
 }
+
+/**
+ * The CSP for the SHELL responses only (the four routes in seo.routes.js).
+ *
+ * These routes return the same index.html nginx serves statically for every
+ * other route — but through Express, so they pick up `helmet()`'s default
+ * `script-src 'self'; img-src 'self' data:`. Verified live 2026-08-07: on
+ * /property/:id that policy was blocking the Google Maps SDK, every Supabase
+ * property photo and (as of this change) the Google Analytics tag, while the
+ * byte-identical shell at `/` loaded all three. One page must not behave
+ * differently because of which process handed it over.
+ *
+ * So this is deliberately permissive — it cannot block a resource the app
+ * legitimately loads, which is the whole failure it exists to end. It keeps the
+ * three directives that carry real value and cost nothing: no plugins, no
+ * injected <base>, no framing. A genuine allowlist belongs in nginx, applied to
+ * ALL html, not to the four routes that happen to route through Node.
+ */
+export const SHELL_CSP =
+  "default-src * data: blob: 'unsafe-inline' 'unsafe-eval';" +
+  "object-src 'none';base-uri 'self';frame-ancestors 'self'"
 
 export { ORIGIN }

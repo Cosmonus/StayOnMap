@@ -5,6 +5,20 @@
     <link rel="icon" type="image/png" href="/icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- Google Analytics (GA4). Kept high in <head> so page_view timing is real.
+         This is IN ADDITION to our first-party funnel telemetry
+         (backend/src/features/analytics) — that one answers "did the people who
+         arrived book a visit", this one answers "where did they arrive from".
+         GA4 is a third-party processor and sets cookies: /privacy must say so. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-H2GWTWJ6J4"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-H2GWTWJ6J4');
+    </script>
+
     <!-- Base SEO — overridden per-page by react-helmet-async -->
     <title>StayOnMap — Rent with intelligence.</title>
     <meta name="description" content="Every rental on StayOnMap is scored live by a TrustScore engine and fraud-detection agent. Search verified homes on a live map across India." />

@@ -30,6 +30,8 @@ function lazyRetry(importer) {
 const PropertiesPage    = lazyRetry(() => import('@pages/PropertiesPage'))
 const LocalityPage      = lazyRetry(() => import('@pages/LocalityPage'))
 const PropertyPage      = lazyRetry(() => import('@pages/PropertyPage'))
+const BlogPage          = lazyRetry(() => import('@pages/BlogPage'))
+const BlogPostPage      = lazyRetry(() => import('@pages/BlogPostPage'))
 const ServicesPage      = lazyRetry(() => import('@pages/ServicesPage'))
 const AboutPage         = lazyRetry(() => import('@pages/AboutPage'))
 const IntelligencePage  = lazyRetry(() => import('@pages/IntelligencePage'))
@@ -70,6 +72,11 @@ export default function AppRoutes() {
               before React loads (backend features/seo) — this route is what
               renders the body, and what an in-app navigation hits. */}
           <Route path="/rent/:citySlug/:localitySlug" element={<LocalityPage />} />
+          {/* Articles. Same server-rendered-<head> arrangement as the locality
+              and listing routes — the server answers /blog and /blog/:slug with
+              a real title and BlogPosting JSON-LD, and these render the body. */}
+          <Route path="/blog"         element={<BlogPage />} />
+          <Route path="/blog/:slug"   element={<BlogPostPage />} />
           <Route path="/services"     element={<ServicesPage />} />
           <Route path="/property/:id" element={<PropertyPage />} />
           <Route path="/about"        element={<AboutPage />} />
