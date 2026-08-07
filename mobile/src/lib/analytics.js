@@ -30,7 +30,12 @@ async function flush() {
   queue = queue.slice(MAX_BATCH)
 
   try {
-    await api.post('/api/v1/analytics/events', { events })
+    // `platform` tells the server this batch is worth mirroring to GA4
+    // (backend features/analytics/ga4.js) — the website's own gtag covers web,
+    // so only the app is forwarded. Builds released before this field exists
+    // are identified by User-Agent instead; sending it explicitly is what lets
+    // that fallback eventually be deleted.
+    await api.post('/api/v1/analytics/events', { events, platform: 'app' })
   } catch {
     // Dropped on purpose — no retry queue. Telemetry that retries becomes a
     // second source of load exactly when the network is already failing.

@@ -80,7 +80,25 @@ export default function PrivacyPolicyPage() {
             cannot be exchanged for anything.</p>
           <p><strong>Usage &amp; device data.</strong> IP address, browser type, and basic request
             logs, collected automatically for security (rate limiting, abuse prevention) and
-            debugging. We do not use third-party advertising trackers or analytics cookies.</p>
+            debugging. We do not use advertising trackers of any kind.</p>
+          <p><strong>Product analytics &mdash; our own.</strong> Our servers record a short,
+            fixed list of named steps &mdash; opening the map, tapping a listing, viewing a
+            listing, contacting an owner, requesting a visit &mdash; so we can see where people
+            get stuck. Each is stored against a random session identifier kept in your
+            browser&rsquo;s session storage; it is <strong>not a cookie</strong> and it is discarded
+            when you close the tab. If you are signed in, the record is linked to your account.
+            These records are deleted after 90 days.</p>
+          <p><strong>Product analytics &mdash; Google Analytics.</strong> On our website we also
+            use Google Analytics 4 to understand how people arrive at the Platform and which
+            pages they read. It sets cookies in your browser and sends Google your IP address,
+            the pages you view, and general device information. See Section 8 for what those
+            cookies are and how to refuse them.</p>
+          <p><strong>The mobile app is different, and narrower.</strong> It contains no Google
+            Analytics code and sets no cookies. Instead our own servers pass on the five funnel
+            steps described above &mdash; and nothing else. Google receives the step, the city,
+            the listing id, and the random session identifier; because the message comes from
+            our server rather than from your phone, it carries <strong>no IP address and no
+            device information</strong>.</p>
           <p><strong>Waitlist signups.</strong> Signing up from a city not supported yet
             stores name, email, and city so we can notify that person when we launch there &mdash;
             it does not create a full account.</p>
@@ -94,9 +112,12 @@ export default function PrivacyPolicyPage() {
             <li>Send transactional emails and push notifications about appointments, leases, and account activity (never marketing without separate consent)</li>
             <li>Detect and prevent fraud, duplicate listings, and abuse</li>
             <li>Respond to support requests and moderate reported content</li>
+            <li>Measure how the Platform is used &mdash; which steps people complete and where
+              they give up &mdash; so we can improve it</li>
             <li>Comply with legal obligations</li>
           </ul>
-          <p>We do not sell personal data, and we do not use it to serve third-party ads.</p>
+          <p>We do not sell personal data. We do not currently serve ads or use analytics data
+            for advertising &mdash; see Section 4 for what that will mean if it changes.</p>
         </Section>
 
         <Section id="share" title="4. How we share it">
@@ -114,17 +135,24 @@ export default function PrivacyPolicyPage() {
             <li><strong>Google Maps Platform</strong> &mdash; powers map display, address search, and geocoding (search queries and coordinates are sent to Google to resolve locations)</li>
             <li><strong>Zoho ZeptoMail</strong> &mdash; delivers transactional emails (appointment updates, password resets, sign-in codes). Your email address and the message content pass through it. Where ZeptoMail is not configured, an SMTP provider is used instead.</li>
             <li><strong>Expo</strong>, and through it <strong>Google (FCM)</strong> on Android or <strong>Apple (APNs)</strong> on iOS &mdash; deliver push notifications to your device. The notification&rsquo;s title and text pass through these services.</li>
+            <li><strong>Google Analytics</strong> (Google LLC) &mdash; measures how the Platform is used. From the website it receives your IP address, the pages you view, device and browser information, and a random identifier stored in cookies. From the mobile app it receives only the five funnel steps, forwarded by our servers, with no IP address or device information. In neither case does it receive your name, email, phone number, or the contents of your messages.</li>
             <li><strong>Upstash</strong> &mdash; Redis used for caching and rate limiting; holds short-lived technical data, not profile information</li>
             <li><strong>Sentry</strong> &mdash; error monitoring, when enabled. Receives crash and error reports, which can incidentally include the request path and account id involved.</li>
           </ul>
           <p>We do not share data with these providers for their own marketing purposes.</p>
-          <p><strong>Not currently enabled.</strong> Two features are built but switched off,
-            and we will update this policy before turning either on. The Platform can use an
-            AI provider (Anthropic) to help detect fraudulent listings and fake reviews &mdash;
-            today no listing or review content is sent to any AI provider. The Platform can
-            also verify a phone number by texting you a code, which would send your number to
-            an SMS provider &mdash; today no phone number is sent to any SMS provider, and
-            phone verification is unavailable.</p>
+          <p><strong>Not currently enabled.</strong> Three things this policy will have to
+            cover are switched off today, and we will update it &mdash; and say so before the
+            change takes effect &mdash; rather than turn any of them on quietly. The Platform can
+            use an AI provider (Anthropic) to help detect fraudulent listings and fake reviews
+            &mdash; today no listing or review content is sent to any AI provider. The Platform
+            can also verify a phone number by texting you a code, which would send your number
+            to an SMS provider &mdash; today no phone number is sent to any SMS provider, and
+            phone verification is unavailable. And we expect to introduce advertising at some
+            point: today we serve no ads, run no ad-network tags, and keep Google&rsquo;s
+            advertising features (Google signals, Google Ads linking) switched off on our
+            analytics, so no analytics data reaches an advertising network. Advertising is a
+            new purpose rather than a new vendor, so we will ask for your consent to it
+            separately rather than treat this policy as covering it in advance.</p>
           <p><strong>Legal &amp; safety.</strong> Information may be disclosed if required by law,
             to enforce our Terms of Service, or to protect the rights, safety, or property of
             StayOnMap, our users, or the public.</p>
@@ -166,9 +194,36 @@ export default function PrivacyPolicyPage() {
 
         <Section id="cookies" title="8. Cookies & tracking">
           <p>
-            StayOnMap&rsquo;s authentication is entirely token-based (a JWT stored in browser
-            local storage) &mdash; we do not use tracking or advertising cookies, and we do not run
-            third-party analytics scripts that follow visitors across other sites.
+            <strong>Signing in does not use a cookie.</strong> Authentication is entirely
+            token-based &mdash; a JWT stored in browser local storage.
+          </p>
+          <p>
+            <strong>Google Analytics does set cookies.</strong> Named <code>_ga</code> and
+            <code>_ga_&lt;id&gt;</code>, they hold a randomly generated number that lets Google
+            Analytics tell one browser from another and group your requests into a single visit.
+            They last up to two years and are readable only by Google Analytics. We do not use
+            them to identify you by name, and we run <strong>no advertising cookies and no
+            ad-network tags</strong> today &mdash; if that changes, Section 4 says how you will
+            hear about it first.
+          </p>
+          <p>
+            <strong>Our own analytics uses no cookie at all</strong>, and neither does the
+            mobile app. The session identifier described in Section 2 lives in session storage
+            and disappears when you close the tab &mdash; in the app it lasts one run &mdash; so
+            it cannot follow you between visits or to any other website.
+          </p>
+          <p>
+            <strong>Refusing them.</strong> Use your browser&rsquo;s cookie controls, or Google&rsquo;s
+            {' '}
+            <a
+              href="https://tools.google.com/dlpage/gaoptout"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand-600"
+            >
+              opt-out browser add-on
+            </a>. Nothing about how the Platform works for you changes if you do &mdash; every
+            feature stays available.
           </p>
         </Section>
 
