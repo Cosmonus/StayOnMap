@@ -104,6 +104,28 @@ const ExploreStack = makeStack([
   ...BOOKING_SCREENS,
 ])
 
+// Renter's Properties tab — the list-first way in, added 2026-08-07.
+//
+// SAME SCREEN as Explore's PropertyList, with `scoped: false`. That flag is
+// load-bearing: pushed from the map the list carries the viewport, but a TAB is
+// a starting point, not a continuation — constraining a cold tap to wherever
+// the map was last left is a filter nobody can see. Browse mode drops bounds
+// and offers the filter sheet instead.
+//
+// The route is named PropertyBrowse, not PropertyList. Two routes with one name
+// in different stacks is legal but makes every navigate('PropertyList') call
+// ambiguous to read, and MapViewportBar already owns that name.
+const PropertiesStack = makeStack([
+  {
+    name: 'PropertyBrowse',
+    component: PropertyListScreen,
+    options: { headerShown: false },
+    initialParams: { scoped: false },
+  },
+  NOTIFICATIONS_SCREEN,
+  ...BOOKING_SCREENS,
+])
+
 const SavedStack = makeStack([
   { name: 'SavedHome', component: SavedScreen, options: { headerShown: false } },
   ...BOOKING_SCREENS,
@@ -160,8 +182,13 @@ const MyListingStack = makeStack([
   ...BOOKING_SCREENS,
 ])
 
+// Properties sits next to Explore because they are the same inventory seen two
+// ways — map and list — and web offers exactly that pair (Map / Properties).
+// Five tabs matches host mode and is the bar's ceiling; adding a sixth means
+// removing one.
 const RENTER_TABS = [
   ['Explore', ExploreStack, 'explore'],
+  ['Properties', PropertiesStack, 'list'],
   ['Saved', SavedStack, 'saved'],
   ['Chat', ChatStack, 'chat'],
   ['Profile', ProfileStack, 'profile'],
@@ -232,6 +259,7 @@ function useTabBadges(hostMode) {
 // The root screen of each tab's stack, by ROUTE name (both modes).
 const TAB_HOME = {
   Explore: 'ExploreHome',
+  Properties: 'PropertyBrowse',
   Saved: 'SavedHome',
   Chat: 'ChatHome',
   Profile: 'ProfileHome',

@@ -25,6 +25,14 @@ export const ingestSchema = z.object({
   // Batched: a browser sends one request per flush, not one per event. The cap
   // bounds a single request's work — the client flushes well below it.
   events: z.array(event).min(1).max(50),
+  // Which client this is, so app traffic can be mirrored to GA4 and web
+  // traffic left to the browser's own gtag (see features/analytics/ga4.js).
+  //
+  // OPTIONAL, and that is the point: every mobile build already on a phone
+  // predates this field, and they must keep working untouched. Absent means
+  // the server sniffs the User-Agent instead. It can be made required — and
+  // the sniffing deleted — only once no build in the wild omits it.
+  platform: z.enum(['web', 'app']).optional(),
 })
 
 export const funnelQuerySchema = z.object({

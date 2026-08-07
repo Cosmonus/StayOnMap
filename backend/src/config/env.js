@@ -121,6 +121,15 @@ export const env = {
   dataGovApiKey: process.env.DATA_GOV_API_KEY || null,
   // Error monitoring — entirely optional, lib/sentry.js no-ops without it
   sentryDsn:       process.env.SENTRY_DSN        || null,
+  // GA4 Measurement Protocol — forwards the MOBILE APP's funnel events to the
+  // same GA4 property the website's gtag reports to. The website needs neither
+  // of these: its tag runs in the browser. Absent is a supported state and the
+  // forwarder no-ops, exactly like mail and SMS — a deployment without them
+  // still records everything to our own Postgres, which stays the source of
+  // truth. The API secret is created in GA4 → Admin → Data streams → your
+  // stream → Measurement Protocol API secrets, and is NOT the measurement id.
+  ga4MeasurementId: process.env.GA4_MEASUREMENT_ID || null,
+  ga4ApiSecret:     process.env.GA4_API_SECRET     || null,
   // The backend's own public origin — OAuth providers redirect back to
   // `${apiPublicUrl}/api/v1/auth/oauth/<provider>/callback`, so it must be the
   // address a browser can reach, not an internal hostname.

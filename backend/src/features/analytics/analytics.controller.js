@@ -1,4 +1,5 @@
 import * as service from './analytics.service.js'
+import { forwardToGa4, isAppRequest } from './ga4.js'
 import { ok } from '../../utils/response.js'
 
 export async function ingest(req, res, next) {
@@ -20,6 +21,14 @@ export async function ingest(req, res, next) {
     // about — whether every row landed. A browser flushing on pagehide is
     // often gone before any response arrives.
     const stored = await service.recordEvents(rows)
+
+    // Mirror to GA4, but only from the app: the website's gtag already reports
+    // to the same property under the client id in its own `_ga` cookie, and
+    // sending the same visitor a second time under a different id would split
+    // one person into two GA4 users. Not awaited — our own row is already
+    // written, and GA is a mirror, never a dependency of this response.
+    if (isAppRequest(req)) forwardToGa4(req.body.events, userId)
+
     res.status(202).json({ success: true, data: { stored } })
   } catch (err) { next(err) }
 }

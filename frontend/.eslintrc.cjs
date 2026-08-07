@@ -42,6 +42,21 @@ module.exports = {
   settings: {
     react: { version: 'detect' },
   },
+  // This file is the only CommonJS one in `frontend/` — package.json is
+  // `"type": "module"`, which is why it has to be `.cjs` at all. Without a Node
+  // env its own `module.exports` is an undefined global under `env.browser`,
+  // so the config reports an error in itself.
+  //
+  // `npm run lint` cannot see that: it runs `eslint src`, and this file is not
+  // in src. Only an editor linting the open file surfaces it, which is exactly
+  // how it went unnoticed.
+  overrides: [
+    {
+      files: ['*.cjs'],
+      env: { node: true },
+      parserOptions: { sourceType: 'script' },
+    },
+  ],
   plugins: ['react', 'react-hooks'],
   extends: [
     'eslint:recommended',

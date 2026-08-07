@@ -1,11 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
 import { useFilterStore } from '@store/filterStore'
 import { useMapStore } from '@store/mapStore'
-import { toQueryParams } from '@config/filters'
+import { toQueryParams, countActiveFilters } from '@config/filters'
+import MapFiltersSheet from '@features/map/components/MapFiltersSheet'
 import PropertyCard from '../components/PropertyCard'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ErrorState from '@components/common/ErrorState'
@@ -14,19 +15,31 @@ import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-// The map's list handoff — web's /properties, as a screen.
+// Web's /properties, as a screen. It serves TWO entry points and the difference
+// between them is the whole design:
 //
-// The map counts what is in view ("25 homes in this view") and on web that
-// count is a link into a grid of the same homes. Mobile had the count and no
-// destination, so the only way to read a listing was to hit its pin: fine for
-// three, useless for forty.
+//   SCOPED (default) — pushed from the map's "25 homes in this view" pill.
+//     Carries the viewport as well as the filters, because panning to a
+//     neighbourhood is a query too and dropping it would hand back every
+//     matching home in the country. Has a back button to the map.
 //
-// It carries BOTH the active filters and the current viewport, for the same
-// reason web does — panning to a neighbourhood is a query too, and dropping it
-// would hand back every matching home in the country.
-export default function PropertyListScreen({ navigation }) {
+//   BROWSE (`scoped: false`) — the renter tab bar's Properties tab, added
+//     2026-08-07. A tab is a starting point, not a continuation: someone who
+//     opens the app and taps Properties has no viewport in mind, and silently
+//     constraining them to wherever the map happened to be left — possibly a
+//     region they never chose, possibly nothing on a cold start — would be a
+//     filter they cannot see. So browse mode IGNORES bounds and offers the
+//     filter sheet instead, which is the control a list-first browser needs.
+//
+// One screen rather than two, so the card, the empty state and the proximity
+// disclosure cannot drift apart between the two ways in.
+export default function PropertyListScreen({ navigation, route }) {
+  const scoped = route?.params?.scoped !== false
   const filters = useFilterStore((s) => s.filters)
-  const bounds = useMapStore((s) => s.bounds)
+  const storeBounds = useMapStore((s) => s.bounds)
+  const bounds = scoped ? storeBounds : null
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const activeFilterCount = countActiveFilters(filters)
 
   const params = useMemo(
     () => ({ limit: 50, ...toQueryParams(filters), ...(bounds ?? {}) }),
@@ -61,7 +74,25 @@ export default function PropertyListScreen({ navigation }) {
       <ScreenHeader
         title={forSale ? 'For sale' : 'Homes'}
         subtitle={countLabel}
-        onBack={() => navigation.goBack()}
+        // A tab root has nowhere to go back to. Passing a no-op handler would
+        // render a chevron that does nothing.
+        onBack={scoped ? () => navigation.goBack() : undefined}
+        right={scoped ? undefined : (
+          <Pressable
+            onPress={() => setFiltersOpen(true)}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={activeFilterCount ? `Filters, ${activeFilterCount} active` : 'Filters'}
+            style={styles.filterButton}
+          >
+            <Icon name="filter" size={20} color={colors.slate800} />
+            {activeFilterCount > 0 && (
+              <View style={styles.filterDot}>
+                <Text style={styles.filterDotText}>{activeFilterCount}</Text>
+              </View>
+            )}
+          </Pressable>
+        )}
       />
 
       {isError ? (
@@ -104,15 +135,22 @@ export default function PropertyListScreen({ navigation }) {
               </View>
               <Text style={styles.emptyTitle}>Nothing here yet</Text>
               <Text style={styles.emptyBody}>
-                Zoom the map out or clear a filter to widen the search.
+                {scoped
+                  ? 'Zoom the map out or clear a filter to widen the search.'
+                  : 'Clear a filter to widen the search.'}
               </Text>
+              {/* The way out has to match the way in. Browse mode has no map
+                  behind it, so "Back to the map" would be a lie about where
+                  the button goes. */}
               <Pressable
                 style={styles.emptyButton}
-                onPress={() => navigation.goBack()}
+                onPress={() => (scoped ? navigation.goBack() : setFiltersOpen(true))}
                 accessibilityRole="button"
-                accessibilityLabel="Back to the map"
+                accessibilityLabel={scoped ? 'Back to the map' : 'Open filters'}
               >
-                <Text style={styles.emptyButtonText}>Back to the map</Text>
+                <Text style={styles.emptyButtonText}>
+                  {scoped ? 'Back to the map' : 'Adjust filters'}
+                </Text>
               </Pressable>
             </View>
           }
@@ -123,6 +161,15 @@ export default function PropertyListScreen({ navigation }) {
             />
           )}
         />
+      )}
+
+      {/* Browse mode only. The same sheet the map uses, reading and writing the
+          same filter store — so a filter set here is still set when you switch
+          to the map, which is the behaviour someone flipping between a list and
+          a map expects. It is an RN Modal with onRequestClose, so Android
+          hardware back dismisses it (AGENTS.md §2). */}
+      {!scoped && (
+        <MapFiltersSheet visible={filtersOpen} onClose={() => setFiltersOpen(false)} />
       )}
     </SafeAreaView>
   )
@@ -138,6 +185,14 @@ const styles = StyleSheet.create({
     borderRadius: radius.md, padding: spacing.sm + 2, marginBottom: spacing.sm,
   },
   noticeText: { flex: 1, fontFamily: fonts.body, fontSize: fontSizes.xs, lineHeight: 18, color: colors.slate600 },
+  // 48dp effective target via width/height, not hitSlop alone — AGENTS.md §6.
+  filterButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  filterDot: {
+    position: 'absolute', top: 6, right: 4, minWidth: 18, height: 18, paddingHorizontal: 4,
+    borderRadius: radius.full, backgroundColor: colors.brand600,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  filterDotText: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.white },
   empty: { alignItems: 'center', paddingVertical: spacing.xxl, gap: spacing.xs },
   emptyIcon: {
     width: 48, height: 48, borderRadius: radius.full, backgroundColor: colors.brand50,
