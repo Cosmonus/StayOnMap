@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions, Share, Animated } from 'react-native'
 import { Image } from 'expo-image'
-import * as Clipboard from 'expo-clipboard'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
@@ -32,6 +31,22 @@ import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 import { track } from '@lib/analytics'
+
+// Loaded defensively, for the same reason OfflineBanner loads expo-network that
+// way: `expo-clipboard` reaches for its native module at IMPORT time, so on a
+// build that predates the dependency the static import throws while this module
+// is evaluating — and takes the ENTIRE property page down over a copy-to-
+// clipboard convenience. Null means "no clipboard in this build"; the copy
+// button then does nothing visible rather than crashing the screen.
+//
+// Below the imports on purpose: a `require` above them makes every later
+// `import` a body statement to eslint's import/first.
+let Clipboard = null
+try {
+  Clipboard = require('expo-clipboard')
+} catch {
+  Clipboard = null
+}
 
 const FURNISHED_LABEL = { FULLY: 'Fully furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
 const SCREEN_WIDTH = Dimensions.get('window').width
@@ -138,6 +153,10 @@ export default function PropertyDetailScreen({ route, navigation }) {
   }
 
   async function copyDisplayId(displayId) {
+    // No clipboard in this build — see the require at the top. Do nothing
+    // rather than throwing inside a tap handler, and do NOT flash "Copied",
+    // which would be a lie about what just happened.
+    if (!Clipboard?.setStringAsync) return
     await Clipboard.setStringAsync(displayId)
     setCopiedId(true)
   }

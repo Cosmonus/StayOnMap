@@ -20,12 +20,33 @@
 import { useEffect, useState } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import * as Network from 'expo-network'
 import Icon from './Icon'
 import { colors } from '@theme/colors'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
+
+// LOADED DEFENSIVELY, and this is the bug that made it necessary.
+//
+// `expo-network` reaches for its native module at IMPORT time, so on a build
+// that predates the dependency — Expo Go, or any dev client not rebuilt since
+// it was added — a static `import * as Network from 'expo-network'` throws
+// while this module is still evaluating. The export never initialises, and
+// App.js's `<OfflineBanner />` then fails with
+// `ReferenceError: Property 'OfflineBanner' doesn't exist`, which names neither
+// the package nor the real cause. That took down the WHOLE app: a connectivity
+// nicety killed the render tree.
+//
+// A static import cannot be guarded, so this is a `require` in a try/catch.
+// Null means "this build has no network module" and the banner simply never
+// shows — the same outcome as being permanently online, which is the correct
+// degradation for a component whose only job is to name a cause.
+let Network = null
+try {
+  Network = require('expo-network')
+} catch {
+  Network = null
+}
 
 // `isInternetReachable` is the honest question — Android reports a captive
 // portal or a connected-but-dead Wi-Fi as CONNECTED, which is exactly the case
@@ -39,6 +60,10 @@ export default function OfflineBanner() {
   const [offline, setOffline] = useState(false)
 
   useEffect(() => {
+    // No network module in this build — see the require above. Stay silent
+    // rather than guessing at connectivity.
+    if (!Network?.getNetworkStateAsync) return undefined
+
     let alive = true
     // The listener only fires on CHANGE, so an app opened with no network
     // would show nothing until the network came back — the one moment the
@@ -47,8 +72,8 @@ export default function OfflineBanner() {
       .then((state) => { if (alive) setOffline(isOffline(state)) })
       .catch(() => {})
 
-    const sub = Network.addNetworkStateListener((state) => setOffline(isOffline(state)))
-    return () => { alive = false; sub.remove() }
+    const sub = Network.addNetworkStateListener?.((state) => setOffline(isOffline(state)))
+    return () => { alive = false; sub?.remove?.() }
   }, [])
 
   if (!offline) return null
