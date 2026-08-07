@@ -284,11 +284,18 @@ export async function updateAppointmentStatus(
     }
     : { status }
 
+  // The moment the owner answers — accepted, declined, or moved. Stamped ONCE:
+  // `?? new Date()` keeps the first reply's time even if the owner edits the
+  // note or the slot afterwards, because what is being measured is how long
+  // the renter waited to hear anything, not when the row was last touched.
+  // features/trust/responsiveness.js turns this into the owner's response rate.
+  const respondedAt = appt.respondedAt ?? new Date()
+
   const updated = await prisma.appointment.update({
     where: { id: appointmentId },
     data: tenantOnly
       ? tenantData
-      : { status, scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined, ownerNote },
+      : { status, scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined, ownerNote, respondedAt },
   })
 
   // A tenant cancelling or counter-offering has to reach the OWNER — the
@@ -364,8 +371,13 @@ export async function updateAppointmentStatus(
     })
     if (conflicting.length > 0) {
       await prisma.appointment.updateMany({
-        where: { id: { in: conflicting.map(c => c.id) } },
-        data: { status: 'REJECTED', ownerNote: 'Another visit was scheduled for this date.' },
+        // These are answers too — the owner filled the slot, which decides
+        // every other request for that day. Leaving them unstamped would score
+        // the owner as having ignored the very people their acceptance
+        // answered. `respondedAt: null` in the where is belt-and-braces: these
+        // rows are PENDING, so they cannot already carry a stamp.
+        where: { id: { in: conflicting.map(c => c.id) }, respondedAt: null },
+        data: { status: 'REJECTED', ownerNote: 'Another visit was scheduled for this date.', respondedAt: new Date() },
       })
       await Promise.all(conflicting.map(c =>
         notifyUser(c.tenantId, {
