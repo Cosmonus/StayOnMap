@@ -263,26 +263,26 @@ model Admin {
 // ─────────────────────────────────────────────────────────────────
 
 model User {
-  id            String    @id @default(cuid())
-  passwordHash  String? // null = social-login-only account (no password set yet)
-  displayId     String?   @unique // Human-readable ID: SRI-1234567890123456
-  email         String    @unique
-  name          String
-  phone         String?
+  id              String    @id @default(cuid())
+  passwordHash    String? // null = social-login-only account (no password set yet)
+  displayId       String?   @unique // Human-readable ID: SRI-1234567890123456
+  email           String    @unique
+  name            String
+  phone           String?
   // Set only by the SMS code flow (features/auth/phone.service.js). NULL is the
   // honest state for every number that was merely typed in — which is all of
   // them before this shipped. Cleared whenever `phone` changes, or a verified
   // badge would outlive the number that earned it.
   phoneVerifiedAt DateTime?
-  city          String? // self-reported at signup — one of config/cities.js's SUPPORTED_CITIES (users outside these go to WaitlistEntry instead of getting an account)
-  avatarUrl     String?
-  bio           String?
-  socialLinks   Json? // { website, linkedin, instagram, twitter }
-  role          UserRole  @default(TENANT)
-  isVerified    Boolean   @default(false)
-  isBlocked     Boolean   @default(false)
-  isBusiness    Boolean   @default(false) // gates creating PG / COMMERCIAL / SHORT_STAY listings
-  businessSince DateTime?
+  city            String? // self-reported at signup — one of config/cities.js's SUPPORTED_CITIES (users outside these go to WaitlistEntry instead of getting an account)
+  avatarUrl       String?
+  bio             String?
+  socialLinks     Json? // { website, linkedin, instagram, twitter }
+  role            UserRole  @default(TENANT)
+  isVerified      Boolean   @default(false)
+  isBlocked       Boolean   @default(false)
+  isBusiness      Boolean   @default(false) // gates creating PG / COMMERCIAL / SHORT_STAY listings
+  businessSince   DateTime?
 
   // Settings
   listingVisibility ListingVisibility @default(PUBLIC)
@@ -535,7 +535,7 @@ model EmailOtp {
 // not personal data, and a FK on a high-write table costs more than it buys.
 model AnalyticsEvent {
   id         String   @id @default(cuid())
-  name       String   // constrained to features/analytics/events.js, not free text
+  name       String // constrained to features/analytics/events.js, not free text
   sessionId  String
   userId     String?
   propertyId String?
@@ -797,6 +797,11 @@ model Property {
   priceHistory       PropertyPriceHistory[]
   dailyViews         PropertyDailyView[]
   viewers            PropertyViewer[]
+  // The SIMILAR_TO edge, both ends. Stored directed so "top 12 like this one"
+  // is one indexed read; computed for both directions so the edge is navigable
+  // from either listing.
+  similarTo          PropertySimilarity[]   @relation("SimilarFrom")
+  similarFrom        PropertySimilarity[]   @relation("SimilarTo")
 
   // The geohash-7 cell this listing sits in (~153m), derived from lat/lng.
   // Denormalised on purpose: it is the join key between a property and the
@@ -805,6 +810,14 @@ model Property {
   // coordinates predate this column, or whose write path missed it, must read
   // as "unknown cell" rather than silently matching the wrong one.
   geohash String?
+
+  // The resolved area this listing sits in. Nullable and resolved
+  // fire-and-forget after write (like the spatial cell warm below it), so a
+  // create is never blocked on a polygon lookup and a listing whose point falls
+  // outside every mapped boundary simply stays unresolved rather than being
+  // forced into the wrong area. Readers fall back to `landmark`.
+  locality   Locality? @relation(fields: [localityId], references: [id], onDelete: SetNull)
+  localityId String?
 
   // What the owner's listing page needs to say something true about reach.
   // Counts a detail-page view by anyone who is NOT the owner — an owner
@@ -827,6 +840,22 @@ model Property {
   @@index([type])
   @@index([pricingModel])
   @@index([geohash])
+  @@index([localityId])
+  // Buyers filter on these three the way renters filter on rent.
+  //
+  // DECLARED HERE 2026-08-07, though they have existed in the database since
+  // migration 20260726010000 created them in raw SQL. Undeclared, they were
+  // invisible to Prisma: `migrate diff` reported them as drift, and the next
+  // `migrate dev` or `db push` would have generated a migration DROPPING all
+  // three — silently removing production indexes nobody asked to remove.
+  //
+  // This is the identical trap SpatialContext_geohash_prefix_idx documents and
+  // was fixed for; it was still open on these three. Adding the declarations
+  // needs no migration — the indexes are already there, on every database that
+  // ran 20260726010000, which is all of them.
+  @@index([possessionStatus])
+  @@index([loanEligible])
+  @@index([conversionStatus])
 }
 
 // Views per day, per listing. Property.viewCount is a lifetime total and so
@@ -1440,6 +1469,242 @@ model PropertyPriceHistory {
   recordedAt DateTime @default(now())
 
   @@index([propertyId, recordedAt])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Locality — the area a listing is IN, as an entity rather than a string
+// ─────────────────────────────────────────────────────────────────
+
+// A locality was `slugify(Property.landmark)` until 2026-08-07: owner-typed
+// free text, re-derived on every request. That string is already load-bearing —
+// it generates the public /rent/:city/:area landing pages — and as free text it
+// cannot be a stable thing to attach anything to. "Koramangala", "Koramangala
+// 5th Block" and "koramangala." were three localities, three landing pages, and
+// three different answers to "how many listings are in Koramangala".
+//
+// Resolution order (features/localities/resolve.js):
+//   1. OSM admin boundaries containing the listing's coordinates — ward (10),
+//      zone (9) or municipality (8), most specific first. This is the honest
+//      answer: it comes from the map, not from what the owner typed.
+//   2. The owner's `landmark` text, when no boundary covers the point.
+//      Ahmedabad and Surat genuinely have no ward/zone polygons in OSM, so
+//      this is a permanent fallback, not a temporary one.
+//
+// Deliberately NOT a polygon of its own: Boundary already holds the geometry
+// and `osmId` points at it. Duplicating the rings here would create two
+// sources of truth for the same shape.
+model Locality {
+  id       String @id @default(cuid())
+  city     String
+  citySlug String
+  name     String
+  slug     String
+
+  // 'BOUNDARY' — resolved from OSM admin polygons; `osmId` and `adminLevel` set.
+  // 'LANDMARK' — derived from owner-typed text because no boundary covered the
+  //              point. Kept distinct so a later boundary seed can upgrade these
+  //              rather than silently leaving them looking authoritative.
+  source     String
+  osmId      String? @unique
+  adminLevel Int?
+
+  // Representative point — the first resolved listing's coordinates, not a
+  // polygon centroid. Good enough to fly a map to; never used as a distance
+  // anchor, which is what Property.geohash and the spatial layer are for.
+  lat Decimal? @db.Decimal(10, 7)
+  lng Decimal? @db.Decimal(10, 7)
+
+  aliases    LocalityAlias[]
+  properties Property[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // The public URL's identity: /rent/:citySlug/:slug.
+  @@unique([citySlug, slug])
+  @@index([city])
+}
+
+// What owners actually call a locality.
+//
+// This is not decoration — it is the only reason resolving to a canonical name
+// is safe. Collapsing "Koramangala 5th Block" into "Koramangala" would silently
+// 404 the URL the first spelling had already published, so every alias keeps its
+// own slug and getLocality() resolves through it to the canonical page.
+model LocalityAlias {
+  id         String   @id @default(cuid())
+  locality   Locality @relation(fields: [localityId], references: [id], onDelete: Cascade)
+  localityId String
+  // As typed, trimmed. Kept verbatim because it is evidence of local usage.
+  text       String
+  slug       String
+  // Denormalised from the parent so slug → locality is ONE indexed lookup on
+  // the public route, not a join. It also makes the constraint below possible,
+  // which is the load-bearing part: two localities in one city must never claim
+  // the same alias slug, or /rent/chennai/<slug> has two right answers.
+  citySlug   String
+
+  createdAt DateTime @default(now())
+
+  @@unique([citySlug, slug])
+  @@index([localityId])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SIMILAR_TO — the edge the platform had no way to express
+// ─────────────────────────────────────────────────────────────────
+
+// "Homes like this one", materialised top-k per listing.
+//
+// MATERIALISED, NOT COMPUTED PER REQUEST, for the same reason SpatialContext is:
+// scoring one listing against every other is O(n) work that produces the same
+// answer until one of them changes. A property page must not pay for it.
+//
+// WHY A SCORE AND NOT A DISTANCE. Similarity here is a blend — location, price,
+// size, and the attributes that mean something for THAT property type — so the
+// number is only meaningful relative to other rows for the same property, which
+// is exactly how it is read (`order by score desc limit k`). It is never shown
+// to a user as a percentage, because "87% similar" implies a precision this does
+// not have.
+//
+// `reasons` carries the per-component breakdown that produced the score. It is
+// what makes a recommendation explainable instead of an oracle, and it is the
+// only way to debug a bad match without re-running the scorer by hand.
+model PropertySimilarity {
+  id String @id @default(cuid())
+
+  property   Property @relation("SimilarFrom", fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  similar    Property @relation("SimilarTo", fields: [similarId], references: [id], onDelete: Cascade)
+  similarId  String
+
+  score   Float
+  reasons Json?
+
+  computedAt DateTime @default(now())
+
+  // One edge per ordered pair; a recompute upserts rather than accumulating.
+  @@unique([propertyId, similarId])
+  // The only read this table serves: top-k for one listing.
+  @@index([propertyId, score])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Ranking weights — tunable without a deploy, never by the model
+// ─────────────────────────────────────────────────────────────────
+
+// The weights the ranking pipeline blends its component scores with.
+//
+// IN THE DATABASE because the brief they implement is explicit that they must be
+// tunable from real behaviour, and a redeploy per experiment is how tuning stops
+// happening. Code holds the defaults (features/graph/ranking.js), so an empty
+// table is a working system rather than a broken one.
+//
+// NOT WRITABLE BY THE AGENT LAYER, and that is structural rather than a promise:
+// nothing in features/graph/tools/ imports a writer for this table, and the only
+// mutation path is an admin action. A model that can set its own weights can
+// justify any ordering it likes after the fact.
+model RankingWeights {
+  id   String @id @default(cuid())
+  name String @unique
+
+  // { location, budget, commute, preference, trust, freshness } — normalised at
+  // read time, so a profile that does not sum to 1 is scaled rather than
+  // silently over-weighting everything.
+  weights Json
+  // Why this profile exists. An experiment nobody can explain is not a result.
+  note    String?
+
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Search demand — what people asked for, and whether we had it
+// ─────────────────────────────────────────────────────────────────
+
+// The platform recorded what people DID (AnalyticsEvent's five funnel steps)
+// and nothing about what they ASKED FOR. With inventory as the binding
+// constraint, the unanswerable question was the important one: which area,
+// budget and property type do people search for that we have nothing to show?
+//
+// AGGREGATE BY CONSTRUCTION — there is no sessionId, userId or IP here, and
+// there is deliberately nowhere to put one. The question is "how much demand
+// for what, where", which needs no person attached; and a table that cannot
+// identify anyone cannot leak, cannot be subject-access-requested, and needs no
+// consent conversation. Personalization inputs are a genuinely different thing
+// and already exist per-user in SavedListing and PropertyViewer.
+//
+// One row per (day, query shape). Bounded by distinct shapes per day, not by
+// traffic — a million searches for the same thing is one row with a counter.
+model SearchDemand {
+  id  String   @id @default(cuid())
+  day DateTime @db.Date
+
+  // Stable hash of every field below. The unique key with `day`; the columns
+  // are carried alongside so the readout can group without re-parsing a hash.
+  signature String
+
+  // Geohash-5 (~4.9km) of the viewport centre — the AREA that was searched.
+  // Coarse on purpose: it quantises panning, so nudging the map by a street
+  // does not fork the row, and it is far too blunt to locate a person.
+  cellGeohash String
+  city        String?
+
+  type         String?
+  pricingModel String?
+  bhk          Int?
+  // A band, not the raw slider value: '10k-20k'. Raw values would fork a row
+  // per drag tick and answer no question a band does not.
+  rentBand     String?
+
+  searches        Int  @default(0)
+  // How many of those returned nothing. This is the column the whole table
+  // exists for — it names the gap between what people want and what we list.
+  zeroResults     Int  @default(0)
+  // Most recent count, for eyeballing "is this thin or empty".
+  lastResultCount Int?
+
+  firstSeenAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([day, signature])
+  // The readout: worst unmet demand in a window.
+  @@index([day, zeroResults])
+  @@index([cellGeohash, day])
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Image fingerprints — the raw material for reused-photo detection
+// ─────────────────────────────────────────────────────────────────
+
+// A 64-bit difference hash (dHash) of an uploaded image, keyed by its URL.
+//
+// Keyed by URL rather than added as a column on PropertyImage because the hash
+// belongs to the BYTES, not to whichever listing currently references them. Two
+// consequences that matter: an image uploaded, rejected and re-uploaded on a
+// second account is still fingerprinted, which is exactly the pattern
+// REUSED_IMAGES exists to catch; and the hash is computed at upload time from a
+// buffer already in memory, so nothing is ever re-downloaded to compute it.
+//
+// dHash, not a cryptographic hash: it survives re-encoding, resizing and mild
+// cropping, which is what a re-poster does. Comparison is Hamming distance in
+// JS over a bounded candidate set — see features/intelligence/imageFingerprint.js
+// for why that is enough at this scale and what would change it.
+model ImageFingerprint {
+  id         String  @id @default(cuid())
+  url        String  @unique
+  // 16 hex chars = 64 bits.
+  hash       String
+  // Who uploaded it. Not a foreign key: an upload can precede any listing, and
+  // an account deletion must not erase the fingerprint of an image still in use
+  // on a live listing.
+  uploaderId String?
+
+  createdAt DateTime @default(now())
+
+  // Candidate narrowing is a full scan of this column today. See the service.
+  @@index([hash])
+  @@index([uploaderId])
 }
 
 // Self-hosted OpenStreetMap points of interest.

@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma.js'
+import { invalidatePreferences } from '../graph/preferences.js'
 
 // The saved list is the one screen a renter comes BACK to, so it has to tell
 // them what changed while they were away. A list that looks identical every
@@ -158,7 +159,7 @@ export async function saveProperty(userId, propertyId) {
     select: { rent: true },
   })
 
-  return prisma.savedListing.upsert({
+  const saved = await prisma.savedListing.upsert({
     where: { userId_propertyId: { userId, propertyId } },
     create: { userId, propertyId, rentAtSave: property?.rent ?? null },
     // Re-saving does NOT reset rentAtSave: the question is "cheaper than when
@@ -166,6 +167,15 @@ export async function saveProperty(userId, propertyId) {
     // drop the renter was watching for.
     update: {},
   })
+
+  // Saving is the single strongest signal of intent this platform collects, so
+  // recommendations must reflect it NOW rather than up to five minutes later.
+  // Without this, somebody who saves three flats and immediately opens "for you"
+  // sees a list that ignores all three — which reads as the feature being broken
+  // in exactly the moment they are paying attention to it.
+  invalidatePreferences(userId).catch(() => {})
+
+  return saved
 }
 
 // deleteMany, not delete: unsaving something already unsaved is a no-op, not an
@@ -173,4 +183,7 @@ export async function saveProperty(userId, propertyId) {
 // on a retry over a flaky connection.
 export async function unsaveProperty(userId, propertyId) {
   await prisma.savedListing.deleteMany({ where: { userId, propertyId } })
+  // Removing a save is a preference signal too — arguably a clearer one than
+  // adding it, since it is a decision made after seeing the listing properly.
+  invalidatePreferences(userId).catch(() => {})
 }

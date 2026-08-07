@@ -12,6 +12,7 @@ import { formatTime } from '@utils/time'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
+import HomesForYou from '../components/HomesForYou'
 
 // Saved homes. The one screen a renter comes BACK to, so every row has to say
 // what CHANGED — otherwise it is a folder of links that looks identical every
@@ -157,14 +158,20 @@ export default function SavedScreen({ navigation }) {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           ListFooterComponent={
-            summary?.newMatches
-              ? (
+            <>
+              {summary?.newMatches ? (
                 <NewMatchesCard
                   matches={summary.newMatches}
                   onPress={() => navigation.getParent()?.navigate('Explore')}
                 />
-              )
-              : null
+              ) : null}
+              {/* A FOOTER, not its own scroll view — two nested vertical
+                  scrollers is the classic RN layout bug, and this content
+                  belongs after the shortlist anyway. */}
+              <HomesForYou
+                onOpen={(propertyId) => navigation.navigate('PropertyDetail', { propertyId })}
+              />
+            </>
           }
           renderItem={({ item }) => (
             <SavedRow

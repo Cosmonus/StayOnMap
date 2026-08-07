@@ -13,42 +13,68 @@
 // set grows with supply instead of pretending to.
 import { prisma } from '../../lib/prisma.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
+import { localityBySlug, slugify } from '../localities/resolve.js'
 
-/** "Anna Nagar" → "anna-nagar". Reversed by matching against live values, not
- *  by un-slugifying — "t-nagar" could be "T Nagar" or "T. Nagar" and guessing
- *  wrong yields a 404 for a page we do have. */
-export const slugify = (s) => String(s ?? '')
-  .toLowerCase()
-  .normalize('NFKD')
-  .replace(/[^a-z0-9]+/g, '-')
-  .replace(/^-+|-+$/g, '')
+/** "Anna Nagar" → "anna-nagar". Re-exported from features/localities so the
+ *  entity and its URL cannot disagree about a slug — they were two copies of
+ *  the same function until the Locality entity existed to own it. */
+export { slugify }
 
 /**
  * Every (city, locality) pair with at least one publicly visible ACTIVE
  * listing. Used by the sitemap and to resolve a slug back to its real name.
  */
 export async function listLocalities() {
-  const rows = await prisma.property.groupBy({
-    by: ['city', 'landmark'],
+  // Grouped in JS rather than by the database, because the grouping key is now
+  // "the resolved Locality if there is one, else the owner's text" and SQL has
+  // no clean way to express that. The row set is bounded by live ACTIVE
+  // inventory — the same rows the old groupBy scanned.
+  const rows = await prisma.property.findMany({
     where: {
       status: 'ACTIVE',
       // On USER, not Property — see sitemap.service.js.
       owner: { listingVisibility: 'PUBLIC' },
-      landmark: { not: null },
       city: { in: SUPPORTED_CITIES },
+      // A listing needs SOME name for its area. Before the Locality entity this
+      // could only be `landmark`; now a resolved locality is the better answer
+      // and a listing may carry one without any landmark text at all.
+      OR: [{ landmark: { not: null } }, { localityId: { not: null } }],
     },
-    _count: { _all: true },
+    select: {
+      city: true,
+      landmark: true,
+      locality: { select: { id: true, name: true, slug: true, citySlug: true } },
+    },
   })
 
-  return rows
-    .filter((r) => r.landmark?.trim() && slugify(r.landmark))
-    .map((r) => ({
-      city: r.city,
-      citySlug: slugify(r.city),
-      locality: r.landmark.trim(),
-      localitySlug: slugify(r.landmark),
-      count: r._count._all,
-    }))
+  const groups = new Map()
+  for (const row of rows) {
+    // The resolved entity wins. This is what merges "Koramangala",
+    // "Koramangala 5th Block" and "koramangala." into one page instead of three
+    // — the whole reason the entity exists.
+    const name = row.locality?.name ?? row.landmark?.trim()
+    const slug = row.locality?.slug ?? slugify(row.landmark)
+    if (!name || !slug) continue
+
+    const citySlug = row.locality?.citySlug ?? slugify(row.city)
+    const key = row.locality?.id ?? `landmark:${citySlug}:${slug}`
+
+    const existing = groups.get(key)
+    if (existing) {
+      existing.count++
+      continue
+    }
+    groups.set(key, {
+      city: row.city,
+      citySlug,
+      locality: name,
+      localitySlug: slug,
+      localityId: row.locality?.id ?? null,
+      count: 1,
+    })
+  }
+
+  return [...groups.values()]
     // Biggest first — it is the order the sitemap and any future index page
     // both want, and it costs nothing here.
     .sort((a, b) => b.count - a.count)
@@ -61,15 +87,30 @@ export async function listLocalities() {
  */
 export async function getLocality(citySlug, localitySlug) {
   const all = await listLocalities()
-  const match = all.find((l) => l.citySlug === citySlug && l.localitySlug === localitySlug)
+  let match = all.find((l) => l.citySlug === citySlug && l.localitySlug === localitySlug)
+
+  // No direct hit — try resolving the slug as an ALIAS. This is what keeps a URL
+  // alive after a listing's area is resolved to its canonical name:
+  // /rent/bengaluru/koramangala-5th-block was published while that string was
+  // the identity, and it must keep landing on the Koramangala page rather than
+  // 404ing because we got better at naming places.
+  if (!match) {
+    const canonical = await localityBySlug(citySlug, localitySlug)
+    if (canonical) match = all.find((l) => l.localityId === canonical.id)
+  }
   if (!match) return null
 
   const properties = await prisma.property.findMany({
     where: {
       status: 'ACTIVE',
       owner: { listingVisibility: 'PUBLIC' },
-      city: match.city,
-      landmark: match.locality,
+      // Keyed by the entity when there is one, so the page shows every listing
+      // in the area however its owner spelled it. Falls back to the exact
+      // landmark text for listings not yet resolved — the same behaviour as
+      // before, which is what the page had for all of them until today.
+      ...(match.localityId
+        ? { localityId: match.localityId }
+        : { city: match.city, landmark: match.locality }),
     },
     select: {
       id: true, title: true, type: true, bhk: true, rent: true, deposit: true,
@@ -83,8 +124,12 @@ export async function getLocality(citySlug, localitySlug) {
 
   const rents = properties.map((p) => Number(p.rent)).filter((n) => Number.isFinite(n) && n > 0)
 
+  // `localityId` is a grouping key, not part of the page's contract — dropped so
+  // the public JSON keeps exactly the shape it had before the entity existed.
+  const { localityId: _localityId, ...page } = match
+
   return {
-    ...match,
+    ...page,
     properties,
     // A median, not an average: one ₹4Cr plot in a street of ₹15k flats makes
     // an average meaningless, and this number is the page's headline fact.

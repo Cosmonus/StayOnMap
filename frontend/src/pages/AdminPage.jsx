@@ -40,6 +40,8 @@ import { confirm } from '@components/common/ConfirmDialog'
 import AdminMonitorSection from '@features/admin/components/AdminMonitorSection'
 import VerificationsSection from '@features/admin/components/VerificationsSection'
 import FunnelCard from '@features/admin/components/FunnelCard'
+import DemandCard from '@features/admin/components/DemandCard'
+import GraphHealthCard from '@features/admin/components/GraphHealthCard'
 import { formatTime } from '@utils/time'
 
 // ── Shared chart card shell ────────────────────────────────────────────────
@@ -280,8 +282,20 @@ function OverviewSection() {
       </div>
 
       {/* Behaviour, above the row-count charts: how many of the people who
-          arrived ever booked is the question those charts cannot answer. */}
-      <FunnelCard />
+          arrived ever booked is the question those charts cannot answer.
+          Beside it, the question the funnel in turn cannot answer — what people
+          asked for that we had nothing to show. Side by side from lg, because
+          they are read together: a funnel that leaks at the top and a pile of
+          empty searches in one area are the same finding. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <FunnelCard />
+        <DemandCard />
+      </div>
+
+      {/* Is the intelligence layer actually built? Coverage, not speed — a
+          listing with no edges and a listing whose edges are slow look
+          identical to a user, and only one of them has ever happened. */}
+      <GraphHealthCard />
 
       {/* Row 1: Total Users full width */}
       <ChartCard

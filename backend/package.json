@@ -6,9 +6,7 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "start:prod": "pm2 start ecosystem.config.cjs --env production",
     "lint": "eslint src",
-    "build": "cd ../frontend && npm install && npm run build && cp -r dist ../backend/public",
     "metro": "node scripts/metro-engine.mjs",
     "seed:test": "node scripts/seed-test-accounts.mjs",
     "seed:test:clean": "node scripts/cleanup-test-accounts.mjs",

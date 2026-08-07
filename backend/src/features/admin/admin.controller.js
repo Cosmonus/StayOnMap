@@ -1,6 +1,7 @@
 import * as service from './admin.service.js'
 import { latestReports } from '../spatial/dataQuality.js'
 import * as productAnalytics from '../analytics/analytics.service.js'
+import { getUnmetDemand } from '../analytics/demand.service.js'
 import { ok, created } from '../../utils/response.js'
 
 export async function login(req, res, next) {
@@ -20,6 +21,16 @@ export async function funnel(req, res, next) {
       productAnalytics.getTimeToPublish(),
     ])
     ok(res, { funnel: funnelData, timeToPublish })
+  } catch (err) { next(err) }
+}
+// Where demand went unmet. A third question again: /analytics counts what we
+// HAVE, /analytics/funnel counts what people DID, and this counts what they
+// asked for and we could not show them — the only one of the three that points
+// at a specific listing to go and find.
+export async function demand(req, res, next) {
+  try {
+    const days = req.query.days ? Number(req.query.days) : undefined
+    ok(res, await getUnmetDemand({ days }))
   } catch (err) { next(err) }
 }
 export async function waitlist(req, res, next) {

@@ -10,6 +10,7 @@ import { parseBounds, boundsFilter } from '../../utils/geo.js'
 import { getContext, STATUS_FAILED } from '../spatial/spatial.service.js'
 import { intelError } from '../../lib/intelLog.js'
 import { notifyUser } from '../notifications/notifications.service.js'
+import { refreshSimilarityWithNeighbours } from '../graph/similarity.js'
 
 export async function adminLogin(email, password) {
   const admin = await prisma.admin.findUnique({ where: { email } })
@@ -395,6 +396,17 @@ export async function setPropertyStatus(propertyId, status, note, adminId) {
   }
 
   const property = await prisma.property.update({ where: { id: propertyId }, data: { status } })
+
+  // Becoming ACTIVE is the moment a listing enters the recommendable set, so it
+  // is where the SIMILAR_TO edges have to be built — in BOTH directions, or the
+  // new listing knows what it resembles while nothing points back at it. Leaving
+  // ACTIVE is the mirror: its own edges stop mattering (the read path filters on
+  // status), but the listings pointing AT it should stop doing so. Fire-and-
+  // forget; a moderation action must never wait on graph work.
+  if (current.status !== status && (status === 'ACTIVE' || current.status === 'ACTIVE')) {
+    refreshSimilarityWithNeighbours(propertyId).catch(() => {})
+  }
+
   await prisma.activityLog.create({
     data: {
       adminId,

@@ -1,6 +1,7 @@
 import sharp from 'sharp'
 import { supabase } from '../../lib/supabase.js'
 import { randomUUID } from 'crypto'
+import { fingerprintUpload } from '../intelligence/imageFingerprint.js'
 
 // Magic-byte sniffing — the multer fileFilter only sees the CLIENT-declared
 // mimetype; the buffer is the truth. A spoofed declaration can't park a
@@ -62,6 +63,17 @@ export async function uploadPropertyImageSet(file, userId) {
     putObject(`${base}_thumb.webp`, thumb, 'image/webp'),
     putObject(`${base}_full.webp`, full, 'image/webp'),
   ])
+
+  // Perceptual hash for reused-photo detection, computed HERE because the
+  // original bytes are in memory exactly once — anywhere else in the system this
+  // would mean downloading the image back off Supabase. Hashed from the ORIGINAL
+  // buffer, not the WebP we just wrote, so a re-poster who uploads the same
+  // photo at a different size still lands on the same hash.
+  //
+  // Fire-and-forget: an upload must never fail because a fraud heuristic could
+  // not hash it.
+  fingerprintUpload(fullUrl, file.buffer, userId).catch(() => {})
+
   return fullUrl
 }
 
