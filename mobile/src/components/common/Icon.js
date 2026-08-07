@@ -9,7 +9,7 @@ import {
   Image as ImageIcon, FileText, Link2, ArrowRight,
   ArrowUpDown, Dumbbell, WavesLadder, Video, Zap, Droplet, Wind, Refrigerator, WashingMachine,
   TreePine, DoorClosed, SquareParking,
-  EllipsisVertical, Ban, Flag,
+  EllipsisVertical, Ban, Flag, Copy, WifiOff,
 } from 'lucide-react-native'
 import { colors } from '@theme/colors'
 
@@ -60,6 +60,8 @@ const ICONS = {
   // Status / feedback
   check: Check,
   checkCircle: CircleCheck,
+  copy: Copy,
+  wifiOff: WifiOff,
   alertTriangle: TriangleAlert,
   info: Info,
   bell: Bell,
