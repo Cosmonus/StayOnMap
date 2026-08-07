@@ -79,6 +79,7 @@
     ],
     "moduleNameMapper": {
       "^lucide-react-native/dist/esm/icons/.*$": "<rootDir>/src/test/lucideIconMock.js"
-    }
+    },
+    "globalSetup": "<rootDir>/src/test/globalSetup.js"
   }
 }
