@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma.js'
 import { notifyUser } from '../notifications/notifications.service.js'
 import { getOrCreateConversation, sendMessage } from '../chat/chat.service.js'
 import { blockExistsBetween, blockedError } from '../users/safety.service.js'
+import { invalidatePreferences } from '../graph/preferences.js'
 
 // India-only platform, so a wall-clock slot is always IST. The server may run
 // anywhere (production is a UTC VM), which is exactly why this can't lean on
@@ -151,6 +152,11 @@ export async function requestAppointment(tenantId, propertyId, data) {
 
   const appt = await prisma.appointment.create({ data: { ...data, tenantId, propertyId, ownerId: property.ownerId, requestedDate: new Date(data.requestedDate) } })
   await notifyUser(property.ownerId, { type: 'APPOINTMENT_REQUEST', title: 'New Appointment Request', body: 'A tenant has requested to visit your property.', referenceId: appt.id, referenceType: 'Appointment', audience: 'OWNER' })
+
+  // The strongest preference signal there is — asking to physically go and see
+  // a place. Drop the cached profile so recommendations reflect it immediately
+  // rather than up to five minutes later.
+  invalidatePreferences(tenantId).catch(() => {})
 
   // Auto-create chat conversation and send appointment summary
   try {

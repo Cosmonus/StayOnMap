@@ -13,6 +13,18 @@ import { encode, decode } from '../../lib/geohash.js'
 import { resolveProximityFilter, proximityCacheKey } from './proximityFilter.js'
 import { notifyUser } from '../notifications/notifications.service.js'
 import { record } from '../analytics/analytics.service.js'
+import { syncPropertyLocality } from '../localities/resolve.js'
+import { refreshSimilarity } from '../graph/similarity.js'
+
+// The fields the similarity scorer actually reads. An edit to the title or the
+// description changes nothing about which listings are alternatives to this one,
+// and recomputing on every save would be work nobody asked for.
+const SIMILARITY_FIELDS = [
+  'lat', 'lng', 'city', 'type', 'pricingModel', 'rent', 'nightlyRate',
+  'bhk', 'sharing', 'maxGuests', 'carpetArea', 'extent',
+  'furnished', 'placeType', 'commercialType', 'landType', 'approvalStatus',
+]
+import { recordSearchDemand } from '../analytics/demand.service.js'
 
 // The land-record IDENTIFIERS, which never leave the server for anyone but the
 // listing's own owner. Enforced here rather than by omitting them from a
@@ -162,7 +174,14 @@ export async function getPinsInBounds(bounds, filters, userId = null) {
   // coarsened-then-cached pin would be wrong for the owner looking at their own
   // listing; and cacheGet JSON.parses a fresh object per read, so mutating the
   // result cannot corrupt the entry.
-  if (cached) return cached.map((p) => publicView(p, userId))
+  if (cached) {
+    // Recorded on the cache HIT too. A search someone performed is a search
+    // whether or not the answer happened to be in Redis; counting only misses
+    // would undercount demand by exactly the amount that popular areas are
+    // popular. Fire-and-forget, aggregate-only — see demand.service.js.
+    recordSearchDemand(bounds, filters, cached.length)
+    return cached.map((p) => publicView(p, userId))
+  }
 
   const where = {
     status: 'ACTIVE',
@@ -187,6 +206,7 @@ export async function getPinsInBounds(bounds, filters, userId = null) {
   })
 
   await cacheSet(cacheKey, pins, 30)
+  recordSearchDemand(bounds, filters, pins.length)
   return pins.map((p) => publicView(p, userId))
 }
 
@@ -419,6 +439,10 @@ export async function createProperty(ownerId, data) {
   // described by the time anyone opens the page. Free when a neighbouring
   // listing already warmed the same cell.
   ensureContextForProperty(property.lat, property.lng, property.type).catch(() => {})
+  // Resolve which area this is IN. Same fire-and-forget contract as the cell
+  // warm above and for the same reason — it is a polygon lookup, and a create
+  // must not wait on one. Until it lands, readers fall back to `landmark`.
+  syncPropertyLocality(property.id).catch(() => {})
 
   return property
 }
@@ -501,6 +525,23 @@ export async function updateProperty(id, ownerId, data) {
   // its page, which for a draft may be never.
   if (propertyData.lat !== undefined || propertyData.lng !== undefined) {
     ensureContextForProperty(updated.lat, updated.lng, updated.type).catch(() => {})
+  }
+
+  // Re-resolve the area when anything that decides it moves. `landmark` is in
+  // this list and `lat`/`lng` alone would not be enough: a listing that never
+  // moved but whose owner corrected "Prime Location" to "Anna Nagar" is exactly
+  // the case where a LANDMARK-sourced locality was wrong and can now be right.
+  if (['lat', 'lng', 'city', 'landmark'].some((f) => propertyData[f] !== undefined)) {
+    syncPropertyLocality(id).catch(() => {})
+  }
+
+  // Re-score neighbours when anything the scorer reads has moved. Only THIS
+  // listing's edges are recomputed, not its neighbours' — an edit is O(1) that
+  // way instead of O(n), and the reverse edges self-correct on their own next
+  // recompute. The read path re-checks `status`, so the staleness that leaves
+  // can never surface a listing that has since been paused.
+  if (SIMILARITY_FIELDS.some((f) => propertyData[f] !== undefined)) {
+    refreshSimilarity(id).catch(() => {})
   }
 
   return updated

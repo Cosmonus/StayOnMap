@@ -23,6 +23,7 @@ import ZeroBrokerageBanner from '../components/ZeroBrokerageBanner'
 import HouseRulesSection from '../components/HouseRulesSection'
 import OwnerCard from '../components/OwnerCard'
 import ReviewsSection from '@features/reviews/components/ReviewsSection'
+import SimilarHomesSection from '../components/SimilarHomesSection'
 import ReportButton from '@features/reports/components/ReportButton'
 import Icon from '@components/common/Icon'
 import { imgUrl, formatCompact, priceUnit } from '@utils/format'
@@ -388,6 +389,12 @@ export default function PropertyDetailScreen({ route, navigation }) {
           <View style={styles.section}>
             <ReviewsSection title="Community Reviews" propertyId={propertyId} isOwner={isOwner} ownerName={property.owner?.name} />
           </View>
+
+          {/* "Homes like this one" sits after reviews and before the report
+              link: it is the next step for somebody who has read this listing
+              and decided against it. Renders nothing — heading included — when
+              there are no neighbours. */}
+          <SimilarHomesSection propertyId={propertyId} />
 
           <View style={[styles.section, { alignItems: 'flex-start' }]}>
             <ReportButton propertyId={propertyId} />

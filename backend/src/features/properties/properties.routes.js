@@ -29,6 +29,10 @@ router.get('/mine',              authMiddleware, controller.getMyProperties)
 // listing, not as an open market-data feed.
 router.get('/benchmark',         authMiddleware, validate(benchmarkQuerySchema, 'query'), controller.getBenchmark)
 router.get('/:id',               optionalAuth, controller.getProperty)
+// "Homes like this one". Public: it shows only ACTIVE listings, which is
+// exactly what an anonymous visitor can already open. Registered after /:id is
+// harmless — the paths differ by a segment, not by ambiguity.
+router.get('/:id/similar',       controller.getSimilarProperties)
 // requireCompleteProfile sits after requireOwner (role first, readiness second)
 // and before validate — it needs no body. Creation only: existing listings and
 // edits are untouched, so this can't strand anyone who listed before the rule.

@@ -242,10 +242,19 @@ describe('structured data', () => {
 })
 
 describe('locality pages exist only where there is inventory', () => {
+  // These read `property.findMany` rather than `groupBy` as of 2026-08-07: the
+  // grouping key became "the resolved Locality if there is one, else the owner's
+  // text", which SQL cannot express in one groupBy. `locality: null` below is a
+  // listing not yet resolved — the state every listing was in before the entity
+  // shipped, and the one readers must keep falling back from.
+  const unresolved = (city, landmark) => ({ city, landmark, locality: null })
+
   it('derives the page set from live listings, not from a list of area names', async () => {
-    prismaMock.property.groupBy.mockResolvedValue([
-      { city: 'Chennai', landmark: 'Anna Nagar', _count: { _all: 3 } },
-      { city: 'Chennai', landmark: 'T. Nagar', _count: { _all: 1 } },
+    prismaMock.property.findMany.mockResolvedValue([
+      unresolved('Chennai', 'Anna Nagar'),
+      unresolved('Chennai', 'Anna Nagar'),
+      unresolved('Chennai', 'Anna Nagar'),
+      unresolved('Chennai', 'T. Nagar'),
     ])
 
     const all = await listLocalities()
@@ -254,33 +263,68 @@ describe('locality pages exist only where there is inventory', () => {
     expect(all[0].count).toBe(3)
   })
 
+  it('merges spellings that resolve to one locality into ONE page', async () => {
+    // The whole reason the entity exists. As free text these were three pages,
+    // three counts, and three answers to "how many listings are in Koramangala".
+    const koramangala = { id: 'loc1', name: 'Koramangala', slug: 'koramangala', citySlug: 'bengaluru' }
+    prismaMock.property.findMany.mockResolvedValue([
+      { city: 'Bengaluru', landmark: 'Koramangala 5th Block', locality: koramangala },
+      { city: 'Bengaluru', landmark: 'koramangala.', locality: koramangala },
+      { city: 'Bengaluru', landmark: 'Koramangala', locality: koramangala },
+    ])
+
+    const all = await listLocalities()
+    expect(all).toHaveLength(1)
+    expect(all[0]).toMatchObject({ localitySlug: 'koramangala', count: 3 })
+  })
+
   it('404s a locality with nothing in it rather than serving an empty page', async () => {
-    prismaMock.property.groupBy.mockResolvedValue([])
+    prismaMock.property.findMany.mockResolvedValue([])
     expect(await getLocality('chennai', 'anna-nagar')).toBeNull()
   })
 
   it('asks only for listings a stranger can open', async () => {
-    prismaMock.property.groupBy.mockResolvedValue([])
+    prismaMock.property.findMany.mockResolvedValue([])
     await listLocalities()
-    const { where } = prismaMock.property.groupBy.mock.calls[0][0]
+    const { where } = prismaMock.property.findMany.mock.calls[0][0]
     // Nested under `owner` — see the sitemap test for why this exact shape is
     // the assertion that matters.
     expect(where.owner).toEqual({ listingVisibility: 'PUBLIC' })
   })
 
   it('reports the MEDIAN rent, so one ₹4Cr plot cannot define a street', async () => {
-    prismaMock.property.groupBy.mockResolvedValue([
-      { city: 'Chennai', landmark: 'Anna Nagar', _count: { _all: 4 } },
-    ])
-    prismaMock.property.findMany.mockResolvedValue([
-      { id: 'a', rent: 15000, type: 'APARTMENT', images: [] },
-      { id: 'b', rent: 18000, type: 'APARTMENT', images: [] },
-      { id: 'c', rent: 20000, type: 'APARTMENT', images: [] },
-      { id: 'd', rent: 40000000, type: 'LAND', images: [] },
-    ])
+    prismaMock.property.findMany
+      // listLocalities()'s scan…
+      .mockResolvedValueOnce([
+        unresolved('Chennai', 'Anna Nagar'), unresolved('Chennai', 'Anna Nagar'),
+        unresolved('Chennai', 'Anna Nagar'), unresolved('Chennai', 'Anna Nagar'),
+      ])
+      // …then getLocality()'s fetch of the page's listings.
+      .mockResolvedValueOnce([
+        { id: 'a', rent: 15000, type: 'APARTMENT', images: [] },
+        { id: 'b', rent: 18000, type: 'APARTMENT', images: [] },
+        { id: 'c', rent: 20000, type: 'APARTMENT', images: [] },
+        { id: 'd', rent: 40000000, type: 'LAND', images: [] },
+      ])
 
     const locality = await getLocality('chennai', 'anna-nagar')
     expect(locality.medianRent).toBe(19000) // (18000 + 20000) / 2
+  })
+
+  it('keeps an already-published URL alive once its area resolves to a new name', async () => {
+    // /rent/bengaluru/koramangala-5th-block was published while that string WAS
+    // the identity. Resolving it to "Koramangala" must not 404 it.
+    const koramangala = { id: 'loc1', name: 'Koramangala', slug: 'koramangala', citySlug: 'bengaluru' }
+    prismaMock.property.findMany
+      .mockResolvedValueOnce([{ city: 'Bengaluru', landmark: 'Koramangala 5th Block', locality: koramangala }])
+      .mockResolvedValueOnce([{ id: 'a', rent: 30000, type: 'APARTMENT', images: [] }])
+    prismaMock.locality.findUnique.mockResolvedValue(null)
+    prismaMock.localityAlias.findUnique.mockResolvedValue({ locality: { id: 'loc1' } })
+
+    const page = await getLocality('bengaluru', 'koramangala-5th-block')
+    expect(page).not.toBeNull()
+    // …and it serves the CANONICAL page, not a second one under the old slug.
+    expect(page.localitySlug).toBe('koramangala')
   })
 
   it('titles the page with the count and the city', async () => {

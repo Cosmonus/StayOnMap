@@ -4,6 +4,9 @@ export const propertyService = {
   getList: (params) => api.get('/properties', { params }),
 
   getById: (id) => api.get(`/properties/${id}`),
+  // "Homes like this one". Edges are materialised server-side, so this is one
+  // indexed read rather than a scoring pass per request.
+  getSimilar: (id, limit = 6) => api.get(`/properties/${id}/similar`, { params: { limit } }),
 
   // bounds: { swLat, swLng, neLat, neLng } — plain object (RN has no
   // LatLngBounds instance like web's Google Maps bounds).

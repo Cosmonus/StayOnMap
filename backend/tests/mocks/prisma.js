@@ -5,12 +5,14 @@ const txMock = {}
 
 export const prismaMock = {
   property: {
-    findMany:  vi.fn(),
+    // Defaults to "no inventory", which is a fresh database's real state.
+    // listLocalities() reads this now (it grouped by (city, landmark) in SQL
+    // until the Locality entity shipped 2026-08-07 — the grouping key is now
+    // "resolved locality, else owner text", which SQL cannot express cleanly).
+    findMany:  vi.fn().mockResolvedValue([]),
     findUnique: vi.fn(),
     findFirst:  vi.fn(),
     count:      vi.fn(),
-    // Locality pages group listings by (city, landmark). Defaults to "no
-    // inventory", which is what a fresh database has.
     groupBy:    vi.fn().mockResolvedValue([]),
     create:     vi.fn(),
     update:     vi.fn(),
@@ -20,7 +22,50 @@ export const prismaMock = {
     deleteMany: vi.fn(),
   },
   propertyImage: {
+    // Reused-photo detection reads this; empty = a listing with no photos, which
+    // is the path that must return "no signal" rather than throwing.
+    findMany:   vi.fn().mockResolvedValue([]),
     deleteMany: vi.fn(),
+  },
+  // The area a listing is IN, as an entity. Defaults to "nothing resolved yet",
+  // which is every pre-2026-08-07 listing and the state readers fall back from.
+  locality: {
+    findUnique: vi.fn().mockResolvedValue(null),
+    findMany:   vi.fn().mockResolvedValue([]),
+    create:     vi.fn(),
+    update:     vi.fn(),
+  },
+  localityAlias: {
+    findUnique: vi.fn().mockResolvedValue(null),
+    create:     vi.fn(),
+  },
+  // Aggregate search demand. No personal data in it by construction — see
+  // features/analytics/demand.service.js.
+  searchDemand: {
+    upsert:     vi.fn().mockResolvedValue({}),
+    groupBy:    vi.fn().mockResolvedValue([]),
+    aggregate:  vi.fn().mockResolvedValue({ _sum: { searches: 0, zeroResults: 0 } }),
+    deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+  },
+  // Perceptual hashes of uploaded photos. Empty = nothing fingerprinted, which
+  // is a fresh install and must read as "no evidence", never as "no match".
+  imageFingerprint: {
+    findMany: vi.fn().mockResolvedValue([]),
+    upsert:   vi.fn().mockResolvedValue({}),
+  },
+  // The SIMILAR_TO edge. Empty = nothing computed yet, which is every listing
+  // before the first refresh and the state the read path must render as "no
+  // similar homes" rather than as an error.
+  propertySimilarity: {
+    findMany:   vi.fn().mockResolvedValue([]),
+    createMany: vi.fn().mockResolvedValue({ count: 0 }),
+    deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+  },
+  // Ranking weights. Null = no stored profile, which is the intended state:
+  // code owns the defaults, so an empty table ranks exactly like production.
+  rankingWeights: {
+    findUnique: vi.fn().mockResolvedValue(null),
+    upsert:     vi.fn(),
   },
   amenity: {
     findMany: vi.fn(),

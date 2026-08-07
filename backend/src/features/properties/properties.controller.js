@@ -3,6 +3,7 @@ import * as service from './properties.service.js'
 import { ok, created, notFound } from '../../utils/response.js'
 import { getPaginationParams, buildPaginationMeta } from '../../utils/pagination.js'
 import { parseBounds } from '../../utils/geo.js'
+import { getSimilar } from '../graph/similarity.js'
 
 export async function listProperties(req, res, next) {
   try {
@@ -43,6 +44,15 @@ export async function getProperty(req, res, next) {
     const property = await service.getPropertyById(req.params.id, req.user?.id ?? null)
     if (!property) return notFound(res)
     ok(res, property)
+  } catch (err) { next(err) }
+}
+
+export async function getSimilarProperties(req, res, next) {
+  try {
+    // Capped in the service too; clamped here so a query string cannot ask for
+    // a hundred cards on a page that renders six.
+    const limit = Math.min(Math.max(Number(req.query.limit) || 6, 1), 24)
+    ok(res, await getSimilar(req.params.id, limit))
   } catch (err) { next(err) }
 }
 

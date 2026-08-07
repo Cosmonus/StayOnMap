@@ -6,6 +6,7 @@ import { formatCurrency, imgUrl } from '@utils/format'
 import { formatTime } from '@utils/time'
 import Price from '@components/listing/Price'
 import SpecLine from '@components/listing/SpecLine'
+import HomesForYou from './HomesForYou'
 
 // Saved homes — the one page a renter comes BACK to, so every row says what
 // CHANGED since they saved it. Mirrors mobile's SavedScreen: same three
@@ -131,6 +132,10 @@ export default function SavedHomes() {
       <div className="space-y-3">
         {saved.map((item) => <SavedRow key={item.id} item={item} />)}
       </div>
+
+      {/* Derived from these very saves, so it belongs beside them. Renders
+          nothing — heading included — when we do not yet know enough. */}
+      <HomesForYou />
 
       {/* Only when the backend actually counted some — there is no empty version
           of this card. */}

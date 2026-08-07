@@ -1,6 +1,7 @@
 import { Check, Clock, Navigation, X } from 'lucide-react'
 import { AmenityIcon } from '@components/common/AmenityIcon'
 import ReviewsSection from '@features/reviews/components/ReviewsSection'
+import SimilarHomes from './SimilarHomes'
 import SpatialContextPanel from '@features/spatial/components/SpatialContextPanel'
 import CommuteCalculator from '@features/areas/components/CommuteCalculator'
 import { Sheet, SheetSection, FactCell } from './SheetPrimitives'
@@ -191,6 +192,14 @@ export default function DetailSheet({ property, variant, isOwner, directionsUrl 
       <SheetSection id="reviews" title="Community reviews">
         <ReviewsSection propertyId={property.id} isOwner={isOwner} ownerInfo={property?.owner} />
       </SheetSection>
+
+      {/* "Homes like this one" sits LAST on purpose: it is the next-step action
+          for somebody who has finished reading this listing and decided against
+          it, so it must not compete with the listing's own facts.
+          It owns its own SheetSection so the HEADING disappears with the
+          content — a titled section above nothing is the exact bug the spatial
+          panel shipped with once (see .claude/ui-ux.md). */}
+      <SimilarHomes propertyId={property.id} />
     </Sheet>
   )
 }

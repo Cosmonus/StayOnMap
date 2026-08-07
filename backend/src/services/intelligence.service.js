@@ -10,6 +10,8 @@ import { intelLog, intelError } from '../lib/intelLog.js'
 // a city the same way. Was duplicated here before features/spatial/ needed it.
 import { CITY_CENTERS, haversineKm } from '../config/cityCenters.js'
 import { checkListingLocation } from '../features/properties/locationCheck.js'
+import { findReusedImages } from '../features/intelligence/imageFingerprint.js'
+import { findSharedContactOwners } from '../features/intelligence/ownerGraph.js'
 
 // Average rent across other ACTIVE listings of the same city + type + size
 // (BHK count, or sharing for PGs) — free, uses only our own DB data. Requires
@@ -47,7 +49,12 @@ export async function evaluateListing(propertyId, trigger) {
       // `pincode` is here because checkListingLocation reads it — without it the
       // location check received undefined and silently never ran, which is the
       // exact "wired but inert" failure this file exists to prevent.
-      select: { id: true, address: true, lat: true, lng: true, city: true, pincode: true, type: true, bhk: true, sharing: true, pricingModel: true },
+      select: {
+        id: true, address: true, lat: true, lng: true, city: true, pincode: true,
+        type: true, bhk: true, sharing: true, pricingModel: true,
+        ownerId: true,
+        owner: { select: { phone: true } },
+      },
     })
     if (!property) return
 
@@ -69,6 +76,45 @@ export async function evaluateListing(propertyId, trigger) {
       select: { id: true },
     })
     if (nearby) candidates.push({ type: 'SIMILAR_GEOLOCATION', detail: `Within 50m of property ${nearby.id}` })
+
+    // ── Relationship checks (added 2026-08-07) ──────────────────────────────
+    // Both look BEYOND this listing, which is what everything above cannot do:
+    // a listing can be internally perfect and still be one of five posted by the
+    // same person behind five accounts, or carry a photograph lifted from
+    // somebody else's home. Both are evidence for a moderator, never a verdict —
+    // see each module's header for why the ambiguity is real.
+    //
+    // Failures are swallowed per check. A fingerprint table that has not been
+    // backfilled, or a phone column full of nulls, must degrade to "no signal",
+    // never take the evaluation down with it.
+    const reused = await findReusedImages(propertyId).catch(() => [])
+    if (reused.length) {
+      const closest = reused[0]
+      // A different OWNER reusing the photo is the serious case; the same owner
+      // is usually an honest relist of the same home. Both are recorded, and the
+      // detail says which, because the risk weighting is a moderator's call.
+      const otherOwners = reused.filter((r) => r.ownerId !== property.ownerId)
+      candidates.push({
+        type: 'REUSED_IMAGES',
+        detail: otherOwners.length
+          ? `Photo also on ${otherOwners.length} listing(s) owned by a different account (closest match: property ${otherOwners[0].propertyId}, ${otherOwners[0].closest}/64 bits apart)`
+          : `Photo also on ${reused.length} other listing(s) by the same owner (closest: property ${closest.propertyId})`,
+      })
+    }
+
+    const shared = await findSharedContactOwners(property.ownerId, property.owner?.phone).catch(() => null)
+    if (shared) {
+      const verified = shared.accounts.filter((a) => a.phoneVerified).length
+      candidates.push({
+        type: 'SAME_CONTACT',
+        // Deliberately does not name the accounts in the detail string: this text
+        // is read in a moderation queue, and the finding is "this number is
+        // shared", not "these people are colluding". The account list is one
+        // query away for whoever investigates.
+        detail: `Phone shared with ${shared.accounts.length} other listing account(s)` +
+          (verified ? `, ${verified} of which verified this number` : ', none verified'),
+      })
+    }
 
     const existing = await prisma.fraudSignal.findMany({ where: { propertyId, resolved: false }, select: { type: true } })
     const existingTypes = new Set(existing.map((s) => s.type))
