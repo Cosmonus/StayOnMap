@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma.js'
 import { env } from '../../config/env.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
+import { ownerResponsiveness } from './responsiveness.js'
 
 // ── Geo-based score cache (per ~1km grid cell) ──────────────────────────────
 // Redis-backed when REDIS_URL is set (cacheGet/cacheSet no-op otherwise —
@@ -182,14 +183,25 @@ export async function recalculateRiskScore(propertyId) {
 export async function recalculateOwnerTrust(ownerId) {
   const [properties, appointments, verification, highReports] = await Promise.all([
     prisma.property.findMany({ where: { ownerId }, include: { trustScore: { select: { overallScore: true } } } }),
-    prisma.appointment.findMany({ where: { ownerId, status: { in: ['ACCEPTED', 'REJECTED', 'CANCELLED'] } } }),
+    // PENDING is in this list now, and that is the fix. An ignored request
+    // never leaves PENDING, so the old status filter could not see silence at
+    // all — it only ever saw owners who had already engaged. See
+    // ./responsiveness.js.
+    prisma.appointment.findMany({
+      where: { ownerId },
+      select: { status: true, createdAt: true, updatedAt: true, respondedAt: true },
+    }),
     prisma.ownershipVerification.findFirst({ where: { property: { ownerId }, status: 'VERIFIED' } }),
     prisma.propertyReport.count({ where: { property: { ownerId }, severity: { in: ['HIGH', 'CRITICAL'] }, status: { not: 'DISMISSED' } } }),
   ])
 
-  const accepted     = appointments.filter(a => a.status === 'ACCEPTED').length
-  const totalDecided = appointments.filter(a => a.status !== 'CANCELLED').length
-  const responseRate = totalDecided > 0 ? (accepted / totalDecided) * 100 : 50
+  // Whether the owner ANSWERS, and how fast — not whether they say yes. The
+  // stored `responseRate` is the answered share alone, so the number a renter
+  // reads ("83% response rate") is the number its label promises; speed enters
+  // only as a multiplier on this component's weight. Full reasoning, including
+  // why silence is countable and why the clock has a grace window:
+  // ./responsiveness.js.
+  const { responseRate, speedFactor } = ownerResponsiveness(appointments)
 
   const scoredProps = properties.filter(p => (p.trustScore?.overallScore ?? 0) > 0)
   const reviewAvg   = scoredProps.length > 0
@@ -198,7 +210,7 @@ export async function recalculateOwnerTrust(ownerId) {
 
   const verificationLevel = verification ? 4 : 0
   const score = Math.round(Math.min(100,
-    (responseRate * 0.30) +
+    (responseRate * speedFactor * 0.30) +
     ((reviewAvg / 5) * 40) +
     (verificationLevel * 5) +
     Math.max(0, 10 - highReports * 5)

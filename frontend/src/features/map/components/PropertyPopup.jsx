@@ -1,10 +1,9 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import {
-  Lock, X, Navigation, Phone, ArrowRight, ImageOff,
-  Bed, Ruler, Users, Sofa, Home, Building2, LandPlot, Store, Luggage,
-} from 'lucide-react'
+import { Lock, X, Navigation, Phone, ArrowRight, ImageOff, Sofa } from 'lucide-react'
 import { propertyService } from '@services/property.service'
+import { propertySpec } from '@utils/propertySpec'
+import { typeIcon, typeLabel, furnishedLabel } from '@/config/propertyTypes'
 import { useMapStore } from '@store/mapStore'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { formatPrice, formatCurrency, imgUrl } from '@utils/format'
@@ -13,26 +12,14 @@ import { factIcon } from '@features/spatial/factIcons'
 import TrustBadge from '@components/common/TrustBadge'
 import RiskAlert from '@components/common/RiskAlert'
 
-// The words and glyphs mobile's config/propertyTypes.js already declares —
-// "Plot", not "Land"; "Stay", not "Short stay" — and the same six lucide icons
-// useMapPins.js inlines as SVG for the pins themselves.
+// The words and glyphs live in @config/propertyTypes now — the mirror of
+// mobile's file of the same name, and the reason a plot says "Plot" on every
+// surface of both platforms.
 //
 // All three chips were built from EMOJI until 2026-08-07. An emoji renders in
 // the OS font, so the pills were the one part of this card drawn by Apple or
 // Google rather than by us, at a size and weight we do not control, and several
-// read as near-identical little houses at 12px. The labels were derived from the
-// enum too, so a plot said "Land" here and "Plot" everywhere else on both
-// platforms.
-const TYPE_ICON = {
-  APARTMENT: Building2, HOUSE: Home, VILLA: Home, INDEPENDENT_HOUSE: Home,
-  LAND: LandPlot, PG: Bed, COMMERCIAL: Store, SHORT_STAY: Luggage,
-}
-const TYPE_LABEL = {
-  APARTMENT: 'Apartment', HOUSE: 'House', VILLA: 'Villa',
-  INDEPENDENT_HOUSE: 'Independent house', LAND: 'Plot', PG: 'PG',
-  COMMERCIAL: 'Commercial', SHORT_STAY: 'Stay',
-}
-const FURNISHED_LABEL = { FULLY: 'Furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
+// read as near-identical little houses at 12px.
 
 function Pill({ icon: Icon, children, color = 'slate' }) {
   const styles = {
@@ -93,23 +80,18 @@ export default function PropertyPopup({ bare = false }) {
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([property.address, property.city].filter(Boolean).join(', '))}`
     : null
 
-  // Spec chip is per-type: BHK means nothing on a plot, sharing is the number
-  // that matters for a PG, guests for a short stay, carpet area for a shop.
-  const spec = !property ? null
-    : property.type === 'PG' ? { Icon: Bed, text: `${property.sharing}-Sharing PG` }
-    : property.type === 'LAND' ? (property.extent ? { Icon: Ruler, text: `${property.extent} ${(property.extentUnit ?? '').toLowerCase()}`.trim() } : null)
-    : property.type === 'SHORT_STAY' ? (property.maxGuests ? { Icon: Users, text: `Up to ${property.maxGuests} guests` } : null)
-    : property.type === 'COMMERCIAL' ? (property.carpetArea ? { Icon: Ruler, text: `${property.carpetArea} sq.ft carpet` } : null)
-    : property.bhk === 0 ? { Icon: Bed, text: 'Studio' }
-    : property.bhk ? { Icon: Bed, text: `${property.bhk} BHK` } : null
+  // Per-type, and shared with the grid card and the saved list — see
+  // utils/propertySpec.js. This file's version was the complete one; the other
+  // two were subsets of it, which is exactly how a plot ended up with no spec
+  // at all in the browse grid.
+  const spec = propertySpec(property)
 
   const furnished = property?.furnished
-    ? { Icon: Sofa, text: FURNISHED_LABEL[property.furnished] ?? property.furnished }
+    ? { Icon: Sofa, text: furnishedLabel(property.furnished) ?? property.furnished }
     : null
 
-  const type = property?.type
-    ? { Icon: TYPE_ICON[property.type] ?? Home, text: TYPE_LABEL[property.type] ?? 'Property' }
-    : null
+  const TypeIcon = typeIcon(property?.type)
+  const type = TypeIcon ? { Icon: TypeIcon, text: typeLabel(property.type) } : null
 
   // Nightly for a short stay; formatPrice covers rent vs lease vs sale for the
   // rest. SALE was missing here, so a ₹95L plot for sale read "Monthly rent

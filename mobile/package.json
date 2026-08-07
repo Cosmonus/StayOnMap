@@ -13,6 +13,7 @@
     "@tanstack/react-query": "^5.101.2",
     "axios": "^1.18.1",
     "expo": "~57.0.8",
+    "expo-clipboard": "~57.0.1",
     "expo-constants": "~57.0.7",
     "expo-dev-client": "~57.0.9",
     "expo-device": "~57.0.1",
@@ -21,9 +22,11 @@
     "expo-image-manipulator": "~57.0.6",
     "expo-image-picker": "~57.0.6",
     "expo-location": "~57.0.6",
+    "expo-network": "~57.0.1",
     "expo-notifications": "~57.0.7",
     "expo-splash-screen": "~57.0.5",
     "expo-status-bar": "~57.0.1",
+    "expo-system-ui": "~57.0.2",
     "lucide-react-native": "^1.23.0",
     "react": "19.2.3",
     "react-native": "0.86.0",
@@ -73,6 +76,10 @@
     ],
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/.*|native-base|react-native-svg|lucide-react-native))"
-    ]
+    ],
+    "moduleNameMapper": {
+      "^lucide-react-native/dist/esm/icons/.*$": "<rootDir>/src/test/lucideIconMock.js"
+    },
+    "globalSetup": "<rootDir>/src/test/globalSetup.js"
   }
 }

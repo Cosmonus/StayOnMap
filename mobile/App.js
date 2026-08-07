@@ -11,6 +11,7 @@ import { queryClient } from '@lib/queryClient'
 import { getSocket } from '@lib/socket'
 import { AuthProvider } from '@features/auth/context/AuthContext'
 import BrandSplash from '@components/common/BrandSplash'
+import OfflineBanner from '@components/common/OfflineBanner'
 import RootNavigator from '@navigation/RootNavigator'
 import { navigateToReference } from '@navigation/navigationRef'
 
@@ -96,6 +97,12 @@ export default function App() {
                 — a Modal here would fight the status bar and the hardware
                 back handler. */}
             {!brandSplashDone && <BrandSplash onFinish={finishBrandSplash} />}
+            {/* Above the navigator for the same reason, and after the splash
+                so it never draws over the launch screen. Renders nothing while
+                the network is fine — see OfflineBanner for why it belongs here
+                rather than on each of the dozen screens that would otherwise
+                each report the same outage as their own error. */}
+            <OfflineBanner />
           </AuthProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

@@ -20,6 +20,7 @@ import ReportUserSheet from '../components/ReportUserSheet'
 import { userService } from '@services/user.service'
 import ReadReceipt from '../components/ReadReceipt'
 import ChatPropertyCard from '../components/ChatPropertyCard'
+import { sendErrorMessage } from '../sendError'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -291,7 +292,11 @@ export default function ConversationScreen({ route, navigation }) {
       qc.setQueryData(['chat-messages', conversationId], (old = []) => [...old, res.data])
       qc.invalidateQueries({ queryKey: ['conversations'] })
     },
-    onError: () => Alert.alert('Message not sent', 'Check your connection and try again.'),
+    // The server's own words when it has any — a block comes back as 403
+    // BLOCKED with a real, actionable sentence this handler used to replace
+    // with "Check your connection". See ../sendError.js for why the two
+    // failures need opposite advice.
+    onError: (err) => Alert.alert('Message not sent', sendErrorMessage(err)),
   })
 
   const { mutate: editMsg, isPending: isEditPending } = useMutation({

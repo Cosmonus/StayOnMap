@@ -121,9 +121,13 @@ export const env = {
   dataGovApiKey: process.env.DATA_GOV_API_KEY || null,
   // Error monitoring — entirely optional, lib/sentry.js no-ops without it
   sentryDsn:       process.env.SENTRY_DSN        || null,
-  // GA4 Measurement Protocol — forwards the MOBILE APP's funnel events to the
-  // same GA4 property the website's gtag reports to. The website needs neither
-  // of these: its tag runs in the browser. Absent is a supported state and the
+  // GA4 Measurement Protocol — forwards the MOBILE APP's funnel events, and
+  // ONLY the app's. The website briefly carried a gtag on 2026-08-07 and no
+  // longer does (operator decision — it set `_ga` cookies, which was the only
+  // thing this product needed a cookie policy for). /privacy now states that
+  // the website sends Google nothing, so do not "complete" this by mirroring
+  // web events server-side: that is the same disclosure with a different
+  // transport. Absent is a supported state and the
   // forwarder no-ops, exactly like mail and SMS — a deployment without them
   // still records everything to our own Postgres, which stays the source of
   // truth. The API secret is created in GA4 → Admin → Data streams → your

@@ -26,7 +26,9 @@ export const ingestSchema = z.object({
   // bounds a single request's work — the client flushes well below it.
   events: z.array(event).min(1).max(50),
   // Which client this is, so app traffic can be mirrored to GA4 and web
-  // traffic left to the browser's own gtag (see features/analytics/ga4.js).
+  // traffic never leaves our own database (see features/analytics/ga4.js —
+  // the website has carried no analytics tag since 2026-08-07, and /privacy
+  // says so).
   //
   // OPTIONAL, and that is the point: every mobile build already on a phone
   // predates this field, and they must keep working untouched. Absent means

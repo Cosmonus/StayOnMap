@@ -120,8 +120,8 @@ describe('the served shell is not stricter than the static one', () => {
 
   it('permits every third-party origin the shell actually loads', () => {
     const origins = [...shell.matchAll(/(?:src|href)="(https:\/\/[^/"]+)/g)].map((m) => m[1])
-    // Google Maps, Fonts and now googletagmanager — if the shell gains another,
-    // this still holds, because the policy names no host to keep in sync.
+    // Google Maps and Fonts today — if the shell gains another, this still
+    // holds, because the policy names no host to keep in sync.
     expect(origins.length).toBeGreaterThan(0)
     expect(SHELL_CSP).not.toMatch(/script-src|img-src|connect-src|style-src|font-src/)
     expect(SHELL_CSP).toMatch(/default-src \*/)
@@ -133,12 +133,18 @@ describe('the served shell is not stricter than the static one', () => {
     expect(SHELL_CSP).toContain("frame-ancestors 'self'")
   })
 
-  it('carries the analytics tag in the shell, so every route reports', () => {
-    // renderHead only strips title/description/og/twitter/canonical, so a tag in
-    // the template survives into the server-rendered pages for free.
-    expect(shell).toContain('googletagmanager.com/gtag/js')
-    expect(renderHead(shell, { title: 'T', description: 'D', canonical: 'C' }))
-      .toContain('googletagmanager.com/gtag/js')
+  it('rewrites only the five head fields and leaves the rest of the shell alone', () => {
+    // This used to assert the GA4 tag survived renderHead. The tag was removed
+    // on 2026-08-07 (see tests/no-third-party-tags.test.js — the website now
+    // sets no cookies and /privacy says so), but the invariant it was really
+    // guarding is not about analytics: renderHead strips title, description,
+    // og, twitter and canonical, and MUST leave everything else in the
+    // template untouched. Asserted against the Maps preconnect instead, which
+    // the product cannot function without.
+    expect(shell).toContain('maps.googleapis.com')
+    const rendered = renderHead(shell, { title: 'T', description: 'D', canonical: 'C' })
+    expect(rendered).toContain('maps.googleapis.com')
+    expect(rendered).toContain('theme-color')
   })
 })
 

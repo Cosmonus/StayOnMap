@@ -988,6 +988,14 @@ model Appointment {
   status        AppointmentStatus @default(PENDING)
   scheduledAt   DateTime?
   ownerNote     String?
+  // When the OWNER first answered — accepted, declined or moved it. Written
+  // once and never overwritten, so a later edit cannot rewrite how fast they
+  // replied. This is why it is not `updatedAt`: that moves on every subsequent
+  // change, and an owner who replied in ten minutes then added a note a week
+  // later would measure as a week. NULL means either "still waiting" or "row
+  // predates 2026-08-07" — features/trust/responsiveness.js tells the two
+  // apart by status and never invents a duration for the old ones.
+  respondedAt   DateTime?
   // The renter's voice, mirroring ownerNote. Written only by the renter, only
   // on RESCHEDULE_REQUESTED.
   tenantNote    String?
@@ -1169,7 +1177,10 @@ model OwnerTrustScore {
   ownerId           String   @unique
   score             Float    @default(0) // 0–100
   level             String   @default("UNRATED") // UNRATED | LOW | MEDIUM | HIGH | EXCELLENT
-  responseRate      Float    @default(0) // % appointments accepted
+  // % of visit requests the owner ANSWERED — accepted, declined or moved.
+  // Was "% accepted" until 2026-08-07, which punished the honest decline and
+  // was printed to renters as a response rate. See features/trust/responsiveness.js.
+  responseRate      Float    @default(0)
   reviewAvg         Float    @default(0) // avg StayScore across listings
   verificationLevel Int      @default(0)
   updatedAt         DateTime @updatedAt

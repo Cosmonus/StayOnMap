@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions, Share, Animated } from 'react-native'
 import { Image } from 'expo-image'
+import * as Clipboard from 'expo-clipboard'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
@@ -77,6 +78,15 @@ function rentBenchmarkLabel(rent, benchmark) {
 export default function PropertyDetailScreen({ route, navigation }) {
   const { propertyId } = route.params
   const [chatLoading, setChatLoading] = useState(false)
+  const [copiedId, setCopiedId] = useState(false)
+  // The "Copied" label reverts itself, and the effect's cleanup cancels the
+  // timer — so navigating away mid-window can't set state on an unmounted
+  // screen, which a bare setTimeout in the handler would.
+  useEffect(() => {
+    if (!copiedId) return undefined
+    const t = setTimeout(() => setCopiedId(false), 1600)
+    return () => clearTimeout(t)
+  }, [copiedId])
   const { user } = useAuth()
   const insets = useSafeAreaInsets()
   const scrollY = useMemo(() => new Animated.Value(0), [])
@@ -124,6 +134,11 @@ export default function PropertyDetailScreen({ route, navigation }) {
   function handleSave() {
     if (!user) return
     saveMutation.mutate(!isSaved)
+  }
+
+  async function copyDisplayId(displayId) {
+    await Clipboard.setStringAsync(displayId)
+    setCopiedId(true)
   }
 
   // The link goes INSIDE `message`, not in Share.share's `url` field: Android
@@ -274,10 +289,23 @@ export default function PropertyDetailScreen({ route, navigation }) {
           })()}
 
           <Text style={styles.title}>{property.title}</Text>
+          {/* The listing id is what someone reads out on the phone or pastes
+              into a message to ask "is this one still free?". It was static
+              text, so the only way to use it was to retype it correctly from a
+              screen — 48dp target, and the label itself is the confirmation
+              (there is no toast primitive on mobile, and a chip that says
+              "Copied" is clearer than one anyway). */}
           {!!property.displayId && (
-            <View style={styles.idChip}>
-              <Text style={styles.idChipText}>{property.displayId}</Text>
-            </View>
+            <Pressable
+              style={styles.idChip}
+              onPress={() => copyDisplayId(property.displayId)}
+              accessibilityRole="button"
+              accessibilityLabel={`Copy listing id ${property.displayId}`}
+              hitSlop={12}
+            >
+              <Icon name={copiedId ? 'check' : 'copy'} size={11} color={colors.slate500} />
+              <Text style={styles.idChipText}>{copiedId ? 'Copied' : property.displayId}</Text>
+            </Pressable>
           )}
           <Text style={styles.location}>{property.address}, {property.city}</Text>
 
@@ -445,7 +473,7 @@ const styles = StyleSheet.create({
   deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   benchmark: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, marginBottom: spacing.xs },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.lg, color: colors.slate800, marginTop: spacing.xs },
-  idChip: { alignSelf: 'flex-start', backgroundColor: colors.slate100, borderRadius: radius.md, paddingHorizontal: 8, paddingVertical: 2, marginTop: 4 },
+  idChip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.slate100, borderRadius: radius.md, paddingHorizontal: 8, paddingVertical: 2, marginTop: 4 },
   idChipText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500, letterSpacing: 0.5 },
   location: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2, marginBottom: spacing.md },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
