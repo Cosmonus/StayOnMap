@@ -2,8 +2,6 @@ import './lib/netTuning.js'
 import 'dotenv/config'
 import './config/env.js'
 import { createServer } from 'http'
-import { fileURLToPath } from 'url'
-import path from 'path'
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
@@ -16,9 +14,6 @@ import { initSentry, setupExpressErrorHandler } from './lib/sentry.js'
 
 // Must run before the app is built — instruments Express/http/Prisma automatically
 initSentry()
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const publicDir = path.join(__dirname, '../../public')
 
 // Node terminates the process on any unhandled rejection by default (since v15) —
 // without this, one stray promise anywhere (a missed await, a third-party lib
@@ -54,6 +49,7 @@ import pushRoutes         from './features/push/push.routes.js'
 import trustRoutes        from './features/trust/trust.routes.js'
 import placeRoutes        from './features/places/places.routes.js'
 import spatialRoutes      from './features/spatial/spatial.routes.js'
+import graphRoutes        from './features/graph/graph.routes.js'
 import analyticsRoutes    from './features/analytics/analytics.routes.js'
 import localityRoutes     from './features/seo/locality.routes.js'
 import blogRoutes         from './features/blog/blog.routes.js'
@@ -135,6 +131,7 @@ app.use('/api/v1/push',          pushRoutes)
 app.use('/api/v1/areas',         areaRoutes)
 app.use('/api/v1/places',        placeRoutes)
 app.use('/api/v1/spatial',       spatialRoutes)
+app.use('/api/v1/graph',         graphRoutes)
 app.use('/api/v1/analytics',     analyticsRoutes)
 app.use('/api/v1/blog',          blogRoutes)
 app.use('/api/v1/localities',    localityRoutes)
@@ -148,17 +145,12 @@ app.use('/api/v1/admin/verifications', adminLimiter, adminVerificationRouter)
 app.use('/api/v1/admin/trust-scores',  adminLimiter, trustRoutes)
 app.use('/api/v1/admin/ai',            adminLimiter, aiRoutes)
 
-// Serve React build — only when public/ exists (i.e. in production)
-import { existsSync } from 'fs'
-if (existsSync(publicDir)) {
-  app.use(express.static(publicDir))
-  // Express 5's path-to-regexp requires a named wildcard — bare '*' throws
-  // "Missing parameter name" at route-registration time now, not a lint nit.
-  app.get('*splat', (req, res, next) => {
-    if (req.path.startsWith('/api/') || req.path.startsWith('/socket.io/')) return next()
-    res.sendFile(path.join(publicDir, 'index.html'))
-  })
-}
+// NOTE: the API does NOT serve the React build. nginx serves frontend/dist
+// directly (infra/server/nginx/stayonmap.conf) and owns the SPA fallback, so a
+// second catch-all here would shadow the server-rendered <head> routes
+// (/property/:id, /rent/:city/:area, /blog/*) that live in seo.routes.js.
+// A `backend/public` static branch existed for the single-service PaaS deploy
+// this project no longer uses; removed 2026-08-07.
 
 setupExpressErrorHandler(app)
 app.use(errorMiddleware)
