@@ -230,3 +230,33 @@
   outline: 2px solid #0ea5e9;
   outline-offset: 1px;
 }
+
+/* ── Reduced motion — app-wide, not per-component ────────────────────────────
+ *
+ * Added 2026-08-07 alongside the blog's entrance animations. There was NO
+ * prefers-reduced-motion handling anywhere in the app before this, which meant
+ * every existing animation (map pin drops, bottom sheets, modals, the range
+ * slider) ignored a setting people turn on because motion makes them ill.
+ *
+ * Deliberately global and deliberately blunt. A per-component opt-out is a rule
+ * every future component has to remember; this one cannot be forgotten. The
+ * values are near-zero rather than `none` because `animation: none` can leave
+ * an element stuck at a keyframe's `from` state — an element that fades in from
+ * opacity 0 would simply never appear.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Smooth anchor scrolling for the article table of contents. Paired with the
+ * rule above, which turns it off for anyone who asked for less motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}

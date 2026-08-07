@@ -7,6 +7,7 @@ import { blogService } from '@services/blog.service'
 import { useMediaQuery } from '@hooks/useMediaQuery'
 import NotFoundPage from '@pages/NotFoundPage'
 import ArticleBody from '@features/blog/components/ArticleBody'
+import BlogCover from '@features/blog/components/BlogCover'
 import TableOfContents from '@features/blog/components/TableOfContents'
 import FaqAccordion from '@features/blog/components/FaqAccordion'
 import RelatedPosts from '@features/blog/components/RelatedPosts'
@@ -103,7 +104,15 @@ export default function BlogPostPage() {
 
         {post && (
           <>
-            <header className="mt-6 max-w-[68ch]">
+            {/* The cover sits ABOVE the header, full content width rather than
+                capped at the prose measure — it is the one element on the page
+                that is allowed to be as wide as the layout, and clipping it to
+                68ch beside an empty sidebar column looked like a mistake. */}
+            <div className="mt-6 overflow-hidden rounded-2xl ring-1 ring-slate-200 animate-fade-in">
+              <BlogCover post={post} priority />
+            </div>
+
+            <header className="mt-8 max-w-[68ch] animate-slide-up">
               <span className="text-badge font-semibold uppercase tracking-wide text-brand-700">
                 {post.clusterLabel}
               </span>
