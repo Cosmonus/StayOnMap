@@ -124,8 +124,24 @@ export default function BlogPage() {
         )}
 
         {!isLoading && !isError && visible.length > 0 && (
-          <div className={GRID}>
-            {visible.map((p) => <PostCard key={p.slug} post={p} />)}
+          // `key` on the grid, not just the cards: changing the cluster filter
+          // swaps the whole set, and without a new key React reuses the mounted
+          // cards, so the entrance animation would only ever play once — on
+          // first load — and never when you actually change filters.
+          <div key={cluster ?? 'all'} className={GRID}>
+            {visible.map((p, i) => (
+              <div
+                key={p.slug}
+                className="animate-slide-up"
+                // Stagger, capped. Uncapped, the 40th card in a long list would
+                // wait 1.6s to appear, which reads as a bug rather than polish.
+                // An inline style is the one honest way to express a per-item
+                // delay — Tailwind cannot generate a class per index.
+                style={{ animationDelay: `${Math.min(i, 8) * 45}ms`, animationFillMode: 'backwards' }}
+              >
+                <PostCard post={p} />
+              </div>
+            ))}
           </div>
         )}
       </div>

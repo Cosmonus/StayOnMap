@@ -34,11 +34,28 @@ const NAV_TABS = [
     to: '/services',
     icon: <ConciergeBell size={20} strokeWidth={1.8} />,
   },
-  // Added with the blog (2026-08-07). "Guides", not "Blog": the word describes
-  // what the articles are for, and it is what someone deciding where to live
-  // would look for. Both the guest and traveler hamburgers map over NAV_TABS
-  // with `md:hidden`, so this reaches mobile for free — a tab added here but
-  // not to those menus would be invisible below md.
+]
+
+// Guest nav = the shared tabs plus Guides.
+//
+// GUEST ONLY, by operator decision (2026-08-07). The articles are an acquisition
+// surface: they answer the questions someone asks BEFORE they have an account,
+// and someone who has already signed up is here to look at homes, not to be
+// sent back to reading. Keeping it out of the traveler nav also holds that row
+// to four tabs, which is what it was sized for.
+//
+// "Guides", not "Blog": the word says what the articles are for, and it is what
+// someone deciding where to live would actually look for.
+//
+// GuestActions maps this same array into its hamburger with `md:hidden`, so the
+// tab reaches mobile for free — a tab added to the row but not to that menu is
+// invisible below md.
+//
+// The footer link to /blog is deliberately NOT gated: it is a sitewide
+// discovery and crawl surface rather than primary navigation, and the footer is
+// already hidden on /user and /list.
+const GUEST_NAV_TABS = [
+  ...NAV_TABS,
   {
     label: 'Guides',
     to: '/blog',
@@ -178,11 +195,12 @@ function GuestActions() {
   const openLoginModal = useUiStore((s) => s.openLoginModal)
 
   const isActive = (to) => (to === '/' ? pathname === '/' : pathname.startsWith(to))
-  const tabs = NAV_TABS.map((t) => ({ ...t, active: isActive(t.to) }))
+  // GUEST_NAV_TABS, not NAV_TABS — Guides is a signed-out surface only.
+  const tabs = GUEST_NAV_TABS.map((t) => ({ ...t, active: isActive(t.to) }))
 
   const menuItems = [
     // Only needed on mobile — NavTabs above already shows these at md+.
-    ...NAV_TABS.map((t) => ({ key: t.to, label: t.label, to: t.to, icon: t.icon, className: 'md:hidden' })),
+    ...GUEST_NAV_TABS.map((t) => ({ key: t.to, label: t.label, to: t.to, icon: t.icon, className: 'md:hidden' })),
     { key: 'divider', divider: true, className: 'md:hidden' },
     { key: 'login', label: 'Login / Sign up', onClick: openLoginModal },
   ]
