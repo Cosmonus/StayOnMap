@@ -5,19 +5,22 @@
     <link rel="icon" type="image/png" href="/icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Google Analytics (GA4). Kept high in <head> so page_view timing is real.
-         This is IN ADDITION to our first-party funnel telemetry
-         (backend/src/features/analytics) — that one answers "did the people who
-         arrived book a visit", this one answers "where did they arrive from".
-         GA4 is a third-party processor and sets cookies: /privacy must say so. -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-H2GWTWJ6J4"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-H2GWTWJ6J4');
-    </script>
+    <!-- NO ANALYTICS SCRIPT HERE, AND THAT IS THE DECISION — do not re-add one.
+         A GA4 gtag tag lived here for part of 2026-08-07 and was removed the
+         same day (operator decision). It worked, but it cost more than it
+         returned: it set `_ga` cookies for up to two years, which is the only
+         reason this product needed a cookie section in /privacy at all and the
+         only thing that put a consent banner on the table. Our own first-party
+         funnel (backend/src/features/analytics) already answers the question
+         the business actually asks — of the people who arrived, how many
+         reached a visit request — from our own Postgres, keyed to a session id
+         in sessionStorage that is not a cookie and cannot follow anyone
+         between visits.
+         GA4 still receives the MOBILE APP's funnel, forwarded server-side over
+         the Measurement Protocol (backend/src/features/analytics/ga4.js). That
+         path sets no cookie on anybody and needs no script here.
+         Adding any third-party tag back to this file re-opens a legal
+         question, not just an engineering one — see /privacy §8. -->
 
     <!-- Base SEO — overridden per-page by react-helmet-async -->
     <title>StayOnMap — Rent with intelligence.</title>

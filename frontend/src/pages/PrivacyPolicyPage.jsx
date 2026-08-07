@@ -88,17 +88,18 @@ export default function PrivacyPolicyPage() {
             browser&rsquo;s session storage; it is <strong>not a cookie</strong> and it is discarded
             when you close the tab. If you are signed in, the record is linked to your account.
             These records are deleted after 90 days.</p>
-          <p><strong>Product analytics &mdash; Google Analytics.</strong> On our website we also
-            use Google Analytics 4 to understand how people arrive at the Platform and which
-            pages they read. It sets cookies in your browser and sends Google your IP address,
-            the pages you view, and general device information. See Section 8 for what those
-            cookies are and how to refuse them.</p>
-          <p><strong>The mobile app is different, and narrower.</strong> It contains no Google
-            Analytics code and sets no cookies. Instead our own servers pass on the five funnel
-            steps described above &mdash; and nothing else. Google receives the step, the city,
-            the listing id, and the random session identifier; because the message comes from
-            our server rather than from your phone, it carries <strong>no IP address and no
-            device information</strong>.</p>
+          <p><strong>Our website runs no analytics script at all.</strong> There is no Google
+            Analytics tag and no advertising pixel on any page, nothing measures or profiles
+            your browsing for us or for anyone else, and the website sets no cookies whatsoever
+            &mdash; see Section 8. The page does load fonts, map tiles and listing photos from
+            the providers in Section 7, which necessarily see your IP address in order to send
+            you the file; that is delivery, not measurement.</p>
+          <p><strong>Google Analytics, from the mobile app only.</strong> For the app, our own
+            servers pass the five funnel steps described above on to Google Analytics &mdash;
+            and nothing else. Google receives the step, the city, the listing id, and the random
+            session identifier. Because the message comes from our server rather than from your
+            phone, it carries <strong>no IP address and no device information</strong>, and the
+            app itself contains no Google code and sets no cookie.</p>
           <p><strong>Waitlist signups.</strong> Signing up from a city not supported yet
             stores name, email, and city so we can notify that person when we launch there &mdash;
             it does not create a full account.</p>
@@ -133,9 +134,10 @@ export default function PrivacyPolicyPage() {
             <li><strong>Supabase</strong> &mdash; stores uploaded property images and verification documents</li>
             <li><strong>Google Cloud Platform</strong> &mdash; hosts our application servers and database</li>
             <li><strong>Google Maps Platform</strong> &mdash; powers map display, address search, and geocoding (search queries and coordinates are sent to Google to resolve locations)</li>
+            <li><strong>Google Fonts</strong> &mdash; serves the typefaces our website is set in. Loading a font means your browser requests a file from Google, so Google sees your IP address and the page that asked for it. It sets no cookie and we send it nothing about you. The mobile app is unaffected: its fonts ship inside the app.</li>
             <li><strong>Zoho ZeptoMail</strong> &mdash; delivers transactional emails (appointment updates, password resets, sign-in codes). Your email address and the message content pass through it. Where ZeptoMail is not configured, an SMTP provider is used instead.</li>
             <li><strong>Expo</strong>, and through it <strong>Google (FCM)</strong> on Android or <strong>Apple (APNs)</strong> on iOS &mdash; deliver push notifications to your device. The notification&rsquo;s title and text pass through these services.</li>
-            <li><strong>Google Analytics</strong> (Google LLC) &mdash; measures how the Platform is used. From the website it receives your IP address, the pages you view, device and browser information, and a random identifier stored in cookies. From the mobile app it receives only the five funnel steps, forwarded by our servers, with no IP address or device information. In neither case does it receive your name, email, phone number, or the contents of your messages.</li>
+            <li><strong>Google Analytics</strong> (Google LLC) &mdash; measures how the <strong>mobile app</strong> is used, and only the app. It receives the five funnel steps forwarded by our servers &mdash; the step, the city, the listing id, and a random session identifier &mdash; with no IP address and no device information. Our website sends it nothing at all: there is no Google Analytics tag on the website. It never receives your name, email, phone number, or the contents of your messages.</li>
             <li><strong>Upstash</strong> &mdash; Redis used for caching and rate limiting; holds short-lived technical data, not profile information</li>
             <li><strong>Sentry</strong> &mdash; error monitoring, when enabled. Receives crash and error reports, which can incidentally include the request path and account id involved.</li>
           </ul>
@@ -198,32 +200,32 @@ export default function PrivacyPolicyPage() {
             token-based &mdash; a JWT stored in browser local storage.
           </p>
           <p>
-            <strong>Google Analytics does set cookies.</strong> Named <code>_ga</code> and
-            <code>_ga_&lt;id&gt;</code>, they hold a randomly generated number that lets Google
-            Analytics tell one browser from another and group your requests into a single visit.
-            They last up to two years and are readable only by Google Analytics. We do not use
-            them to identify you by name, and we run <strong>no advertising cookies and no
-            ad-network tags</strong> today &mdash; if that changes, Section 4 says how you will
-            hear about it first.
+            <strong>In fact the Platform sets no cookies at all</strong> &mdash; not for
+            sign-in, not for analytics, not for advertising. There is nothing here for you to
+            accept or refuse, which is why you have never been shown a cookie banner.
           </p>
           <p>
-            <strong>Our own analytics uses no cookie at all</strong>, and neither does the
-            mobile app. The session identifier described in Section 2 lives in session storage
-            and disappears when you close the tab &mdash; in the app it lasts one run &mdash; so
-            it cannot follow you between visits or to any other website.
+            <strong>There is no analytics or advertising tag either.</strong> Between them,
+            those two are what put cookies on most websites; we run neither. A Google Analytics
+            tag ran on this website briefly on 7 August 2026 and was removed the same day, along
+            with the <code>_ga</code> cookies it set. Nothing has replaced it.
           </p>
           <p>
-            <strong>Refusing them.</strong> Use your browser&rsquo;s cookie controls, or Google&rsquo;s
-            {' '}
-            <a
-              href="https://tools.google.com/dlpage/gaoptout"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-brand-600"
-            >
-              opt-out browser add-on
-            </a>. Nothing about how the Platform works for you changes if you do &mdash; every
-            feature stays available.
+            <strong>What the website does still fetch from elsewhere</strong> is fonts, map
+            tiles and listing photos &mdash; from the providers named in Section 7. Serving you
+            a file means seeing the IP address to send it to, so those providers do, but none of
+            it is analytics: nothing is recorded about which pages you read, and none of them
+            set a cookie here.
+          </p>
+          <p>
+            <strong>What we use instead</strong> is the first-party measurement described in
+            Section 2. Its session identifier lives in your browser&rsquo;s session storage and
+            disappears when you close the tab &mdash; in the mobile app it lasts one run &mdash;
+            so it cannot follow you between visits, to another website, or to another company.
+          </p>
+          <p>
+            If we ever add an analytics or advertising tag, it will be named here and Section 4
+            says how you will hear about it before it takes effect.
           </p>
         </Section>
 

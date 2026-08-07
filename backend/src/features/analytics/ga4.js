@@ -9,6 +9,14 @@
 // funnel to us (mobile/src/lib/analytics.js). Forwarding what we are given
 // costs no dependency, no build, and works on builds already installed today.
 //
+// APP ONLY, AND THAT IS NOT AN OVERSIGHT. The website carried a gtag for part
+// of 2026-08-07 and it was removed the same day: it set `_ga` cookies, which
+// was the only reason this product needed a cookie policy or a consent banner
+// at all. /privacy now tells web visitors the website sends Google nothing, so
+// mirroring web events from the server would be the same data sharing wearing
+// a different transport. `isAppRequest` is therefore a privacy gate, not a
+// de-duplication trick — see analytics.controller.js.
+//
 // What it does not buy, stated plainly because the gap is invisible in the GA4
 // UI: no automatic `first_open`, `session_start`, `screen_view`, no device or
 // demographic dimensions, no retention cohorts. GA4 will show the five funnel
@@ -92,8 +100,10 @@ function paramsFor(event) {
     // number someone would later trust.
     session_id: event.sessionId,
     engagement_time_msec: '1',
-    // So app traffic is separable from the website's gtag traffic in the same
-    // property, without needing a second property to keep in sync.
+    // Every event in this property is app traffic — the website's tag was
+    // removed on 2026-08-07 — but the dimension stays, because a report that
+    // silently assumes its only source is the one that breaks quietly if a web
+    // source is ever added back.
     platform: 'app',
   }
 }
