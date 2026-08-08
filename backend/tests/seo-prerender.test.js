@@ -415,7 +415,7 @@ describe('query shapes match the real Prisma schema', () => {
  * people search, and a stranger's typing with five is not.
  */
 describe('locality pages are only offered to search engines when the AREA is real', () => {
-  const resolved = { id: 'loc1', name: 'Adyar', slug: 'adyar', citySlug: 'chennai' }
+  const resolved = { id: 'loc1', name: 'Adyar', slug: 'adyar', citySlug: 'chennai', source: 'PLACE' }
 
   it('withholds a page whose slug came from owner free text', async () => {
     prismaMock.property.findMany.mockResolvedValue([
@@ -430,13 +430,39 @@ describe('locality pages are only offered to search engines when the AREA is rea
     expect(page.indexable).toBe(false)
   })
 
-  it('indexes a boundary-resolved area even with a single listing', async () => {
+  it('indexes a real neighbourhood even with a single listing', async () => {
+    // One listing is fine when the NAME is one people search. The gate is on
+    // the key, not the volume — that is the whole distinction from the city
+    // page's threshold.
     prismaMock.property.findMany.mockResolvedValue([
-      { city: 'Chennai', landmark: null, locality: resolved },
+      { city: 'Chennai', landmark: null, locality: { ...resolved, source: 'PLACE' } },
     ])
 
     const [page] = await listLocalities()
     expect(page).toMatchObject({ localitySlug: 'adyar', count: 1, indexable: true })
+  })
+
+  it('withholds a NUMBERED WARD, even though the map produced it', async () => {
+    // The rule's first version asked only "did this come from the map", and
+    // this passed it. Correct, and not a thing anyone types into Google.
+    prismaMock.property.findMany.mockResolvedValue([
+      { city: 'Chennai', landmark: null, locality: { id: 'w1', name: 'Ward 137', slug: 'ward-137', citySlug: 'chennai', source: 'BOUNDARY' } },
+    ])
+
+    const [page] = await listLocalities()
+    expect(page.localitySlug).toBe('ward-137')
+    expect(page.indexable).toBe(false)
+  })
+
+  it('withholds a locality named after its own city', async () => {
+    // admin_level 8 fell back to the municipality, whose name IS the city —
+    // so /rent/hyderabad/hyderabad duplicates /rent/hyderabad.
+    prismaMock.property.findMany.mockResolvedValue([
+      { city: 'Hyderabad', landmark: null, locality: { id: 'h1', name: 'Hyderabad', slug: 'hyderabad', citySlug: 'hyderabad', source: 'PLACE' } },
+    ])
+
+    const [page] = await listLocalities()
+    expect(page.indexable).toBe(false)
   })
 
   it('marks a withheld page noindex,follow — withheld from ranking, not from crawling', () => {
@@ -532,7 +558,7 @@ describe('city pages', () => {
  * consumer; graph.routes.js says as much.
  */
 describe('similar areas never link somewhere that would 404', () => {
-  const resolved = { id: 'loc1', name: 'Adyar', slug: 'adyar', citySlug: 'chennai' }
+  const resolved = { id: 'loc1', name: 'Adyar', slug: 'adyar', citySlug: 'chennai', source: 'PLACE' }
 
   beforeEach(() => {
     prismaMock.property.findMany.mockResolvedValue([
