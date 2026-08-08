@@ -26,10 +26,19 @@ export const colors = {
   slate800: '#1c1a16',
   slate900: '#0d0c0a',
 
-  // Map accent — Sun Orange (search pin, navigation)
-  accent400: '#ff6b3d',
-  accent500: '#f4511e',
-  accent600: '#c93d11',
+  // The `accent` Sun Orange ramp (#ff6b3d / #f4511e / #c93d11) was RETIRED here
+  // 2026-08-08, catching mobile up to web (frontend/tailwind.config.js, which
+  // dropped it 2026-08-07). Operator decision: "Green, not orange. The palette
+  // is jade end to end", explicitly including the map's searched-place marker,
+  // which is slate-800 — distinct from listing pins by weight and shape rather
+  // than by a second hue.
+  //
+  // Removed from the token layer rather than left defined-but-unused, for the
+  // same reason web removed it: a retired token that still resolves is an
+  // invitation to reach for it. Verified zero references before deleting —
+  // no `colors.accent*`, no `#ff6b3d`/`#f4511e` literal anywhere in mobile/src.
+  // (`accent` in Logo.js and PricingBreakdownSection.js are local style keys
+  // bound to brand600; they are not this token.)
 
   white: '#FFFFFF',
   black: '#0A0A0A',
