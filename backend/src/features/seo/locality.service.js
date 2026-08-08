@@ -131,7 +131,11 @@ export async function listLocalities() {
  */
 export function isIndexable(group) {
   if (group.localityId === null) return false
-  if (group.localitySource !== 'PLACE') return false
+  // Both place tiers. `PLACE` is an OSM `suburb`, `PLACE_LOCAL` a
+  // `neighbourhood` or `quarter` — Powai and Gachibowli are the latter and are
+  // exactly what we want. The tiers exist to order RESOLUTION, not to rank
+  // searchability; what they both exclude is `BOUNDARY` and `LANDMARK`.
+  if (!String(group.localitySource ?? '').startsWith('PLACE')) return false
   // A locality named after its own city is the city page under a second URL.
   return slugify(group.locality) !== slugify(group.city)
 }

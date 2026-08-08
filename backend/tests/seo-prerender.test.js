@@ -605,3 +605,41 @@ describe('similar areas never link somewhere that would 404', () => {
     expect(spy).not.toHaveBeenCalled()
   })
 })
+
+/**
+ * Place tiers — 2026-08-08, after the first production run.
+ *
+ * Resolving to the NEAREST place put Chennai listings in "CMWSSB Division 105"
+ * (a water-board zone bulk-imported as place=neighbourhood) and "JB Estate",
+ * while Alwarpet and Teynampet sat a few hundred metres further out.
+ */
+describe('both place tiers are indexable; boundaries and landmarks are not', () => {
+  const withSource = (source, name, slug) => ({
+    city: 'Mumbai',
+    landmark: null,
+    locality: { id: `l-${slug}`, name, slug, citySlug: 'mumbai', source },
+  })
+
+  it('indexes an OSM suburb', async () => {
+    prismaMock.property.findMany.mockResolvedValue([withSource('PLACE', 'Bandra West', 'bandra-west')])
+    const [page] = await listLocalities()
+    expect(page.indexable).toBe(true)
+  })
+
+  it('indexes a neighbourhood too — Powai and Gachibowli are this tier', async () => {
+    // The tiers order RESOLUTION. They are not a searchability ranking, and
+    // treating PLACE_LOCAL as second-class here would drop real names.
+    prismaMock.property.findMany.mockResolvedValue([withSource('PLACE_LOCAL', 'Powai', 'powai')])
+    const [page] = await listLocalities()
+    expect(page.indexable).toBe(true)
+  })
+
+  it('still refuses an admin ward and an owner landmark', async () => {
+    prismaMock.property.findMany.mockResolvedValue([
+      withSource('BOUNDARY', 'Ward 58', 'ward-58'),
+      { city: 'Mumbai', landmark: 'opp to pk store', locality: null },
+    ])
+    const pages = await listLocalities()
+    expect(pages.every((p) => p.indexable === false)).toBe(true)
+  })
+})
