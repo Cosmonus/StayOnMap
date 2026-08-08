@@ -44,7 +44,7 @@ async function flush() {
   queue = queue.slice(MAX_BATCH)
 
   try {
-    await api.post('/api/v1/analytics/events', { events })
+    await api.post('/analytics/events', { events })
   } catch {
     // Dropped on purpose — no retry queue. Telemetry that retries forever
     // becomes a second source of load exactly when the API is already
