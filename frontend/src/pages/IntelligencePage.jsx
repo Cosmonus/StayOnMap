@@ -104,7 +104,10 @@ export default function IntelligencePage() {
       {/* ── HERO ── */}
       <section className="relative overflow-hidden bg-[#111111]">
         <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
-        <div className="absolute top-0 right-1/4 w-[500px] h-[500px] rounded-full opacity-[0.08]" style={{ background: 'radial-gradient(circle, #0ea5e9 0%, transparent 70%)' }} />
+        {/* #12a374 is brand-500. Was #0ea5e9 — pre-jade sky blue. A gradient
+            string is one of the four places a retired colour survives a
+            class-based sweep; see .claude/ui-ux.md. */}
+        <div className="absolute top-0 right-1/4 w-[500px] h-[500px] rounded-full opacity-[0.08]" style={{ background: 'radial-gradient(circle, #12a374 0%, transparent 70%)' }} />
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-32 pb-20 text-center">
           <Reveal>
             <div className="flex justify-center mb-6">

@@ -223,11 +223,11 @@
 }
 .range-slider-input:focus { outline: none; }
 .range-slider-input:focus-visible::-webkit-slider-thumb {
-  outline: 2px solid #0ea5e9;
+  outline: 2px solid #12a374; /* brand-500. Was #0ea5e9 — pre-jade sky blue. */
   outline-offset: 1px;
 }
 .range-slider-input:focus-visible::-moz-range-thumb {
-  outline: 2px solid #0ea5e9;
+  outline: 2px solid #12a374; /* brand-500. Was #0ea5e9 — pre-jade sky blue. */
   outline-offset: 1px;
 }
 

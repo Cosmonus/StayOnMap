@@ -24,7 +24,10 @@ export function BecomeHostIntro({ onDone }) {
   return (
     <div className="max-w-lg mx-auto text-center py-10">
       <div className="w-16 h-16 rounded-2xl bg-brand-50 flex items-center justify-center mx-auto mb-6">
-        <Home size={28} color="#0284c7" strokeWidth={1.8} />
+        {/* brand-600 via class, matching the bg-brand-50 + text-brand-600 pairing
+            used for every other icon tile. Was color="#0284c7" — pre-jade sky
+            blue, invisible to a class-based palette sweep. */}
+        <Home size={28} className="text-brand-600" strokeWidth={1.8} />
       </div>
       <h1 className="font-display font-bold text-2xl text-slate-900 tracking-tight mb-3">Become a host on StayOnMap</h1>
       <p className="text-sm text-slate-500 leading-relaxed mb-8">
