@@ -98,7 +98,7 @@ export default function LocalityPage() {
     )
   }
 
-  const { locality, city, properties, count, medianRent } = data
+  const { locality, city, properties, count, medianRent, nearby } = data
   const homes = `${count} ${count === 1 ? 'home' : 'homes'}`
 
   return (
@@ -137,11 +137,43 @@ export default function LocalityPage() {
           {properties.map((p) => <PropertyCard key={p.id} property={p} />)}
         </div>
 
+        {/* Sideways in the hierarchy — areas whose listings resemble these,
+            from the graph's SIMILAR_TO edges. Until now a locality page led up
+            to its city and down to listings but never across, so somebody who
+            liked the area and not the homes had nowhere to go but back.
+
+            The server has already dropped any area whose page would 404, so
+            every one of these is a live page. Renders nothing at all when the
+            list is empty rather than an empty heading. */}
+        {nearby?.length > 0 && (
+          <div className="mt-10 pt-6 border-t border-slate-200">
+            <h2 className="text-sm font-bold text-slate-900 mb-1">Similar areas</h2>
+            <p className="text-xs text-slate-500 mb-4">
+              Where homes like these also turn up.
+            </p>
+            <nav aria-label="Similar areas" className="flex flex-wrap gap-2">
+              {nearby.map((n) => (
+                <Link
+                  key={`${n.citySlug}/${n.localitySlug}`}
+                  to={`/rent/${n.citySlug}/${n.localitySlug}`}
+                  className="inline-flex items-center min-h-[36px] px-3.5 rounded-full bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:border-brand-600 hover:text-brand-700"
+                >
+                  {n.locality}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        )}
+
         <div className="mt-10 pt-6 border-t border-slate-200">
           <p className="text-sm text-slate-600">
             Looking somewhere else?{' '}
+            <Link to={`/rent/${citySlug}`} className="font-semibold text-brand-600 hover:text-brand-700">
+              See every home in {city}
+            </Link>
+            {' '}or{' '}
             <Link to="/" className="font-semibold text-brand-600 hover:text-brand-700">
-              See every home on the map
+              open the map
             </Link>
             .
           </p>

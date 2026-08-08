@@ -30,6 +30,30 @@ function Bar({ pct }) {
   )
 }
 
+// One funnel's steps. Extracted so the sitewide and organic funnels are
+// rendered by the same code — two copies would be free to drift, and the whole
+// point of showing them together is that they are directly comparable.
+function StepList({ steps }) {
+  return (
+    <div className="flex flex-col gap-4">
+      {steps.map((step) => (
+        <div key={step.name}>
+          <div className="flex items-baseline justify-between gap-3 mb-1.5">
+            <span className="text-sm font-medium text-slate-800">
+              {STEP_LABELS[step.name] ?? step.name}
+            </span>
+            <span className="text-xs text-slate-500 shrink-0">
+              <span className="font-mono font-semibold text-slate-800">{step.sessions}</span>
+              {step.pctOfTop != null && <> &middot; {step.pctOfTop}%</>}
+            </span>
+          </div>
+          <Bar pct={step.pctOfTop} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function FunnelCard() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-funnel'],
@@ -55,6 +79,7 @@ export default function FunnelCard() {
   }
 
   const steps = data?.funnel?.steps ?? []
+  const seo = data?.seoFunnel
   const ttp = data?.timeToPublish
   const noData = steps[0]?.sessions === 0
 
@@ -75,21 +100,38 @@ export default function FunnelCard() {
           zero conversion rate.
         </p>
       ) : (
-        <div className="flex flex-col gap-4">
-          {steps.map((step) => (
-            <div key={step.name}>
-              <div className="flex items-baseline justify-between gap-3 mb-1.5">
-                <span className="text-sm font-medium text-slate-800">
-                  {STEP_LABELS[step.name] ?? step.name}
-                </span>
-                <span className="text-xs text-slate-500 shrink-0">
-                  <span className="font-mono font-semibold text-slate-800">{step.sessions}</span>
-                  {step.pctOfTop != null && <> &middot; {step.pctOfTop}%</>}
-                </span>
-              </div>
-              <Bar pct={step.pctOfTop} />
-            </div>
-          ))}
+        <StepList steps={steps} />
+      )}
+
+      {/* Organic traffic, as its own funnel rather than a filter on the one
+          above. Shown ALONGSIDE, never instead: the number worth knowing is the
+          DIFFERENCE — whether someone who arrived from a search landing page
+          converts better or worse than everyone else — and a reader seeing only
+          one of them cannot tell.
+
+          Its percentages are against a DIFFERENT denominator, which is why the
+          heading says so out loud. A session that landed on /rent/chennai and
+          clicked straight to a listing may never fire `map_view` at all, so
+          measuring it against that would produce rates above 100%. */}
+      {!noData && (
+        <div className="mt-6 pt-5 border-t border-slate-200">
+          <div className="flex items-start justify-between gap-4 mb-1">
+            <h3 className="text-sm font-bold text-slate-900">Landed from search</h3>
+            <span className="text-xs text-slate-500 shrink-0 font-mono">{seo?.top ?? 0}</span>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">
+            Sessions that started on a city or area page. Rates are against that arrival,
+            not the map.
+          </p>
+
+          {seo?.top ? (
+            <StepList steps={seo.steps} />
+          ) : (
+            <p className="text-sm text-slate-600 py-2">
+              No search landings recorded yet. This stays empty until the locality and city
+              pages are indexed &mdash; it is not a zero conversion rate.
+            </p>
+          )}
         </div>
       )}
 

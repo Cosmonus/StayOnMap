@@ -14,6 +14,7 @@
 import { prisma } from '../../lib/prisma.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
 import { localityBySlug, slugify } from '../localities/resolve.js'
+import { GraphRepository } from '../graph/repository.js'
 
 /** "Anna Nagar" → "anna-nagar". Re-exported from features/localities so the
  *  entity and its URL cannot disagree about a slug — they were two copies of
@@ -161,6 +162,26 @@ export async function getLocality(citySlug, localitySlug) {
 
   const rents = properties.map((p) => Number(p.rent)).filter((n) => Number.isFinite(n) && n > 0)
 
+  // Sideways in the hierarchy: areas whose listings resemble this area's,
+  // via the graph's SIMILAR_TO edges. `GraphRepository.findRelatedAreas` already
+  // existed for exactly this — graph.routes.js notes it was left without a public
+  // route because it had no consumer. This page is the consumer.
+  //
+  // TWO FILTERS, and the second is the one that matters. Every result is a real
+  // `Locality` entity, so all of them pass the indexability rule by
+  // construction. But a Locality can exist with no ACTIVE listings TODAY, and
+  // its page would 404 — so the candidates are intersected with the live page
+  // set before any of them becomes a link. Linking to a 404 is worse than not
+  // linking.
+  //
+  // Returns [] until the §1.6g backfill runs: it joins on `Property.localityId`,
+  // which is null on every production row. Nothing renders, nothing breaks.
+  const nearby = match.localityId
+    ? (await GraphRepository.findRelatedAreas(match.localityId, { limit: 6 }))
+      .filter((n) => all.some((l) => l.localityId === n.id))
+      .map((n) => ({ locality: n.name, localitySlug: n.slug, citySlug: n.citySlug }))
+    : []
+
   // `localityId` is a grouping key, not part of the page's contract — dropped so
   // the public JSON keeps exactly the shape it had before the entity existed.
   //
@@ -174,6 +195,7 @@ export async function getLocality(citySlug, localitySlug) {
   return {
     ...page,
     properties,
+    nearby,
     // A median, not an average: one ₹4Cr plot in a street of ₹15k flats makes
     // an average meaningless, and this number is the page's headline fact.
     medianRent: rents.length ? median(rents) : null,

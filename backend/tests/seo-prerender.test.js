@@ -26,6 +26,7 @@ import { titleFor, descriptionFor, jsonLdFor, metaForProperty } from '../src/fea
 import { slugify, listLocalities, getLocality } from '../src/features/seo/locality.service.js'
 import { metaForLocality } from '../src/features/seo/localityMeta.js'
 import { listCities, getCity } from '../src/features/seo/city.service.js'
+import { GraphRepository } from '../src/features/graph/repository.js'
 
 const TEMPLATE = `<!doctype html><html><head>
   <title>StayOnMap — Rent with intelligence.</title>
@@ -519,5 +520,62 @@ describe('city pages', () => {
     expect(trail[1].item).toBe('https://www.stayonmap.com/rent/chennai')
     // Position must match visual order, or Google and the reader disagree.
     expect(trail.map((c) => c.position)).toEqual([1, 2, 3])
+  })
+})
+
+/**
+ * Sideways linking — 2026-08-08.
+ *
+ * A locality page led UP to its city and DOWN to listings but never across, so
+ * somebody who liked the area and not the homes had nowhere to go but back.
+ * `GraphRepository.findRelatedAreas` already existed for this and had no
+ * consumer; graph.routes.js says as much.
+ */
+describe('similar areas never link somewhere that would 404', () => {
+  const resolved = { id: 'loc1', name: 'Adyar', slug: 'adyar', citySlug: 'chennai' }
+
+  beforeEach(() => {
+    prismaMock.property.findMany.mockResolvedValue([
+      { city: 'Chennai', landmark: null, locality: resolved },
+    ])
+  })
+
+  it('drops a related area that has no live page', async () => {
+    // Besant Nagar is a real Locality with a real SIMILAR_TO edge — and no
+    // ACTIVE listings today, so /rent/chennai/besant-nagar 404s. The graph
+    // cannot know that; the page set can, which is why they are intersected.
+    vi.spyOn(GraphRepository, 'findRelatedAreas').mockResolvedValue([
+      { id: 'ghost', name: 'Besant Nagar', slug: 'besant-nagar', citySlug: 'chennai' },
+    ])
+
+    const page = await getLocality('chennai', 'adyar')
+    expect(page.nearby).toEqual([])
+  })
+
+  it('keeps a related area that does have one', async () => {
+    prismaMock.property.findMany.mockResolvedValue([
+      { city: 'Chennai', landmark: null, locality: resolved },
+      { city: 'Chennai', landmark: null, locality: { id: 'loc2', name: 'Thiruvanmiyur', slug: 'thiruvanmiyur', citySlug: 'chennai' } },
+    ])
+    vi.spyOn(GraphRepository, 'findRelatedAreas').mockResolvedValue([
+      { id: 'loc2', name: 'Thiruvanmiyur', slug: 'thiruvanmiyur', citySlug: 'chennai' },
+    ])
+
+    const page = await getLocality('chennai', 'adyar')
+    expect(page.nearby).toEqual([
+      { locality: 'Thiruvanmiyur', localitySlug: 'thiruvanmiyur', citySlug: 'chennai' },
+    ])
+  })
+
+  it('asks the graph nothing for an unresolved, landmark-derived page', async () => {
+    // No localityId to join on, so there is no question to ask.
+    prismaMock.property.findMany.mockResolvedValue([
+      { city: 'Chennai', landmark: 'opp to pk store', locality: null },
+    ])
+    const spy = vi.spyOn(GraphRepository, 'findRelatedAreas')
+
+    const page = await getLocality('chennai', 'opp-to-pk-store')
+    expect(page.nearby).toEqual([])
+    expect(spy).not.toHaveBeenCalled()
   })
 })
