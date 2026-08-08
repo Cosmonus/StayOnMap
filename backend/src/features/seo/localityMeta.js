@@ -47,11 +47,16 @@ export function metaForLocality(locality) {
       url: localityUrl(locality),
       // Where this page sits, so a search result can show
       // "stayonmap.com › Rentals › Chennai › Adyar" instead of a bare URL.
-      // Two levels only: `/rent/:city` does not exist yet, so linking one would
-      // be a breadcrumb to a 404 — the trail stops at what is real.
+      //
+      // The city rung became real on 2026-08-08 when `/rent/:citySlug` shipped;
+      // before that this was two levels, because a breadcrumb to a page that
+      // does not exist is a 404 advertised in structured data. It also matches
+      // what the page now RENDERS — the city is a link in the header, and a
+      // trail Google shows should be a trail the page actually has.
       breadcrumb: breadcrumbFor([
         { name: 'Rentals', url: `${ORIGIN}/properties` },
-        { name: `${name}, ${city}`, url: localityUrl(locality) },
+        { name: city, url: `${ORIGIN}/rent/${locality.citySlug}` },
+        { name, url: localityUrl(locality) },
       ]),
       mainEntity: {
         '@type': 'ItemList',

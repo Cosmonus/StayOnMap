@@ -112,10 +112,20 @@ export default function LocalityPage() {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-2">
+        {/* The city is a LINK now, not a label (2026-08-08). A locality page
+            had no route upward, so /rent/chennai/adyar was a leaf: a crawler
+            arriving from search could reach one area and nothing else, and a
+            person had to go back to the map to see the rest of the city. This
+            is also the visible half of the BreadcrumbList in the page's
+            structured data — the trail a search result shows should be a trail
+            the page actually has. */}
+        <Link
+          to={`/rent/${citySlug}`}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-brand-700 mb-2"
+        >
           <MapPin className="w-3.5 h-3.5" strokeWidth={1.8} aria-hidden="true" />
           {city}
-        </div>
+        </Link>
         <h1 className="text-2xl font-bold text-slate-900">Rent in {locality}</h1>
         <p className="text-sm text-slate-600 mt-1.5">
           {homes} listed directly by owners

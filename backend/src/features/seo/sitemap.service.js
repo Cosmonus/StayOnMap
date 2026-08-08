@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma.js'
 import { listLocalities } from './locality.service.js'
+import { listCities } from './city.service.js'
 import { allSlugs } from '../blog/blog.service.js'
 
 // The sitemap, generated from live data.
@@ -89,21 +90,26 @@ export async function buildSitemap() {
   // even though it no longer produces URLs.
   const citiesWithStock = new Set(properties.map((p) => p.city).filter(Boolean))
 
-  // REMOVED 2026-08-08: five `/properties?city=X` URLs.
+  // City pages — `/rent/chennai`. These REPLACED five `/properties?city=X` URLs
+  // on 2026-08-08. The intent behind those was right, a city with stock deserves
+  // an entry point, but a query parameter cannot be one: Google reads
+  // `?city=Chennai` as a variant of `/properties`, which serves the same SPA
+  // shell whatever the query says, so the five were near-duplicates competing
+  // with their own parent.
   //
-  // The intent was right — a city with stock deserves an entry point — but a
-  // query parameter is the wrong shape for one. Google treats `?city=Chennai`
-  // as a variant of `/properties` rather than a page of its own, and
-  // `/properties` serves the same SPA shell whatever the query says, so the
-  // five URLs were five near-duplicates competing with their own parent. A
-  // sitemap is a list of pages we are asking to have RANKED, and these could
-  // not rank.
-  //
-  // The right replacement is a real `/rent/:citySlug` page, built from the same
-  // inventory these were derived from. That is a page type, not a URL tweak, so
-  // it is deliberately not smuggled in here — see the SEO report's phase list.
-  // Until it exists, the city-level entry point is the homepage, which is the
-  // map and is already in this sitemap at priority 1.0.
+  // `indexable` only, same discipline as the localities below — a city under
+  // MIN_CITY_LISTINGS renders and links onward but is not offered for ranking.
+  const cities = (await listCities()).filter((c) => c.indexable)
+  for (const c of cities) {
+    urls.push({
+      loc: `${ORIGIN}/rent/${c.citySlug}`,
+      changefreq: 'daily',
+      // Above a locality page and below the homepage: a city is the broadest
+      // real query we can answer ("flats for rent in Chennai"), and its
+      // inventory turns over constantly.
+      priority: '0.9',
+    })
+  }
 
   // Locality pages, gated twice. Derived from live inventory rather than from a
   // list of known area names, so an area with nothing in it gets no URL — with
@@ -151,6 +157,7 @@ export async function buildSitemap() {
       total: urls.length,
       properties: properties.length,
       cities: citiesWithStock.size,
+      cityPages: cities.length,
       localities: localities.length,
       posts: posts.length,
     },

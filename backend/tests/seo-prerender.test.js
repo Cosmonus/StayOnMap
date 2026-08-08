@@ -25,6 +25,7 @@ import { renderHead, SHELL_CSP } from '../src/features/seo/prerender.service.js'
 import { titleFor, descriptionFor, jsonLdFor, metaForProperty } from '../src/features/seo/listingMeta.js'
 import { slugify, listLocalities, getLocality } from '../src/features/seo/locality.service.js'
 import { metaForLocality } from '../src/features/seo/localityMeta.js'
+import { listCities, getCity } from '../src/features/seo/city.service.js'
 
 const TEMPLATE = `<!doctype html><html><head>
   <title>StayOnMap — Rent with intelligence.</title>
@@ -467,5 +468,56 @@ describe('locality pages are only offered to search engines when the AREA is rea
   it('states index,follow positively rather than relying on the default', () => {
     const html = renderHead(TEMPLATE, { title: 'T', description: 'D', canonical: 'C' })
     expect(html).toContain('content="index,follow"')
+  })
+})
+
+/**
+ * City landing pages — 2026-08-08.
+ *
+ * `/rent/chennai` replaced five `/properties?city=X` sitemap URLs. The intent
+ * behind those was right — a city with stock deserves an entry point — but a
+ * query parameter cannot be one, because `/properties` serves the same shell
+ * whatever the query says.
+ *
+ * The threshold here is on QUANTITY, unlike the locality gate, which is on the
+ * quality of the key. A city is always a real searchable place; the only
+ * question is whether we have enough to show a choice.
+ */
+describe('city pages', () => {
+  const inCity = (city) => ({ city })
+
+  it('offers a city with a real selection', async () => {
+    prismaMock.property.findMany.mockResolvedValue([
+      inCity('Chennai'), inCity('Chennai'), inCity('Chennai'),
+    ])
+    const [chennai] = await listCities()
+    expect(chennai).toMatchObject({ citySlug: 'chennai', count: 3, indexable: true })
+  })
+
+  it('withholds a city holding one listing — that is a listing, not a choice', async () => {
+    prismaMock.property.findMany.mockResolvedValue([inCity('Pune')])
+    const [pune] = await listCities()
+    expect(pune.count).toBe(1)
+    expect(pune.indexable).toBe(false)
+  })
+
+  it('404s a city with nothing in it rather than a page about no homes', async () => {
+    prismaMock.property.findMany.mockResolvedValue([])
+    expect(await getCity('chennai')).toBeNull()
+  })
+
+  it('puts the city between Rentals and the area in a locality breadcrumb', () => {
+    // The rung is only correct because /rent/:citySlug now exists. A breadcrumb
+    // to a page that does not is a 404 advertised in structured data.
+    const meta = metaForLocality({
+      locality: 'Adyar', city: 'Chennai', citySlug: 'chennai',
+      localitySlug: 'adyar', count: 2, medianRent: 20000,
+      properties: [], indexable: true,
+    })
+    const trail = meta.jsonLd.breadcrumb.itemListElement
+    expect(trail.map((c) => c.name)).toEqual(['Rentals', 'Chennai', 'Adyar'])
+    expect(trail[1].item).toBe('https://www.stayonmap.com/rent/chennai')
+    // Position must match visual order, or Google and the reader disagree.
+    expect(trail.map((c) => c.position)).toEqual([1, 2, 3])
   })
 })
