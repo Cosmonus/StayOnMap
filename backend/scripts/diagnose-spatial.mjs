@@ -172,12 +172,50 @@ async function poiHealth() {
   }
 }
 
-/** The other datasets the newer modules depend on. */
+/**
+ * The other datasets the newer modules depend on.
+ *
+ * Counts every fetched dataset, not just Boundary. It counted only Boundary
+ * until 2026-08-08, which made two of the five seeded datasets invisible here:
+ * water and roads showed up only in section 5, and only if an ETL run had ever
+ * been recorded. "No receipt" and "no rows" are different problems with
+ * different fixes, and a diagnostic that cannot tell them apart sends you to
+ * re-run a seeder that already worked.
+ *
+ * A missing TABLE and a table with 0 rows are also different: the first is an
+ * unapplied migration, the second an unrun seeder. Both are named as such.
+ */
 async function auxDatasets() {
   head('4. SUPPORTING DATASETS')
-  const boundaries = await prisma.boundary.count().catch(() => null)
-  console.log(`Boundary rows      : ${boundaries ?? 'TABLE MISSING (migration not applied)'}`)
-  if (boundaries === 0) console.log('  -> locality module has nothing to resolve against.')
+
+  const datasets = [
+    { label: 'Boundary', model: 'boundary', seeder: 'fetch-osm-boundaries.mjs',
+      empty: 'locality module has nothing to resolve against.' },
+    { label: 'WaterBody', model: 'waterBody', seeder: 'fetch-osm-water.mjs',
+      empty: 'environment/terrain facts about water will be absent, not wrong.' },
+    { label: 'RoadSegment', model: 'roadSegment', seeder: 'fetch-osm-roads.mjs',
+      empty: 'road-context facts will be absent, not wrong.' },
+    { label: 'PincodeDirectory', model: 'pincodeDirectory', seeder: 'fetch-pincode-directory.mjs',
+      empty: 'locality module falls back to OSM names only.' },
+  ]
+
+  for (const d of datasets) {
+    const n = await prisma[d.model].count().catch(() => null)
+    if (n === null) {
+      console.log(`${d.label.padEnd(18)}: TABLE MISSING (migration not applied)`)
+      continue
+    }
+    console.log(`${d.label.padEnd(18)}: ${n} rows`)
+    if (n === 0) console.log(`  -> ${d.empty} Run scripts/${d.seeder}.`)
+  }
+
+  // Derived, not fetched — recomputable, so a zero here is cheap to fix and
+  // must not be read as a failed download.
+  const cells = await prisma.cellPoiSummary.count().catch(() => null)
+  if (cells !== null) {
+    console.log(`CellPoiSummary    : ${cells} rows (derived — proximity filter)`)
+    if (cells === 0) console.log('  -> proximity filters will exclude every listing. Recomputed on materialisation.')
+  }
 }
 
 /** The ETL's own self-report — distinguishes "sparse area" from "failed fetch". */

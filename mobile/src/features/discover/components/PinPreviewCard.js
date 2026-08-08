@@ -1,4 +1,5 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { useState } from 'react'
+import { View, Text, Pressable, StyleSheet, FlatList, useWindowDimensions } from 'react-native'
 import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
@@ -17,7 +18,7 @@ const FURNISHED_LABEL = { FULLY: 'Furnished', SEMI: 'Semi furnished', UNFURNISHE
 
 // One definition, used by both the loaded image and the loading placeholder.
 // Two literals is how they drifted to 132 and 200 and made the card jump.
-const IMAGE_HEIGHT = 132
+const IMAGE_HEIGHT = 200
 
 // Spec is per-type: BHK means nothing on a plot, sharing is the number that
 // matters for a PG, guests for a short stay, carpet area for a shop.
@@ -29,6 +30,61 @@ function specLabel(property) {
   if (property.bhk === 0) return 'Studio'
   if (property.bhk) return `${property.bhk} BHK`
   return null
+}
+
+// The photos, swipeable in place — one page per image, so a second photo is a
+// swipe rather than a tap-through-and-back. The counter is the position
+// indicator, so it tracks the page instead of forever reading "1 / N".
+//
+// Paging needs an exact page width, and the card's width is the screen minus
+// the wrap's padding and the card border. That arithmetic is a starting value
+// only; `onLayout` replaces it with what the card actually measured, so a
+// wrong assumption about the chrome can't leave the pages half-snapped.
+function Gallery({ images }) {
+  const { width: windowWidth } = useWindowDimensions()
+  const [width, setWidth] = useState(windowWidth - spacing.md * 2 - 2)
+  const [index, setIndex] = useState(0)
+
+  const onLayout = (e) => {
+    const measured = Math.round(e.nativeEvent.layout.width)
+    if (measured > 0 && measured !== width) setWidth(measured)
+  }
+
+  if (images.length === 0) {
+    return (
+      <View style={styles.imageWrap} onLayout={onLayout}>
+        <View style={[styles.image, styles.imageFallback]} />
+      </View>
+    )
+  }
+
+  return (
+    <View style={styles.imageWrap} onLayout={onLayout}>
+      <FlatList
+        data={images}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(img, i) => img.id ?? `${img.url}-${i}`}
+        getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+        onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
+        renderItem={({ item }) => (
+          <Image
+            source={{ uri: imgUrl(item.url, 'card') }}
+            style={{ width, height: IMAGE_HEIGHT }}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
+          />
+        )}
+      />
+      {images.length > 1 && (
+        <View style={styles.imageCount} pointerEvents="none">
+          <Text style={styles.imageCountText}>{index + 1} / {images.length}</Text>
+        </View>
+      )}
+    </View>
+  )
 }
 
 // A loading bar that occupies exactly one line of the style it stands in for.
@@ -94,18 +150,7 @@ export default function PinPreviewCard({ propertyId, onPress }) {
         accessibilityRole="button"
         accessibilityLabel={`View details for ${property.title}`}
       >
-        <View style={styles.imageWrap}>
-          {images[0]?.url ? (
-            <Image source={{ uri: imgUrl(images[0].url, 'card') }} style={styles.image} contentFit="cover" cachePolicy="memory-disk" transition={200} />
-          ) : (
-            <View style={[styles.image, styles.imageFallback]} />
-          )}
-          {images.length > 1 && (
-            <View style={styles.imageCount}>
-              <Text style={styles.imageCountText}>1 / {images.length}</Text>
-            </View>
-          )}
-        </View>
+        <Gallery images={images.filter((img) => img?.url)} />
 
         <View style={styles.body}>
           <View style={styles.priceRow}>
