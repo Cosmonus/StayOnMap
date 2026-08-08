@@ -38,15 +38,32 @@ export const FUNNEL = [
  */
 export const STANDALONE = ['listing_publish_completed']
 
-export const EVENT_NAMES = [...FUNNEL, ...STANDALONE]
+/**
+ * How a session STARTED, when it started somewhere other than the map.
+ *
+ * `seo_landing_view` is deliberately NOT a funnel step. The funnel's top is
+ * `map_view` and every rate is quoted against it; inserting a step above that
+ * would make every session arriving directly on the map look like a drop-off
+ * from a page it never saw. This is a SEGMENT, not a stage — it answers "of the
+ * people who landed from search, how many reached each step", which is the
+ * question the funnel alone cannot answer.
+ *
+ * One event, not one per page type. `seo_landing_view` carries the page in its
+ * props rather than splitting into `locality_landing_view`,
+ * `city_landing_view`, and so on — the closed-set rule at the top of this file
+ * exists because that kind of splitting is how a vocabulary rots.
+ */
+export const ENTRY = ['seo_landing_view']
+
+export const EVENT_NAMES = [...FUNNEL, ...STANDALONE, ...ENTRY]
 
 /**
- * What a browser or app may send. The funnel and nothing else: those five
- * steps are user intents only the client can witness. Everything server-side
- * is rejected here, so a client cannot fabricate a publish — or the duration
- * attached to it.
+ * What a browser or app may send: the funnel plus the entry marker. All of them
+ * are things only the client can witness — five user intents, and "this session
+ * began on a search landing page". `STANDALONE` stays server-only, so a client
+ * still cannot fabricate a publish, or the duration attached to it.
  */
-export const CLIENT_EVENTS = [...FUNNEL]
+export const CLIENT_EVENTS = [...FUNNEL, ...ENTRY]
 
 // 90 days. Long enough to compare this month against last, short enough that
 // we are not sitting on a year of behavioural data nobody has queried — the

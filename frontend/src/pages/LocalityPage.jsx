@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { MapPin, SearchX } from 'lucide-react'
@@ -7,6 +8,7 @@ import Header from '@components/layout/Header'
 import Footer from '@components/layout/Footer'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
+import { trackOnce } from '@lib/analytics'
 import PropertyCard from '@features/properties/components/PropertyCard'
 
 // A landing page per locality — the shape the actual search intent has. Nobody
@@ -28,6 +30,28 @@ export default function LocalityPage() {
     queryKey: ['locality', citySlug, localitySlug],
     queryFn: () => localityService.get(citySlug, localitySlug).then((r) => r.data),
   })
+
+  // How this session STARTED, when it started here rather than on the map.
+  //
+  // `trackOnce` dedupes by event NAME, so this records the FIRST locality page
+  // of a session and no later ones — which is the definition of an entry
+  // marker, not a limitation. Browsing on to three more localities is
+  // navigation within a visit that already began; counting each as an arrival
+  // would inflate the denominator every segment rate is measured against, the
+  // same reason `map_view` uses trackOnce rather than firing on every pan.
+  //
+  // Fired regardless of whether the fetch succeeds: somebody who landed on a
+  // locality page that turned out to be empty still arrived from search, and
+  // dropping that loses the denominator for the only question this page exists
+  // to answer.
+  //
+  // Deliberately not a funnel STEP — see features/analytics/events.js. It is a
+  // segment: "of the people who landed from search, how many reached each
+  // step". Adding it above `map_view` would make every direct-to-map session
+  // read as a drop-off from a page it never saw.
+  useEffect(() => {
+    trackOnce('seo_landing_view', { page: 'locality', citySlug, localitySlug })
+  }, [citySlug, localitySlug])
 
   const Shell = ({ children }) => (
     <div className="min-h-screen flex flex-col bg-slate-50">

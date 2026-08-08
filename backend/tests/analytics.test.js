@@ -21,7 +21,7 @@ import { prismaMock } from './mocks/prisma.js'
 import {
   recordEvents, record, getFunnel, getTimeToPublish, pruneOldEvents,
 } from '../src/features/analytics/analytics.service.js'
-import { FUNNEL, CLIENT_EVENTS, EVENT_NAMES, RETENTION_DAYS } from '../src/features/analytics/events.js'
+import { FUNNEL, ENTRY, CLIENT_EVENTS, EVENT_NAMES, RETENTION_DAYS } from '../src/features/analytics/events.js'
 import { ingestSchema } from '../src/features/analytics/analytics.validation.js'
 
 const SESSION = 'sess_abcdef123456'
@@ -35,8 +35,20 @@ beforeEach(() => {
 })
 
 describe('the event vocabulary is closed', () => {
-  it('accepts only the funnel from clients', () => {
-    expect(CLIENT_EVENTS).toEqual(FUNNEL)
+  it('accepts the funnel plus the entry marker from clients, and nothing else', () => {
+    // Was `toEqual(FUNNEL)` until 2026-08-08, when `seo_landing_view` was added
+    // — a thing only the client can witness, like the five funnel steps, but
+    // deliberately NOT one of them: it is a segment ("of those who landed from
+    // search…"), and putting it above `map_view` would make every session that
+    // opened straight onto the map read as a drop-off from a page it never saw.
+    expect(CLIENT_EVENTS).toEqual([...FUNNEL, ...ENTRY])
+
+    // The property that actually matters, and the reason this test exists: the
+    // client-sendable set is the two witness-able groups and NOTHING server-
+    // side. Asserted as a rule rather than a list, so adding a group without
+    // thinking about it fails here.
+    expect(CLIENT_EVENTS).not.toContain('listing_publish_completed')
+    expect(CLIENT_EVENTS.every((n) => EVENT_NAMES.includes(n))).toBe(true)
   })
 
   it('rejects an unknown event name rather than storing it', () => {

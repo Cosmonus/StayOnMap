@@ -45,6 +45,14 @@ export function metaForLocality(locality) {
       name: `Rentals in ${name}, ${city}`,
       description,
       url: localityUrl(locality),
+      // Where this page sits, so a search result can show
+      // "stayonmap.com › Rentals › Chennai › Adyar" instead of a bare URL.
+      // Two levels only: `/rent/:city` does not exist yet, so linking one would
+      // be a breadcrumb to a 404 — the trail stops at what is real.
+      breadcrumb: breadcrumbFor([
+        { name: 'Rentals', url: `${ORIGIN}/properties` },
+        { name: `${name}, ${city}`, url: localityUrl(locality) },
+      ]),
       mainEntity: {
         '@type': 'ItemList',
         numberOfItems: count,
@@ -56,5 +64,28 @@ export function metaForLocality(locality) {
         })),
       },
     },
+  }
+}
+
+/**
+ * A BreadcrumbList from an already-ordered trail.
+ *
+ * Shared rather than written twice, because the failure mode of breadcrumbs is
+ * a `position` that does not match the visual order — Google reads position,
+ * people read order, and hand-numbering them is how those diverge.
+ *
+ * ONLY REAL URLS BELONG HERE. A breadcrumb pointing at a page that does not
+ * exist is a 404 advertised in structured data, which is worse than no
+ * breadcrumb at all.
+ */
+export function breadcrumbFor(trail) {
+  return {
+    '@type': 'BreadcrumbList',
+    itemListElement: trail.map((crumb, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: crumb.name,
+      item: crumb.url,
+    })),
   }
 }

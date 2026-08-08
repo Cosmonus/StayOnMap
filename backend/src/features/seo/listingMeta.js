@@ -16,6 +16,7 @@
 // carries. The street address rides the same rule the page does: present when
 // the owner shares it, absent — not blank — when they did not.
 import { ORIGIN } from './prerender.service.js'
+import { breadcrumbFor } from './localityMeta.js'
 
 const inr = (n) => `₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Number(n))}`
 
@@ -185,6 +186,22 @@ export function jsonLdFor(property) {
     datePosted: property.submittedAt ?? property.createdAt ?? undefined,
     image: images.length ? images : undefined,
     about,
+    // The locality rung appears ONLY for a listing resolved to a real Locality
+    // entity, because that is the only case where the URL it points at is a
+    // page we are willing to have indexed. A landmark-derived locality page is
+    // `noindex` (see locality.service.js's isIndexable), and advertising a
+    // breadcrumb into one would be pointing structured data at a page we have
+    // just asked Google to ignore.
+    breadcrumb: breadcrumbFor([
+      { name: 'Rentals', url: `${ORIGIN}/properties` },
+      ...(property.locality?.slug && property.locality?.citySlug
+        ? [{
+          name: `${property.locality.name}, ${property.city}`,
+          url: `${ORIGIN}/rent/${property.locality.citySlug}/${property.locality.slug}`,
+        }]
+        : []),
+      { name: titleFor(property).replace(' | StayOnMap', ''), url },
+    ]),
     offers: {
       '@type': 'Offer',
       price,
