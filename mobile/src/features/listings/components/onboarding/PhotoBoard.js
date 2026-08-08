@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { View, Text, Image, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native'
+import { View, Text, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native'
+import { Image } from 'expo-image'
 import * as ImagePicker from 'expo-image-picker'
 import { uploadService } from '@services/upload.service'
 import Icon from '@components/common/Icon'
+import { imgUrl } from '@utils/format'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -16,9 +18,34 @@ import { spacing, radius } from '@theme/spacing'
 const MAX_IMAGES = 10
 const RECOMMENDED = 5
 
+// A photo you just picked is already on the phone, so re-downloading it to look
+// at it is the grey tile people were seeing: `value` holds REMOTE urls (the
+// draft has to survive this device), and a fresh upload has nothing cached, so
+// the slate100 tile showed through until the round trip finished.
+//
+// Keyed by remote url, session-only, deliberately not persisted — a picker uri
+// points at a cache file the OS may reclaim, so it is a display shortcut and
+// never a source of truth. `onError` drops the entry and the tile falls back to
+// the remote url, which by then is almost certainly cached anyway.
+function LocalOrRemote({ url, local, size, onLocalFailed, style }) {
+  return (
+    <Image
+      source={{ uri: local ?? imgUrl(url, size) }}
+      style={style}
+      contentFit="cover"
+      cachePolicy="memory-disk"
+      transition={200}
+      onError={local ? onLocalFailed : undefined}
+    />
+  )
+}
+
 export default function PhotoBoard({ value = [], onChange }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [localByUrl, setLocalByUrl] = useState({})
+
+  const forgetLocal = (url) => setLocalByUrl(({ [url]: _gone, ...rest }) => rest)
 
   async function handlePick() {
     setError('')
@@ -41,8 +68,12 @@ export default function PhotoBoard({ value = [], onChange }) {
 
     setUploading(true)
     try {
-      const urls = await Promise.all(result.assets.map((a) => uploadService.uploadPropertyImage(a).then((r) => r.data.url)))
-      onChange([...value, ...urls])
+      const added = await Promise.all(result.assets.map(async (a) => ({
+        url: (await uploadService.uploadPropertyImage(a)).data.url,
+        local: a.uri,
+      })))
+      setLocalByUrl((prev) => ({ ...prev, ...Object.fromEntries(added.map((x) => [x.url, x.local])) }))
+      onChange([...value, ...added.map((x) => x.url)])
     } catch {
       setError('Failed to upload one or more images. Please try again.')
     } finally {
@@ -78,7 +109,16 @@ export default function PhotoBoard({ value = [], onChange }) {
           accessibilityRole="button"
           accessibilityLabel="Cover photo — open photo actions"
         >
-          <Image source={{ uri: cover }} style={styles.image} />
+          {/* 'detail' — the cover fills the screen width, where the ~480px
+              thumb variant reads as soft. The three-up row below is small
+              enough that 'card' is the right ask. */}
+          <LocalOrRemote
+            url={cover}
+            local={localByUrl[cover]}
+            size="detail"
+            onLocalFailed={() => forgetLocal(cover)}
+            style={styles.image}
+          />
           <View style={styles.coverBadge}><Text style={styles.coverBadgeText}>Cover</Text></View>
         </Pressable>
       ) : (
@@ -106,7 +146,13 @@ export default function PhotoBoard({ value = [], onChange }) {
               accessibilityRole="button"
               accessibilityLabel={`Photo ${i + 2} — open photo actions`}
             >
-              <Image source={{ uri: url }} style={styles.image} />
+              <LocalOrRemote
+                url={url}
+                local={localByUrl[url]}
+                size="card"
+                onLocalFailed={() => forgetLocal(url)}
+                style={styles.image}
+              />
             </Pressable>
           ))}
         </View>
