@@ -103,7 +103,11 @@ export async function buildSitemap() {
   // locality.service.js: with ~5 listings, a page per known area name would be
   // hundreds of near-empty pages, which is thin content and burns the crawl
   // budget of a small site on nothing.
-  const localities = await listLocalities()
+  // `indexable` only — see locality.service.js's isIndexable(). A page keyed on
+  // the owner's free-text landmark is somebody's typing turned into a URL, and
+  // asking Google to crawl it wastes the crawl budget of a small site. The page
+  // still resolves for anyone who has the link; it is simply not advertised.
+  const localities = (await listLocalities()).filter((l) => l.indexable)
   for (const l of localities) {
     urls.push({
       loc: `${ORIGIN}/rent/${l.citySlug}/${l.localitySlug}`,

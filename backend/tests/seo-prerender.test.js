@@ -397,3 +397,75 @@ describe('query shapes match the real Prisma schema', () => {
     expect(fieldsOf('Property')).not.toContain('listingVisibility')
   })
 })
+
+/**
+ * Indexability of locality pages — 2026-08-08.
+ *
+ * Production had published these, and they were four of the nine live locality
+ * URLs:
+ *
+ *     /rent/chennai/opp-to-pk-store
+ *     /rent/chennai/ponnu-super-bazaar-avadi
+ *
+ * They exist because `Property.landmark` is free text and no listing had a
+ * resolved `localityId` yet. The gate is therefore on the QUALITY OF THE KEY,
+ * not on a listing count: a boundary-resolved ward with one listing is a place
+ * people search, and a stranger's typing with five is not.
+ */
+describe('locality pages are only offered to search engines when the AREA is real', () => {
+  const resolved = { id: 'loc1', name: 'Adyar', slug: 'adyar', citySlug: 'chennai' }
+
+  it('withholds a page whose slug came from owner free text', async () => {
+    prismaMock.property.findMany.mockResolvedValue([
+      { city: 'Chennai', landmark: 'opp to pk store', locality: null },
+      { city: 'Chennai', landmark: 'opp to pk store', locality: null },
+      { city: 'Chennai', landmark: 'opp to pk store', locality: null },
+    ])
+
+    const [page] = await listLocalities()
+    // Three listings is not the point and must never become the point.
+    expect(page.count).toBe(3)
+    expect(page.indexable).toBe(false)
+  })
+
+  it('indexes a boundary-resolved area even with a single listing', async () => {
+    prismaMock.property.findMany.mockResolvedValue([
+      { city: 'Chennai', landmark: null, locality: resolved },
+    ])
+
+    const [page] = await listLocalities()
+    expect(page).toMatchObject({ localitySlug: 'adyar', count: 1, indexable: true })
+  })
+
+  it('marks a withheld page noindex,follow — withheld from ranking, not from crawling', () => {
+    const meta = metaForLocality({
+      locality: 'Opp To Pk Store', city: 'Chennai', citySlug: 'chennai',
+      localitySlug: 'opp-to-pk-store', count: 3, medianRent: 20000,
+      properties: [], indexable: false,
+    })
+    expect(meta.noindex).toBe(true)
+
+    const html = renderHead(TEMPLATE, meta)
+    expect(html).toContain('content="noindex,follow"')
+  })
+
+  it('emits exactly ONE robots tag, so the shell default cannot contradict it', () => {
+    // The shell ships `index, follow`. Two robots tags in one document is
+    // resolved by Google as most-restrictive-wins, which would have made the
+    // noindex above work BY LUCK. Other crawlers choose differently.
+    const withRobots = TEMPLATE.replace(
+      '</head>',
+      '<meta name="robots" content="index,follow" /></head>',
+    )
+    const html = renderHead(withRobots, {
+      title: 'T', description: 'D', canonical: 'C', noindex: true,
+    })
+    expect(html.match(/<meta\s+name="robots"/gi)).toHaveLength(1)
+    expect(html).toContain('content="noindex,follow"')
+  })
+
+  it('states index,follow positively rather than relying on the default', () => {
+    const html = renderHead(TEMPLATE, { title: 'T', description: 'D', canonical: 'C' })
+    expect(html).toContain('content="index,follow"')
+  })
+})

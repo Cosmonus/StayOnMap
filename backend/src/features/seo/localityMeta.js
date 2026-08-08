@@ -31,6 +31,12 @@ export function metaForLocality(locality) {
     description,
     canonical: localityUrl(locality),
     type: 'website',
+    // Withheld from search when the area came from an owner's free text rather
+    // than from a map boundary — see locality.service.js's isIndexable(). The
+    // page still renders and still works for anyone holding the link; `follow`
+    // rather than `nofollow` because its links to real property pages are worth
+    // crawling even when the page itself is not worth ranking.
+    noindex: locality.indexable === false,
     jsonLd: {
       '@context': 'https://schema.org',
       // A list of listings, not a Place: the page IS a collection, and typing

@@ -71,6 +71,13 @@ function stripDefaults(html) {
     .replace(/<meta\s+property="og:(?:title|description|image|url|type)"[^>]*>/gi, '')
     .replace(/<meta\s+name="twitter:(?:title|description|image|card)"[^>]*>/gi, '')
     .replace(/<link\s+rel="canonical"[^>]*>/gi, '')
+    // The shell ships `robots: index, follow`. Left in place, a page injecting
+    // `noindex` below would carry BOTH tags. Google resolves a conflict by
+    // taking the most restrictive, so noindex would still win — but only by
+    // luck, and other crawlers make the opposite choice. Added 2026-08-08 with
+    // the first server-side noindex (locality pages below threshold); before
+    // that nothing here emitted one, which is why it had never mattered.
+    .replace(/<meta\s+name="robots"[^>]*>/gi, '')
 }
 
 /**
@@ -81,7 +88,13 @@ export function renderHead(template, meta) {
     `<title>${escapeHtml(meta.title)}</title>`,
     `<meta name="description" content="${escapeHtml(meta.description)}" />`,
     `<link rel="canonical" href="${escapeHtml(meta.canonical)}" />`,
-    meta.noindex ? '<meta name="robots" content="noindex,follow" />' : null,
+    // Always emitted, never omitted. stripDefaults() removes the shell's own
+    // robots tag so the two cannot conflict, which means leaving this out would
+    // ship a prerendered page with no robots directive at all. `index, follow`
+    // is the default anyway — but "we meant this" and "nobody said" look
+    // identical in the HTML, and only one of them survives someone editing the
+    // shell.
+    `<meta name="robots" content="${meta.noindex ? 'noindex,follow' : 'index,follow'}" />`,
     `<meta property="og:type" content="${escapeHtml(meta.type ?? 'website')}" />`,
     `<meta property="og:title" content="${escapeHtml(meta.title)}" />`,
     `<meta property="og:description" content="${escapeHtml(meta.description)}" />`,
