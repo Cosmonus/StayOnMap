@@ -52,7 +52,7 @@ async function main() {
   console.log(`${properties.length} listing(s) ${all ? 'to re-resolve (--all)' : 'with no locality'}.`)
   if (!properties.length) return
 
-  const stats = { PLACE: 0, BOUNDARY: 0, LANDMARK: 0, unresolved: 0 }
+  const stats = { PLACE: 0, PLACE_LOCAL: 0, BOUNDARY: 0, LANDMARK: 0, unresolved: 0 }
   const byCity = new Map()
 
   for (const property of properties) {
@@ -75,7 +75,8 @@ async function main() {
     const label = {
       // The one that earns a URL. Everything else renders but stays noindex —
       // see features/seo/locality.service.js's isIndexable().
-      PLACE: `${locality.name} (neighbourhood) ★`,
+      PLACE: `${locality.name} (suburb) ★`,
+      PLACE_LOCAL: `${locality.name} (neighbourhood) ★`,
       BOUNDARY: `${locality.name} (admin level ${locality.adminLevel}) — not indexable`,
       LANDMARK: `${locality.name} (from landmark) — not indexable`,
     }[locality.source] ?? locality.name
@@ -87,7 +88,8 @@ async function main() {
   }
 
   console.log('\nBy source:')
-  console.log(`  PLACE      ${stats.PLACE}  (real neighbourhood — the only source that earns a URL)`)
+  console.log(`  PLACE      ${stats.PLACE}  (OSM suburb — preferred)`)
+  console.log(`  PLACE_LOCAL ${stats.PLACE_LOCAL}  (neighbourhood/quarter — also indexable)`)
   console.log(`  BOUNDARY   ${stats.BOUNDARY}  (admin ward — renders, not indexable)`)
   console.log(`  LANDMARK   ${stats.LANDMARK}  (owner-typed text — renders, not indexable)`)
   console.log(`  unresolved ${stats.unresolved}`)

@@ -133,27 +133,35 @@ async function fromPlaces(lat, lng, citySlug) {
 
   const candidates = await prisma.locality.findMany({
     where: {
-      source: 'PLACE',
+      source: { in: ['PLACE', 'PLACE_LOCAL'] },
       citySlug,
       lat: { gte: Number(lat) - latDelta, lte: Number(lat) + latDelta },
       lng: { gte: Number(lng) - lngDelta, lte: Number(lng) + lngDelta },
     },
-    select: { id: true, name: true, slug: true, osmId: true, lat: true, lng: true },
-    take: 50,
+    select: { id: true, name: true, slug: true, osmId: true, lat: true, lng: true, source: true },
+    take: 200,
   })
   if (!candidates.length) return null
 
   // Bbox prefilter then haversine in JS — the same no-PostGIS pattern as the
   // rest of the spatial layer.
+  //
+  // TIER BEFORE DISTANCE. A `suburb` anywhere in range beats a
+  // `neighbourhood` that happens to be closer, because the bigger name is the
+  // one a renter searches and the one an address is written with. Taking the
+  // nearest outright put listings in "Rajiv Gandhi Nagar" and "JB Estate" when
+  // Alwarpet and Teynampet were a few hundred metres further out.
   let best = null
   for (const c of candidates) {
     const d = haversineM(Number(lat), Number(lng), Number(c.lat), Number(c.lng))
-    if (d <= PLACE_RADIUS_M && (!best || d < best.d)) best = { c, d }
+    if (d > PLACE_RADIUS_M) continue
+    const tier = c.source === 'PLACE' ? 0 : 1
+    if (!best || tier < best.tier || (tier === best.tier && d < best.d)) best = { c, d, tier }
   }
   if (!best) return null
 
   return {
-    source: 'PLACE',
+    source: best.c.source,
     name: best.c.name,
     slug: best.c.slug,
     osmId: best.c.osmId,

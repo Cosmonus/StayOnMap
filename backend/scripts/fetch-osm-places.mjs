@@ -79,7 +79,14 @@ async function fetchCity(city) {
   const rows = []
   const seen = new Set()
 
-  for (const el of data.elements ?? []) {
+  // Suburbs first, so that when two places share a slug the dedupe below keeps
+  // the LARGER one. Overpass returns elements in its own order, so without this
+  // the winner is whichever the server happened to emit first.
+  const ordered = [...(data.elements ?? [])].sort(
+    (a, b) => PLACE_TYPES.indexOf(a.tags?.place) - PLACE_TYPES.indexOf(b.tags?.place),
+  )
+
+  for (const el of ordered) {
     // `name:en` first for the same reason the metro engine prefers it — a
     // Tamil-script name is correct and unusable as a URL slug.
     const name = (el.tags?.['name:en'] ?? el.tags?.name ?? '').trim()
@@ -102,13 +109,28 @@ async function fetchCity(city) {
     if (seen.has(key)) continue
     seen.add(key)
 
+    // Not a neighbourhood, whatever OSM says. Chennai's data contains a bulk
+    // import of "CMWSSB Division 105" — Chennai Metropolitan Water Supply and
+    // Sewerage Board zones — tagged `place=neighbourhood`, and because
+    // resolution takes the NEAREST node they beat Alwarpet and Teynampet.
+    //
+    // The rule is narrow on purpose: a numbered DIVISION, WARD or ZONE is an
+    // administrative artifact nobody searches. `Sector 14` is deliberately NOT
+    // in it — in Delhi NCR a sector number is how people actually give their
+    // address ("flats in Sector 62"), which is the opposite case.
+    if (/\b(division|ward|zone)\s*\d+/i.test(name)) continue
+
     rows.push({
       osmId: `${el.type}/${el.id}`,
       name,
       slug,
       city,
       citySlug: slugify(city),
-      source: 'PLACE',
+      // Two tiers, so resolution can prefer the bigger, better-known area over
+      // whichever tiny colony happens to be closest. `source` is a String, so
+      // this needs no migration — and isIndexable() accepts both, because
+      // "Powai" is a neighbourhood and is exactly what we want.
+      source: el.tags.place === 'suburb' ? 'PLACE' : 'PLACE_LOCAL',
       lat,
       lng,
       placeType: el.tags.place,
@@ -136,7 +158,10 @@ async function writeRows(rows) {
     try {
       await prisma.locality.upsert({
         where: { osmId: r.osmId },
-        update: { name: r.name, slug: r.slug, lat: r.lat, lng: r.lng, source: 'PLACE' },
+        // `r.source`, not a literal — hardcoding 'PLACE' here would silently
+        // promote every neighbourhood to suburb tier on the second run, which
+        // is the kind of bug that only shows up as slightly worse URLs.
+        update: { name: r.name, slug: r.slug, lat: r.lat, lng: r.lng, source: r.source },
         create: data,
       })
       written++
