@@ -103,9 +103,14 @@ export default function ServicesPage() {
       />
 
       <main className="min-h-screen bg-white pt-28 md:pt-32 pb-24">
-        {/* Full width with the homepage's slim gutters — same treatment as
-            PropertiesPage; the old max-w-7xl cap read as dead space either side */}
-        <div className="w-full px-4 md:px-6">
+        {/* max-w-7xl, matching Guides (/blog) — operator decision 2026-08-08.
+            This was full-bleed `w-full px-4 md:px-6`, copied from PropertiesPage
+            on the reasoning that a 7xl cap "read as dead space either side".
+            That holds for a MAP-backed grid, which is inventory and wants every
+            pixel; it does not hold for an editorial page sitting next to
+            Guides, where the two being different widths is the thing you
+            actually notice. Content pages share one measure. */}
+        <div className="mx-auto max-w-7xl px-4 md:px-8">
 
           {/* Hero */}
           <div className="text-center max-w-2xl mx-auto">
@@ -128,7 +133,13 @@ export default function ServicesPage() {
             <div className="md:row-span-2 rounded-3xl bg-[#111111] text-white p-9 flex flex-col relative overflow-hidden min-h-[220px]">
               <div
                 className="absolute -right-16 -top-16 w-64 h-64 rounded-full pointer-events-none"
-                style={{ background: 'radial-gradient(circle at 30% 30%, rgba(2,132,199,0.55), transparent 70%)' }}
+                // rgb(18,163,116) is brand-500 (#12a374). Was rgba(2,132,199) —
+                // #0284c7, the pre-jade sky blue retired 2026-07-25.
+                // .claude/ui-ux.md claimed those values were "not in the
+                // codebase"; this one survived inside a gradient string, where
+                // no `bg-*` class search would ever reach it. A raw rgba() is
+                // how a retired palette outlives its own removal.
+                style={{ background: 'radial-gradient(circle at 30% 30%, rgba(18,163,116,0.55), transparent 70%)' }}
               />
               <div className="flex items-center justify-between relative z-10">
                 <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
