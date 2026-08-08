@@ -158,11 +158,15 @@ function TotalUsersChart({ monthly = [] }) {
     labels: months.map(m => m.label),
     datasets: [{
       data: values,
-      borderColor: '#0ea5e9',
-      backgroundColor: 'rgba(14,165,233,0.10)',
+      // brand-600 / brand-600 at 10%. Was #0ea5e9 and rgba(14,165,233,0.10) —
+      // the same pre-jade sky blue twice, in hex and in rgb, which is why a
+      // search for either form alone would have found only half of it. A chart
+      // config is the fourth place a retired palette hides from a class sweep.
+      borderColor: '#0d8a5f',
+      backgroundColor: 'rgba(13,138,95,0.10)',
       borderWidth: 2,
       pointRadius: 3,
-      pointBackgroundColor: '#0ea5e9',
+      pointBackgroundColor: '#0d8a5f',
       pointBorderColor: '#fff',
       pointBorderWidth: 2,
       tension: 0.4,

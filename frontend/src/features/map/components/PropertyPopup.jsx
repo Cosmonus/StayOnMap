@@ -237,9 +237,14 @@ export default function PropertyPopup({ bare = false }) {
               rel="noopener noreferrer"
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-50 border border-brand-100 hover:bg-brand-100 transition-colors no-underline"
             >
-              <Navigation size={16} color="#0284c7" strokeWidth={2} />
+              {/* `className`, not `color="#0284c7"` — that hex was the pre-jade
+                  sky blue, and it sat between two brand-700 elements looking
+                  deliberate. Lucide strokes `currentColor` by default, so a
+                  token class cannot drift out of the palette the way a literal
+                  did. */}
+              <Navigation size={16} className="text-brand-700" strokeWidth={2} />
               <span className="flex-1 text-xs font-semibold text-brand-700">Get directions</span>
-              <ArrowRight size={12} color="#0284c7" strokeWidth={2.5} />
+              <ArrowRight size={12} className="text-brand-700" strokeWidth={2.5} />
             </a>
           )}
 
