@@ -59,8 +59,14 @@ const overpass = (query) => overpassQuery(query, { timeoutMs: REQUEST_TIMEOUT_MS
  * center` gives those a coordinate, so both shapes land in the same row form.
  */
 async function fetchCity(city) {
+  // `bboxFor` returns south/west/north/east — NOT minLat/minLng/maxLat/maxLng,
+  // which is what this read on 2026-08-08 and is why every city failed. The
+  // four `undefined`s went out inside the query, so Overpass saw
+  // `(undefined,undefined,undefined,undefined)`: one mirror answered 400 and
+  // the others hung until timeout, which read convincingly as the datacenter
+  // being blocked. `fetch-osm-boundaries.mjs` had it right all along.
   const b = bboxFor(CITY_CENTERS[city])
-  const box = `${b.minLat},${b.minLng},${b.maxLat},${b.maxLng}`
+  const box = `${b.south},${b.west},${b.north},${b.east}`
   const filter = `"place"~"^(${PLACE_TYPES.join('|')})$"`
 
   const query = `[out:json][timeout:110];(`

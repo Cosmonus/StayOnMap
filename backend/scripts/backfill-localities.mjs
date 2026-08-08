@@ -27,17 +27,32 @@ import { resolveLocality } from '../src/features/localities/resolve.js'
 
 const confirm = process.argv.includes('--confirm')
 
+/**
+ * Re-resolve listings that ALREADY have a locality, not just the unlinked ones.
+ *
+ * Added 2026-08-08, because without it this script is a one-way door. The first
+ * run linked all 14 production listings to admin wards (`Ward 137`,
+ * `H/W Ward`); seeding the far better `place=suburb` names afterwards then
+ * changed nothing, because every listing already had *a* locality and the
+ * default filter skips those. It reported "0 listing(s) with no locality" and
+ * exited, which is true and useless.
+ *
+ * Not the default: a plain run stays cheap and idempotent, and re-resolving
+ * everything is a deliberate act after new geography has been seeded.
+ */
+const all = process.argv.includes('--all')
+
 async function main() {
   const properties = await prisma.property.findMany({
-    where: { localityId: null },
+    where: all ? {} : { localityId: null },
     select: { id: true, city: true, lat: true, lng: true, landmark: true },
     orderBy: { createdAt: 'asc' },
   })
 
-  console.log(`${properties.length} listing(s) with no locality.`)
+  console.log(`${properties.length} listing(s) ${all ? 'to re-resolve (--all)' : 'with no locality'}.`)
   if (!properties.length) return
 
-  const stats = { BOUNDARY: 0, LANDMARK: 0, unresolved: 0 }
+  const stats = { PLACE: 0, BOUNDARY: 0, LANDMARK: 0, unresolved: 0 }
   const byCity = new Map()
 
   for (const property of properties) {
@@ -57,9 +72,13 @@ async function main() {
     stats[locality.source]++
     bump(byCity, property.city, locality.source)
 
-    const label = locality.source === 'BOUNDARY'
-      ? `${locality.name} (admin level ${locality.adminLevel})`
-      : `${locality.name} (from landmark)`
+    const label = {
+      // The one that earns a URL. Everything else renders but stays noindex —
+      // see features/seo/locality.service.js's isIndexable().
+      PLACE: `${locality.name} (neighbourhood) ★`,
+      BOUNDARY: `${locality.name} (admin level ${locality.adminLevel}) — not indexable`,
+      LANDMARK: `${locality.name} (from landmark) — not indexable`,
+    }[locality.source] ?? locality.name
     console.log(`  ✓ ${property.id}  ${property.city}  →  ${label}`)
 
     if (confirm) {
@@ -68,8 +87,9 @@ async function main() {
   }
 
   console.log('\nBy source:')
-  console.log(`  BOUNDARY   ${stats.BOUNDARY}  (resolved from the map)`)
-  console.log(`  LANDMARK   ${stats.LANDMARK}  (fell back to owner-typed text)`)
+  console.log(`  PLACE      ${stats.PLACE}  (real neighbourhood — the only source that earns a URL)`)
+  console.log(`  BOUNDARY   ${stats.BOUNDARY}  (admin ward — renders, not indexable)`)
+  console.log(`  LANDMARK   ${stats.LANDMARK}  (owner-typed text — renders, not indexable)`)
   console.log(`  unresolved ${stats.unresolved}`)
 
   console.log('\nBy city:')
