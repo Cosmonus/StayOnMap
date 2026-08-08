@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { View, Text, TextInput, Image, Pressable, Switch, StyleSheet } from 'react-native'
+import { View, Text, TextInput, Pressable, Switch, StyleSheet } from 'react-native'
+import { Image } from 'expo-image'
 import { useQuery } from '@tanstack/react-query'
 import { placeIntelligenceService } from '@services/placeIntelligence.service'
 import Dropdown from '@components/common/Dropdown'
@@ -14,7 +15,7 @@ import BenchmarkCard from './BenchmarkCard'
 import PublishGate from './PublishGate'
 import { CategoryCards } from './HostGates'
 import Icon from '@components/common/Icon'
-import { formatCurrency } from '@utils/format'
+import { formatCurrency, imgUrl } from '@utils/format'
 import { ALL_DAY_SLOTS, VISIT_SLOTS, timeOptions, formatTime } from '@utils/time'
 import {
   CATEGORIES, DESCRIBE, FIELDS, FEATURES, FEATURES_VISIBLE, RULES,
@@ -587,7 +588,18 @@ function RenterPreview({ categoryKey, draft, price, priceSuffix }) {
     <View style={styles.previewCard}>
       <View style={styles.previewImage}>
         {draft.images[0]
-          ? <Image source={{ uri: draft.images[0] }} style={{ width: '100%', height: '100%' }} />
+          ? (
+            // Same defect PhotoBoard had: the raw url is the ~1600px `_full`
+            // variant, fetched with no disk cache, into a preview card. It
+            // showed as a grey tile for as long as the download took.
+            <Image
+              source={{ uri: imgUrl(draft.images[0], 'card') }}
+              style={{ width: '100%', height: '100%' }}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={200}
+            />
+          )
           : <Icon name="image" size={28} color={colors.slate500} />}
       </View>
       <View style={{ padding: spacing.md }}>
