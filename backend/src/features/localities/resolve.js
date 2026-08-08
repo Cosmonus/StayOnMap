@@ -56,7 +56,11 @@ export async function resolveLocality(property) {
     if (!city) return null
 
     const citySlug = slugify(city)
-    const resolved = await fromBoundaries(lat, lng) ?? fromLandmark(landmark)
+    // PLACE → BOUNDARY → LANDMARK. Most searchable first, most administrative
+    // second, the owner's typing last.
+    const resolved = await fromPlaces(lat, lng, citySlug)
+      ?? await fromBoundaries(lat, lng)
+      ?? fromLandmark(landmark)
     if (!resolved) return null
 
     const locality = await upsertLocality({ ...resolved, city, citySlug, lat, lng })
@@ -98,6 +102,73 @@ async function fromBoundaries(lat, lng) {
     }
   }
   return null
+}
+
+/**
+ * How far a listing can sit from a neighbourhood's centre and still be in it.
+ *
+ * A `place=suburb` node is a POINT with no boundary, so membership is a
+ * distance question rather than a containment one. 2.5km is roughly the radius
+ * of an Indian metro suburb; beyond it the nearest centre stops being a claim
+ * anyone would recognise and the boundary fallback is the more honest answer.
+ */
+const PLACE_RADIUS_M = 2500
+
+/**
+ * The name a renter would actually type — `place=suburb|neighbourhood|quarter`,
+ * seeded as Locality rows by scripts/fetch-osm-places.mjs.
+ *
+ * TRIED BEFORE BOUNDARIES, and that ordering is the whole fix. Admin polygons
+ * are the right source for civic data and the wrong one for a URL: Indian wards
+ * are mostly numbered, so resolving from them published /rent/chennai/ward-137
+ * and /rent/mumbai/h-w-ward. Correct, and not what anyone searches.
+ *
+ * Nearest centre wins. Returns null when the places table is empty (nothing
+ * seeded yet) or nothing is close enough, and the boundary path then runs
+ * exactly as before — so this is additive, not a replacement.
+ */
+async function fromPlaces(lat, lng, citySlug) {
+  const latDelta = PLACE_RADIUS_M / 111_000
+  const lngDelta = latDelta / Math.max(Math.cos((Number(lat) * Math.PI) / 180), 0.01)
+
+  const candidates = await prisma.locality.findMany({
+    where: {
+      source: 'PLACE',
+      citySlug,
+      lat: { gte: Number(lat) - latDelta, lte: Number(lat) + latDelta },
+      lng: { gte: Number(lng) - lngDelta, lte: Number(lng) + lngDelta },
+    },
+    select: { id: true, name: true, slug: true, osmId: true, lat: true, lng: true },
+    take: 50,
+  })
+  if (!candidates.length) return null
+
+  // Bbox prefilter then haversine in JS — the same no-PostGIS pattern as the
+  // rest of the spatial layer.
+  let best = null
+  for (const c of candidates) {
+    const d = haversineM(Number(lat), Number(lng), Number(c.lat), Number(c.lng))
+    if (d <= PLACE_RADIUS_M && (!best || d < best.d)) best = { c, d }
+  }
+  if (!best) return null
+
+  return {
+    source: 'PLACE',
+    name: best.c.name,
+    slug: best.c.slug,
+    osmId: best.c.osmId,
+    adminLevel: null,
+  }
+}
+
+function haversineM(lat1, lng1, lat2, lng2) {
+  const R = 6_371_000
+  const toRad = (d) => (d * Math.PI) / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(a))
 }
 
 /** The owner's answer, used only when the map has none. */

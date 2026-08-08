@@ -44,7 +44,7 @@ export async function listLocalities() {
     select: {
       city: true,
       landmark: true,
-      locality: { select: { id: true, name: true, slug: true, citySlug: true } },
+      locality: { select: { id: true, name: true, slug: true, citySlug: true, source: true } },
     },
   })
 
@@ -71,6 +71,7 @@ export async function listLocalities() {
       locality: name,
       localitySlug: slug,
       localityId: row.locality?.id ?? null,
+      localitySource: row.locality?.source ?? null,
       count: 1,
     })
   }
@@ -108,14 +109,31 @@ export async function listLocalities() {
  * the sitemap and marked `noindex, follow`, which is the brief's own prescription
  * for below-threshold pages.
  *
- * ⚠ TODAY THIS RETURNS FALSE FOR EVERY PAGE, and that is correct rather than
- * broken: no production listing has a resolved `localityId` yet, because the
- * resolver shipped 2026-08-07 and every listing predates it. The backfill in
- * `docs/operator-actions.md` §1.6g is what brings real ward pages back. Publishing
- * landmark slugs in the meantime is not a fallback, it is the bug.
+ * TIGHTENED 2026-08-08, and the first version of this rule is why. It asked only
+ * "did this come from the map", which killed `opp-to-pk-store` — and then the
+ * backfill published these instead:
+ *
+ *     /rent/chennai/ward-137      /rent/mumbai/h-w-ward
+ *     /rent/chennai/ward-105      /rent/bengaluru/ward-58
+ *     /rent/hyderabad/hyderabad   ← admin_level 8 fell back to the CITY name
+ *
+ * All correct. None searchable. Provenance was a PROXY for "a place someone
+ * types into Google", and for Indian OSM data the proxy breaks: wards are
+ * mostly numbered, and a municipality is named after its city. So the rule now
+ * asks the real question directly — is this the kind of name a renter uses —
+ * via `source`, which distinguishes a neighbourhood (`PLACE`, from
+ * `place=suburb|neighbourhood|quarter`) from an administrative unit
+ * (`BOUNDARY`) and from the owner's typing (`LANDMARK`).
+ *
+ * `name === city` is belt-and-braces on top: a locality page whose scope is the
+ * whole city duplicates `/rent/:citySlug`, and that is a duplicate-content
+ * problem regardless of which source produced it.
  */
 export function isIndexable(group) {
-  return group.localityId !== null
+  if (group.localityId === null) return false
+  if (group.localitySource !== 'PLACE') return false
+  // A locality named after its own city is the city page under a second URL.
+  return slugify(group.locality) !== slugify(group.city)
 }
 
 /**
