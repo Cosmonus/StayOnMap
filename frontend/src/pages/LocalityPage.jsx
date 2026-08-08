@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { MapPin, SearchX } from 'lucide-react'
@@ -7,6 +8,7 @@ import Header from '@components/layout/Header'
 import Footer from '@components/layout/Footer'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
+import { trackOnce } from '@lib/analytics'
 import PropertyCard from '@features/properties/components/PropertyCard'
 
 // A landing page per locality — the shape the actual search intent has. Nobody
@@ -28,6 +30,28 @@ export default function LocalityPage() {
     queryKey: ['locality', citySlug, localitySlug],
     queryFn: () => localityService.get(citySlug, localitySlug).then((r) => r.data),
   })
+
+  // How this session STARTED, when it started here rather than on the map.
+  //
+  // `trackOnce` dedupes by event NAME, so this records the FIRST locality page
+  // of a session and no later ones — which is the definition of an entry
+  // marker, not a limitation. Browsing on to three more localities is
+  // navigation within a visit that already began; counting each as an arrival
+  // would inflate the denominator every segment rate is measured against, the
+  // same reason `map_view` uses trackOnce rather than firing on every pan.
+  //
+  // Fired regardless of whether the fetch succeeds: somebody who landed on a
+  // locality page that turned out to be empty still arrived from search, and
+  // dropping that loses the denominator for the only question this page exists
+  // to answer.
+  //
+  // Deliberately not a funnel STEP — see features/analytics/events.js. It is a
+  // segment: "of the people who landed from search, how many reached each
+  // step". Adding it above `map_view` would make every direct-to-map session
+  // read as a drop-off from a page it never saw.
+  useEffect(() => {
+    trackOnce('seo_landing_view', { page: 'locality', citySlug, localitySlug })
+  }, [citySlug, localitySlug])
 
   const Shell = ({ children }) => (
     <div className="min-h-screen flex flex-col bg-slate-50">
@@ -74,7 +98,7 @@ export default function LocalityPage() {
     )
   }
 
-  const { locality, city, properties, count, medianRent } = data
+  const { locality, city, properties, count, medianRent, nearby } = data
   const homes = `${count} ${count === 1 ? 'home' : 'homes'}`
 
   return (
@@ -88,10 +112,20 @@ export default function LocalityPage() {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-2">
+        {/* The city is a LINK now, not a label (2026-08-08). A locality page
+            had no route upward, so /rent/chennai/adyar was a leaf: a crawler
+            arriving from search could reach one area and nothing else, and a
+            person had to go back to the map to see the rest of the city. This
+            is also the visible half of the BreadcrumbList in the page's
+            structured data — the trail a search result shows should be a trail
+            the page actually has. */}
+        <Link
+          to={`/rent/${citySlug}`}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-brand-700 mb-2"
+        >
           <MapPin className="w-3.5 h-3.5" strokeWidth={1.8} aria-hidden="true" />
           {city}
-        </div>
+        </Link>
         <h1 className="text-2xl font-bold text-slate-900">Rent in {locality}</h1>
         <p className="text-sm text-slate-600 mt-1.5">
           {homes} listed directly by owners
@@ -103,11 +137,43 @@ export default function LocalityPage() {
           {properties.map((p) => <PropertyCard key={p.id} property={p} />)}
         </div>
 
+        {/* Sideways in the hierarchy — areas whose listings resemble these,
+            from the graph's SIMILAR_TO edges. Until now a locality page led up
+            to its city and down to listings but never across, so somebody who
+            liked the area and not the homes had nowhere to go but back.
+
+            The server has already dropped any area whose page would 404, so
+            every one of these is a live page. Renders nothing at all when the
+            list is empty rather than an empty heading. */}
+        {nearby?.length > 0 && (
+          <div className="mt-10 pt-6 border-t border-slate-200">
+            <h2 className="text-sm font-bold text-slate-900 mb-1">Similar areas</h2>
+            <p className="text-xs text-slate-500 mb-4">
+              Where homes like these also turn up.
+            </p>
+            <nav aria-label="Similar areas" className="flex flex-wrap gap-2">
+              {nearby.map((n) => (
+                <Link
+                  key={`${n.citySlug}/${n.localitySlug}`}
+                  to={`/rent/${n.citySlug}/${n.localitySlug}`}
+                  className="inline-flex items-center min-h-[36px] px-3.5 rounded-full bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:border-brand-600 hover:text-brand-700"
+                >
+                  {n.locality}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        )}
+
         <div className="mt-10 pt-6 border-t border-slate-200">
           <p className="text-sm text-slate-600">
             Looking somewhere else?{' '}
+            <Link to={`/rent/${citySlug}`} className="font-semibold text-brand-600 hover:text-brand-700">
+              See every home in {city}
+            </Link>
+            {' '}or{' '}
             <Link to="/" className="font-semibold text-brand-600 hover:text-brand-700">
-              See every home on the map
+              open the map
             </Link>
             .
           </p>

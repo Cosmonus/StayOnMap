@@ -21,7 +21,7 @@ import { prismaMock } from './mocks/prisma.js'
 import {
   recordEvents, record, getFunnel, getTimeToPublish, pruneOldEvents,
 } from '../src/features/analytics/analytics.service.js'
-import { FUNNEL, CLIENT_EVENTS, EVENT_NAMES, RETENTION_DAYS } from '../src/features/analytics/events.js'
+import { FUNNEL, ENTRY, CLIENT_EVENTS, EVENT_NAMES, RETENTION_DAYS } from '../src/features/analytics/events.js'
 import { ingestSchema } from '../src/features/analytics/analytics.validation.js'
 
 const SESSION = 'sess_abcdef123456'
@@ -35,8 +35,20 @@ beforeEach(() => {
 })
 
 describe('the event vocabulary is closed', () => {
-  it('accepts only the funnel from clients', () => {
-    expect(CLIENT_EVENTS).toEqual(FUNNEL)
+  it('accepts the funnel plus the entry marker from clients, and nothing else', () => {
+    // Was `toEqual(FUNNEL)` until 2026-08-08, when `seo_landing_view` was added
+    // — a thing only the client can witness, like the five funnel steps, but
+    // deliberately NOT one of them: it is a segment ("of those who landed from
+    // search…"), and putting it above `map_view` would make every session that
+    // opened straight onto the map read as a drop-off from a page it never saw.
+    expect(CLIENT_EVENTS).toEqual([...FUNNEL, ...ENTRY])
+
+    // The property that actually matters, and the reason this test exists: the
+    // client-sendable set is the two witness-able groups and NOTHING server-
+    // side. Asserted as a rule rather than a list, so adding a group without
+    // thinking about it fails here.
+    expect(CLIENT_EVENTS).not.toContain('listing_publish_completed')
+    expect(CLIENT_EVENTS.every((n) => EVENT_NAMES.includes(n))).toBe(true)
   })
 
   it('rejects an unknown event name rather than storing it', () => {
@@ -194,5 +206,66 @@ describe('retention', () => {
     const cutoff = where.createdAt.lt
     const daysBack = Math.round((now - cutoff) / 86_400_000)
     expect(daysBack).toBe(RETENTION_DAYS)
+  })
+})
+
+/**
+ * Segmenting the funnel by how the session arrived — 2026-08-08.
+ *
+ * `seo_landing_view` was collected from the day it shipped and nothing read it,
+ * which is a table rather than instrumentation. The trap this closes: the
+ * sitewide funnel's denominator is `map_view`, and a session that landed on
+ * /rent/chennai and clicked straight to a listing may never fire it.
+ */
+describe('the SEO segment is measured against its own arrival, not the map', () => {
+  const rows = (pairs) => pairs.map(([name, sessionId]) => ({ name, sessionId }))
+
+  it('counts only sessions that landed on a search page', async () => {
+    prismaMock.analyticsEvent.groupBy.mockResolvedValue(rows([
+      ['seo_landing_view', 's1'],
+      ['property_view', 's1'],
+      ['map_view', 's2'],        // arrived on the map — not in the segment
+      ['property_view', 's2'],
+    ]))
+
+    const { steps, top } = await getFunnel({ segment: 'seo' })
+    expect(top).toBe(1)
+    expect(steps.find((s) => s.name === 'property_view').sessions).toBe(1)
+  })
+
+  it('never reports a rate above 100% for a session that skipped the map', async () => {
+    // The whole reason the denominator changes. Three landed from search and
+    // reached a listing; NONE saw the map. Against `map_view` that is 3/0.
+    prismaMock.analyticsEvent.groupBy.mockResolvedValue(rows([
+      ['seo_landing_view', 's1'], ['property_view', 's1'],
+      ['seo_landing_view', 's2'], ['property_view', 's2'],
+      ['seo_landing_view', 's3'], ['property_view', 's3'],
+    ]))
+
+    const { steps, top, topLabel } = await getFunnel({ segment: 'seo' })
+    expect(top).toBe(3)
+    expect(topLabel).toBe('landed from search')
+    expect(steps.find((s) => s.name === 'property_view').pctOfTop).toBe(100)
+    expect(steps.every((s) => s.pctOfTop === null || s.pctOfTop <= 100)).toBe(true)
+  })
+
+  it('leaves the sitewide funnel measured against map_view', async () => {
+    prismaMock.analyticsEvent.groupBy.mockResolvedValue(rows([
+      ['seo_landing_view', 's1'], ['property_view', 's1'],
+      ['map_view', 's2'], ['map_view', 's3'],
+    ]))
+
+    const { top, topLabel, steps } = await getFunnel()
+    expect(top).toBe(2)
+    expect(topLabel).toBe('map_view')
+    // s1 never saw the map but still opened a listing — it counts sitewide.
+    expect(steps.find((s) => s.name === 'property_view').sessions).toBe(1)
+  })
+
+  it('says "nothing to divide by" rather than 0% when nobody landed from search', async () => {
+    prismaMock.analyticsEvent.groupBy.mockResolvedValue(rows([['map_view', 's1']]))
+    const { top, steps } = await getFunnel({ segment: 'seo' })
+    expect(top).toBe(0)
+    expect(steps[0].pctOfTop).toBeNull()
   })
 })

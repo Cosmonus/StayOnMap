@@ -5,7 +5,7 @@
 // funnel, one duration, and a readout in the admin panel. Data with no readout
 // is not instrumentation, it is a table.
 import { prisma } from '../../lib/prisma.js'
-import { FUNNEL, RETENTION_DAYS } from './events.js'
+import { FUNNEL, ENTRY, RETENTION_DAYS } from './events.js'
 
 // Recording must never be able to break the thing being recorded. Every entry
 // point here swallows its own errors — a failed insert loses one data point,
@@ -74,21 +74,47 @@ export async function pruneOldEvents(now = new Date()) {
  * "3% of people who saw the map booked a visit" is the number that means
  * something, and step-to-step rates hide a collapse at the top.
  */
-export async function getFunnel({ days = 30 } = {}) {
+export async function getFunnel({ days = 30, segment = null } = {}) {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
 
+  // Both groups in one pass. ENTRY is not a funnel step (see events.js) but it
+  // is what defines the segment, so it has to be read alongside.
   const rows = await prisma.analyticsEvent.groupBy({
     by: ['name', 'sessionId'],
-    where: { name: { in: FUNNEL }, createdAt: { gte: since } },
+    where: { name: { in: [...FUNNEL, ...ENTRY] }, createdAt: { gte: since } },
   })
 
-  const sessionsByStep = new Map(FUNNEL.map((n) => [n, new Set()]))
-  for (const row of rows) sessionsByStep.get(row.name)?.add(row.sessionId)
+  // Which sessions arrived on a search landing page. Filtering in JS rather
+  // than with a second query and an IN clause of every session id: the rows are
+  // already in memory and bounded by the window.
+  const landed = new Set(
+    rows.filter((r) => ENTRY.includes(r.name)).map((r) => r.sessionId),
+  )
+  const inSegment = (sessionId) => segment !== 'seo' || landed.has(sessionId)
 
-  const top = sessionsByStep.get(FUNNEL[0]).size
+  const sessionsByStep = new Map(FUNNEL.map((n) => [n, new Set()]))
+  for (const row of rows) {
+    if (!inSegment(row.sessionId)) continue
+    sessionsByStep.get(row.name)?.add(row.sessionId)
+  }
+
+  // THE DENOMINATOR CHANGES WITH THE SEGMENT, and getting this wrong is the
+  // whole trap. Sitewide, the top of the funnel is `map_view`. For a session
+  // that arrived on /rent/chennai and clicked straight through to a listing,
+  // `map_view` may never fire at all — so measuring that segment against it
+  // would divide by a number smaller than the steps below it and report rates
+  // above 100%. For the SEO segment the honest denominator is the arrival
+  // itself: "of N sessions that landed from search, X reached this step".
+  const top = segment === 'seo' ? landed.size : sessionsByStep.get(FUNNEL[0]).size
 
   return {
     days,
+    segment,
+    // Named so a reader can see what the percentages are OF, rather than
+    // assuming. Two different denominators behind one column is how a chart
+    // starts lying quietly.
+    topLabel: segment === 'seo' ? 'landed from search' : FUNNEL[0],
+    top,
     steps: FUNNEL.map((name) => {
       const sessions = sessionsByStep.get(name).size
       return {

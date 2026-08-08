@@ -31,6 +31,12 @@ export function metaForLocality(locality) {
     description,
     canonical: localityUrl(locality),
     type: 'website',
+    // Withheld from search when the area came from an owner's free text rather
+    // than from a map boundary — see locality.service.js's isIndexable(). The
+    // page still renders and still works for anyone holding the link; `follow`
+    // rather than `nofollow` because its links to real property pages are worth
+    // crawling even when the page itself is not worth ranking.
+    noindex: locality.indexable === false,
     jsonLd: {
       '@context': 'https://schema.org',
       // A list of listings, not a Place: the page IS a collection, and typing
@@ -39,6 +45,19 @@ export function metaForLocality(locality) {
       name: `Rentals in ${name}, ${city}`,
       description,
       url: localityUrl(locality),
+      // Where this page sits, so a search result can show
+      // "stayonmap.com › Rentals › Chennai › Adyar" instead of a bare URL.
+      //
+      // The city rung became real on 2026-08-08 when `/rent/:citySlug` shipped;
+      // before that this was two levels, because a breadcrumb to a page that
+      // does not exist is a 404 advertised in structured data. It also matches
+      // what the page now RENDERS — the city is a link in the header, and a
+      // trail Google shows should be a trail the page actually has.
+      breadcrumb: breadcrumbFor([
+        { name: 'Rentals', url: `${ORIGIN}/properties` },
+        { name: city, url: `${ORIGIN}/rent/${locality.citySlug}` },
+        { name, url: localityUrl(locality) },
+      ]),
       mainEntity: {
         '@type': 'ItemList',
         numberOfItems: count,
@@ -50,5 +69,28 @@ export function metaForLocality(locality) {
         })),
       },
     },
+  }
+}
+
+/**
+ * A BreadcrumbList from an already-ordered trail.
+ *
+ * Shared rather than written twice, because the failure mode of breadcrumbs is
+ * a `position` that does not match the visual order — Google reads position,
+ * people read order, and hand-numbering them is how those diverge.
+ *
+ * ONLY REAL URLS BELONG HERE. A breadcrumb pointing at a page that does not
+ * exist is a 404 advertised in structured data, which is worse than no
+ * breadcrumb at all.
+ */
+export function breadcrumbFor(trail) {
+  return {
+    '@type': 'BreadcrumbList',
+    itemListElement: trail.map((crumb, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: crumb.name,
+      item: crumb.url,
+    })),
   }
 }

@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma.js'
-import { SUPPORTED_CITIES } from '../../config/cities.js'
 import { listLocalities } from './locality.service.js'
+import { listCities } from './city.service.js'
 import { allSlugs } from '../blog/blog.service.js'
 
 // The sitemap, generated from live data.
@@ -85,25 +85,41 @@ export async function buildSitemap() {
     })
   }
 
-  // One city page per city that HAS listings. Listing a city with nothing in it
-  // sends a crawler to an empty grid, which is exactly the "beautiful map of
-  // nothing" problem in URL form.
+  // Still counted, deliberately: "how many cities have any stock at all" is the
+  // supply number this whole file is downstream of, and it stays in `counts`
+  // even though it no longer produces URLs.
   const citiesWithStock = new Set(properties.map((p) => p.city).filter(Boolean))
-  for (const city of SUPPORTED_CITIES) {
-    if (!citiesWithStock.has(city)) continue
+
+  // City pages — `/rent/chennai`. These REPLACED five `/properties?city=X` URLs
+  // on 2026-08-08. The intent behind those was right, a city with stock deserves
+  // an entry point, but a query parameter cannot be one: Google reads
+  // `?city=Chennai` as a variant of `/properties`, which serves the same SPA
+  // shell whatever the query says, so the five were near-duplicates competing
+  // with their own parent.
+  //
+  // `indexable` only, same discipline as the localities below — a city under
+  // MIN_CITY_LISTINGS renders and links onward but is not offered for ranking.
+  const cities = (await listCities()).filter((c) => c.indexable)
+  for (const c of cities) {
     urls.push({
-      loc: `${ORIGIN}/properties?city=${encodeURIComponent(city)}`,
+      loc: `${ORIGIN}/rent/${c.citySlug}`,
       changefreq: 'daily',
-      priority: '0.7',
+      // Above a locality page and below the homepage: a city is the broadest
+      // real query we can answer ("flats for rent in Chennai"), and its
+      // inventory turns over constantly.
+      priority: '0.9',
     })
   }
 
-  // Locality pages, derived from live inventory rather than from a list of
-  // known area names. Only areas that HAVE listings get a URL — see
-  // locality.service.js: with ~5 listings, a page per known area name would be
-  // hundreds of near-empty pages, which is thin content and burns the crawl
-  // budget of a small site on nothing.
-  const localities = await listLocalities()
+  // Locality pages, gated twice. Derived from live inventory rather than from a
+  // list of known area names, so an area with nothing in it gets no URL — with
+  // 13 listings, a page per known area name would be hundreds of near-empty
+  // pages. Then filtered to `indexable`: a page keyed on the owner's free-text
+  // landmark is somebody's typing turned into a URL, and both gates exist to
+  // keep a small site's crawl budget on pages that can actually rank. See
+  // locality.service.js's isIndexable(). A withheld page still resolves for
+  // anyone holding the link; it is simply not advertised here.
+  const localities = (await listLocalities()).filter((l) => l.indexable)
   for (const l of localities) {
     urls.push({
       loc: `${ORIGIN}/rent/${l.citySlug}/${l.localitySlug}`,
@@ -141,6 +157,7 @@ export async function buildSitemap() {
       total: urls.length,
       properties: properties.length,
       cities: citiesWithStock.size,
+      cityPages: cities.length,
       localities: localities.length,
       posts: posts.length,
     },

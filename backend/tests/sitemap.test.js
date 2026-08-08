@@ -82,14 +82,34 @@ describe('sitemap', () => {
     }
   })
 
-  it('lists a city only when that city has stock', async () => {
+  it('asks a crawler to rank no query-parameter URL', async () => {
+    // Replaces "lists a city only when that city has stock" (2026-08-08). That
+    // rule was right — never advertise a city with nothing in it — but the URL
+    // it produced was `/properties?city=Chennai`, and Google reads that as a
+    // variant of `/properties` rather than a page of its own. `/properties`
+    // serves the same SPA shell whatever the query says, so the five city URLs
+    // were five near-duplicates competing with their own parent.
+    //
+    // The real replacement is a `/rent/:citySlug` page. Until it exists the
+    // sitemap simply does not claim one, and this asserts the general form so
+    // the next person cannot reintroduce the shape with a different parameter.
     prismaMock.property.findMany.mockResolvedValue([listing('abc', { city: 'Chennai' })])
     const urls = locs((await buildSitemap()).xml)
 
-    expect(urls.some((u) => u.includes('city=Chennai'))).toBe(true)
-    // Bengaluru is a supported city with nothing in it — sending a crawler to
-    // an empty grid is the "beautiful map of nothing" problem in URL form.
-    expect(urls.some((u) => u.includes('city=Bengaluru'))).toBe(false)
+    expect(urls.some((u) => u.includes('?'))).toBe(false)
+    expect(urls.some((u) => u.includes('city='))).toBe(false)
+  })
+
+  it('still counts cities with stock, even though it no longer links them', async () => {
+    // The supply number this whole file is downstream of. Dropping the URLs
+    // must not quietly drop the measurement with them.
+    prismaMock.property.findMany.mockResolvedValue([
+      listing('a', { city: 'Chennai' }),
+      listing('b', { city: 'Chennai' }),
+      listing('c', { city: 'Mumbai' }),
+    ])
+    const { counts } = await buildSitemap()
+    expect(counts.cities).toBe(2)
   })
 
   it('escapes XML rather than emitting a broken document', async () => {

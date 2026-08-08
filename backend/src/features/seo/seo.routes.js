@@ -5,6 +5,8 @@ import { metaForProperty } from './listingMeta.js'
 import { metaForLocality } from './localityMeta.js'
 import { metaForPost, metaForBlogIndex } from './blogMeta.js'
 import { getLocality, isPubliclyListed } from './locality.service.js'
+import { getCity } from './city.service.js'
+import { metaForCity } from './cityMeta.js'
 import { listPosts, getPost } from '../blog/blog.service.js'
 import { getPropertyById } from '../properties/properties.service.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
@@ -86,6 +88,17 @@ router.get('/property/:id', async (req, res, next) => {
     if (!property) return res.status(404).end()
 
     if (!(await sendWithHead(res, metaForProperty(property)))) res.status(404).end()
+  } catch (err) { next(err) }
+})
+
+// Registered BEFORE the two-segment locality route below. Express matches on
+// segment count so the order is not strictly required here — it is written this
+// way so the hierarchy reads top-down, city then area, the way the URLs nest.
+router.get('/rent/:citySlug', async (req, res, next) => {
+  try {
+    const city = await getCity(req.params.citySlug)
+    if (!city) return res.status(404).end()
+    if (!(await sendWithHead(res, metaForCity(city)))) res.status(404).end()
   } catch (err) { next(err) }
 })
 

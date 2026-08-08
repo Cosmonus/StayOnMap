@@ -16,11 +16,19 @@ export async function analytics(req, res, next) {
 export async function funnel(req, res, next) {
   try {
     const days = req.query.days ? Number(req.query.days) : undefined
-    const [funnelData, timeToPublish] = await Promise.all([
+    const [funnelData, seoFunnel, timeToPublish] = await Promise.all([
       productAnalytics.getFunnel({ days }),
+      // The same funnel, restricted to sessions that arrived on a search
+      // landing page. Returned ALONGSIDE rather than replacing it, and never
+      // as a toggle the caller has to know to flip: the interesting number is
+      // the DIFFERENCE between the two, and a reader who sees only one has no
+      // way to know whether organic traffic converts better or worse than
+      // everyone else. Its denominator is the arrival, not `map_view` — see
+      // getFunnel, where mixing those up would report rates above 100%.
+      productAnalytics.getFunnel({ days, segment: 'seo' }),
       productAnalytics.getTimeToPublish(),
     ])
-    ok(res, { funnel: funnelData, timeToPublish })
+    ok(res, { funnel: funnelData, seoFunnel, timeToPublish })
   } catch (err) { next(err) }
 }
 // Where demand went unmet. A third question again: /analytics counts what we

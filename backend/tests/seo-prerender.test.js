@@ -25,6 +25,8 @@ import { renderHead, SHELL_CSP } from '../src/features/seo/prerender.service.js'
 import { titleFor, descriptionFor, jsonLdFor, metaForProperty } from '../src/features/seo/listingMeta.js'
 import { slugify, listLocalities, getLocality } from '../src/features/seo/locality.service.js'
 import { metaForLocality } from '../src/features/seo/localityMeta.js'
+import { listCities, getCity } from '../src/features/seo/city.service.js'
+import { GraphRepository } from '../src/features/graph/repository.js'
 
 const TEMPLATE = `<!doctype html><html><head>
   <title>StayOnMap — Rent with intelligence.</title>
@@ -395,5 +397,185 @@ describe('query shapes match the real Prisma schema', () => {
     // "corrected" into passing by adding the field to the allowed set.
     expect(fieldsOf('User')).toContain('listingVisibility')
     expect(fieldsOf('Property')).not.toContain('listingVisibility')
+  })
+})
+
+/**
+ * Indexability of locality pages — 2026-08-08.
+ *
+ * Production had published these, and they were four of the nine live locality
+ * URLs:
+ *
+ *     /rent/chennai/opp-to-pk-store
+ *     /rent/chennai/ponnu-super-bazaar-avadi
+ *
+ * They exist because `Property.landmark` is free text and no listing had a
+ * resolved `localityId` yet. The gate is therefore on the QUALITY OF THE KEY,
+ * not on a listing count: a boundary-resolved ward with one listing is a place
+ * people search, and a stranger's typing with five is not.
+ */
+describe('locality pages are only offered to search engines when the AREA is real', () => {
+  const resolved = { id: 'loc1', name: 'Adyar', slug: 'adyar', citySlug: 'chennai' }
+
+  it('withholds a page whose slug came from owner free text', async () => {
+    prismaMock.property.findMany.mockResolvedValue([
+      { city: 'Chennai', landmark: 'opp to pk store', locality: null },
+      { city: 'Chennai', landmark: 'opp to pk store', locality: null },
+      { city: 'Chennai', landmark: 'opp to pk store', locality: null },
+    ])
+
+    const [page] = await listLocalities()
+    // Three listings is not the point and must never become the point.
+    expect(page.count).toBe(3)
+    expect(page.indexable).toBe(false)
+  })
+
+  it('indexes a boundary-resolved area even with a single listing', async () => {
+    prismaMock.property.findMany.mockResolvedValue([
+      { city: 'Chennai', landmark: null, locality: resolved },
+    ])
+
+    const [page] = await listLocalities()
+    expect(page).toMatchObject({ localitySlug: 'adyar', count: 1, indexable: true })
+  })
+
+  it('marks a withheld page noindex,follow — withheld from ranking, not from crawling', () => {
+    const meta = metaForLocality({
+      locality: 'Opp To Pk Store', city: 'Chennai', citySlug: 'chennai',
+      localitySlug: 'opp-to-pk-store', count: 3, medianRent: 20000,
+      properties: [], indexable: false,
+    })
+    expect(meta.noindex).toBe(true)
+
+    const html = renderHead(TEMPLATE, meta)
+    expect(html).toContain('content="noindex,follow"')
+  })
+
+  it('emits exactly ONE robots tag, so the shell default cannot contradict it', () => {
+    // The shell ships `index, follow`. Two robots tags in one document is
+    // resolved by Google as most-restrictive-wins, which would have made the
+    // noindex above work BY LUCK. Other crawlers choose differently.
+    const withRobots = TEMPLATE.replace(
+      '</head>',
+      '<meta name="robots" content="index,follow" /></head>',
+    )
+    const html = renderHead(withRobots, {
+      title: 'T', description: 'D', canonical: 'C', noindex: true,
+    })
+    expect(html.match(/<meta\s+name="robots"/gi)).toHaveLength(1)
+    expect(html).toContain('content="noindex,follow"')
+  })
+
+  it('states index,follow positively rather than relying on the default', () => {
+    const html = renderHead(TEMPLATE, { title: 'T', description: 'D', canonical: 'C' })
+    expect(html).toContain('content="index,follow"')
+  })
+})
+
+/**
+ * City landing pages — 2026-08-08.
+ *
+ * `/rent/chennai` replaced five `/properties?city=X` sitemap URLs. The intent
+ * behind those was right — a city with stock deserves an entry point — but a
+ * query parameter cannot be one, because `/properties` serves the same shell
+ * whatever the query says.
+ *
+ * The threshold here is on QUANTITY, unlike the locality gate, which is on the
+ * quality of the key. A city is always a real searchable place; the only
+ * question is whether we have enough to show a choice.
+ */
+describe('city pages', () => {
+  const inCity = (city) => ({ city })
+
+  it('offers a city with a real selection', async () => {
+    prismaMock.property.findMany.mockResolvedValue([
+      inCity('Chennai'), inCity('Chennai'), inCity('Chennai'),
+    ])
+    const [chennai] = await listCities()
+    expect(chennai).toMatchObject({ citySlug: 'chennai', count: 3, indexable: true })
+  })
+
+  it('withholds a city holding one listing — that is a listing, not a choice', async () => {
+    prismaMock.property.findMany.mockResolvedValue([inCity('Pune')])
+    const [pune] = await listCities()
+    expect(pune.count).toBe(1)
+    expect(pune.indexable).toBe(false)
+  })
+
+  it('404s a city with nothing in it rather than a page about no homes', async () => {
+    prismaMock.property.findMany.mockResolvedValue([])
+    expect(await getCity('chennai')).toBeNull()
+  })
+
+  it('puts the city between Rentals and the area in a locality breadcrumb', () => {
+    // The rung is only correct because /rent/:citySlug now exists. A breadcrumb
+    // to a page that does not is a 404 advertised in structured data.
+    const meta = metaForLocality({
+      locality: 'Adyar', city: 'Chennai', citySlug: 'chennai',
+      localitySlug: 'adyar', count: 2, medianRent: 20000,
+      properties: [], indexable: true,
+    })
+    const trail = meta.jsonLd.breadcrumb.itemListElement
+    expect(trail.map((c) => c.name)).toEqual(['Rentals', 'Chennai', 'Adyar'])
+    expect(trail[1].item).toBe('https://www.stayonmap.com/rent/chennai')
+    // Position must match visual order, or Google and the reader disagree.
+    expect(trail.map((c) => c.position)).toEqual([1, 2, 3])
+  })
+})
+
+/**
+ * Sideways linking — 2026-08-08.
+ *
+ * A locality page led UP to its city and DOWN to listings but never across, so
+ * somebody who liked the area and not the homes had nowhere to go but back.
+ * `GraphRepository.findRelatedAreas` already existed for this and had no
+ * consumer; graph.routes.js says as much.
+ */
+describe('similar areas never link somewhere that would 404', () => {
+  const resolved = { id: 'loc1', name: 'Adyar', slug: 'adyar', citySlug: 'chennai' }
+
+  beforeEach(() => {
+    prismaMock.property.findMany.mockResolvedValue([
+      { city: 'Chennai', landmark: null, locality: resolved },
+    ])
+  })
+
+  it('drops a related area that has no live page', async () => {
+    // Besant Nagar is a real Locality with a real SIMILAR_TO edge — and no
+    // ACTIVE listings today, so /rent/chennai/besant-nagar 404s. The graph
+    // cannot know that; the page set can, which is why they are intersected.
+    vi.spyOn(GraphRepository, 'findRelatedAreas').mockResolvedValue([
+      { id: 'ghost', name: 'Besant Nagar', slug: 'besant-nagar', citySlug: 'chennai' },
+    ])
+
+    const page = await getLocality('chennai', 'adyar')
+    expect(page.nearby).toEqual([])
+  })
+
+  it('keeps a related area that does have one', async () => {
+    prismaMock.property.findMany.mockResolvedValue([
+      { city: 'Chennai', landmark: null, locality: resolved },
+      { city: 'Chennai', landmark: null, locality: { id: 'loc2', name: 'Thiruvanmiyur', slug: 'thiruvanmiyur', citySlug: 'chennai' } },
+    ])
+    vi.spyOn(GraphRepository, 'findRelatedAreas').mockResolvedValue([
+      { id: 'loc2', name: 'Thiruvanmiyur', slug: 'thiruvanmiyur', citySlug: 'chennai' },
+    ])
+
+    const page = await getLocality('chennai', 'adyar')
+    expect(page.nearby).toEqual([
+      { locality: 'Thiruvanmiyur', localitySlug: 'thiruvanmiyur', citySlug: 'chennai' },
+    ])
+  })
+
+  it('asks the graph nothing for an unresolved, landmark-derived page', async () => {
+    // No localityId to join on, so there is no question to ask.
+    prismaMock.property.findMany.mockResolvedValue([
+      { city: 'Chennai', landmark: 'opp to pk store', locality: null },
+    ])
+    const spy = vi.spyOn(GraphRepository, 'findRelatedAreas')
+
+    const page = await getLocality('chennai', 'opp-to-pk-store')
+    expect(page.nearby).toEqual([])
+    expect(spy).not.toHaveBeenCalled()
   })
 })

@@ -14,6 +14,7 @@
 import { prisma } from '../../lib/prisma.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
 import { localityBySlug, slugify } from '../localities/resolve.js'
+import { GraphRepository } from '../graph/repository.js'
 
 /** "Anna Nagar" → "anna-nagar". Re-exported from features/localities so the
  *  entity and its URL cannot disagree about a slug — they were two copies of
@@ -75,9 +76,46 @@ export async function listLocalities() {
   }
 
   return [...groups.values()]
+    .map((g) => ({ ...g, indexable: isIndexable(g) }))
     // Biggest first — it is the order the sitemap and any future index page
     // both want, and it costs nothing here.
     .sort((a, b) => b.count - a.count)
+}
+
+/**
+ * Whether a locality page is worth putting in front of a search engine.
+ *
+ * THE RULE IS THE RESOLVER'S OWN, APPLIED ONE LAYER LATER: the map decides, not
+ * the typing. A page earns indexing when its area came from an OSM admin
+ * boundary — a ward, zone or municipality someone could actually search. A page
+ * whose slug came from `Property.landmark` is a stranger's typing turned into a
+ * URL, and on 2026-08-08 that had published, among others:
+ *
+ *     /rent/chennai/opp-to-pk-store
+ *     /rent/chennai/ponnu-super-bazaar-avadi
+ *
+ * Nobody searches those. They were four of the nine live locality URLs, and on a
+ * site with 55 indexable pages total they were spending real crawl budget.
+ *
+ * WHY NOT JUST RAISE THE COUNT. A count threshold would not have caught them —
+ * it is not a volume problem. "Opp to PK store" with five listings is still
+ * useless, and a boundary-resolved ward with one listing is still a place a
+ * person types into Google. Quality of the KEY is the thing that separates them,
+ * so that is what is measured.
+ *
+ * NON-INDEXABLE DOES NOT MEAN GONE. The page still resolves and still renders —
+ * internal links and anything already shared keep working. It is withheld from
+ * the sitemap and marked `noindex, follow`, which is the brief's own prescription
+ * for below-threshold pages.
+ *
+ * ⚠ TODAY THIS RETURNS FALSE FOR EVERY PAGE, and that is correct rather than
+ * broken: no production listing has a resolved `localityId` yet, because the
+ * resolver shipped 2026-08-07 and every listing predates it. The backfill in
+ * `docs/operator-actions.md` §1.6g is what brings real ward pages back. Publishing
+ * landmark slugs in the meantime is not a fallback, it is the bug.
+ */
+export function isIndexable(group) {
+  return group.localityId !== null
 }
 
 /**
@@ -124,13 +162,40 @@ export async function getLocality(citySlug, localitySlug) {
 
   const rents = properties.map((p) => Number(p.rent)).filter((n) => Number.isFinite(n) && n > 0)
 
+  // Sideways in the hierarchy: areas whose listings resemble this area's,
+  // via the graph's SIMILAR_TO edges. `GraphRepository.findRelatedAreas` already
+  // existed for exactly this — graph.routes.js notes it was left without a public
+  // route because it had no consumer. This page is the consumer.
+  //
+  // TWO FILTERS, and the second is the one that matters. Every result is a real
+  // `Locality` entity, so all of them pass the indexability rule by
+  // construction. But a Locality can exist with no ACTIVE listings TODAY, and
+  // its page would 404 — so the candidates are intersected with the live page
+  // set before any of them becomes a link. Linking to a 404 is worse than not
+  // linking.
+  //
+  // Returns [] until the §1.6g backfill runs: it joins on `Property.localityId`,
+  // which is null on every production row. Nothing renders, nothing breaks.
+  const nearby = match.localityId
+    ? (await GraphRepository.findRelatedAreas(match.localityId, { limit: 6 }))
+      .filter((n) => all.some((l) => l.localityId === n.id))
+      .map((n) => ({ locality: n.name, localitySlug: n.slug, citySlug: n.citySlug }))
+    : []
+
   // `localityId` is a grouping key, not part of the page's contract — dropped so
   // the public JSON keeps exactly the shape it had before the entity existed.
+  //
+  // `indexable` deliberately SURVIVES into both consumers (added 2026-08-08).
+  // The prerender route needs it to decide `noindex`, and exposing it on the
+  // public JSON is additive and honest — it is a true statement about the page,
+  // and the SEO health view will want to read it from the same place rather
+  // than re-deriving the rule and drifting from it.
   const { localityId: _localityId, ...page } = match
 
   return {
     ...page,
     properties,
+    nearby,
     // A median, not an average: one ₹4Cr plot in a street of ₹15k flats makes
     // an average meaningless, and this number is the page's headline fact.
     medianRent: rents.length ? median(rents) : null,
