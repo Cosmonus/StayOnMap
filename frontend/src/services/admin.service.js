@@ -23,7 +23,7 @@ export const adminService = {
   logs:          (params)       => adminApi.get('/admin/logs', { params }),
   // Supply, owner responsiveness and the conversation-to-tenancy chain. One
   // call because they are one screen — see features/analytics/marketplace.service.js.
-  marketplace:   ()             => adminApi.get('/admin/analytics/marketplace'),
+  marketplace:   (params)       => adminApi.get('/admin/analytics/marketplace', { params }),
   amenities:     ()             => adminApi.get('/admin/amenities'),
   addAmenity:    (name)         => adminApi.post('/admin/amenities', { name }),
   deleteAmenity: (id)           => adminApi.delete(`/admin/amenities/${id}`),

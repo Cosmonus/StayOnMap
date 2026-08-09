@@ -15,7 +15,7 @@ import { screen, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '@/test/render'
 
 const marketplace = vi.fn()
-vi.mock('@services/admin.service', () => ({ adminService: { marketplace: () => marketplace() } }))
+vi.mock('@services/admin.service', () => ({ adminService: { marketplace: (params) => marketplace(params) } }))
 
 const { default: SupplySection } = await import('./SupplySection')
 
@@ -156,7 +156,40 @@ describe('dead inventory', () => {
   })
 })
 
+describe('the time window', () => {
+  it('asks for 30 days until told otherwise', async () => {
+    await renderWith(EMPTY)
+    expect(marketplace).toHaveBeenCalledWith({ days: 30 })
+  })
+
+  it('refetches for the window the operator picked', async () => {
+    marketplace.mockResolvedValue({ data: EMPTY })
+    const { user } = renderWithProviders(<SupplySection />)
+    await screen.findByText('New listings by week')
+
+    await user.click(screen.getByRole('button', { name: '7 days' }))
+    await waitFor(() => expect(marketplace).toHaveBeenLastCalledWith({ days: 7 }))
+  })
+
+  it('marks the active window for assistive tech, not just visually', async () => {
+    // A segmented control that only differs by colour tells a screen reader
+    // nothing about which question is on screen.
+    await renderWith(EMPTY)
+    expect(await screen.findByRole('button', { name: '30 days' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '30 days' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('button', { name: '7 days' }).getAttribute('aria-pressed')).toBe('false')
+  })
+})
+
 describe('when the endpoint fails', () => {
+  it('keeps the window picker on screen while the first load is in flight', async () => {
+    // The moment you most want to try another window is when the screen is
+    // empty and you are wondering whether that is real.
+    marketplace.mockReturnValue(new Promise(() => {}))
+    renderWithProviders(<SupplySection />)
+    expect(await screen.findByRole('button', { name: '30 days' })).toBeTruthy()
+  })
+
   it('says so and offers a retry, rather than rendering empty cards', async () => {
     // The dangerous version of this failure is a screen full of zeroes that
     // looks like a working platform with no activity.
@@ -164,6 +197,8 @@ describe('when the endpoint fails', () => {
     renderWithProviders(<SupplySection />)
     expect(await screen.findByText(/Could not load supply metrics/i)).toBeTruthy()
     expect(screen.getByRole('button', { name: /try again/i })).toBeTruthy()
+    // And the picker survives the error, for the same reason.
+    expect(screen.getByRole('button', { name: '90 days' })).toBeTruthy()
     expect(screen.queryByText('Owner reply time')).toBeNull()
   })
 })

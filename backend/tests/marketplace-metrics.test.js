@@ -203,3 +203,32 @@ describe('getListingReadiness', () => {
     expect(res.worst.map((p) => p.id)).toEqual(['a', 'b'])
   })
 })
+
+describe('the days window on GET /admin/analytics/marketplace', () => {
+  it('clamps a hostile value instead of passing it through', async () => {
+    // `days` reaches three date-range queries, one of which scans a message
+    // log. An unbounded number from a query string is a way to make the admin
+    // panel slow from the address bar.
+    const controller = await import('../src/features/admin/admin.controller.js')
+    const res = { status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis() }
+    prismaMock.property.findMany.mockResolvedValue([])
+
+    await controller.marketplace({ query: { days: '99999' } }, res, vi.fn())
+
+    const body = res.json.mock.calls[0][0]
+    expect(body.data.drafts.days).toBe(365)
+    expect(body.data.responsiveness.days).toBe(365)
+  })
+
+  it('ignores a value that is not a positive number', async () => {
+    const controller = await import('../src/features/admin/admin.controller.js')
+    const res = { status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis() }
+    prismaMock.property.findMany.mockResolvedValue([])
+
+    await controller.marketplace({ query: { days: 'yesterday' } }, res, vi.fn())
+
+    // Falls back to each readout's own default rather than NaN, which would
+    // make every date comparison in the query silently false.
+    expect(res.json.mock.calls[0][0].data.responsiveness.days).toBe(30)
+  })
+})

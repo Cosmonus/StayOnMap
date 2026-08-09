@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { adminService } from '@services/admin.service'
 
 // The supply side, and the handshake.
@@ -288,22 +289,70 @@ function Readiness({ readiness: r }) {
   )
 }
 
+// Three windows, not a free-form date range. Each is a different question —
+// "is something wrong today", "how is this month going", "is the trend real" —
+// and a picker offering 43 days invites reading noise as signal at an inventory
+// this small.
+const WINDOWS = [
+  { days: 7, label: '7 days' },
+  { days: 30, label: '30 days' },
+  { days: 90, label: '90 days' },
+]
+
+function WindowPicker({ days, onPick }) {
+  return (
+    <div className="flex items-center gap-2 mb-5" role="group" aria-label="Time window">
+      {WINDOWS.map((w) => (
+        <button
+          key={w.days}
+          type="button"
+          onClick={() => onPick(w.days)}
+          aria-pressed={days === w.days}
+          className={[
+            'min-h-[44px] px-4 py-3 rounded-xl text-sm font-semibold border transition-all',
+            days === w.days
+              ? 'bg-brand-600 text-white border-brand-600'
+              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50',
+          ].join(' ')}
+        >
+          {w.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function SupplySection() {
+  const [days, setDays] = useState(30)
+
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['admin-marketplace'],
-    queryFn: () => adminService.marketplace().then((r) => r.data),
+    queryKey: ['admin-marketplace', days],
+    queryFn: () => adminService.marketplace({ days }).then((r) => r.data),
+    // The cards stay on screen while a new window loads. Without this the whole
+    // panel flips to skeletons on every click, which reads as slower than it is
+    // and loses the number you were comparing against.
+    placeholderData: keepPreviousData,
   })
 
+  // The picker renders in EVERY state, including the first load and the error.
+  // A control that appears only on success means the one moment you most want
+  // to try a different window — the screen is empty and you are wondering
+  // whether that is real — is the moment it is not there.
   if (isLoading) {
     return (
-      <div className="grid gap-5 lg:grid-cols-2">
-        {[0, 1, 2, 3].map((i) => <div key={i} className="h-64 bg-slate-100 rounded-2xl animate-pulse" />)}
-      </div>
+      <>
+        <WindowPicker days={days} onPick={setDays} />
+        <div className="grid gap-5 lg:grid-cols-2">
+          {[0, 1, 2, 3].map((i) => <div key={i} className="h-64 bg-slate-100 rounded-2xl animate-pulse" />)}
+        </div>
+      </>
     )
   }
 
   if (isError) {
     return (
+      <>
+      <WindowPicker days={days} onPick={setDays} />
       <div className="rounded-2xl border border-slate-200 bg-white p-5">
         <p className="text-sm text-slate-600">Could not load supply metrics.</p>
         <button
@@ -313,17 +362,21 @@ export default function SupplySection() {
           Try again
         </button>
       </div>
+      </>
     )
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
+    <>
+      <WindowPicker days={days} onPick={setDays} />
+      <div className="grid gap-5 lg:grid-cols-2">
       <SupplyTrend supply={data.supply} />
       <DraftFunnel drafts={data.drafts} />
       <Responsiveness responsiveness={data.responsiveness} />
       <MatchChain chain={data.chain} />
       <DeadInventory dead={data.dead} />
       <Readiness readiness={data.readiness} />
-    </div>
+      </div>
+    </>
   )
 }

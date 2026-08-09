@@ -50,12 +50,25 @@ export async function demand(req, res, next) {
 // would be four requests to render a single section.
 export async function marketplace(req, res, next) {
   try {
+    // Clamped, not trusted. `days` reaches three date-range queries and one of
+    // them scans a message log; an unbounded value from a query string is a way
+    // to make the admin panel slow from the address bar. 365 is a year, which is
+    // more history than any of these readouts can honestly claim anyway.
+    const raw = Number(req.query.days)
+    const days = Number.isFinite(raw) && raw > 0 ? Math.min(365, Math.round(raw)) : undefined
+
     const [drafts, responsiveness, chain, supply, dead, readiness] = await Promise.all([
-      marketplaceMetrics.getDraftFunnel(),
-      marketplaceMetrics.getOwnerResponsiveness(),
-      marketplaceMetrics.getMatchChain(),
+      marketplaceMetrics.getDraftFunnel(days ? { days } : {}),
+      marketplaceMetrics.getOwnerResponsiveness(days ? { days } : {}),
+      marketplaceMetrics.getMatchChain(days ? { days } : {}),
+      // NOT windowed by `days`. The trend is in WEEKS and answers a different
+      // question — "is supply growing" needs a run of weeks, and squeezing it
+      // into a 7-day view would show one bar and call it a trend.
       marketplaceMetrics.getSupplyTrend(),
-      marketplaceMetrics.getDeadInventory(),
+      marketplaceMetrics.getDeadInventory(days ? { days } : {}),
+      // No window at all: readiness is a snapshot of what is live RIGHT NOW.
+      // A listing with no photos does not become acceptable because it was
+      // published outside the window somebody happened to pick.
       marketplaceMetrics.getListingReadiness(),
     ])
     ok(res, { drafts, responsiveness, chain, supply, dead, readiness })
