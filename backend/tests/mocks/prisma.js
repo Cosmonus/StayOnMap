@@ -127,6 +127,15 @@ export const prismaMock = {
   // Append-only status log — supply measured net. Defaults resolve, because
   // every writer is fire-and-forget and an unmocked reject would surface as an
   // unhandled rejection in whichever suite happened to publish a listing.
+  // Platform operators — a separate table and a separate JWT secret from User
+  // (see .claude/auth.md). findFirst, not findUnique: admin sign-in matches the
+  // address case-insensitively.
+  admin: {
+    findFirst:  vi.fn().mockResolvedValue(null),
+    findUnique: vi.fn(),
+    update:     vi.fn(),
+    upsert:     vi.fn(),
+  },
   propertyStatusEvent: {
     create:     vi.fn().mockResolvedValue({}),
     createMany: vi.fn().mockResolvedValue({ count: 0 }),

@@ -2,7 +2,11 @@ import { z } from 'zod'
 import { filterQueryShape, ADMIN_FILTERS } from '../properties/filters.registry.js'
 
 export const adminLoginSchema = z.object({
-  email: z.string().email(),
+  // Trimmed here as well as in the service — a pasted email with a trailing
+  // space is the common case, and it should never reach a lookup at all.
+  // NOT lowercased: the stored address may legitimately carry capitals, so the
+  // case-insensitive match lives in adminLogin() instead.
+  email: z.string().trim().email(),
   password: z.string().min(8),
 })
 

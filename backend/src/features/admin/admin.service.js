@@ -16,7 +16,23 @@ import { notifyUser } from '../notifications/notifications.service.js'
 import { refreshSimilarityWithNeighbours } from '../graph/similarity.js'
 
 export async function adminLogin(email, password) {
-  const admin = await prisma.admin.findUnique({ where: { email } })
+  // findFirst + insensitive, NOT findUnique on the raw string.
+  //
+  // User login has normalised its email (`trim().toLowerCase()` in
+  // auth.validation.js) since it was written; admin login never did, and
+  // `findUnique` is exact-match. So a mobile keyboard autocapitalising the
+  // first letter, or a trailing space from a paste, returned "Invalid
+  // credentials" against a perfectly correct password — indistinguishable
+  // from a wrong one, because this function deliberately gives both the same
+  // answer.
+  //
+  // Matched case-insensitively rather than lowercasing the input, because
+  // neither prisma/seed.js nor scripts/update-admin.js normalises what it
+  // STORES: an account created with a capital in it would be locked out by the
+  // other fix. `Admin.email` is @unique, so there is no ambiguity to resolve.
+  const admin = await prisma.admin.findFirst({
+    where: { email: { equals: email.trim(), mode: 'insensitive' } },
+  })
   if (!admin) throw Object.assign(new Error('Invalid credentials'), { statusCode: 401 })
   const valid = await bcrypt.compare(password, admin.passwordHash)
   if (!valid) throw Object.assign(new Error('Invalid credentials'), { statusCode: 401 })
