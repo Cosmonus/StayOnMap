@@ -3,6 +3,7 @@ import * as phone from './phone.service.js'
 import * as sessions from './session.service.js'
 import * as oauth from './oauth.service.js'
 import { enabledProviders } from './oauth.providers.js'
+import { smsConfigured } from '../../lib/smsSender.js'
 import { env } from '../../config/env.js'
 import { ok, created } from '../../utils/response.js'
 import { missingProfileFields } from '../../middlewares/requireCompleteProfile.middleware.js'
@@ -144,6 +145,18 @@ export async function revokeSession(req, res, next) {
 
 export function oauthProviders(req, res) {
   ok(res, enabledProviders())
+}
+
+/**
+ * Which sign-in methods this deployment can actually offer.
+ *
+ * Only SMS is conditional — email and password are always available, and OAuth
+ * has had its own list since it shipped. Separate from that list rather than
+ * folded into it: released mobile builds read `/oauth/providers` as an array,
+ * so its shape is not ours to change.
+ */
+export function signInMethods(req, res) {
+  ok(res, { sms: smsConfigured() })
 }
 
 export async function oauthStart(req, res, next) {

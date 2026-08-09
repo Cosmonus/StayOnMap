@@ -26,6 +26,10 @@ export const authService = {
   getSessions: () => api.get('/auth/sessions'),
   revokeSession: (id) => api.delete(`/auth/sessions/${id}`),
 
+  // What this deployment offers — { sms }. SMS costs money per message, so a
+  // deployment without a provider draws no SMS button at all.
+  getSignInMethods: () => api.get('/auth/methods'),
+
   // Social login. Sign-in itself is a system-browser navigation (see
   // SocialLoginButtons) — these are the XHR halves of the flow.
   getOAuthProviders: () => api.get('/auth/oauth/providers'),

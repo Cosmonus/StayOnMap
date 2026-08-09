@@ -33,6 +33,10 @@ export const authService = {
   getSessions: () => api.get('/auth/sessions'),
   revokeSession: (id) => api.delete(`/auth/sessions/${id}`),
 
+  // What this deployment offers — { sms }. SMS costs money per message, so a
+  // deployment without a provider draws no SMS button at all.
+  getSignInMethods: () => api.get('/auth/methods'),
+
   // Social login — GET /auth/oauth/:provider is a plain browser navigation,
   // not an XHR (the provider redirect chain can't run through axios).
   getOAuthProviders: () => api.get('/auth/oauth/providers'),

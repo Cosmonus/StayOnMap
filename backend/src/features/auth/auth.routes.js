@@ -37,6 +37,11 @@ router.post('/send-verification', strictLimiter, authMiddleware, controller.send
 router.post('/phone/request', strictLimiter, authMiddleware, validate(requestPhoneCodeSchema), controller.requestPhoneCode)
 router.post('/phone/verify',  strictLimiter, authMiddleware, validate(verifyPhoneCodeSchema),  controller.verifyPhoneCode)
 
+// What this deployment can offer. PUBLIC — the login screen reads it before
+// anyone has a session, which is exactly when it must decide whether to draw
+// an SMS button. Same "no dead buttons" rule as the OAuth provider list.
+router.get('/methods', controller.signInMethods)
+
 // Signing IN by SMS. PUBLIC, unlike the two above — there is no session yet.
 // strictLimiter plus phone.service.js's cooldown and two daily caps; and the
 // service will only ever text a number somebody has already VERIFIED, so this
