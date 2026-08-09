@@ -50,7 +50,27 @@ describe('loginOtpEmail', () => {
     expect(loginOtpEmail({ name: 'A', code: '1', ttlMinutes: 7 }).html).toContain('7 minutes')
   })
 
-  it('still says the account is safe if they did not ask for it', () => {
-    expect(mail().html).toMatch(/didn't try to sign in/)
+  it('still reassures someone who did not ask for it', () => {
+    // The wording is allowed to change; the reassurance is not. An OTP arriving
+    // unrequested is alarming, and "ignore it, your account is not reachable
+    // with this alone" is the whole job of that paragraph.
+    const { html } = mail()
+    expect(html).toMatch(/wasn't you/i)
+    expect(html).toMatch(/ignore/i)
+  })
+
+  it('renders through the shared layout — wordmark, panel, company footer', () => {
+    const { html } = mail()
+    expect(html).toContain('OnMap')                       // the text wordmark
+    expect(html).toContain('Cosmonus Pvt Ltd')            // postal address
+    expect(html).toContain('Gandhi Nagar, Avadi, Chennai 600054')
+    expect(html).toMatch(/Please verify your identity, Asha/)
+  })
+
+  it('states the REAL expiry, never a hardcoded one', () => {
+    // auth.service.js sends 10. A literal "15" in the template would promise
+    // time the code does not have and produce "it said it was valid" tickets.
+    expect(mail().html).toContain('10 minutes')
+    expect(mail().html).not.toContain('15 minutes')
   })
 })
