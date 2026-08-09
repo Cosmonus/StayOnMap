@@ -5,7 +5,9 @@ import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { sendEmail, adminPasswordChangedEmail } from '../../services/email.service.js'
 import { mailStatus } from '../../lib/mailer.js'
 import { smsStatus } from '../../lib/smsSender.js'
+import { errorStatus } from '../../lib/errorLog.js'
 import { ADMIN_FILTERS, buildFilterWhere } from '../properties/filters.registry.js'
+import { firstPublishStamp } from '../properties/publishedAt.js'
 import { parseBounds, boundsFilter } from '../../utils/geo.js'
 import { getContext, STATUS_FAILED } from '../spatial/spatial.service.js'
 import { intelError } from '../../lib/intelLog.js'
@@ -104,11 +106,26 @@ export async function listWaitlist({ page = 1, limit = 20 }) {
   const pageNum  = Math.max(1, parseInt(page, 10)  || 1)
   const limitNum = Math.min(100, parseInt(limit, 10) || 20)
   const skip = (pageNum - 1) * limitNum
-  const [entries, total] = await Promise.all([
+  const [entries, total, byCityRaw] = await Promise.all([
     prisma.waitlistEntry.findMany({ skip, take: limitNum, orderBy: { createdAt: 'desc' } }),
     prisma.waitlistEntry.count(),
+    // Over EVERY row, never the page. This is the answer to "which city do we
+    // open next", and a rollup of whichever twenty entries happen to be on
+    // screen would answer a different question that looks identical.
+    prisma.waitlistEntry.groupBy({
+      by: ['city'],
+      _count: { _all: true },
+      _max: { createdAt: true },
+      orderBy: { _count: { city: 'desc' } },
+    }),
   ])
-  return { entries, total, page: pageNum, limit: limitNum }
+  return {
+    entries,
+    total,
+    page: pageNum,
+    limit: limitNum,
+    byCity: byCityRaw.map((r) => ({ city: r.city, count: r._count._all, lastSignup: r._max.createdAt })),
+  }
 }
 
 export async function listUsers({ search, isBlocked, page = 1, limit = 20 }) {
@@ -381,7 +398,7 @@ const MODERATION_MESSAGE = {
 export async function setPropertyStatus(propertyId, status, note, adminId) {
   const current = await prisma.property.findUnique({
     where: { id: propertyId },
-    select: { id: true, status: true, title: true, ownerId: true },
+    select: { id: true, status: true, title: true, ownerId: true, publishedAt: true },
   })
   if (!current) throw Object.assign(new Error('Property not found'), { statusCode: 404 })
 
@@ -395,7 +412,12 @@ export async function setPropertyStatus(propertyId, status, note, adminId) {
     )
   }
 
-  const property = await prisma.property.update({ where: { id: propertyId }, data: { status } })
+  // Approval is the moment a renter can first see this — see publishedAt.js
+  // for why that is not `createdAt` and why it is written only once.
+  const property = await prisma.property.update({
+    where: { id: propertyId },
+    data: { status, ...firstPublishStamp(current, status) },
+  })
 
   // Becoming ACTIVE is the moment a listing enters the recommendable set, so it
   // is where the SIMILAR_TO edges have to be built — in BOTH directions, or the
@@ -435,24 +457,50 @@ export async function setPropertyStatus(propertyId, status, note, adminId) {
   return property
 }
 
-export async function getModerationQueue() {
-  const [criticalReports, pendingVerifications, highRiskProps] = await Promise.all([
-    prisma.propertyReport.findMany({ where: { status: 'PENDING' }, include: { property: { select: { id: true, title: true, city: true } } }, orderBy: { severity: 'asc' }, take: 20 }),
-    prisma.ownershipVerification.findMany({ where: { status: { in: ['PENDING', 'UNDER_REVIEW'] } }, include: { property: { select: { id: true, title: true, city: true } }, documents: true }, take: 20 }),
-    prisma.propertyRiskScore.findMany({ where: { level: { in: ['HIGH', 'SUSPICIOUS'] } }, include: { property: { select: { id: true, title: true, city: true, status: true } } }, orderBy: { score: 'desc' }, take: 20 }),
-  ])
-  return { criticalReports, pendingVerifications, highRiskProps }
-}
+// getModerationQueue() was DELETED 2026-08-10, along with its route and its
+// frontend service method. It returned pending reports + pending verifications
+// + high-risk listings, capped at 20 each and carrying no action — three
+// read-only lists, each a worse version of a section that already exists
+// (Reports, Verifications, and the properties map filtered by riskLevel, all of
+// which can actually resolve the thing they show).
+//
+// Nothing had ever called it. Wiring it up would have added a fourth place the
+// same rows appear and a fourth place to keep in step; the counts that make a
+// queue useful — open reports, criticals, pending verifications — are already
+// on Overview. Deleted rather than surfaced, and recorded here because "why is
+// there no combined queue" is a reasonable question to ask twice.
 
-export async function listActivityLogs({ userId, action, page = 1, limit = 50 }) {
+// The moderation audit trail: who did what to whom, and when.
+//
+// ⚠ This function was written to read `userId` and include `user`, and EVERY
+// writer sets `adminId` — all three of them, in this file. So it returned rows
+// whose actor was always null and could not be filtered by the person who
+// acted. It was never noticed because nothing rendered it (found 2026-08-10),
+// which is the argument for surfacing a query rather than leaving it built and
+// unread: an unread query is not "working", it is untested.
+//
+// `userId` stays supported because the column is real and nullable — an
+// automated or user-initiated action could log against it later — but `admin`
+// is now selected and filterable, because that is who is actually in there.
+export async function listActivityLogs({ userId, adminId, action, page = 1, limit = 50 }) {
   const pageNum  = Math.max(1, parseInt(page, 10)  || 1)
   const limitNum = Math.min(100, parseInt(limit, 10) || 50)
   const where = {}
   if (userId) where.userId = userId
+  if (adminId) where.adminId = adminId
   if (action) where.action = { contains: action, mode: 'insensitive' }
   const skip = (pageNum - 1) * limitNum
   const [logs, total] = await Promise.all([
-    prisma.activityLog.findMany({ where, skip, take: limitNum, orderBy: { createdAt: 'desc' }, include: { user: { select: { id: true, name: true, email: true } } } }),
+    prisma.activityLog.findMany({
+      where,
+      skip,
+      take: limitNum,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user:  { select: { id: true, name: true, email: true } },
+        admin: { select: { id: true, name: true, email: true } },
+      },
+    }),
     prisma.activityLog.count({ where }),
   ])
   return { logs, total, page: pageNum, limit: limitNum }
@@ -564,6 +612,12 @@ export async function getMonitorStatus() {
       verifications: pendingVerifications,
     },
     dbStatus,
+    // Server faults, from the in-memory ring in lib/errorLog.js. Nothing else
+    // in this panel could distinguish a broken deploy from a quiet afternoon —
+    // SENTRY_DSN is unset and the only record was journalctl on the box. Its
+    // limits are stated in the readout rather than implied: it resets on
+    // restart and holds the newest 50.
+    errors: errorStatus(),
     system: {
       aiProvider:   process.env.AI_PROVIDER ?? 'stub',
       redisEnabled: !!process.env.REDIS_URL,

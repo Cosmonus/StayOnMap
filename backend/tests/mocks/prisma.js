@@ -99,6 +99,7 @@ export const prismaMock = {
     findMany:   vi.fn(),
     create:     vi.fn(),
     update:     vi.fn(),
+    count:      vi.fn().mockResolvedValue(0),
   },
   // Host dashboard surfaces (features/host/host.service.js)
   communityReview: {
@@ -110,6 +111,7 @@ export const prismaMock = {
   },
   listingDraft: {
     findUnique: vi.fn(),
+    findMany:   vi.fn().mockResolvedValue([]),
     upsert:     vi.fn(),
     deleteMany: vi.fn(),
   },
@@ -124,6 +126,7 @@ export const prismaMock = {
   },
   propertyDailyView: {
     aggregate: vi.fn(),
+    groupBy:   vi.fn().mockResolvedValue([]),
     upsert:    vi.fn(),
   },
   propertyViewer: {
@@ -201,6 +204,8 @@ export const prismaMock = {
     findMany:   vi.fn(),
     create:     vi.fn(),
     update:     vi.fn(),
+    count:      vi.fn().mockResolvedValue(0),
+    groupBy:    vi.fn().mockResolvedValue([]),
   },
   // User-to-user blocking. The defaults are "nobody has blocked anybody", which
   // is every existing test's world — chat.service now consults these on every
@@ -259,6 +264,11 @@ export const prismaMock = {
     update:     vi.fn().mockResolvedValue({}),
     updateMany: vi.fn().mockResolvedValue({ count: 0 }),
   },
+  // Raw SQL. Defaults to no rows, which is what an empty database returns —
+  // the marketplace metrics read owner reply times and the weekly supply
+  // series this way, and an unmocked call would reject rather than come back
+  // empty, failing every unrelated suite that touches the admin controller.
+  $queryRaw: vi.fn().mockResolvedValue([]),
   // Supports both Prisma $transaction forms: array-of-promises (lease.service.js)
   // and callback (properties.service.js) — real Prisma treats them differently,
   // but for mocking purposes both just need to resolve in order.

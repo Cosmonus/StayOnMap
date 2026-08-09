@@ -1,4 +1,5 @@
 // Global Express error handler — must be registered last in index.js
+import { recordServerError } from '../lib/errorLog.js'
 
 const isProd = process.env.NODE_ENV === 'production'
 
@@ -41,7 +42,7 @@ const PRISMA_MESSAGE = {
   P2003: 'Invalid reference',
 }
 
-export function errorMiddleware(err, _req, res, _next) {
+export function errorMiddleware(err, req, res, _next) {
   console.error(err)
 
   let status = err.statusCode || err.status || 500
@@ -83,6 +84,21 @@ export function errorMiddleware(err, _req, res, _next) {
   const code = status < 500 || !isProd || err.expose
     ? (err.code || DEFAULT_CODE[status] || (status < 500 ? 'REQUEST_ERROR' : 'INTERNAL_ERROR'))
     : 'INTERNAL_ERROR'
+
+  // Recorded AFTER the status is finalised, so a Prisma P2025 that is really a
+  // 404 does not show up as a server fault — and only 5xx, because a 401 or a
+  // 404 is the caller's business, not a symptom. The UNSANITISED message is
+  // kept: this is an admin-only triage list, and 'Internal server error' fifty
+  // times over is exactly the readout that made journalctl necessary.
+  if (status >= 500) {
+    recordServerError({
+      status,
+      code: err.code,
+      message: err.message,
+      path: req?.originalUrl ?? req?.url,
+      method: req?.method,
+    })
+  }
 
   res.status(status).json({
     success: false,

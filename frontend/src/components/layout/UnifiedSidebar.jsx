@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   LayoutDashboard, MapPin, Building2, Heart, MessageCircle, Calendar, Bell,
   Settings, LifeBuoy, FileText, LogOut, CircleHelp,
-  ClipboardCheck, Users, TriangleAlert, Star, BarChart3,
+  ClipboardCheck, Users, TriangleAlert, Star, BarChart3, TrendingUp, ScrollText,
   ChevronsUpDown, PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react'
 
@@ -27,6 +27,8 @@ const ICONS = {
   reports: TriangleAlert,
   reviews: Star,
   monitor: BarChart3,
+  supply: TrendingUp,
+  activity: ScrollText,
 }
 
 const USER_NAV = [
@@ -42,6 +44,7 @@ const USER_NAV = [
 
 const ADMIN_NAV = [
   { id: 'overview',        label: 'Dashboard',       icon: 'overview' },
+  { id: 'supply',          label: 'Supply',           icon: 'supply' },
   { id: 'admin-properties',label: 'All Properties',   icon: 'properties' },
   { id: 'review-listings', label: 'Review Listings',  icon: 'queue' },
   { id: 'users',           label: 'Users',            icon: 'users' },
@@ -50,6 +53,7 @@ const ADMIN_NAV = [
   { id: 'reviews',         label: 'Reviews',          icon: 'reviews' },
   { id: 'verifications',   label: 'Verifications',    icon: 'queue' },
   { id: 'monitor',         label: 'System Monitor',   icon: 'monitor' },
+  { id: 'activity',        label: 'Activity Log',     icon: 'activity' },
 ]
 
 const ADMIN_BOTTOM_NAV = [

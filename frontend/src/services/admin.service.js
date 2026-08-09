@@ -20,8 +20,10 @@ export const adminService = {
   propertyById:  (id)           => adminApi.get(`/admin/properties/${id}`),
   pins:          (params)       => adminApi.get('/admin/properties/pins', { params }),
   setPropertyStatus: (id, data) => adminApi.patch(`/admin/properties/${id}/status`, data),
-  moderationQueue:  ()          => adminApi.get('/admin/moderation/queue'),
   logs:          (params)       => adminApi.get('/admin/logs', { params }),
+  // Supply, owner responsiveness and the conversation-to-tenancy chain. One
+  // call because they are one screen — see features/analytics/marketplace.service.js.
+  marketplace:   ()             => adminApi.get('/admin/analytics/marketplace'),
   amenities:     ()             => adminApi.get('/admin/amenities'),
   addAmenity:    (name)         => adminApi.post('/admin/amenities', { name }),
   deleteAmenity: (id)           => adminApi.delete(`/admin/amenities/${id}`),
