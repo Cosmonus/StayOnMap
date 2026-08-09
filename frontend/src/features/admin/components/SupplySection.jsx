@@ -161,12 +161,13 @@ function MatchChain({ chain }) {
 }
 
 function SupplyTrend({ supply }) {
-  const max = Math.max(1, ...supply.series.map((w) => Math.max(w.created, w.published)))
+  const max = Math.max(1, ...supply.series.map((w) => Math.max(w.created, w.published, w.left ?? 0)))
+  const netTotal = supply.series.reduce((n, w) => n + (w.net ?? 0), 0)
   return (
     <Card
       title="New listings by week"
       right={`last ${supply.weeks} weeks`}
-      hint="Two lines on purpose: started is when an owner began typing, live is when a renter could first see it."
+      hint="Three bars on purpose: started is when an owner began typing, live is when a renter could first see it, and left is a listing rented, paused or removed."
     >
       {supply.series.length === 0 ? (
         <Empty>No listings created in this window.</Empty>
@@ -174,9 +175,14 @@ function SupplyTrend({ supply }) {
         <>
           <div className="flex items-end gap-1.5 h-32">
             {supply.series.map((w) => (
-              <div key={w.week} className="flex-1 flex flex-col justify-end gap-0.5" title={`${w.week}: ${w.created} started, ${w.published} live`}>
+              <div
+                key={w.week}
+                className="flex-1 flex flex-col justify-end gap-0.5"
+                title={`${w.week}: ${w.created} started, ${w.published} live, ${w.left ?? 0} left — net ${w.net >= 0 ? '+' : ''}${w.net ?? 0}`}
+              >
                 <div className="rounded-t bg-brand-500" style={{ height: `${(w.created / max) * 100}%` }} />
-                <div className="rounded-b bg-slate-300" style={{ height: `${(w.published / max) * 100}%` }} />
+                <div className="bg-slate-300" style={{ height: `${(w.published / max) * 100}%` }} />
+                <div className="rounded-b bg-red-300" style={{ height: `${((w.left ?? 0) / max) * 100}%` }} />
               </div>
             ))}
           </div>
@@ -187,7 +193,16 @@ function SupplyTrend({ supply }) {
             <span className="flex items-center gap-2 text-xs text-slate-600">
               <span className="w-3 h-3 rounded bg-slate-300" aria-hidden="true" /> went live
             </span>
+            <span className="flex items-center gap-2 text-xs text-slate-600">
+              <span className="w-3 h-3 rounded bg-red-300" aria-hidden="true" /> left the market
+            </span>
           </div>
+          {/* Net alongside its parts, never instead of them: zero from 8 in and
+              8 out is a different business from zero from nothing happening. */}
+          <p className="text-sm text-slate-800 mt-4">
+            Net <span className="font-mono font-semibold">{netTotal >= 0 ? '+' : ''}{netTotal}</span> live
+            listings over {supply.weeks} weeks
+          </p>
           {/* Said out loud rather than left as a flat line somebody reads as
               "we published nothing before August". */}
           <p className="text-xs text-slate-500 mt-3">

@@ -787,6 +787,7 @@ model Property {
 
   // Relations
   images             PropertyImage[]
+  statusEvents       PropertyStatusEvent[]
   amenities          PropertyAmenity[]
   rules              PropertyRule?
   appointments       Appointment[]
@@ -875,6 +876,25 @@ model Property {
 //
 // Not one row per view event: a listing with real traffic would generate
 // millions of rows to answer a question that only ever needs daily totals.
+// Every status change a listing goes through — the log that makes supply
+// measurable NET rather than gross. `Property.status` overwrites itself, so
+// without this the evidence that a listing was ever ACTIVE disappears the
+// moment it rents. Append-only; `actor` is coarse (owner/admin/system) and
+// never a user id — who acted is ActivityLog's job, this table is for counting.
+model PropertyStatusEvent {
+  id         String          @id @default(cuid())
+  property   Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+  fromStatus PropertyStatus?
+  toStatus   PropertyStatus
+  actor      String          @default("system")
+  createdAt  DateTime        @default(now())
+
+  @@index([propertyId, createdAt])
+  @@index([createdAt])
+  @@index([toStatus, createdAt])
+}
+
 model PropertyDailyView {
   id         String   @id @default(cuid())
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)

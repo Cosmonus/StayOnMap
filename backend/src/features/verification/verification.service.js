@@ -3,6 +3,7 @@ import { recalculateRiskScore } from '../trust/trust.service.js'
 import { notifyUser } from '../notifications/notifications.service.js'
 import { compareAddresses } from './addressMatch.js'
 import { firstPublishStamp } from '../properties/publishedAt.js'
+import { recordStatusChange } from '../properties/statusEvents.js'
 
 export async function submitVerification(ownerId, propertyId, { documentAddress } = {}) {
   const property = await prisma.property.findUnique({ where: { id: propertyId, ownerId } })
@@ -79,6 +80,7 @@ export async function adminReviewVerification(verificationId, adminId, { status,
         where: { id: verification.propertyId },
         data: { status: 'ACTIVE', ...firstPublishStamp(property, 'ACTIVE') },
       })
+      recordStatusChange({ propertyId: verification.propertyId, from: property.status, to: 'ACTIVE', actor: 'admin' })
     }
   }
   const property = await prisma.property.findUnique({ where: { id: verification.propertyId }, select: { title: true } })

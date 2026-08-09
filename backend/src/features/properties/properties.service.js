@@ -6,6 +6,7 @@ import { getContext, ensureContextForProperty, STATUS_FAILED } from '../spatial/
 import { generatePropertyDisplayId } from '../../utils/idGenerator.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { intelError } from '../../lib/intelLog.js'
+import { recordStatusChange } from './statusEvents.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
 import { cityMismatch } from '../../config/cityCenters.js'
 import { buildFilterWhere, filterCacheKey } from './filters.registry.js'
@@ -614,6 +615,7 @@ export async function publishProperty(id, ownerId) {
     throw Object.assign(new Error('Only draft or rejected properties can be submitted for review'), { statusCode: 400 })
   }
   const updated = await prisma.property.update({ where: { id }, data: { status: 'PENDING', submittedAt: new Date() } })
+  recordStatusChange({ propertyId: id, from: property.status, to: 'PENDING', actor: 'owner' })
 
   // Fire-and-forget: re-evaluate at submission so the admin moderation queue
   // sees a current risk score, not the one from draft creation time
@@ -662,6 +664,7 @@ export async function toggleStatus(id, ownerId) {
     throw Object.assign(new Error('Only active or inactive listings can be toggled'), { statusCode: 400 })
   }
   const next = prop.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+  recordStatusChange({ propertyId: id, from: prop.status, to: next, actor: 'owner' })
   return prisma.property.update({ where: { id }, data: { status: next } })
 }
 
@@ -774,6 +777,7 @@ export async function markTenant(propertyId, ownerId, tenantId) {
   const tenant = await prisma.user.findUnique({ where: { id: tenantId }, select: { id: true } })
   if (!tenant) throw Object.assign(new Error('User not found'), { statusCode: 404 })
 
+  recordStatusChange({ propertyId, from: property.status, to: 'OCCUPIED', actor: 'owner' })
   return prisma.property.update({
     where: { id: propertyId },
     data: { status: 'OCCUPIED', currentTenantId: tenantId, occupiedSince: new Date() },
@@ -823,6 +827,7 @@ export async function vacateProperty(propertyId, ownerId) {
   if (!property) throw Object.assign(new Error('Property not found or access denied'), { statusCode: 404 })
   if (property.status !== 'OCCUPIED') throw Object.assign(new Error('Property is not currently occupied'), { statusCode: 400 })
 
+  recordStatusChange({ propertyId, from: property.status, to: 'ACTIVE', actor: 'owner' })
   // The third door into ACTIVE, and the one that deliberately does NOT stamp
   // publishedAt: a tenant moving out makes this listing available again, not
   // new. firstPublishStamp() refuses an OCCUPIED origin for exactly this case —

@@ -124,6 +124,15 @@ export const prismaMock = {
     findMany:   vi.fn().mockResolvedValue([]),
     deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
   },
+  // Append-only status log — supply measured net. Defaults resolve, because
+  // every writer is fire-and-forget and an unmocked reject would surface as an
+  // unhandled rejection in whichever suite happened to publish a listing.
+  propertyStatusEvent: {
+    create:     vi.fn().mockResolvedValue({}),
+    createMany: vi.fn().mockResolvedValue({ count: 0 }),
+    findMany:   vi.fn().mockResolvedValue([]),
+    groupBy:    vi.fn().mockResolvedValue([]),
+  },
   propertyDailyView: {
     aggregate: vi.fn(),
     groupBy:   vi.fn().mockResolvedValue([]),

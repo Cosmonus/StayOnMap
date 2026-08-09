@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma.js'
+import { recordStatusChange } from '../properties/statusEvents.js'
 import { recalculateRiskScore } from '../trust/trust.service.js'
 import { notifyUser } from '../notifications/notifications.service.js'
 
@@ -25,7 +26,12 @@ export async function submitReport(reporterId, propertyId, data) {
         distinct: ['reporterId'],
       })
       if (corroborating.length >= MIN_DISTINCT_REPORTERS_TO_SUSPEND) {
+        // Re-read rather than trusting the caller: auto-suspension can fire on
+        // a listing in any status, and logging a `from` we assumed would put a
+        // transition in the chart that never happened.
+        const before = await prisma.property.findUnique({ where: { id: propertyId }, select: { status: true } })
         await prisma.property.update({ where: { id: propertyId }, data: { status: 'SUSPENDED' } })
+        recordStatusChange({ propertyId, from: before?.status, to: 'SUSPENDED', actor: 'system' })
       }
     }
   }
@@ -95,7 +101,9 @@ export async function adminModerateReport(reportId, adminId, { action, note }) {
   ])
 
   if (action === 'SUSPEND') {
+    const before = await prisma.property.findUnique({ where: { id: report.propertyId }, select: { status: true } })
     await prisma.property.update({ where: { id: report.propertyId }, data: { status: 'SUSPENDED' } })
+    recordStatusChange({ propertyId: report.propertyId, from: before?.status, to: 'SUSPENDED', actor: 'admin' })
   }
   // Points only when a moderator UPHOLDS the report (RESOLVED) — never on
   // submit, and never on DISMISSED. Paying for filed reports would fund exactly

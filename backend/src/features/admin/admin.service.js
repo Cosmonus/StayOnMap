@@ -8,6 +8,7 @@ import { smsStatus } from '../../lib/smsSender.js'
 import { errorStatus } from '../../lib/errorLog.js'
 import { ADMIN_FILTERS, buildFilterWhere } from '../properties/filters.registry.js'
 import { firstPublishStamp } from '../properties/publishedAt.js'
+import { recordStatusChange, recordBulkStatusChange } from '../properties/statusEvents.js'
 import { parseBounds, boundsFilter } from '../../utils/geo.js'
 import { getContext, STATUS_FAILED } from '../spatial/spatial.service.js'
 import { intelError } from '../../lib/intelLog.js'
@@ -222,7 +223,16 @@ export async function getUserDetail(userId) {
 export async function toggleUserBlock(userId, blocked, reason, adminId) {
   const user = await prisma.user.update({ where: { id: userId }, data: { isBlocked: blocked } })
   if (blocked) {
+    // Resolved BEFORE the update: updateMany returns a count, not rows, so
+    // afterwards there is no way to know which listings were suspended. This is
+    // real churn — leaving it out understates exactly the weeks moderation was
+    // busiest.
+    const suspended = await prisma.property.findMany({
+      where: { ownerId: userId, status: 'ACTIVE' },
+      select: { id: true },
+    })
     await prisma.property.updateMany({ where: { ownerId: userId, status: 'ACTIVE' }, data: { status: 'SUSPENDED' } })
+    recordBulkStatusChange({ propertyIds: suspended.map((p) => p.id), from: 'ACTIVE', to: 'SUSPENDED', actor: 'admin' })
   }
   await prisma.activityLog.create({ data: { adminId, action: blocked ? 'USER_BLOCKED' : 'USER_UNBLOCKED', entity: 'User', entityId: userId, meta: { reason } } })
   return user
@@ -418,6 +428,7 @@ export async function setPropertyStatus(propertyId, status, note, adminId) {
     where: { id: propertyId },
     data: { status, ...firstPublishStamp(current, status) },
   })
+  recordStatusChange({ propertyId, from: current.status, to: status, actor: 'admin' })
 
   // Becoming ACTIVE is the moment a listing enters the recommendable set, so it
   // is where the SIMILAR_TO edges have to be built — in BOTH directions, or the
