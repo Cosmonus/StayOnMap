@@ -16,6 +16,12 @@ export const authService = {
   requestLoginOtp: (data) => api.post('/auth/otp/request', data),
   verifyLoginOtp: (data) => api.post('/auth/otp/verify', data),
 
+  // Signing in by SMS. A separate pair from /auth/phone/request+verify, which
+  // are AUTHENTICATED — those prove a number you already hold; these mint a
+  // session. Only a number that has already been verified can receive one.
+  requestPhoneLoginOtp: (data) => api.post('/auth/phone/login/request', data),
+  verifyPhoneLoginOtp: (data) => api.post('/auth/phone/login/verify', data),
+
   // Phone verification — authenticated; you verify your own number. Both send
   // and consume a 6-digit SMS code (see backend features/auth/phone.service.js).
   requestPhoneCode: (data) => api.post('/auth/phone/request', data),
@@ -26,6 +32,10 @@ export const authService = {
   logoutAll: () => api.post('/auth/logout-all'),
   getSessions: () => api.get('/auth/sessions'),
   revokeSession: (id) => api.delete(`/auth/sessions/${id}`),
+
+  // What this deployment offers — { sms }. SMS costs money per message, so a
+  // deployment without a provider draws no SMS button at all.
+  getSignInMethods: () => api.get('/auth/methods'),
 
   // Social login — GET /auth/oauth/:provider is a plain browser navigation,
   // not an XHR (the provider redirect chain can't run through axios).

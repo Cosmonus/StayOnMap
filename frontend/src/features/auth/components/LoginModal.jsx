@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Phone, MapPin, Eye, EyeOff, MailCheck, KeyRound, House } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { X, Phone, MapPin, Eye, EyeOff, MailCheck, MessageSquareLock, KeyRound, House } from 'lucide-react'
 import { authService } from '@services/auth.service'
 import { useAuth } from '../hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
@@ -63,6 +64,17 @@ export default function LoginModal() {
   const [resetSent, setResetSent] = useState(false)
   const [waitlisted, setWaitlisted] = useState(false)
   const { totalActive, cities, isLoading: statsLoading } = usePlatformStats()
+
+  // Sending a text costs money and needs DLT registration, so most deployments
+  // have no SMS provider — including production today. Ask before offering it:
+  // an unanswerable "Text me a sign-in code" is worse than none, and the button
+  // is the only SMS surface that was not already gated this way.
+  const { data: methods } = useQuery({
+    queryKey: ['sign-in-methods'],
+    queryFn: () => authService.getSignInMethods().then((r) => r.data),
+    staleTime: 60 * 60 * 1000, // config changes on deploy, not mid-session
+  })
+  const smsAvailable = methods?.sms === true
 
   const quote = QUOTES[Math.floor(Date.now() / 86400000) % QUOTES.length]
 
@@ -259,12 +271,18 @@ export default function LoginModal() {
               </div>
             )}
 
-            {tab === 'otp' ? (
+            {tab === 'otp' || tab === 'otp-phone' ? (
+              /* One form, two channels — see OtpLoginForm's CHANNELS table.
+                 `email` doubles as the identifier for both; the field it
+                 renders and the endpoint it calls come from the channel. */
               <OtpLoginForm
+                key={tab}
+                channel={tab === 'otp-phone' ? 'phone' : 'email'}
                 email={email}
                 setEmail={setEmail}
                 onUsePassword={() => switchTab('login')}
                 onSignup={() => switchTab('signup')}
+                onSwitchChannel={smsAvailable ? () => { setEmail(''); switchTab(tab === 'otp-phone' ? 'otp' : 'otp-phone') } : undefined}
                 onDone={landAfterLogin}
               />
             ) : tab === 'forgot' ? (
@@ -357,6 +375,15 @@ export default function LoginModal() {
                     <MailCheck size={18} strokeWidth={2} className="text-brand-600" />
                     Email me a sign-in code
                   </button>
+                  {smsAvailable && (
+                    <button
+                      type="button" onClick={() => { setEmail(''); switchTab('otp-phone') }}
+                      className="w-full min-h-[44px] py-3 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 flex items-center justify-center gap-3"
+                    >
+                      <MessageSquareLock size={18} strokeWidth={2} className="text-brand-600" />
+                      Text me a sign-in code
+                    </button>
+                  )}
                   <SocialLoginButtons />
                 </div>
 

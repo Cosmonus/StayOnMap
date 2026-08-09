@@ -29,7 +29,45 @@ function useCountdown(until) {
   return secondsUntil(until)
 }
 
-export default function OtpLoginForm({ email, setEmail, onUsePassword, onSignup, styles: s }) {
+/**
+ * The two channels a sign-in code can arrive on. Mirrors web's CHANNELS table
+ * in features/auth/components/OtpLoginForm.jsx — one form parameterised rather
+ * than two, because everything that matters (the absolute-timestamp countdown,
+ * the hedged "if this has an account" wording, the resend gate) is identical
+ * and a second copy would drift on exactly those details.
+ */
+const CHANNELS = {
+  email: {
+    icon: 'mail',
+    label: 'Email address',
+    placeholder: 'you@example.com',
+    keyboardType: 'email-address',
+    maxLength: undefined,
+    cta: 'Email me a code',
+    request: (v) => authService.requestLoginOtp({ email: v }),
+    verify: (v, code) => authService.verifyLoginOtp({ email: v, code }),
+    sentTo: (v) => v,
+    isComplete: (v) => Boolean(v),
+    clean: (v) => v,
+  },
+  phone: {
+    icon: 'phone',
+    label: 'Mobile number',
+    placeholder: '9876543210',
+    keyboardType: 'number-pad',
+    maxLength: 10,
+    cta: 'Text me a code',
+    request: (v) => authService.requestPhoneLoginOtp({ phone: v }),
+    verify: (v, code) => authService.verifyPhoneLoginOtp({ phone: v, code }),
+    sentTo: (v) => `+91 ${v}`,
+    isComplete: (v) => /^[6-9]\d{9}$/.test(v),
+    // Digits only, country code stripped, so a pasted "+91 98765 43210" works.
+    clean: (v) => v.replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').slice(0, 10),
+  },
+}
+
+export default function OtpLoginForm({ channel = 'email', email, setEmail, onUsePassword, onSignup, onSwitchChannel, styles: s }) {
+  const ch = CHANNELS[channel] ?? CHANNELS.email
   const { loginSuccess } = useAuth()
   const [step, setStep] = useState('email')
   const [code, setCode] = useState('')
@@ -41,7 +79,7 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, onSignup,
   async function send() {
     setLoading(true); setError('')
     try {
-      await authService.requestLoginOtp({ email })
+      await ch.request(email)
       setStep('code')
       setResendAt(Date.now() + RESEND_COOLDOWN_MS)
     } catch (err) {
@@ -54,7 +92,7 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, onSignup,
   async function verify() {
     setLoading(true); setError('')
     try {
-      const res = await authService.verifyLoginOtp({ email, code })
+      const res = await ch.verify(email, code)
       await loginSuccess(res.data)
       // RootNavigator swaps to AppTabs via useAuth() — no manual navigation.
     } catch (err) {
@@ -66,16 +104,17 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, onSignup,
   if (step === 'email') {
     return (
       <>
-        <Text style={s.label}>Email address</Text>
+        <Text style={s.label}>{ch.label}</Text>
         <View style={s.inputWrap}>
-          <Icon name="mail" size={16} color={colors.slate500} />
+          <Icon name={ch.icon} size={16} color={colors.slate500} />
           <TextInput
             style={s.input}
             value={email}
-            onChangeText={setEmail}
-            placeholder="you@example.com"
+            onChangeText={(v) => setEmail(ch.clean(v))}
+            placeholder={ch.placeholder}
+            maxLength={ch.maxLength}
             placeholderTextColor={colors.slate500}
-            keyboardType="email-address"
+            keyboardType={ch.keyboardType}
             autoCapitalize="none"
             accessibilityLabel="Email address"
           />
@@ -94,21 +133,34 @@ export default function OtpLoginForm({ email, setEmail, onUsePassword, onSignup,
           accessibilityRole="button"
           accessibilityState={{ disabled: loading || !email, busy: loading }}
         >
-          <Text style={s.primaryButtonText}>{loading ? 'Sending…' : 'Email me a code'}</Text>
+          <Text style={s.primaryButtonText}>{loading ? 'Sending…' : ch.cta}</Text>
         </Pressable>
+
+        {!!onSwitchChannel && (
+          <Pressable
+            onPress={onSwitchChannel}
+            style={{ marginTop: spacing.md, alignSelf: 'center' }}
+            accessibilityRole="button"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text style={s.linkText}>
+              {channel === 'phone' ? 'Email me a code instead' : 'Text me a code instead'}
+            </Text>
+          </Pressable>
+        )}
 
         <Pressable
           onPress={onUsePassword}
-          style={{ marginTop: spacing.md, alignSelf: 'center' }}
+          style={{ marginTop: onSwitchChannel ? spacing.sm : spacing.md, alignSelf: 'center' }}
           accessibilityRole="button"
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Text style={s.linkText}>Use my password instead</Text>
         </Pressable>
 
-        {/* Codes only go to registered emails — say so up front and point new
+        {/* Codes only reach registered accounts — say so up front and point new
             users at signup. Shown to everyone, so it reveals nothing about
-            whether any particular email has an account. */}
+            whether any particular address or number has an account. */}
         <View style={local.signupNudge}>
           <Text style={local.nudgeText}>Sign-in codes only work for existing accounts. </Text>
           <Pressable

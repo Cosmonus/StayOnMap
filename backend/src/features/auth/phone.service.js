@@ -23,8 +23,10 @@
 // email OTP does applies — the caller already proved who they are.
 import crypto from 'crypto'
 import { prisma } from '../../lib/prisma.js'
-import { sendSms, canSendSms } from '../../lib/smsSender.js'
+import { sendSms, canSendSms, smsConfigured } from '../../lib/smsSender.js'
 import { awardPoints } from '../points/points.service.js'
+import { signUserToken, stripPasswordHash } from './tokens.js'
+import { issueSession } from './session.service.js'
 
 const OTP_TTL_MS = 10 * 60 * 1000
 const OTP_RESEND_COOLDOWN_MS = 60 * 1000
@@ -163,4 +165,130 @@ export async function verifyPhoneOtp(userId, code) {
   awardPoints(userId, 'PHONE_VERIFIED').catch(() => {})
 
   return { phone: user.phone, phoneVerifiedAt: user.phoneVerifiedAt }
+}
+
+// ── Signing IN with a phone number ────────────────────────────────
+//
+// A DIFFERENT FLOW FROM EVERYTHING ABOVE, and the difference is the whole
+// security story. `requestPhoneOtp` is authenticated — you prove a number you
+// already hold, and the worst case of failing is that you fail. This is
+// UNAUTHENTICATED: a correct code here mints a session. So it takes the guards
+// from the email sign-in code (auth.service.js), plus one the email flow has no
+// equivalent of.
+//
+// THE ONE: ONLY A VERIFIED NUMBER CAN SIGN IN. `User.phone` is free text anyone
+// can type into their profile, and it is NOT unique — nothing stops two
+// accounts claiming the same number, or one account claiming someone else's.
+// `phoneVerifiedAt` is set only by the SMS flow above and is enforced unique at
+// both request and verify time, so it is the only field here that is evidence
+// of anything. Looking a login up by `phone` alone would let anybody who typed
+// your number into their own profile receive your sign-in codes.
+
+/** Where a login code may be sent: a number somebody has actually proven. */
+const verifiedOwnerOf = (phone) => prisma.user.findFirst({
+  where: { phone, phoneVerifiedAt: { not: null } },
+  select: { id: true, phone: true, isBlocked: true },
+})
+
+/**
+ * Text a sign-in code to a verified number.
+ *
+ * Resolves SILENTLY for an unknown or blocked number — same as the email flow
+ * and for the same reason: a distinguishable response turns this into a "which
+ * numbers have accounts" oracle, and a phone number is far cheaper to
+ * enumerate than an email address.
+ */
+export async function requestPhoneLoginOtp(phone) {
+  if (!smsConfigured()) {
+    throw err('Sign-in by SMS is not available. Please use your email or password.', 503, true)
+  }
+
+  // Pre-flighted BEFORE the lookup, so an exhausted quota answers identically
+  // whether or not the number is registered. Checking after would make
+  // 503-vs-200 exactly the oracle the silent no-op exists to prevent.
+  if (!(await canSendSms())) {
+    throw err('Sign-in codes are temporarily unavailable. Please use your email or password.', 503, true)
+  }
+
+  const user = await verifiedOwnerOf(phone)
+  if (!user || user.isBlocked) return
+
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  const [recent, perUser, perPhone] = await Promise.all([
+    prisma.phoneOtp.findFirst({ where: { userId: user.id }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } }),
+    prisma.phoneOtp.count({ where: { userId: user.id, createdAt: { gte: since } } }),
+    prisma.phoneOtp.count({ where: { phone, createdAt: { gte: since } } }),
+  ])
+
+  if (recent && Date.now() - recent.createdAt.getTime() < OTP_RESEND_COOLDOWN_MS) {
+    const wait = Math.ceil((OTP_RESEND_COOLDOWN_MS - (Date.now() - recent.createdAt.getTime())) / 1000)
+    throw err(`Please wait ${wait}s before requesting another code`, 429)
+  }
+  // Both caps return the SAME message. Telling them apart would say whether the
+  // number belongs to the account being throttled.
+  if (perUser >= OTP_MAX_PER_USER_PER_DAY || perPhone >= OTP_MAX_PER_PHONE_PER_DAY) {
+    throw err('Too many sign-in codes requested today. Please use your email or password.', 429)
+  }
+
+  const code = generateOtp()
+  await prisma.phoneOtp.create({
+    data: { userId: user.id, phone, codeHash: hashOtp(code), expiresAt: new Date(Date.now() + OTP_TTL_MS) },
+  })
+
+  // Awaited, like the email sign-in code: if the text never leaves there is
+  // nothing to type, and a code screen that can never succeed is worse than an
+  // error.
+  const sent = await sendSms({ phone, code })
+  if (!sent) throw err('Could not send your sign-in code. Please use your email or password.', 503, true)
+}
+
+/**
+ * Exchange a texted code for a session.
+ *
+ * Issues it HERE rather than in the controller, matching verifyLoginOtp in
+ * auth.service.js: a session coming into being is business logic, and
+ * .claude/backend.md keeps controllers to HTTP only. Returns the same
+ * `{ token, refreshToken, user }` triple every other login path returns, so
+ * clients need no special case for this one.
+ */
+export async function verifyPhoneLoginOtp(phone, code, ctx = {}) {
+  const invalid = () => err('Invalid or expired code', 401)
+
+  const owner = await verifiedOwnerOf(phone)
+  if (!owner) throw invalid()
+
+  // MATCHED ON `phone` AS WELL AS `userId`. PhoneOtp is shared with the
+  // verification flow above, where a row's `phone` is a number the user is
+  // trying to ADD rather than one they hold. Matching both keeps the two uses
+  // from consuming each other's codes, without needing a `purpose` column and
+  // the migration that implies.
+  const otp = await prisma.phoneOtp.findFirst({
+    where: { userId: owner.id, phone, consumedAt: null, expiresAt: { gt: new Date() } },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (!otp) throw invalid()
+
+  // Six digits is 1e6 combinations — trivially brute-forced inside ten minutes
+  // without a per-code cap. A burnt code forces a fresh request, which the
+  // cooldown and daily caps then throttle.
+  if (otp.attempts >= OTP_MAX_ATTEMPTS) throw invalid()
+
+  if (otp.codeHash !== hashOtp(code)) {
+    await prisma.phoneOtp.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } })
+    throw invalid()
+  }
+
+  // Only after the code is proven, so the distinct 403 cannot be used to probe
+  // which numbers belong to blocked accounts.
+  if (owner.isBlocked) throw err('This account has been blocked', 403)
+
+  await prisma.phoneOtp.update({ where: { id: otp.id }, data: { consumedAt: new Date() } })
+
+  // Nothing is granted here, and that is deliberate. The email code sets
+  // isVerified because receiving it PROVES inbox control. This number was
+  // already verified before a code could be sent at all — there is no new fact
+  // to record, and no points to award twice.
+  const user = await prisma.user.findUnique({ where: { id: owner.id } })
+  const refreshToken = await issueSession(user.id, ctx)
+  return { token: signUserToken(user), refreshToken, user: stripPasswordHash(user) }
 }

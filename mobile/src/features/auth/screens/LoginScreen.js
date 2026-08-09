@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, ScrollView } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useQuery } from '@tanstack/react-query'
 import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import Icon from '@components/common/Icon'
@@ -74,6 +75,16 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false)
   const [resetSent, setResetSent] = useState(false)
   const [waitlisted, setWaitlisted] = useState(false)
+
+  // Sending a text costs money and needs DLT registration, so most deployments
+  // have no SMS provider — including production today. Ask before offering it,
+  // the same way the social buttons ask which providers exist.
+  const { data: methods } = useQuery({
+    queryKey: ['sign-in-methods'],
+    queryFn: () => authService.getSignInMethods().then((r) => r.data),
+    staleTime: 60 * 60 * 1000,
+  })
+  const smsAvailable = methods?.sms === true
 
   function switchTab(t) {
     setTab(t)
@@ -165,18 +176,23 @@ export default function LoginScreen() {
           )}
 
           {/* OtpLoginForm owns its own error rendering */}
-          {!!error && tab !== 'otp' && (
+          {!!error && tab !== 'otp' && tab !== 'otp-phone' && (
             <View style={styles.errorBox}>
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
 
-          {tab === 'otp' ? (
+          {tab === 'otp' || tab === 'otp-phone' ? (
+            /* One form, two channels — see OtpLoginForm's CHANNELS table.
+               `email` doubles as the identifier for both. */
             <OtpLoginForm
+              key={tab}
+              channel={tab === 'otp-phone' ? 'phone' : 'email'}
               email={email}
               setEmail={setEmail}
               onUsePassword={() => switchTab('login')}
               onSignup={() => switchTab('signup')}
+              onSwitchChannel={smsAvailable ? () => { setEmail(''); switchTab(tab === 'otp-phone' ? 'otp' : 'otp-phone') } : undefined}
               styles={styles}
             />
           ) : tab === 'forgot' ? (
@@ -246,6 +262,16 @@ export default function LoginScreen() {
                   <Icon name="mail" size={16} color={colors.brand600} />
                   <Text style={styles.secondaryButtonText}>Email me a sign-in code</Text>
                 </Pressable>
+                {smsAvailable && (
+                  <Pressable
+                    style={styles.secondaryButton}
+                    onPress={() => { setEmail(''); switchTab('otp-phone') }}
+                    accessibilityRole="button"
+                  >
+                    <Icon name="phone" size={16} color={colors.brand600} />
+                    <Text style={styles.secondaryButtonText}>Text me a sign-in code</Text>
+                  </Pressable>
+                )}
                 <SocialLoginButtons />
               </View>
             </>
