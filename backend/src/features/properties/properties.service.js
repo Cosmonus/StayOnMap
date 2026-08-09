@@ -823,6 +823,10 @@ export async function vacateProperty(propertyId, ownerId) {
   if (!property) throw Object.assign(new Error('Property not found or access denied'), { statusCode: 404 })
   if (property.status !== 'OCCUPIED') throw Object.assign(new Error('Property is not currently occupied'), { statusCode: 400 })
 
+  // The third door into ACTIVE, and the one that deliberately does NOT stamp
+  // publishedAt: a tenant moving out makes this listing available again, not
+  // new. firstPublishStamp() refuses an OCCUPIED origin for exactly this case —
+  // see features/properties/publishedAt.js before adding a stamp here.
   return prisma.property.update({
     where: { id: propertyId },
     data: { status: 'ACTIVE', currentTenantId: null, occupiedSince: null },

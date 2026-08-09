@@ -2,6 +2,7 @@ import * as service from './admin.service.js'
 import { latestReports } from '../spatial/dataQuality.js'
 import * as productAnalytics from '../analytics/analytics.service.js'
 import { getUnmetDemand } from '../analytics/demand.service.js'
+import * as marketplaceMetrics from '../analytics/marketplace.service.js'
 import { ok, created } from '../../utils/response.js'
 
 export async function login(req, res, next) {
@@ -41,6 +42,23 @@ export async function demand(req, res, next) {
     ok(res, await getUnmetDemand({ days }))
   } catch (err) { next(err) }
 }
+// The supply side and the handshake between the two. A fourth question, and the
+// one nothing answered before: /analytics counts what we have, /funnel what
+// renters did, /demand what they could not find — and this, whether listings
+// get finished, whether owners answer, and whether any of it ends in a tenancy.
+// Four readouts in one response because they are one screen; splitting them
+// would be four requests to render a single section.
+export async function marketplace(req, res, next) {
+  try {
+    const [drafts, responsiveness, chain, supply] = await Promise.all([
+      marketplaceMetrics.getDraftFunnel(),
+      marketplaceMetrics.getOwnerResponsiveness(),
+      marketplaceMetrics.getMatchChain(),
+      marketplaceMetrics.getSupplyTrend(),
+    ])
+    ok(res, { drafts, responsiveness, chain, supply })
+  } catch (err) { next(err) }
+}
 export async function waitlist(req, res, next) {
   try { ok(res, await service.listWaitlist(req.query)) } catch (err) { next(err) }
 }
@@ -70,9 +88,6 @@ export async function getReviews(req, res, next) {
 }
 export async function moderateReview(req, res, next) {
   try { ok(res, await service.moderateReview(req.params.id, req.body.status, req.admin.sub)) } catch (err) { next(err) }
-}
-export async function moderationQueue(req, res, next) {
-  try { ok(res, await service.getModerationQueue()) } catch (err) { next(err) }
 }
 export async function activityLogs(req, res, next) {
   try { ok(res, await service.listActivityLogs(req.query)) } catch (err) { next(err) }

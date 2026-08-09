@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma.js'
 import { recalculateRiskScore } from '../trust/trust.service.js'
 import { notifyUser } from '../notifications/notifications.service.js'
 import { compareAddresses } from './addressMatch.js'
+import { firstPublishStamp } from '../properties/publishedAt.js'
 
 export async function submitVerification(ownerId, propertyId, { documentAddress } = {}) {
   const property = await prisma.property.findUnique({ where: { id: propertyId, ownerId } })
@@ -72,7 +73,12 @@ export async function adminReviewVerification(verificationId, adminId, { status,
   if (status === 'VERIFIED') {
     const property = await prisma.property.findUnique({ where: { id: verification.propertyId } })
     if (property && property.status === 'PENDING') {
-      await prisma.property.update({ where: { id: verification.propertyId }, data: { status: 'ACTIVE' } })
+      // The second door into ACTIVE, and it must stamp the same way the admin
+      // one does — see features/properties/publishedAt.js.
+      await prisma.property.update({
+        where: { id: verification.propertyId },
+        data: { status: 'ACTIVE', ...firstPublishStamp(property, 'ACTIVE') },
+      })
     }
   }
   const property = await prisma.property.findUnique({ where: { id: verification.propertyId }, select: { title: true } })

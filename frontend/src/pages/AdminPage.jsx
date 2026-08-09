@@ -42,6 +42,8 @@ import VerificationsSection from '@features/admin/components/VerificationsSectio
 import FunnelCard from '@features/admin/components/FunnelCard'
 import DemandCard from '@features/admin/components/DemandCard'
 import GraphHealthCard from '@features/admin/components/GraphHealthCard'
+import SupplySection from '@features/admin/components/SupplySection'
+import ActivityLogSection from '@features/admin/components/ActivityLogSection'
 import { formatTime } from '@utils/time'
 
 // ── Shared chart card shell ────────────────────────────────────────────────
@@ -1914,6 +1916,38 @@ function WaitlistSection() {
         </p>
       </div>
 
+      {/* The rollup, above the list. This is the only place the product says
+          which city to open next, and it was answerable for a year — the rows
+          were all here, just never counted. Computed server-side over EVERY
+          entry, not the page on screen. */}
+      {!isLoading && (data?.byCity?.length ?? 0) > 0 && (
+        <div className="bg-white border border-slate-100 rounded-2xl p-5">
+          <h2 className="text-sm font-bold text-slate-900">Where they are waiting</h2>
+          <p className="text-xs text-slate-500 mt-0.5 mb-4">
+            Demand we turned away, by city. The top row is the strongest case for launching next.
+          </p>
+          <div className="flex flex-col gap-3">
+            {data.byCity.map(row => {
+              const max = Math.max(1, ...data.byCity.map(r => r.count))
+              return (
+                <div key={row.city}>
+                  <div className="flex items-baseline justify-between gap-3 mb-1.5">
+                    <span className="text-sm font-medium text-slate-800">{row.city}</span>
+                    <span className="text-xs text-slate-500 shrink-0">
+                      <span className="font-mono font-semibold text-slate-800">{row.count}</span>
+                      {row.lastSignup && <> &middot; latest {new Date(row.lastSignup).toLocaleDateString('en-IN')}</>}
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="h-full rounded-full bg-brand-500" style={{ width: `${(row.count / max) * 100}%` }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="h-48 bg-slate-100 rounded-2xl animate-pulse" />
       ) : (
@@ -2556,6 +2590,8 @@ export default function AdminPage() {
   function renderSection() {
     switch (section) {
       case 'overview':        return <OverviewSection />
+      case 'supply':          return <SupplySection />
+      case 'activity':        return <ActivityLogSection />
       case 'admin-properties':return <AdminPropertiesMap />
       case 'review-listings': return <ReviewListingsSection />
       case 'users':           return <UsersSection />
