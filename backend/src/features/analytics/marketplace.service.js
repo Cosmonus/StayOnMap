@@ -160,7 +160,12 @@ export async function getMatchChain({ days = 90 } = {}) {
     prisma.lease.count({ where: { createdAt: window } }),
     prisma.lease.findMany({
       where: { createdAt: window, signedAt: { not: null } },
-      select: { signedAt: true, createdAt: true, appointment: { select: { createdAt: true } } },
+      // `appointmentId` is a BARE COLUMN on Lease — there is no `appointment`
+      // relation to include, so this is resolved in a second query below.
+      // Selecting it as a relation is a runtime Prisma error, not a type error,
+      // and a mocked client in a unit test validates nothing: it 500'd the
+      // whole endpoint in production while the suite stayed green.
+      select: { signedAt: true, createdAt: true, appointmentId: true },
     }),
   ])
 
@@ -169,9 +174,23 @@ export async function getMatchChain({ days = 90 } = {}) {
   // (an owner and renter who sorted it out in chat) has no such start, so it
   // is excluded from the duration rather than measured from the offer, which
   // would be a different and much shorter thing wearing the same label.
+  //
+  // Two queries rather than a join, because `Lease.appointmentId` is a plain
+  // column with no relation declared. One extra round trip on a handful of ids.
+  const appointmentIds = signedRows.map((l) => l.appointmentId).filter(Boolean)
+  const starts = appointmentIds.length
+    ? new Map(
+      (await prisma.appointment.findMany({
+        where: { id: { in: appointmentIds } },
+        select: { id: true, createdAt: true },
+      })).map((a) => [a.id, a.createdAt]),
+    )
+    : new Map()
+
   const durations = signedRows
-    .filter((l) => l.appointment?.createdAt)
-    .map((l) => (l.signedAt.getTime() - l.appointment.createdAt.getTime()) / DAY_MS)
+    .map((l) => ({ signedAt: l.signedAt, startedAt: starts.get(l.appointmentId) }))
+    .filter((l) => l.startedAt)
+    .map((l) => (l.signedAt.getTime() - l.startedAt.getTime()) / DAY_MS)
     .sort((a, b) => a - b)
 
   return {
