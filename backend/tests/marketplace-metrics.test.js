@@ -30,6 +30,7 @@ beforeEach(() => {
   prismaMock.appointment.count.mockResolvedValue(0)
   prismaMock.lease.count.mockResolvedValue(0)
   prismaMock.lease.findMany.mockResolvedValue([])
+  prismaMock.appointment.findMany.mockResolvedValue([])
   prismaMock.property.findMany.mockResolvedValue([])
   prismaMock.propertyDailyView.groupBy.mockResolvedValue([])
   prismaMock.conversation.groupBy.mockResolvedValue([])
@@ -119,10 +120,17 @@ describe('getMatchChain', () => {
   })
 
   it('measures time-to-lease from the visit request, not the lease offer', async () => {
+    // `appointmentId` is a bare column on Lease with NO relation, so the start
+    // date comes from a SECOND query. Selecting it as a relation is a runtime
+    // Prisma error that a mocked client cannot see — it 500'd production while
+    // this suite was green, which is why the fixture now mirrors the real two
+    // -query shape instead of a join that does not exist.
     const requested = ago(10 * 24 * HOUR)
     prismaMock.lease.findMany.mockResolvedValue([
-      { createdAt: ago(2 * 24 * HOUR), signedAt: ago(0), appointment: { createdAt: requested } },
+      { createdAt: ago(2 * 24 * HOUR), signedAt: ago(0), appointmentId: 'a1' },
     ])
+    prismaMock.appointment.findMany.mockResolvedValue([{ id: 'a1', createdAt: requested }])
+
     const res = await getMatchChain()
     expect(res.medianDaysToLease).toBe(10)
     expect(res.samples).toBe(1)
@@ -133,7 +141,7 @@ describe('getMatchChain', () => {
     // Falling back to the offer date would report a much shorter journey under
     // the same label.
     prismaMock.lease.findMany.mockResolvedValue([
-      { createdAt: ago(2 * 24 * HOUR), signedAt: ago(0), appointment: null },
+      { createdAt: ago(2 * 24 * HOUR), signedAt: ago(0), appointmentId: null },
     ])
     const res = await getMatchChain()
     expect(res.medianDaysToLease).toBeNull()
