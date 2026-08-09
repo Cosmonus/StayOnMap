@@ -261,7 +261,7 @@ export default function LeaseManager() {
   })
   const isOwner = profile?.role === 'OWNER'
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['leases'],
     queryFn: () => leaseService.getMyLeases().then(r => r.data),
     enabled: !!user,
@@ -269,6 +269,26 @@ export default function LeaseManager() {
 
   const asOwner  = data?.asOwner  ?? []
   const asTenant = data?.asTenant ?? []
+
+  // A tenancy agreement is the highest-stakes record either party has here, so
+  // "you have no leases" must never be what a failed fetch looks like. The two
+  // `?? []` lines above are exactly how it would.
+  if (isError) {
+    return (
+      <div className="bg-white rounded-2xl border border-red-200 p-5">
+        <p className="text-sm font-semibold text-slate-900">Could not load your leases</p>
+        <p className="text-xs text-slate-500 mt-1">
+          This is a connection problem, not an empty list &mdash; nothing has been cancelled.
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="mt-4 min-h-[44px] px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          Try again
+        </button>
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (

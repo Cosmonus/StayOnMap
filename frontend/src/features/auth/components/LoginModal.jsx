@@ -63,7 +63,7 @@ export default function LoginModal() {
   const [loading, setLoading]   = useState(false)
   const [resetSent, setResetSent] = useState(false)
   const [waitlisted, setWaitlisted] = useState(false)
-  const { totalActive, cities, isLoading: statsLoading } = usePlatformStats()
+  const { totalActive, cities, isLoading: statsLoading, isError: statsFailed } = usePlatformStats()
 
   // Sending a text costs money and needs DLT registration, so most deployments
   // have no SMS provider — including production today. Ask before offering it:
@@ -197,11 +197,17 @@ export default function LoginModal() {
               <p className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>— {quote.author}</p>
             </div>
 
-            {/* Mini stats */}
+            {/* Mini stats. Withheld entirely if the count could not be
+                fetched: "0 Listings · 0 Cities" is not a neutral placeholder,
+                it is a claim about the business made with the same confidence
+                as a real number, on the first screen a stranger sees. Zero
+                brokerage stays — that one is a promise, not a measurement. */}
             <div className="flex gap-4">
-              {[[`${totalActive}`, 'Listings'], ['₹0', 'Brokerage'], [`${cities}`, 'Cities']].map(([val, lbl], i) => (
+              {[[`${totalActive}`, 'Listings'], ['₹0', 'Brokerage'], [`${cities}`, 'Cities']]
+                .filter(([, lbl]) => !statsFailed || lbl === 'Brokerage')
+                .map(([val, lbl]) => (
                 <div key={lbl}>
-                  {statsLoading && i !== 1 ? (
+                  {statsLoading && lbl !== 'Brokerage' ? (
                     <div className="h-5 w-6 rounded bg-white/10 animate-pulse" />
                   ) : (
                     <div className="text-white font-bold text-base">{val}</div>

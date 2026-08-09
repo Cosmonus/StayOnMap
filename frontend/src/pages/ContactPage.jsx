@@ -60,7 +60,8 @@ export default function ContactPage() {
   const [sent, setSent]   = useState(false)
   const [form, setForm]   = useState({ name: '', email: '', topic: '', message: '' })
   const [openFaq, setOpenFaq] = useState(0)
-  const { totalActive, isLoading } = usePlatformStats()
+  const { totalActive, isLoading, isError } = usePlatformStats()
+  const statsUnknown = isLoading || isError
 
   function handleChange(e) {
     const { name, value } = e.target
@@ -345,7 +346,7 @@ export default function ContactPage() {
                 Rather browse than write?
               </h2>
               <p className="text-sm sm:text-base text-slate-500 max-w-lg mx-auto mb-8">
-                {isLoading ? 'Zero brokerage.' : `${totalActive} verified rentals. Zero brokerage.`} Open the map and start exploring.
+                {statsUnknown ? 'Zero brokerage.' : `${totalActive} verified rentals. Zero brokerage.`} Open the map and start exploring.
               </p>
               <div className="flex items-center justify-center gap-3 flex-wrap">
                 <Link to="/properties" className="inline-flex items-center gap-2 px-7 py-3.5 bg-white hover:bg-slate-100 text-[#111111] text-sm font-semibold rounded-xl transition-colors no-underline">

@@ -21,13 +21,16 @@ const ACTION_LABELS = {
  * points are visible only to the person who earned them.
  */
 export default function PointsCard() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['points'],
     queryFn: () => api.get('/points').then((r) => r.data),
   })
 
   if (isLoading) return <div className="bg-slate-100 animate-pulse rounded-2xl h-40" />
-  if (!data) return null
+  // Vanishing is acceptable here and a zero is not: the card would otherwise
+  // render "0 points" off an undefined payload, telling someone they lost
+  // points they still have. Nothing is claimed by an absent card.
+  if (isError || !data) return null
 
   const progressPct = Math.round((data.progress ?? 0) * 100)
 
