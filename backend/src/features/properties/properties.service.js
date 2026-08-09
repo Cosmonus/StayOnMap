@@ -126,6 +126,15 @@ const FULL_INCLUDE = {
   // deleted from the payload there and never reaches a client.
   owner:         { select: { id: true, name: true, avatarUrl: true, createdAt: true, showExactLocation: true } },
   currentTenant: { select: { id: true, name: true, avatarUrl: true } },
+  // The resolved neighbourhood — an OSM place, not the owner's typing. Added
+  // 2026-08-10 because three things downstream had been written to prefer it
+  // and NONE of them could: the SEO title, the JSON-LD addressLocality, and the
+  // breadcrumb's locality rung all read `property.locality`, which this include
+  // never selected. So production titled a listing "1 BHK apartment for rent in
+  // opp to pk store, Chennai" — the string WhatsApp showed on every share — and
+  // shipped a two-rung breadcrumb whose middle rung was written and unreachable.
+  // The branch existed, the data never arrived.
+  locality:      { select: { id: true, name: true, slug: true, citySlug: true } },
 }
 
 export async function listProperties(filters, { skip, limit }, userId = null) {
