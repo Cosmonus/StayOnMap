@@ -19,7 +19,7 @@
 //   { note }               small print
 import { CITY_LIST_LABEL } from '@config/cities'
 
-export const LAST_UPDATED = 'August 7, 2026'
+export const LAST_UPDATED = 'August 10, 2026'
 
 const ADDRESS = 'Vivekanandar Street, Gandhi Nagar, Avadi, Ambattur, Tiruvallur – 600054, Tamil Nadu'
 const CONTACT_EMAIL = 'hello@cosmonus.com'
@@ -48,7 +48,7 @@ export const PRIVACY = {
         { lead: 'Contribution record.', p: 'If you earn points, we keep a record of the actions that earned them — a review being approved, a report being upheld, verifying your email or phone, signing a lease — with the date and the item it relates to. It is visible only to you; there is no public leaderboard and points cannot be exchanged for anything.' },
         { lead: 'Usage & device data.', p: 'IP address, browser type, and basic request logs, collected automatically for security (rate limiting, abuse prevention) and debugging. We do not use advertising trackers of any kind.' },
         { lead: 'Product analytics — our own.', p: 'Our servers record a short, fixed list of named steps — opening the map, tapping a listing, viewing a listing, contacting an owner, requesting a visit — so we can see where people get stuck. Each is stored against a random session identifier that lasts for one run of the app; it is not a cookie. If you are signed in, the record is linked to your account. These records are deleted after 90 days.' },
-        { lead: 'Our website runs no analytics script at all.', p: 'There is no Google Analytics tag and no advertising pixel on any page, nothing measures or profiles browsing for us or for anyone else, and the website sets no cookies whatsoever — see Section 8. The page does load fonts, map tiles and listing photos from the providers in Section 7, which necessarily see the IP address in order to send the file; that is delivery, not measurement.' },
+        { lead: 'Our website runs no analytics script at all.', p: 'There is no Google Analytics tag and no advertising pixel on any page, nothing measures or profiles browsing for us or for anyone else, and the website sets no cookies whatsoever — see Section 8. The page does load map tiles and listing photos from the providers in Section 7, which necessarily see the IP address in order to send the file; that is delivery, not measurement.' },
         { lead: 'Google Analytics, from the mobile app only.', p: 'For the app, our own servers pass the five funnel steps described above on to Google Analytics — and nothing else. Google receives the step, the city, the listing id, and the random session identifier. Because the message comes from our server rather than from your phone, it carries no IP address and no device information, and the app itself contains no Google code and sets no cookie.' },
         { lead: 'Waitlist signups.', p: 'Signing up from a city not supported yet stores name, email, and city so we can notify that person when we launch there — it does not create a full account.' },
       ],
@@ -78,7 +78,6 @@ export const PRIVACY = {
           { lead: 'Supabase', text: '— stores uploaded property images and verification documents' },
           { lead: 'Google Cloud Platform', text: '— hosts our application servers and database' },
           { lead: 'Google Maps Platform', text: '— powers map display, address search, and geocoding (search queries and coordinates are sent to Google to resolve locations)' },
-          { lead: 'Google Fonts', text: '— serves the typefaces our website is set in. Loading a font means the browser requests a file from Google, so Google sees the IP address and the page that asked for it. It sets no cookie and we send it nothing about you. This app is unaffected: its fonts ship inside it.' },
           { lead: 'Zoho ZeptoMail', text: '— delivers transactional emails (appointment updates, password resets, sign-in codes). Your email address and the message content pass through it. Where ZeptoMail is not configured, an SMTP provider is used instead.' },
           { lead: 'Expo', text: '— and through it Google (FCM) on Android or Apple (APNs) on iOS, delivers push notifications to your device. The notification’s title and text pass through these services.' },
           { lead: 'Google Analytics', text: '(Google LLC) — measures how the mobile app is used, and only the app. It receives the five funnel steps forwarded by our servers — the step, the city, the listing id, and a random session identifier — with no IP address and no device information. Our website sends it nothing at all: there is no Google Analytics tag on the website. It never receives your name, email, phone number, or the contents of your messages.' },
@@ -124,7 +123,7 @@ export const PRIVACY = {
         { lead: 'Signing in does not use a cookie.', p: 'Authentication is entirely token-based — a JWT stored on your device.' },
         { lead: 'In fact the Platform sets no cookies at all.', p: 'Not for sign-in, not for analytics, not for advertising — on the website or in the app. There is nothing here for you to accept or refuse, which is why you have never been shown a cookie banner.' },
         { lead: 'There is no analytics or advertising tag either.', p: 'Between them, those two are what put cookies on most websites; we run neither. A Google Analytics tag ran on our website briefly on 7 August 2026 and was removed the same day, along with the _ga cookies it set. Nothing has replaced it.' },
-        { lead: 'What the website does still fetch from elsewhere', p: 'is fonts, map tiles and listing photos — from the providers named in Section 7. Serving you a file means seeing the IP address to send it to, so those providers do, but none of it is analytics: nothing is recorded about which pages you read, and none of them set a cookie there. The app ships its own fonts.' },
+        { lead: 'What the website does still fetch from elsewhere', p: 'is map tiles and listing photos — from the providers named in Section 7. Serving you a file means seeing the IP address to send it to, so those providers do, but none of it is analytics: nothing is recorded about which pages you read, and none of them set a cookie there. Both the website and the app serve their own fonts.' },
         { lead: 'What we use instead', p: 'is the first-party measurement described in Section 2. Its session identifier lasts for one run of the app (one browser tab on the website), so it cannot follow you between visits, to another app or website, or to another company.' },
         { lead: 'If we ever add an analytics or advertising tag', p: 'it will be named here, and Section 4 says how you will hear about it before it takes effect.' },
       ],
