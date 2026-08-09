@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Phone, MapPin, Eye, EyeOff, MailCheck, KeyRound, House } from 'lucide-react'
+import { X, Phone, MapPin, Eye, EyeOff, MailCheck, MessageSquareLock, KeyRound, House } from 'lucide-react'
 import { authService } from '@services/auth.service'
 import { useAuth } from '../hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
@@ -259,12 +259,18 @@ export default function LoginModal() {
               </div>
             )}
 
-            {tab === 'otp' ? (
+            {tab === 'otp' || tab === 'otp-phone' ? (
+              /* One form, two channels — see OtpLoginForm's CHANNELS table.
+                 `email` doubles as the identifier for both; the field it
+                 renders and the endpoint it calls come from the channel. */
               <OtpLoginForm
+                key={tab}
+                channel={tab === 'otp-phone' ? 'phone' : 'email'}
                 email={email}
                 setEmail={setEmail}
                 onUsePassword={() => switchTab('login')}
                 onSignup={() => switchTab('signup')}
+                onSwitchChannel={() => { setEmail(''); switchTab(tab === 'otp-phone' ? 'otp' : 'otp-phone') }}
                 onDone={landAfterLogin}
               />
             ) : tab === 'forgot' ? (
@@ -356,6 +362,13 @@ export default function LoginModal() {
                   >
                     <MailCheck size={18} strokeWidth={2} className="text-brand-600" />
                     Email me a sign-in code
+                  </button>
+                  <button
+                    type="button" onClick={() => { setEmail(''); switchTab('otp-phone') }}
+                    className="w-full min-h-[44px] py-3 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 flex items-center justify-center gap-3"
+                  >
+                    <MessageSquareLock size={18} strokeWidth={2} className="text-brand-600" />
+                    Text me a sign-in code
                   </button>
                   <SocialLoginButtons />
                 </div>

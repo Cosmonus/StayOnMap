@@ -71,6 +71,26 @@ export async function verifyOtp(req, res, next) {
   } catch (err) { next(err) }
 }
 
+// ── Phone SIGN-IN (unauthenticated — a correct code mints a session) ────────
+
+export async function requestPhoneLoginCode(req, res, next) {
+  try {
+    await phone.requestPhoneLoginOtp(req.body.phone)
+    // Always the same shape, even when no verified account holds that number —
+    // the service no-ops silently, so this response cannot confirm which
+    // numbers are registered.
+    ok(res, { sent: true })
+  } catch (err) { next(err) }
+}
+
+export async function verifyPhoneLoginCode(req, res, next) {
+  try {
+    // Same `{ token, refreshToken, user }` triple as every other login path,
+    // so a client needs no special case for signing in by SMS.
+    ok(res, await phone.verifyPhoneLoginOtp(req.body.phone, req.body.code, loginCtx(req)))
+  } catch (err) { next(err) }
+}
+
 // ── Phone verification (authenticated — you verify your own number) ─────────
 
 export async function requestPhoneCode(req, res, next) {

@@ -73,6 +73,18 @@ export const verifyPhoneCodeSchema = z.object({
   code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code'),
 })
 
+// Signing IN with a phone number. Same phone rule as above; the code travels
+// WITH the number because this flow is unauthenticated and there is no session
+// to say whose code it is.
+export const phoneLoginRequestSchema = z.object({
+  phone: z.string().trim().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number'),
+})
+
+export const phoneLoginVerifySchema = z.object({
+  phone: z.string().trim().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number'),
+  code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code'),
+})
+
 export const updateRoleSchema = z.object({
   role: z.enum(['OWNER']),
 })

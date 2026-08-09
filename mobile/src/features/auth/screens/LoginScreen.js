@@ -165,18 +165,23 @@ export default function LoginScreen() {
           )}
 
           {/* OtpLoginForm owns its own error rendering */}
-          {!!error && tab !== 'otp' && (
+          {!!error && tab !== 'otp' && tab !== 'otp-phone' && (
             <View style={styles.errorBox}>
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
 
-          {tab === 'otp' ? (
+          {tab === 'otp' || tab === 'otp-phone' ? (
+            /* One form, two channels — see OtpLoginForm's CHANNELS table.
+               `email` doubles as the identifier for both. */
             <OtpLoginForm
+              key={tab}
+              channel={tab === 'otp-phone' ? 'phone' : 'email'}
               email={email}
               setEmail={setEmail}
               onUsePassword={() => switchTab('login')}
               onSignup={() => switchTab('signup')}
+              onSwitchChannel={() => { setEmail(''); switchTab(tab === 'otp-phone' ? 'otp' : 'otp-phone') }}
               styles={styles}
             />
           ) : tab === 'forgot' ? (
@@ -245,6 +250,14 @@ export default function LoginScreen() {
                 >
                   <Icon name="mail" size={16} color={colors.brand600} />
                   <Text style={styles.secondaryButtonText}>Email me a sign-in code</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.secondaryButton}
+                  onPress={() => { setEmail(''); switchTab('otp-phone') }}
+                  accessibilityRole="button"
+                >
+                  <Icon name="phone" size={16} color={colors.brand600} />
+                  <Text style={styles.secondaryButtonText}>Text me a sign-in code</Text>
                 </Pressable>
                 <SocialLoginButtons />
               </View>

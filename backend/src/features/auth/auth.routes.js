@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { authMiddleware } from '../../middlewares/auth.middleware.js'
 import { validate } from '../../middlewares/validate.middleware.js'
 import { strictLimiter } from '../../middlewares/rateLimit.middleware.js'
-import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, verifyEmailSchema, updateRoleSchema, requestOtpSchema, verifyOtpSchema, refreshSchema, logoutSchema, oauthCompleteSchema, requestPhoneCodeSchema, verifyPhoneCodeSchema } from './auth.validation.js'
+import { registerSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema, verifyEmailSchema, updateRoleSchema, requestOtpSchema, verifyOtpSchema, refreshSchema, logoutSchema, oauthCompleteSchema, requestPhoneCodeSchema, verifyPhoneCodeSchema, phoneLoginRequestSchema, phoneLoginVerifySchema } from './auth.validation.js'
 import * as controller from './auth.controller.js'
 
 const router = Router()
@@ -36,6 +36,13 @@ router.post('/send-verification', strictLimiter, authMiddleware, controller.send
 // stops this being an on-demand way to text a number you don't own.
 router.post('/phone/request', strictLimiter, authMiddleware, validate(requestPhoneCodeSchema), controller.requestPhoneCode)
 router.post('/phone/verify',  strictLimiter, authMiddleware, validate(verifyPhoneCodeSchema),  controller.verifyPhoneCode)
+
+// Signing IN by SMS. PUBLIC, unlike the two above — there is no session yet.
+// strictLimiter plus phone.service.js's cooldown and two daily caps; and the
+// service will only ever text a number somebody has already VERIFIED, so this
+// cannot be used to send a message to an arbitrary phone.
+router.post('/phone/login/request', strictLimiter, validate(phoneLoginRequestSchema), controller.requestPhoneLoginCode)
+router.post('/phone/login/verify',  strictLimiter, validate(phoneLoginVerifySchema),  controller.verifyPhoneLoginCode)
 
 router.get('/me', authMiddleware, controller.getMe)
 router.patch('/role', authMiddleware, validate(updateRoleSchema), controller.updateRole)
