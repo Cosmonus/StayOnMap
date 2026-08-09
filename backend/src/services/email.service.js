@@ -63,13 +63,46 @@ export function emailVerificationEmail({ name, link }) {
   }
 }
 
+/**
+ * The sign-in code.
+ *
+ * THERE IS NO COPY BUTTON, AND THERE CANNOT BE ONE. Email clients do not
+ * execute JavaScript — there is no clipboard API in Gmail, Outlook or Apple
+ * Mail, and no markup that reaches one. Anything that looked like a copy button
+ * here would be a picture of a button that did nothing when tapped, which is
+ * worse than not having one.
+ *
+ * What actually gets a code into someone's hands, in order of how much it
+ * helps:
+ *
+ *   1. THE CODE IN THE SUBJECT LINE. Already here, and it is the whole game:
+ *      iOS and Gmail surface the subject in the notification, so most people
+ *      read the code off the lock screen and never open the email at all.
+ *      Keep `${code}` first in the subject — a leading word pushes it out of
+ *      the truncated preview on a narrow screen.
+ *   2. A RECOGNISABLE SHAPE. Gmail on Android and iOS detect one-time-code
+ *      emails heuristically and offer their own native "Copy code" chip. A
+ *      short subject saying "sign-in code" and a single isolated run of digits
+ *      is what they match on — so the platform provides the button we cannot.
+ *   3. EASY TO SELECT BY HAND. The code sits alone in a padded block with
+ *      nothing adjacent, so a long-press selects the digits and only the
+ *      digits. Previously it was bare text on a line: a long-press picked up
+ *      the surrounding paragraph as often as not.
+ *
+ * `letter-spacing` does not affect what gets copied — the clipboard receives
+ * the characters, not the tracking.
+ */
 export function loginOtpEmail({ name, code, ttlMinutes }) {
   return {
+    // `${code}` stays FIRST. See note 1 above.
     subject: `${code} is your StayOnMap sign-in code`,
     html: `
       <p>Hi ${name},</p>
       <p>Use this code to sign in to StayOnMap:</p>
-      <p style="font-size:28px;font-weight:700;letter-spacing:6px;margin:20px 0;">${code}</p>
+      <p style="margin:24px 0;">
+        <span style="display:inline-block;font-family:Consolas,'SF Mono',Menlo,monospace;font-size:30px;font-weight:700;letter-spacing:8px;color:#0a6e4b;background:#edfaf7;border:1px solid #d0f3e8;border-radius:8px;padding:14px 16px 14px 24px;">${code}</span>
+      </p>
+      <p style="font-size:13px;color:#57534a;margin-top:-8px;">Press and hold to copy. The code is in this email's subject line too.</p>
       <p>It expires in ${ttlMinutes} minutes and can only be used once.</p>
       <p>If you didn't try to sign in, you can safely ignore this email — nobody can access your account with this email alone, and your password is unchanged.</p>
     `,

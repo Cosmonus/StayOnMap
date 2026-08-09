@@ -38,7 +38,7 @@ export default function ScreenHeader({ title, subtitle, onBack, right, below, ba
   const insets = useSafeAreaInsets()
 
   return (
-    <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
+    <View style={[styles.header, { paddingTop: insets.top + spacing.smd }]}>
       <View style={styles.row}>
         {onBack ? (
           <Pressable
@@ -68,7 +68,12 @@ export default function ScreenHeader({ title, subtitle, onBack, right, below, ba
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+    // 12, not 16, top and bottom. With insets.top (~47 on a notched phone), a
+    // 44px title row and 16 either side, the chrome was ~123px before a single
+    // card — the app read as top-heavy on every screen at once, because every
+    // screen uses this component. The 44px row is untouched: that is the
+    // accessible target size, not padding.
+    paddingBottom: spacing.smd,
     backgroundColor: colors.white,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.slate200,
