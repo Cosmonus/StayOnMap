@@ -36,6 +36,7 @@ import PropertyStatusPill from '@components/common/PropertyStatusPill'
 import PropertyDetailBody from '@features/properties/components/detail/PropertyDetailBody'
 import UnifiedSidebar from '@components/layout/UnifiedSidebar'
 import { toast } from '@components/common/Toaster'
+import ActionMenu from '@components/common/ActionMenu'
 import { confirm } from '@components/common/ConfirmDialog'
 import AdminMonitorSection from '@features/admin/components/AdminMonitorSection'
 import VerificationsSection from '@features/admin/components/VerificationsSection'
@@ -908,6 +909,7 @@ function AdminPropertiesMap() {
       <PropertyDetailView
         property={fullDetail}
         onBack={() => setFullDetail(null)}
+        onRefresh={() => adminService.propertyById(fullDetail.id).then(r => setFullDetail(r.data)).catch(() => {})}
         onApprove={(id) => moderateFullDetail(id, 'ACTIVE')}
         onReject={(id) => moderateFullDetail(id, 'REJECTED')}
         onSuspend={(id) => moderateFullDetail(id, 'SUSPENDED')}
@@ -1145,7 +1147,68 @@ function SectionLabel({ children }) {
 }
 
 /* ── Inline property detail view (3 columns: Property | Users | User Detail) ── */
-function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend }) {
+/**
+ * Re-run the checks on one listing.
+ *
+ * Both endpoints existed with NO caller anywhere in the app — `POST
+ * /admin/trust-scores/:id/recalculate` and `POST /admin/ai/fraud-scan/:id`,
+ * built and unreachable, like the activity log was. Surfaced 2026-08-10.
+ *
+ * The fraud scan is GATED on `property.aiEnabled`, because `scoreFraud`
+ * short-circuits to `{score: 0, signals: []}` whenever AI_PROVIDER is not
+ * anthropic — which is production. An always-inert button is the thing this
+ * codebase removed from the login screen the same week; it must not reappear
+ * here. Recalculation is deterministic and always offered.
+ */
+function RecheckMenu({ property, onRefresh }) {
+  const [busy, setBusy] = useState(null)
+
+  async function run(kind, fn, done) {
+    setBusy(kind)
+    try {
+      const res = await fn()
+      done(res.data)
+      // Refresh is passed IN, never assumed. This screen has two call sites and
+      // only one is React Query-backed: the properties map holds its detail in
+      // plain state, so invalidating a query key there would leave the new
+      // score computed, stored, and invisible — the action appearing to do
+      // nothing, which is the worst outcome for a button whose whole job is to
+      // recompute a number.
+      onRefresh?.()
+    } catch (err) {
+      toast.error('Could not run', err?.message ?? 'Please try again')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const items = [
+    {
+      label: busy === 'scores' ? 'Recalculating…' : 'Recalculate trust & risk',
+      onClick: () => run('scores', () => adminService.recalculateScores(property.id), (d) =>
+        toast.success('Scores recalculated', `Trust ${d?.trust?.overallScore ?? '—'} · risk ${d?.risk?.level ?? '—'}`)),
+    },
+    ...(property.aiEnabled
+      ? [{
+        label: busy === 'fraud' ? 'Scanning…' : 'Run AI fraud scan',
+        onClick: () => run('fraud', () => adminService.fraudScan(property.id), (d) =>
+          toast.success('Fraud scan complete', d?.score > 70
+            ? `Flagged — score ${d.score}`
+            : `No flag raised — score ${d?.score ?? 0}`)),
+      }]
+      : []),
+  ]
+
+  return (
+    <ActionMenu
+      items={items}
+      label="Re-run checks"
+      triggerClassName="min-h-[44px] px-3 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
+    />
+  )
+}
+
+function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend, onRefresh }) {
   const [selectedUserId, setSelectedUserId] = useState(null)
 
   useEffect(() => { setSelectedUserId(null) }, [property?.id])
@@ -1222,6 +1285,11 @@ function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend }
               Reinstate
             </button>
           )}
+          {/* Behind the menu, not beside the moderation buttons: this row can
+              already show three, and ui-ux.md caps it at two plus an overflow.
+              These are also a different KIND of action — they change nothing
+              a renter sees, they re-derive what we know about the listing. */}
+          <RecheckMenu property={property} onRefresh={onRefresh} />
         </div>
       </div>
 
@@ -1507,6 +1575,7 @@ function ReviewListingsSection() {
         onApprove={(id) => moderate(id, 'ACTIVE', selectedProperty.title)}
         onReject={(id) => moderate(id, 'REJECTED', selectedProperty.title)}
         onSuspend={(id) => moderate(id, 'SUSPENDED', selectedProperty.title)}
+        onRefresh={() => qc.invalidateQueries({ queryKey: ['admin-property', selectedId] })}
       />
     )
   }

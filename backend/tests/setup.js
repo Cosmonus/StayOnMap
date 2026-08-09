@@ -21,6 +21,11 @@ vi.mock('../src/features/trust/trust.service.js', () => ({
 // ── AI fraud scan — stubbed out ─────────────────────────────────────────────
 vi.mock('../src/features/ai/ai.service.js', () => ({
   runFraudScan: vi.fn().mockResolvedValue(null),
+  // Defaults to FALSE, which is production: AI_PROVIDER is stub there, every
+  // scan short-circuits, and the admin panel hides the buttons that would
+  // trigger one. A mock defaulting the other way would let a test prove a
+  // surface works in a configuration nobody runs.
+  aiEnabled: vi.fn().mockReturnValue(false),
 }))
 
 // ── Intelligence layer — fire-and-forget side effects ──────────────────────

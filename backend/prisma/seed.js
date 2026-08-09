@@ -415,12 +415,29 @@ async function main() {
     process.exit(1)
   }
   const passwordHash  = await bcrypt.hash(adminPassword, 12)
+  // `update: {}` on purpose — seeding must never silently reset the password of
+  // an admin that already exists, least of all in an environment where somebody
+  // rotated it deliberately.
+  //
+  // But it must SAY SO. It did not, and the silence cost a real debugging
+  // session on 2026-08-10: a local Admin row created by an early seed kept its
+  // original hash while ADMIN_SEED_PASSWORD in .env moved on, every re-seed
+  // reported "✓ Admin account" as though it had applied, and the login answered
+  // "Invalid credentials" against a password the developer could see in their
+  // own .env. Nothing in the flow admitted the write had been skipped.
+  const existingAdmin = await prisma.admin.findUnique({ where: { email: adminEmail }, select: { id: true } })
   await prisma.admin.upsert({
     where:  { email: adminEmail },
     update: {},
     create: { email: adminEmail, passwordHash, name: 'StayOnMap Admin' },
   })
-  console.log(`✓ Admin account: ${adminEmail}`)
+  if (existingAdmin) {
+    console.log(`• Admin account already exists: ${adminEmail}`)
+    console.log('  PASSWORD LEFT UNCHANGED — seeding never overwrites one.')
+    console.log('  To set it: ADMIN_EMAIL=… ADMIN_PASSWORD=… node scripts/update-admin.js')
+  } else {
+    console.log(`✓ Admin account created: ${adminEmail}`)
+  }
 
   // 3. Find the real owner account by email
   //    This user must have logged in at least once so /auth/sync created their DB record.

@@ -6,6 +6,7 @@ import { sendEmail, adminPasswordChangedEmail } from '../../services/email.servi
 import { mailStatus } from '../../lib/mailer.js'
 import { smsStatus } from '../../lib/smsSender.js'
 import { errorStatus } from '../../lib/errorLog.js'
+import { aiEnabled } from '../ai/ai.service.js'
 import { ADMIN_FILTERS, buildFilterWhere } from '../properties/filters.registry.js'
 import { firstPublishStamp } from '../properties/publishedAt.js'
 import { recordStatusChange, recordBulkStatusChange } from '../properties/statusEvents.js'
@@ -344,6 +345,13 @@ export async function getAdminPropertyById(id) {
     intelError('spatial.context_failed', err, { propertyId: property.id })
     return { modules: null, pending: false, status: STATUS_FAILED }
   })
+
+  // Can this deployment actually run an AI scan on this listing? Ridden along
+  // with the payload rather than fetched separately: it gates one button on
+  // this very screen, and a second request for one boolean is a request the
+  // screen does not need. Same shape as `phoneVerificationAvailable` on the
+  // user settings payload.
+  property.aiEnabled = aiEnabled()
 
   return property
 }

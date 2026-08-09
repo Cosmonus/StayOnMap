@@ -75,3 +75,22 @@ describe('what it still refuses', () => {
     expect(JSON.stringify(res)).not.toContain(hash)
   })
 })
+
+// ── The AI gate, which decides whether a button may exist ──────────────────
+describe('scans are offered only where they can run', () => {
+  it('rides an aiEnabled flag along with the admin property payload', async () => {
+    // `scoreFraud` and `detectFakeReview` both short-circuit to an empty result
+    // unless AI_PROVIDER is anthropic — which production is not. The panel reads
+    // this flag to decide whether to draw "Run AI fraud scan", the same rule
+    // that hides the SMS sign-in button where no provider is configured.
+    // Without it the panel offers a scan that can only ever answer "score 0".
+    const { getAdminPropertyById } = await import('../src/features/admin/admin.service.js')
+    prismaMock.property.findUnique.mockResolvedValue({
+      id: 'p1', title: 'A flat', lat: 13.08, lng: 80.27, type: 'APARTMENT', images: [],
+    })
+
+    const property = await getAdminPropertyById('p1')
+    expect(property).toHaveProperty('aiEnabled')
+    expect(property.aiEnabled).toBe(false) // the mocked default = production
+  })
+})

@@ -24,6 +24,13 @@ export const adminService = {
   // Supply, owner responsiveness and the conversation-to-tenancy chain. One
   // call because they are one screen — see features/analytics/marketplace.service.js.
   marketplace:   (params)       => adminApi.get('/admin/analytics/marketplace', { params }),
+
+  // Re-run the checks on one listing. Deterministic scores always work;
+  // the AI scans short-circuit to an empty result unless AI_PROVIDER is set,
+  // which is why their buttons are gated on `property.aiEnabled`.
+  recalculateScores: (propertyId) => adminApi.post(`/admin/trust-scores/${propertyId}/recalculate`),
+  fraudScan:         (propertyId) => adminApi.post(`/admin/ai/fraud-scan/${propertyId}`),
+  reviewScan:        (reviewId)   => adminApi.post(`/admin/ai/review-scan/${reviewId}`),
   amenities:     ()             => adminApi.get('/admin/amenities'),
   addAmenity:    (name)         => adminApi.post('/admin/amenities', { name }),
   deleteAmenity: (id)           => adminApi.delete(`/admin/amenities/${id}`),
