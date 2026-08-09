@@ -19,43 +19,39 @@ async function getMetroData() {
 const METRO_LINE_COLORS = { 1: '#7c3aed', 2: '#059669', 3: '#ca8a04' }
 const IT_CORRIDOR_COLORS = { major: '#2563eb', moderate: '#60a5fa' }
 
+// Station dots appear at street zoom and not before. There are 741 of them
+// nationwide (314 in Delhi alone) and they are unreadable clutter above a
+// neighbourhood — mobile's MetroLines.js has drawn the same line at the same
+// number since 2026-07-05. Below this they are not styled invisible, they are
+// not on the map at all: see the two-layer split in the hook.
+const STATION_ZOOM = 13
+
 // Prefer per-feature color from GeoJSON; fall back to line-number palette
 function metroColor(feature) {
   return feature.getProperty('color') ?? METRO_LINE_COLORS[feature.getProperty('line')] ?? '#7c3aed'
 }
 
-// Catmull-Rom spline — interpolating: curve passes through every original point
-function catmullRomPoint(p0, p1, p2, p3, t) {
-  const t2 = t * t, t3 = t2 * t
-  return [
-    0.5 * (2*p1[0] + (-p0[0]+p2[0])*t + (2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2 + (-p0[0]+3*p1[0]-3*p2[0]+p3[0])*t3),
-    0.5 * (2*p1[1] + (-p0[1]+p2[1])*t + (2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2 + (-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3),
-  ]
-}
-
-function catmullRom(coords, segments = 8) {
-  if (coords.length < 2) return coords
-  const pts = [coords[0], ...coords, coords[coords.length - 1]]
-  const result = []
-  for (let i = 1; i < pts.length - 2; i++) {
-    result.push(pts[i])
-    for (let t = 1; t < segments; t++) {
-      result.push(catmullRomPoint(pts[i-1], pts[i], pts[i+1], pts[i+2], t / segments))
-    }
-  }
-  result.push(pts[pts.length - 2])
-  return result
-}
-
-function smoothLineStrings(geojson) {
+/**
+ * Split the network into the two things that behave differently on a map.
+ *
+ * Lines are cheap, always relevant, and stay on whenever the layer is on.
+ * Stations are 94% of the features and only mean anything close up. Two
+ * `google.maps.Data` layers rather than one, so the expensive half can be
+ * detached with `setMap(null)` — a guaranteed end to its render cost, where
+ * `visible: false` only asks Google not to draw something it is still tracking,
+ * and would re-run a style callback per feature on every zoom step.
+ */
+export function splitMetroFeatures(geojson) {
+  const lines = [], stations = []
+  for (const f of geojson.features) (f.geometry.type === 'Point' ? stations : lines).push(f)
   return {
-    ...geojson,
-    features: geojson.features.map((f) => {
-      if (f.geometry.type !== 'LineString') return f
-      return { ...f, geometry: { ...f.geometry, coordinates: catmullRom(f.geometry.coordinates) } }
-    }),
+    lines:    { ...geojson, features: lines },
+    stations: { ...geojson, features: stations },
   }
 }
+
+/** Are station dots warranted at this zoom, given the layer is on at all? */
+export const stationsVisibleAt = (zoom) => typeof zoom === 'number' && zoom >= STATION_ZOOM
 
 function styleMetroFeature(feature) {
   const type  = feature.getGeometry().getType()
@@ -162,25 +158,52 @@ export function useMapLayers(mapRef) {
   const mapReady        = useMapStore((s) => s.flyTo !== null)
   const city             = useFilterStore((s) => s.filters.city)
 
-  const layers     = useRef({ metro: null, itCorridorCircles: [], traffic: null })
+  const layers     = useRef({ metroLines: null, metroStations: null, itCorridorCircles: [], traffic: null })
   const tooltipEl  = useRef(null)
   const mouseMoveRef = useRef(null)
-  // Tracks what the metro Data layer currently holds; `seq` guards against a
+  // Tracks what the metro Data layers currently hold; `seq` guards against a
   // stale async load landing after a newer city/toggle change superseded it.
   const metroState = useRef({ loaded: false, city: undefined, seq: 0 })
 
   async function syncMetro(nextCity) {
-    const metro = layers.current.metro
-    if (!metro) return
+    const { metroLines, metroStations } = layers.current
+    if (!metroLines || !metroStations) return
     if (metroState.current.loaded && metroState.current.city === nextCity) return
     const seq = ++metroState.current.seq
     const data = await getMetroData()
-    if (seq !== metroState.current.seq || !layers.current.metro) return
-    metro.forEach((f) => metro.remove(f))
-    metro.addGeoJson(smoothLineStrings(filterByCity(data, nextCity)))
-    metro.setStyle(styleMetroFeature)
+    if (seq !== metroState.current.seq || !layers.current.metroLines) return
+
+    // The geometry goes in AS FETCHED. It used to be resampled through a
+    // Catmull-Rom spline at 8 segments per span, which turned 11,612 vertices
+    // into ~92,896 and was re-projected by Google on every camera change —
+    // felt as laggy zooming the moment the layer was switched on.
+    //
+    // Don't put it back. That smoothing predates the P13 metro engine, when
+    // this file held hand-approximated geometry with few, widely-spaced points
+    // and rounding its corners was visible. Real OSM geometry has a MEDIAN
+    // vertex spacing of 48.7 m, which is 0.65 px at zoom 11 and 2.6 px at zoom
+    // 13 — the spline was interpolating inside a sub-pixel span, under a 3.5 px
+    // stroke. It cost 8x and could not be seen at any zoom the map has.
+    const { lines, stations } = splitMetroFeatures(filterByCity(data, nextCity))
+
+    metroLines.forEach((f) => metroLines.remove(f))
+    metroStations.forEach((f) => metroStations.remove(f))
+    metroLines.addGeoJson(lines)
+    metroStations.addGeoJson(stations)
+    metroLines.setStyle(styleMetroFeature)
+    metroStations.setStyle(styleMetroFeature)
+
     metroState.current.loaded = true
     metroState.current.city = nextCity
+  }
+
+  /** Attach/detach each metro layer for the current toggle + zoom. */
+  function applyMetroVisibility(map) {
+    const { metroLines, metroStations } = layers.current
+    if (!metroLines || !metroStations) return
+    const on = useMapStore.getState().activeLayers.metro
+    metroLines.setMap(on ? map : null)
+    metroStations.setMap(on && stationsVisibleAt(map.getZoom()) ? map : null)
   }
 
   // Create tooltip DOM element once
@@ -238,8 +261,9 @@ export function useMapLayers(mapRef) {
     const map = mapRef.current
     if (!map) return
 
-    layers.current.metro   = new window.google.maps.Data()
-    layers.current.traffic = new window.google.maps.TrafficLayer()
+    layers.current.metroLines    = new window.google.maps.Data()
+    layers.current.metroStations = new window.google.maps.Data()
+    layers.current.traffic       = new window.google.maps.TrafficLayer()
 
     const initCity = useFilterStore.getState().filters.city
     // Metro data loads only when the layer is actually on — most sessions
@@ -248,10 +272,19 @@ export function useMapLayers(mapRef) {
 
     rebuildItCorridorCircles(map, initCity)
 
+    // Station dots come and go with zoom. Listening to `zoom_changed` rather
+    // than `idle` so they arrive with the gesture; the body only calls setMap,
+    // which is a no-op when nothing crossed the threshold.
+    const zoomListener = window.google.maps.event.addListener(map, 'zoom_changed', () => {
+      applyMetroVisibility(map)
+    })
+
     const currentLayers = layers.current
     const mapDiv = map.getDiv()
     return () => {
-      if (currentLayers.metro?.setMap) currentLayers.metro.setMap(null)
+      window.google.maps.event.removeListener(zoomListener)
+      if (currentLayers.metroLines?.setMap) currentLayers.metroLines.setMap(null)
+      if (currentLayers.metroStations?.setMap) currentLayers.metroStations.setMap(null)
       if (currentLayers.traffic?.setMap) currentLayers.traffic.setMap(null)
       currentLayers.itCorridorCircles.forEach((c) => c.setMap(null))
       if (mouseMoveRef.current) {
@@ -264,8 +297,8 @@ export function useMapLayers(mapRef) {
   // Reload all city-scoped layers when city changes
   useEffect(() => {
     const map = mapRef.current
-    const { metro } = layers.current
-    if (!map || !metro) return
+    const { metroLines } = layers.current
+    if (!map || !metroLines) return
 
     // Refilter metro only if its data is already loaded or the layer is on —
     // otherwise the first toggle-on loads it fresh for the current city.
@@ -279,10 +312,10 @@ export function useMapLayers(mapRef) {
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    const { metro, itCorridorCircles, traffic } = layers.current
-    if (metro) {
+    const { metroLines, itCorridorCircles, traffic } = layers.current
+    if (metroLines) {
       if (activeLayers.metro) syncMetro(useFilterStore.getState().filters.city)
-      metro.setMap(activeLayers.metro ? map : null)
+      applyMetroVisibility(map)
     }
     if (traffic) traffic.setMap(activeLayers.traffic ? map : null)
     itCorridorCircles.forEach((c) => c.setMap(activeLayers.itCorridors ? map : null))
