@@ -200,6 +200,79 @@ function SupplyTrend({ supply }) {
   )
 }
 
+function DeadInventory({ dead }) {
+  return (
+    <Card
+      title="Listings nobody is looking at"
+      right={`last ${dead.days} days`}
+      hint="Split rather than summed, because the two need opposite work: no views is a visibility problem, views with no messages is a listing problem."
+    >
+      {dead.live === 0 ? (
+        <Empty>No live listings.</Empty>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-2xl font-bold text-slate-900 font-mono">{dead.unseen}</p>
+              <p className="text-xs text-slate-500 mt-0.5">never opened &mdash; visibility</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-900 font-mono">{dead.seenButUncontacted}</p>
+              <p className="text-xs text-slate-500 mt-0.5">seen, never messaged &mdash; the listing</p>
+            </div>
+          </div>
+          {dead.worst.length > 0 && (
+            <ul className="mt-5 pt-4 border-t border-slate-100 flex flex-col gap-2">
+              {dead.worst.map((p) => (
+                <li key={p.id} className="flex items-baseline justify-between gap-3">
+                  <span className="text-sm text-slate-800 truncate">{p.title}</span>
+                  <span className="text-xs text-slate-500 shrink-0 font-mono">{p.views} views</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-xs text-slate-500 mt-4">
+            Oldest first &mdash; a listing ignored for a month is a more urgent conversation with
+            its owner than one posted on Tuesday.
+          </p>
+        </>
+      )}
+    </Card>
+  )
+}
+
+function Readiness({ readiness: r }) {
+  return (
+    <Card
+      title="Are the listings good enough"
+      right={`${r.live} live`}
+      hint="Buckets, not an average — '2.4 photos' describes no real listing, and the fact worth acting on is how many sit at zero."
+    >
+      {r.live === 0 ? (
+        <Empty>No live listings.</Empty>
+      ) : (
+        <>
+          <div className="flex flex-col gap-4">
+            <BarRow label="No photos at all" count={r.photos.none} max={r.live} />
+            <BarRow label="One or two photos" count={r.photos.few} max={r.live} />
+            <BarRow label="Three or more" count={r.photos.enough} max={r.live} />
+          </div>
+          <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm font-mono font-semibold text-slate-800">{r.noDescription}</p>
+              <p className="text-xs text-slate-500">thin or missing description</p>
+            </div>
+            <div>
+              <p className="text-sm font-mono font-semibold text-slate-800">{r.verified}</p>
+              <p className="text-xs text-slate-500">ownership verified</p>
+            </div>
+          </div>
+        </>
+      )}
+    </Card>
+  )
+}
+
 export default function SupplySection() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-marketplace'],
@@ -234,6 +307,8 @@ export default function SupplySection() {
       <DraftFunnel drafts={data.drafts} />
       <Responsiveness responsiveness={data.responsiveness} />
       <MatchChain chain={data.chain} />
+      <DeadInventory dead={data.dead} />
+      <Readiness readiness={data.readiness} />
     </div>
   )
 }

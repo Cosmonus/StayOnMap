@@ -126,6 +126,7 @@ export const prismaMock = {
   },
   propertyDailyView: {
     aggregate: vi.fn(),
+    groupBy:   vi.fn().mockResolvedValue([]),
     upsert:    vi.fn(),
   },
   propertyViewer: {
@@ -204,6 +205,7 @@ export const prismaMock = {
     create:     vi.fn(),
     update:     vi.fn(),
     count:      vi.fn().mockResolvedValue(0),
+    groupBy:    vi.fn().mockResolvedValue([]),
   },
   // User-to-user blocking. The defaults are "nobody has blocked anybody", which
   // is every existing test's world — chat.service now consults these on every

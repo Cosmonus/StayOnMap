@@ -50,13 +50,15 @@ export async function demand(req, res, next) {
 // would be four requests to render a single section.
 export async function marketplace(req, res, next) {
   try {
-    const [drafts, responsiveness, chain, supply] = await Promise.all([
+    const [drafts, responsiveness, chain, supply, dead, readiness] = await Promise.all([
       marketplaceMetrics.getDraftFunnel(),
       marketplaceMetrics.getOwnerResponsiveness(),
       marketplaceMetrics.getMatchChain(),
       marketplaceMetrics.getSupplyTrend(),
+      marketplaceMetrics.getDeadInventory(),
+      marketplaceMetrics.getListingReadiness(),
     ])
-    ok(res, { drafts, responsiveness, chain, supply })
+    ok(res, { drafts, responsiveness, chain, supply, dead, readiness })
   } catch (err) { next(err) }
 }
 export async function waitlist(req, res, next) {

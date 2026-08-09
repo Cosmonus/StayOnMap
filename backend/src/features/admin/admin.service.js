@@ -5,6 +5,7 @@ import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { sendEmail, adminPasswordChangedEmail } from '../../services/email.service.js'
 import { mailStatus } from '../../lib/mailer.js'
 import { smsStatus } from '../../lib/smsSender.js'
+import { errorStatus } from '../../lib/errorLog.js'
 import { ADMIN_FILTERS, buildFilterWhere } from '../properties/filters.registry.js'
 import { firstPublishStamp } from '../properties/publishedAt.js'
 import { parseBounds, boundsFilter } from '../../utils/geo.js'
@@ -611,6 +612,12 @@ export async function getMonitorStatus() {
       verifications: pendingVerifications,
     },
     dbStatus,
+    // Server faults, from the in-memory ring in lib/errorLog.js. Nothing else
+    // in this panel could distinguish a broken deploy from a quiet afternoon —
+    // SENTRY_DSN is unset and the only record was journalctl on the box. Its
+    // limits are stated in the readout rather than implied: it resets on
+    // restart and holds the newest 50.
+    errors: errorStatus(),
     system: {
       aiProvider:   process.env.AI_PROVIDER ?? 'stub',
       redisEnabled: !!process.env.REDIS_URL,

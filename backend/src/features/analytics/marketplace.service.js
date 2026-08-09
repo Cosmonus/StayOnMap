@@ -189,6 +189,119 @@ export async function getMatchChain({ days = 90 } = {}) {
 }
 
 /**
+ * Live listings nobody is looking at.
+ *
+ * The funnel says how many people reached a property page; it cannot say that
+ * four of our listings have never been on one. At this inventory that
+ * distinction decides what to do next: a listing with no views is a
+ * VISIBILITY problem (wrong area, wrong price band, not indexed), while a
+ * listing with views and no messages is a LISTING problem (bad photos, no
+ * description, a price nobody will pay). They look identical on every other
+ * screen and need opposite work.
+ *
+ * "Seen" means a real property-page view or a conversation, never a map pin
+ * impression — a pin scrolling past in a viewport is not somebody looking at
+ * a home.
+ */
+export async function getDeadInventory({ days = 30, limit = 10 } = {}) {
+  const since = new Date(Date.now() - days * DAY_MS)
+  const sinceDay = new Date(since.toISOString().slice(0, 10)) // PropertyDailyView.day is a DATE
+
+  const [live, viewed, contacted] = await Promise.all([
+    prisma.property.findMany({
+      where: { status: 'ACTIVE' },
+      select: { id: true, title: true, city: true, createdAt: true, publishedAt: true },
+      orderBy: { createdAt: 'asc' },
+    }),
+    prisma.propertyDailyView.groupBy({
+      by: ['propertyId'],
+      where: { day: { gte: sinceDay } },
+      _sum: { count: true },
+    }),
+    prisma.conversation.groupBy({
+      by: ['propertyId'],
+      where: { createdAt: { gte: since } },
+      _count: { _all: true },
+    }),
+  ])
+
+  const views = new Map(viewed.map((r) => [r.propertyId, r._sum.count ?? 0]))
+  const chats = new Map(contacted.map((r) => [r.propertyId, r._count._all]))
+
+  const scored = live.map((p) => ({
+    id: p.id,
+    title: p.title,
+    city: p.city,
+    liveSince: p.publishedAt ?? p.createdAt,
+    views: views.get(p.id) ?? 0,
+    conversations: chats.get(p.id) ?? 0,
+  }))
+
+  return {
+    days,
+    live: live.length,
+    // Split rather than summed, because the two need opposite work.
+    unseen: scored.filter((p) => p.views === 0).length,
+    seenButUncontacted: scored.filter((p) => p.views > 0 && p.conversations === 0).length,
+    // Oldest first: a listing that has been live and ignored for a month is a
+    // more urgent conversation with its owner than one posted on Tuesday.
+    worst: scored.filter((p) => p.conversations === 0).slice(0, limit),
+  }
+}
+
+/**
+ * Whether our listings are good enough to convert the demand we do get.
+ *
+ * With ~5 genuine listings every one of them has to work, so "how many photos
+ * does the median listing have" is a supply-quality question, not vanity. A
+ * listing with no photo wastes scarce, expensive demand — and nothing in the
+ * panel could name which one it was.
+ *
+ * Buckets rather than an average: "2.4 photos" describes no real listing, and
+ * the actionable fact is how many sit at zero.
+ */
+export async function getListingReadiness() {
+  const live = await prisma.property.findMany({
+    where: { status: 'ACTIVE' },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      _count: { select: { images: true } },
+      verification: { select: { status: true } },
+    },
+  })
+
+  const photos = { none: 0, few: 0, enough: 0 }
+  let noDescription = 0
+  let verified = 0
+  const worst = []
+
+  for (const p of live) {
+    const n = p._count.images
+    if (n === 0) photos.none++
+    else if (n < 3) photos.few++
+    else photos.enough++
+
+    // 120 characters is roughly one honest sentence about the home. Shorter
+    // than that is a title repeated, which tells a renter nothing.
+    const thin = !p.description || p.description.trim().length < 120
+    if (thin) noDescription++
+    if (p.verification?.status === 'VERIFIED') verified++
+
+    if (n < 3 || thin) worst.push({ id: p.id, title: p.title, photos: n, thinDescription: thin })
+  }
+
+  return {
+    live: live.length,
+    photos,
+    noDescription,
+    verified,
+    worst: worst.slice(0, 10),
+  }
+}
+
+/**
  * New supply, by week.
  *
  * TWO SERIES, DELIBERATELY, because they answer different questions and only

@@ -15,6 +15,8 @@ import {
   getDraftFunnel,
   getOwnerResponsiveness,
   getMatchChain,
+  getDeadInventory,
+  getListingReadiness,
 } from '../src/features/analytics/marketplace.service.js'
 
 const HOUR = 60 * 60 * 1000
@@ -28,6 +30,9 @@ beforeEach(() => {
   prismaMock.appointment.count.mockResolvedValue(0)
   prismaMock.lease.count.mockResolvedValue(0)
   prismaMock.lease.findMany.mockResolvedValue([])
+  prismaMock.property.findMany.mockResolvedValue([])
+  prismaMock.propertyDailyView.groupBy.mockResolvedValue([])
+  prismaMock.conversation.groupBy.mockResolvedValue([])
 })
 
 describe('getDraftFunnel', () => {
@@ -152,5 +157,49 @@ describe('firstPublishStamp', () => {
 
   it('does nothing for any other status', () => {
     expect(firstPublishStamp({ status: 'PENDING', publishedAt: null }, 'REJECTED')).toEqual({})
+  })
+})
+
+describe('getDeadInventory', () => {
+  it('separates never-opened from opened-but-never-messaged', async () => {
+    // Two different problems with two different fixes — a sum would hide which.
+    prismaMock.property.findMany.mockResolvedValue([
+      { id: 'p1', title: 'Unseen', city: 'Chennai', createdAt: new Date(), publishedAt: null },
+      { id: 'p2', title: 'Seen',   city: 'Chennai', createdAt: new Date(), publishedAt: null },
+    ])
+    prismaMock.propertyDailyView.groupBy.mockResolvedValue([{ propertyId: 'p2', _sum: { count: 40 } }])
+    prismaMock.conversation.groupBy.mockResolvedValue([])
+
+    const res = await getDeadInventory()
+    expect(res.unseen).toBe(1)
+    expect(res.seenButUncontacted).toBe(1)
+  })
+
+  it('does not call a listing dead when somebody messaged about it', async () => {
+    prismaMock.property.findMany.mockResolvedValue([
+      { id: 'p1', title: 'Busy', city: 'Chennai', createdAt: new Date(), publishedAt: null },
+    ])
+    prismaMock.propertyDailyView.groupBy.mockResolvedValue([{ propertyId: 'p1', _sum: { count: 5 } }])
+    prismaMock.conversation.groupBy.mockResolvedValue([{ propertyId: 'p1', _count: { _all: 2 } }])
+
+    const res = await getDeadInventory()
+    expect(res.seenButUncontacted).toBe(0)
+    expect(res.worst).toHaveLength(0)
+  })
+})
+
+describe('getListingReadiness', () => {
+  it('buckets photo counts and flags thin descriptions', async () => {
+    prismaMock.property.findMany.mockResolvedValue([
+      { id: 'a', title: 'No photos', description: 'x'.repeat(200), _count: { images: 0 }, verification: null },
+      { id: 'b', title: 'Two',       description: 'short',          _count: { images: 2 }, verification: null },
+      { id: 'c', title: 'Good',      description: 'x'.repeat(200),  _count: { images: 6 }, verification: { status: 'VERIFIED' } },
+    ])
+    const res = await getListingReadiness()
+    expect(res.photos).toEqual({ none: 1, few: 1, enough: 1 })
+    expect(res.noDescription).toBe(1)
+    expect(res.verified).toBe(1)
+    // Only the two that need work, never the healthy one.
+    expect(res.worst.map((p) => p.id)).toEqual(['a', 'b'])
   })
 })

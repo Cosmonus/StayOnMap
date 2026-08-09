@@ -153,6 +153,60 @@ function SystemHealthSection({ data }) {
   )
 }
 
+// ── Section 1a: Server errors ──────────────────────────────────────────────
+// Until now nothing in this panel could tell a broken deploy from a quiet
+// afternoon: SENTRY_DSN is unset and the only record of a 5xx was journalctl on
+// the VM. This is the smallest thing that removes that blindness — an in-memory
+// ring in the API process, so it costs no vendor, no dependency and no table.
+//
+// Its limits are printed, not implied. A number that silently resets on deploy
+// is worse than no number, because it reads as "nothing is wrong".
+
+function ServerErrorsSection({ errors }) {
+  if (!errors) return null
+  const quiet = errors.lastHour === 0
+
+  return (
+    <div>
+      <SectionHeading
+        title="Server errors"
+        description="Requests that failed with a 5xx. Anything above zero is ours, not the caller's."
+      />
+      <Card className={quiet ? '' : 'bg-red-50 border-red-200'}>
+        <div className="flex items-baseline gap-6">
+          <div>
+            <p className={`text-2xl font-bold font-mono ${quiet ? 'text-slate-900' : 'text-red-700'}`}>
+              {errors.lastHour}
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">last hour</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold font-mono text-slate-900">{errors.sinceRestart}</p>
+            <p className="text-xs text-slate-500 mt-0.5">since the API restarted</p>
+          </div>
+        </div>
+
+        {errors.recent?.length > 0 && (
+          <ul className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-2">
+            {errors.recent.slice(0, 8).map((e, i) => (
+              <li key={i} className="flex items-baseline justify-between gap-3">
+                <span className="text-xs font-mono text-slate-800 truncate">{e.path || '—'}</span>
+                <span className="text-xs text-slate-500 shrink-0 truncate max-w-[45%]">{e.message}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <p className="text-xs text-slate-500 mt-4">
+          Held in memory in the API process: this resets when the API restarts, including on
+          every deploy, and keeps the newest {errors.kept}. It answers &ldquo;is something
+          broken right now&rdquo;, never &ldquo;what broke last Tuesday&rdquo;.
+        </p>
+      </Card>
+    </div>
+  )
+}
+
 // ── Section 1b: Email quota ────────────────────────────────────────────────
 // Every email — OTP codes, resets, appointment mail — spends one of the same
 // MAIL_DAILY_CAP daily sends, and the last few are held back for critical
@@ -535,6 +589,7 @@ export default function AdminMonitorSection() {
       {data && (
         <>
           <SystemHealthSection data={data} />
+          <ServerErrorsSection errors={data.errors} />
           <EmailQuotaSection mail={data.system?.mail} />
           <ActionQueueSection pending={data.pendingModeration} />
           <ListingPipelineSection propertyByStatus={data.propertyByStatus} />
