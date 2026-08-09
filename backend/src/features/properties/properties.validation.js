@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { indiaLat, indiaLng } from '../../utils/geo.js'
 import { proximitySchema } from './proximityFilter.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
 import { PROPERTY_TYPES, PRICING_MODELS, filterQueryShape } from './filters.registry.js'
@@ -78,8 +79,8 @@ export const createPropertySchema = z.object({
   state:    z.string().min(2).max(100).trim(),
   pincode:  z.string().regex(/^\d{6}$/, 'Invalid pincode'),
   landmark: z.string().max(200).trim().optional(),
-  lat:      z.number().min(6).max(38),
-  lng:      z.number().min(68).max(98),
+  lat:      indiaLat(),
+  lng:      indiaLng(),
 
   // Specifics
   bhk:             z.number().int().min(0).max(10).optional(),
@@ -220,8 +221,8 @@ export const updatePropertySchema = z.object({
   state:              z.string().min(2).max(100).trim().optional(),
   pincode:            z.string().regex(/^\d{6}$/).optional(),
   landmark:           z.string().max(200).trim().optional(),
-  lat:                z.number().min(6).max(38).optional(),
-  lng:                z.number().min(68).max(98).optional(),
+  lat:                indiaLat().optional(),
+  lng:                indiaLng().optional(),
   bhk:             z.number().int().min(0).max(10).optional(),
   sharing:         z.number().int().min(1).max(6).optional(),
   area:            z.number().positive().max(100_000).optional(),

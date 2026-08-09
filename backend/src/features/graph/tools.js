@@ -25,6 +25,7 @@ import { rankProperties } from './ranking.js'
 import { getUserPreferences } from './preferences.js'
 import { intelLog, intelError } from '../../lib/intelLog.js'
 import { prisma } from '../../lib/prisma.js'
+import { indiaLat, indiaLng } from '../../utils/geo.js'
 // `listPoisNear`, not `poisNear`: the latter returns counts grouped by category,
 // which cannot name a station. Note its argument order puts `categories` BEFORE
 // `radiusM` — the reverse of its sibling.
@@ -37,8 +38,10 @@ import { recordToolTiming } from './health.js'
 const DEFAULT_TIMEOUT_MS = 5_000
 
 const nodeIdSchema = z.string().regex(/^[A-Za-z]+:.+$/, 'node id must be "Type:id"')
-const latSchema = z.coerce.number().min(6).max(38)   // India, same bounds as the API
-const lngSchema = z.coerce.number().min(68).max(98)
+// Coerced: these arrive as query-string text. Bounds from utils/geo.js — the
+// one place the box is defined.
+const latSchema = indiaLat(z.coerce.number())
+const lngSchema = indiaLng(z.coerce.number())
 
 /**
  * The registry.

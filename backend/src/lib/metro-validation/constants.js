@@ -3,10 +3,10 @@
 // here so future data passes reuse the same tolerances instead of
 // reinventing them per one-off script.
 
-// India bounding box — reused verbatim from .claude/security.md's existing
-// property-coordinate validation convention, so metro data is checked
-// against the same bounds as everything else in this codebase.
-export const INDIA_BOUNDS = { minLat: 6, maxLat: 38, minLng: 68, maxLng: 98 }
+// India bounding box — RE-EXPORTED, not restated, so metro data is checked
+// against the same box as everything else and there is one place to widen it.
+// This file used to carry its own copy of the four numbers.
+export { INDIA_BOUNDS } from '../../utils/geo.js'
 
 // A station within this distance of a line's path counts as a genuine
 // interchange point for that line (Addendum 6's "tight match").
