@@ -48,6 +48,37 @@ import ActivityLogSection from '@features/admin/components/ActivityLogSection'
 import WaitlistByCity from '@features/admin/components/WaitlistByCity'
 import { formatTime } from '@utils/time'
 
+/**
+ * What a failed admin fetch must look like.
+ *
+ * Every section on this page destructured only `{ data, isLoading }` until
+ * 2026-08-10, so a rejected query left `data` undefined and fell through to
+ * `data?.rows ?? []` — rendering the EMPTY state. On a moderation surface that
+ * is the worst failure available: a reports queue that could not load looks
+ * exactly like a queue with nothing in it, and an admin reads "all clear" off a
+ * screen that failed. Every extracted component in features/admin already did
+ * this correctly; the 2,600-line page did not.
+ *
+ * Named, because "Something went wrong" over an empty table is barely better
+ * than the empty table.
+ */
+function SectionError({ what, onRetry }) {
+  return (
+    <div className="bg-white border border-red-200 rounded-2xl p-5">
+      <p className="text-sm font-semibold text-slate-900">Could not load {what}</p>
+      <p className="text-xs text-slate-500 mt-1">
+        This is a failure to fetch, not an empty list &mdash; do not read it as &ldquo;nothing to do&rdquo;.
+      </p>
+      <button
+        onClick={onRetry}
+        className="mt-4 min-h-[44px] px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+      >
+        Try again
+      </button>
+    </div>
+  )
+}
+
 // ── Shared chart card shell ────────────────────────────────────────────────
 function ChartCard({ title, value, footer, children }) {
   return (
@@ -245,10 +276,12 @@ function MetricBar({ label, value, max, color = 'bg-brand-500' }) {
 
 // ── Section: Overview ──────────────────────────────────────────────────────
 function OverviewSection() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-analytics'],
     queryFn: () => adminService.analytics().then(r => r.data),
   })
+
+  if (isError) return <SectionError what="the dashboard" onRetry={refetch} />
 
   if (isLoading) {
     return (
@@ -1523,7 +1556,7 @@ function ReviewListingsSection() {
 
   const deepLinkId = searchParams.get('propertyId')
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-review-listings', statusFilter],
     queryFn: () => adminService.properties({ status: statusFilter || undefined, limit: 50 }).then(r => r.data),
     staleTime: 0,
@@ -1560,6 +1593,11 @@ function ReviewListingsSection() {
     if (note === false) return
     mutation.mutate({ id, status, note: note || undefined })
   }
+
+  // Guarded here, after every hook, and BEFORE `properties` is derived —
+  // `data?.properties ?? []` is precisely the line that turns a failed fetch
+  // into "nothing to review".
+  if (isError) return <SectionError what="listings to review" onRetry={refetch} />
 
   const properties = data?.properties ?? []
 
@@ -1890,7 +1928,7 @@ function UsersSection() {
   const [search, setSearch] = useState('')
   const [selectedUserId, setSelectedUserId] = useState(null)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-users', search],
     queryFn: () => adminService.users({ search, limit: 50 }).then(r => r.data),
   })
@@ -1899,6 +1937,8 @@ function UsersSection() {
     mutationFn: ({ id, blocked }) => adminService.blockUser(id, { blocked, reason: blocked ? 'Admin action' : 'Unblocked' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
   })
+
+  if (isError) return <SectionError what="users" onRetry={refetch} />
 
   if (selectedUserId) {
     return <UserDetailView userId={selectedUserId} onBack={() => setSelectedUserId(null)} />
@@ -1972,10 +2012,12 @@ function UsersSection() {
 
 // ── Section: Waitlist — signups from cities outside SUPPORTED_CITIES ────────
 function WaitlistSection() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-waitlist'],
     queryFn: () => adminService.waitlist({ limit: 100 }).then(r => r.data),
   })
+
+  if (isError) return <SectionError what="the waitlist" onRetry={refetch} />
 
   return (
     <div className="space-y-5">
@@ -2039,7 +2081,7 @@ function ReportsSection() {
   const qc = useQueryClient()
   const [status, setStatus] = useState('PENDING')
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-reports', status],
     queryFn: () => adminService.reports({ status, limit: 30 }).then(r => r.data),
   })
@@ -2048,6 +2090,8 @@ function ReportsSection() {
     mutationFn: ({ id, action }) => adminService.moderateReport(id, { action }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-reports'] }),
   })
+
+  if (isError) return <SectionError what="reports" onRetry={refetch} />
 
   return (
     <div className="space-y-5">
@@ -2284,7 +2328,7 @@ function AdminReviewsSection() {
   const qc = useQueryClient()
   const [status, setStatus] = useState('PENDING')
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-reviews', status],
     queryFn: () => adminService.reviews({ status, limit: 50 }).then(r => r.data),
   })
@@ -2293,6 +2337,8 @@ function AdminReviewsSection() {
     mutationFn: ({ id, nextStatus }) => adminService.setReviewStatus(id, nextStatus),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-reviews'] }),
   })
+
+  if (isError) return <SectionError what="reviews" onRetry={refetch} />
 
   const reviews = data?.reviews ?? []
   const TABS = ['PENDING', 'APPROVED', 'REJECTED', 'FLAGGED']

@@ -680,7 +680,15 @@ export async function getAdminProfile(adminId) {
 
 export async function updateAdminProfile(adminId, { name, email }) {
   if (email) {
-    const existing = await prisma.admin.findFirst({ where: { email, id: { not: adminId } } })
+    // Case-INSENSITIVE, and it has to be: adminLogin matches that way, while
+    // Postgres unique indexes are case-sensitive. A sensitive check here would
+    // happily accept "OPS@x.com" alongside an existing "ops@x.com", and then a
+    // sign-in as either would resolve to whichever row findFirst reached first
+    // — two admins, one credential, decided by row order. The DB constraint
+    // cannot express this; it is the query's job.
+    const existing = await prisma.admin.findFirst({
+      where: { email: { equals: email.trim(), mode: 'insensitive' }, id: { not: adminId } },
+    })
     if (existing) throw Object.assign(new Error('Email already in use'), { statusCode: 409 })
   }
   return prisma.admin.update({

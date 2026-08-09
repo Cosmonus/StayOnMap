@@ -5,6 +5,7 @@ import {
   adminLoginSchema, adminChangePasswordSchema, adminPinsQuerySchema,
   adminPropertiesQuerySchema, adminPropertyStatusSchema,
   adminBlockUserSchema, adminReviewStatusSchema, adminAmenitySchema,
+  adminUpdateProfileSchema,
 } from './admin.validation.js'
 import { strictLimiter } from '../../middlewares/rateLimit.middleware.js'
 import * as ctrl from './admin.controller.js'
@@ -41,7 +42,7 @@ router.get('/monitor', ctrl.getMonitorStatus)
 // operator editing it would defeat the point of keeping it.
 router.get('/data-quality', ctrl.getDataQuality)
 router.get('/profile', ctrl.getProfile)
-router.patch('/profile', ctrl.updateProfile)
+router.patch('/profile', validate(adminUpdateProfileSchema), ctrl.updateProfile)
 router.patch('/profile/password', validate(adminChangePasswordSchema), ctrl.changePassword)
 router.get('/amenities', ctrl.getAmenities)
 router.post('/amenities', validate(adminAmenitySchema), ctrl.addAmenity)
