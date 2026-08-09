@@ -213,7 +213,7 @@ async function main() {
 
   if (!CONFIRM) {
     console.log('\nDRY RUN — nothing written. Re-run with --confirm.')
-    console.log('Then: node scripts/backfill-localities.mjs --confirm  (re-resolves listings)')
+    console.log('Then: node scripts/backfill-localities.mjs --all --confirm  (re-resolves listings)')
     await prisma.$disconnect()
     return
   }
@@ -230,8 +230,14 @@ async function main() {
     notes: { cities: cities.length, failures, placeTypes: PLACE_TYPES },
   })
 
-  console.log('\nNEXT: node scripts/backfill-localities.mjs --confirm')
-  console.log('      — listings re-resolve to PLACE now that the rows exist.')
+  // --all is NOT optional here, and printing it without was a trap: the
+  // backfill selects `localityId: null`, and after the first production run
+  // EVERY listing already has one — pointing at the ward this fetch exists to
+  // replace. Without --all it matches nothing, prints "0 listings", exits 0,
+  // and leaves the wrong names live. A no-op that looks like a success.
+  console.log('\nNEXT: node scripts/backfill-localities.mjs --all --confirm')
+  console.log('      — --all is REQUIRED: without it, listings that already')
+  console.log('        resolved to a ward are skipped and nothing changes.')
   await prisma.$disconnect()
 }
 
