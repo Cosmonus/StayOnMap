@@ -22,6 +22,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
+import { MoreHorizontal } from 'lucide-react'
 
 const GAP = 8
 const EDGE = 8
@@ -36,7 +37,14 @@ function Badge({ count }) {
 }
 
 export default function ActionMenu({
-  trigger,
+  // Defaulted, because the failure mode of forgetting it is INVISIBLE: the
+  // button still renders, still works, and paints as an empty bordered box with
+  // nothing in it. That shipped in the admin panel's Review Listings detail —
+  // `RecheckMenu` passed items and a triggerClassName and no trigger, so the
+  // "Re-run checks" control was a blank rectangle nobody could recognise as a
+  // control. A default glyph cannot be as good as a chosen one, and it is
+  // enormously better than nothing.
+  trigger = <MoreHorizontal size={18} strokeWidth={2} aria-hidden="true" />,
   items,
   label = 'Open menu',
   triggerClassName,
