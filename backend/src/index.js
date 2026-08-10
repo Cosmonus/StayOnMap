@@ -53,6 +53,7 @@ import graphRoutes        from './features/graph/graph.routes.js'
 import analyticsRoutes    from './features/analytics/analytics.routes.js'
 import localityRoutes     from './features/seo/locality.routes.js'
 import blogRoutes         from './features/blog/blog.routes.js'
+import contactRoutes      from './features/contact/contact.routes.js'
 import { startRefresher } from './features/spatial/refresher.js'
 import aiRoutes          from './features/ai/ai.routes.js'
 import areaRoutes        from './features/areas/areas.routes.js'
@@ -134,6 +135,7 @@ app.use('/api/v1/spatial',       spatialRoutes)
 app.use('/api/v1/graph',         graphRoutes)
 app.use('/api/v1/analytics',     analyticsRoutes)
 app.use('/api/v1/blog',          blogRoutes)
+app.use('/api/v1/contact',       contactRoutes)
 app.use('/api/v1/localities',    localityRoutes)
 app.use('/api/v1/metro',         metroRoutes)
 app.use('/api/v1/it-corridors',  itCorridorRoutes)

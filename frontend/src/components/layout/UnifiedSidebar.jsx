@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
   LayoutDashboard, MapPin, Building2, Heart, MessageCircle, Calendar, Bell,
-  Settings, LifeBuoy, FileText, LogOut, CircleHelp,
+  Settings, LifeBuoy, FileText, LogOut,
   ClipboardCheck, Users, TriangleAlert, Star, BarChart3, TrendingUp, ScrollText,
   ChevronsUpDown, PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react'
@@ -19,7 +19,6 @@ const ICONS = {
   support: LifeBuoy,
   leases: FileText,
   logout: LogOut,
-  helpCircle: CircleHelp,
   // Admin-specific
   overview: LayoutDashboard,
   queue: ClipboardCheck,
@@ -56,9 +55,11 @@ const ADMIN_NAV = [
   { id: 'activity',        label: 'Activity Log',     icon: 'activity' },
 ]
 
+// `help-center` was here until 2026-08-10 with no case in AdminPage's switch —
+// clicking it highlighted Help Center and rendered Overview. Removed rather
+// than stubbed: never draw a control that does nothing.
 const ADMIN_BOTTOM_NAV = [
-  { id: 'help-center', label: 'Help Center', icon: 'helpCircle' },
-  { id: 'settings',    label: 'Settings',    icon: 'settings' },
+  { id: 'settings', label: 'Settings', icon: 'settings' },
 ]
 
 const USER_BOTTOM_NAV = [

@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { useMutation } from '@tanstack/react-query'
 import {
   CircleHelp, TriangleAlert, Users, Mail, ShieldCheck, Building2, Check,
-  Send, ArrowUpRight, Zap, Lock, User, MapPin, Plus, ArrowRight,
+  Send, ArrowUpRight, Zap, Lock, User, MapPin, Plus, ArrowRight, Loader2,
 } from 'lucide-react'
 import { CITIES } from '@/config/cities'
+import { contactService } from '@services/contact.service'
 import { usePlatformStats } from '@hooks/usePlatformStats'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
@@ -63,6 +65,15 @@ export default function ContactPage() {
   const { totalActive, isLoading, isError } = usePlatformStats()
   const statsUnknown = isLoading || isError
 
+  // Until 2026-08-10 this was `e.preventDefault(); setSent(true)` — no request,
+  // no mailto, and no backend route existed. The success screen then promised a
+  // reply within 24 hours to a message that had gone nowhere. The success state
+  // is now set from the server's answer and nothing else.
+  const mutation = useMutation({
+    mutationFn: (payload) => contactService.send(payload),
+    onSuccess: () => setSent(true),
+  })
+
   function handleChange(e) {
     const { name, value } = e.target
     if (name === 'message' && value.length > MAX_MESSAGE) return
@@ -75,11 +86,12 @@ export default function ContactPage() {
 
   function handleSubmit(e) {
     e.preventDefault()
-    setSent(true)
+    if (mutation.isPending) return
+    mutation.mutate(form)
   }
 
   const charsLeft = MAX_MESSAGE - form.message.length
-  const canSubmit = form.name && form.email && form.topic && form.message
+  const canSubmit = form.name && form.email && form.topic && form.message && !mutation.isPending
 
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
@@ -162,7 +174,7 @@ export default function ContactPage() {
                     <p className="text-sm text-slate-500 max-w-xs leading-relaxed mb-6">
                       We&apos;ll get back to you at <span className="font-semibold text-slate-700">{form.email}</span> within 24 hours.
                     </p>
-                    <button onClick={() => { setSent(false); setForm({ name: '', email: '', topic: '', message: '' }) }} className="px-5 py-2 rounded-full text-xs font-semibold border border-slate-200 text-slate-500 hover:border-[#111111] hover:text-slate-800 transition-colors">
+                    <button onClick={() => { setSent(false); mutation.reset(); setForm({ name: '', email: '', topic: '', message: '' }) }} className="px-5 py-2 rounded-full text-xs font-semibold border border-slate-200 text-slate-500 hover:border-[#111111] hover:text-slate-800 transition-colors">
                       Send another message
                     </button>
                   </div>
@@ -215,11 +227,25 @@ export default function ContactPage() {
                     </div>
 
                     <div className="px-6 pb-6">
-                      <button type="submit" disabled={!canSubmit} className={['w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold transition-all duration-150', canSubmit ? 'bg-[#111111] hover:bg-[#2a2a2a] text-white shadow-sm hover:shadow-md' : 'bg-slate-100 text-slate-500 cursor-not-allowed'].join(' ')}>
-                        Send message
-                        <Send size={14} strokeWidth={2.5} />
+                      {mutation.isError && (
+                        <div role="alert" className="mb-3 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3">
+                          <TriangleAlert className="w-4 h-4 text-red-600 shrink-0 mt-0.5" strokeWidth={2} />
+                          <p className="text-xs text-red-700 leading-relaxed">
+                            {/* Both axios instances reject with the response BODY, so the
+                                server's own message is `err.message` — reaching
+                                through a `.response` wrapper finds nothing. */}
+                            {mutation.error?.message || 'Your message could not be sent.'}{' '}
+                            You can email <a href="mailto:hello@cosmonus.com" className="font-semibold underline">hello@cosmonus.com</a> instead.
+                          </p>
+                        </div>
+                      )}
+                      <button type="submit" disabled={!canSubmit} className={['min-h-[44px] w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold transition-all duration-150', canSubmit ? 'bg-[#111111] hover:bg-[#2a2a2a] text-white shadow-sm hover:shadow-md' : 'bg-slate-100 text-slate-500 cursor-not-allowed'].join(' ')}>
+                        {mutation.isPending ? 'Sending…' : 'Send message'}
+                        {mutation.isPending
+                          ? <Loader2 size={14} strokeWidth={2.5} className="animate-spin" />
+                          : <Send size={14} strokeWidth={2.5} />}
                       </button>
-                      {!canSubmit && (
+                      {!canSubmit && !mutation.isPending && (
                         <p className="text-center text-xs text-slate-500 mt-2">
                           {!form.topic ? 'Pick a topic above to continue' : 'Fill in all fields to send'}
                         </p>

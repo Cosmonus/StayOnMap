@@ -1936,6 +1936,7 @@ function UsersSection() {
   const blockMutation = useMutation({
     mutationFn: ({ id, blocked }) => adminService.blockUser(id, { blocked, reason: blocked ? 'Admin action' : 'Unblocked' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
+    onError: (err) => toast.error('Couldn’t update the user', err.message ?? 'Please try again'),
   })
 
   if (isError) return <SectionError what="users" onRetry={refetch} />
@@ -2089,6 +2090,7 @@ function ReportsSection() {
   const mutation = useMutation({
     mutationFn: ({ id, action }) => adminService.moderateReport(id, { action }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-reports'] }),
+    onError: (err) => toast.error('Couldn’t moderate the report', err.message ?? 'Please try again'),
   })
 
   if (isError) return <SectionError what="reports" onRetry={refetch} />
@@ -2336,6 +2338,7 @@ function AdminReviewsSection() {
   const mutation = useMutation({
     mutationFn: ({ id, nextStatus }) => adminService.setReviewStatus(id, nextStatus),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-reviews'] }),
+    onError: (err) => toast.error('Couldn’t update the review', err.message ?? 'Please try again'),
   })
 
   if (isError) return <SectionError what="reviews" onRetry={refetch} />
@@ -2390,6 +2393,13 @@ function AdminReviewsSection() {
 
 // ── Settings ───────────────────────────────────────────────────────────────
 
+// Mirrors ADMIN_MIN_PASSWORD_LENGTH in backend/src/features/admin/admin.validation.js.
+// Admins are the platform's highest-privilege accounts, which is why their
+// floor is higher than a user's. Pinned to the backend's value by
+// backend/tests/admin-password.test.js — a client floor BELOW the server's
+// turns a helpful inline hint into a 400 the admin cannot explain.
+const ADMIN_MIN_PASSWORD_LENGTH = 12
+
 function AdminSettingsSection() {
   const qc = useQueryClient()
 
@@ -2421,7 +2431,12 @@ function AdminSettingsSection() {
       setProfileOverrides({})
       setProfileMsg({ ok: true, text: 'Profile updated.' })
     } catch (err) {
-      setProfileMsg({ ok: false, text: err.response?.data?.message ?? 'Failed to update.' })
+      // `adminApi`'s interceptor rejects with the response BODY, so `err` IS
+      // { success, error, message, statusCode } — `err.response` does not
+      // exist here. Reading it meant every failure showed the fallback and the
+      // server's own explanation was thrown away. The toasts elsewhere in this
+      // file already read `err.message`; these two had drifted.
+      setProfileMsg({ ok: false, text: err.message ?? 'Failed to update.' })
     } finally { setProfileSaving(false) }
   }
 
@@ -2435,8 +2450,12 @@ function AdminSettingsSection() {
     if (pwForm.newPassword !== pwForm.confirmPassword) {
       setPwMsg({ ok: false, text: 'New passwords do not match.' }); return
     }
-    if (pwForm.newPassword.length < 8) {
-      setPwMsg({ ok: false, text: 'Password must be at least 8 characters.' }); return
+    // 12, matching ADMIN_MIN_PASSWORD_LENGTH in admin.validation.js. This said
+    // 8 until 2026-08-10, so an 8-11 character password passed the client and
+    // 400'd on the server — and because the catch below was reading the wrong
+    // path, the admin saw only "Failed to change password." with no reason.
+    if (pwForm.newPassword.length < ADMIN_MIN_PASSWORD_LENGTH) {
+      setPwMsg({ ok: false, text: `Password must be at least ${ADMIN_MIN_PASSWORD_LENGTH} characters.` }); return
     }
     setPwSaving(true)
     setPwMsg(null)
@@ -2445,7 +2464,7 @@ function AdminSettingsSection() {
       setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
       setPwMsg({ ok: true, text: 'Password changed successfully.' })
     } catch (err) {
-      setPwMsg({ ok: false, text: err.response?.data?.message ?? 'Failed to change password.' })
+      setPwMsg({ ok: false, text: err.message ?? 'Failed to change password.' })
     } finally { setPwSaving(false) }
   }
 

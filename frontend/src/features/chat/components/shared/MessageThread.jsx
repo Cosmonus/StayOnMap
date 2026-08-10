@@ -589,7 +589,7 @@ export default function MessageThread({
       qc.invalidateQueries({ queryKey: ['chat-unread'] })
       toast.success(`${name} is blocked`)
     } catch (err) {
-      toast.error(err?.response?.data?.message ?? 'Could not block this person')
+      toast.error(err?.message ?? 'Could not block this person')
     }
   }
 

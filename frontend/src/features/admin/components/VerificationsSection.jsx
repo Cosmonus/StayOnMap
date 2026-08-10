@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { FileText } from 'lucide-react'
 import { adminService } from '@services/admin.service'
+import { toast } from '@components/common/Toaster'
 
 const STATUS_TABS = ['PENDING', 'UNDER_REVIEW', 'VERIFIED', 'REJECTED']
 
@@ -53,6 +54,9 @@ export default function VerificationsSection() {
   const mutation = useMutation({
     mutationFn: ({ id, next, adminNote }) => adminService.reviewVerification(id, { status: next, adminNote }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-verifications'] }),
+    // Without this a failed approve/reject gave zero feedback — the row simply
+    // did not change, which reads as a slow list rather than a failure.
+    onError: (err) => toast.error('Couldn’t review the verification', err.message ?? 'Please try again'),
   })
 
   const rows = data?.verifications ?? data ?? []

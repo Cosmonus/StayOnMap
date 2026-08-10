@@ -74,6 +74,11 @@ export const env = {
   resendApiKey: process.env.RESEND_API_KEY || null,
   brevoApiKey: process.env.BREVO_API_KEY || null,
   mailFrom: process.env.MAIL_FROM || process.env.SMTP_USER || 'StayOnMap <noreply@stayonmap.com>',
+  // Where the public contact form delivers (features/contact). Defaulted rather
+  // than required because the address is already published in three places on
+  // /contact itself — an unset env must not turn the form back into the silent
+  // no-op it was until 2026-08-10.
+  supportEmail: process.env.SUPPORT_EMAIL || 'hello@cosmonus.com',
   smtpHost: process.env.SMTP_HOST || null,
   smtpPort: Number(process.env.SMTP_PORT) || 465,
   smtpUser: process.env.SMTP_USER || null,

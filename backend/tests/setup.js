@@ -118,6 +118,7 @@ vi.mock('../src/config/env.js', () => ({
     brevoApiKey: null,
     mailFrom: 'StayOnMap <no-reply@stayonmap.com>',
     mailDailyCap: 450,
+    supportEmail: 'hello@cosmonus.com',
     smtpHost: null,
     smtpPort: 465,
     smtpUser: null,

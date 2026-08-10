@@ -266,7 +266,7 @@ function ActionQueueSection({ pending }) {
       label:       'Properties to review',
       count:       pending?.properties ?? 0,
       description: 'Owners have submitted listings waiting for your approval before they go live on the map.',
-      tab:         'properties',
+      tab:         'review-listings',
       cta:         'Review listings',
       urgentAt:    5,
     },
