@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import SEOMeta from '@components/common/SEOMeta'
@@ -21,90 +21,8 @@ import MapRightPanel from '@features/map/components/MapRightPanel'
 import AppointmentManager from '@features/appointments/components/AppointmentManager'
 import LeaseManager from '@features/leases/components/LeaseManager'
 import SettingsPanel from '@features/settings/components/SettingsPanel'
+import SupportCenter from '@features/support/components/SupportCenter'
 
-// ── Section: Placeholder ───────────────────────────────────────────────────
-// Support was a ComingSoon stub: an icon, a heading, one sentence, and no way
-// to reach anybody — on a platform that asks people to hand a deposit to a
-// stranger. Everything here already existed somewhere else in the product; the
-// only thing missing was a route to it from the menu item called Support.
-const SUPPORT_EMAIL = 'hello@cosmonus.com'
-
-const SUPPORT_ROUTES = [
-  {
-    key: 'listing',
-    title: 'Something wrong with a listing',
-    body: 'Wrong price, fake photos, a broker posing as an owner — report it from the listing page and our trust team reviews it. Reports are acted on, not queued.',
-    action: { label: 'Browse listings', to: '/properties' },
-  },
-  {
-    key: 'visit',
-    title: 'A visit or a message',
-    body: 'Visit requests and every conversation with an owner live in your account. You can cancel a visit you no longer want from the same place you requested it.',
-    action: { label: 'Your appointments', to: '/user?tab=appointments' },
-  },
-  {
-    key: 'account',
-    title: 'Your account, privacy or devices',
-    body: 'Change what other people can see, review the devices you are signed in on, reset your password, or delete the account outright.',
-    action: { label: 'Account settings', to: '/user?tab=settings' },
-  },
-  {
-    key: 'rules',
-    title: 'How StayOnMap works',
-    body: 'What we verify before a listing goes on the map, how the scores are calculated, and what we refuse to guess at.',
-    action: { label: 'Read the rules', to: '/rules' },
-  },
-]
-
-function SupportSection() {
-  return (
-    <div className="max-w-3xl space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">Help &amp; Support</h1>
-        <p className="text-sm text-slate-600 mt-1">
-          A real person reads {SUPPORT_EMAIL} — usually the same day. Start with whichever of these fits.
-        </p>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        {SUPPORT_ROUTES.map((r) => (
-          <div key={r.key} className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col">
-            <h2 className="text-sm font-bold text-slate-900">{r.title}</h2>
-            <p className="text-sm text-slate-600 mt-1.5 leading-relaxed flex-1">{r.body}</p>
-            <Link
-              to={r.action.to}
-              className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 no-underline hover:underline underline-offset-4"
-            >
-              {r.action.label} →
-            </Link>
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-white rounded-2xl border border-slate-200 p-5">
-        <h2 className="text-sm font-bold text-slate-900">Still stuck?</h2>
-        <p className="text-sm text-slate-600 mt-1.5 leading-relaxed">
-          Email us with the listing link or the name of the person you were dealing with — that is almost
-          always what we need to sort it out in one reply.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <a
-            href={`mailto:${SUPPORT_EMAIL}`}
-            className="inline-flex min-h-[44px] items-center px-5 text-sm font-semibold text-white bg-[#111111] hover:bg-[#2a2a2a] rounded-xl no-underline transition-colors"
-          >
-            Email {SUPPORT_EMAIL}
-          </a>
-          <Link
-            to="/contact"
-            className="inline-flex min-h-[44px] items-center px-5 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl no-underline transition-colors"
-          >
-            Use the contact form
-          </Link>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function daysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate()
@@ -387,7 +305,12 @@ export default function DashboardPage() {
       case 'settings':
         return <SettingsPanel />
       case 'support':
-        return <SupportSection />
+        // SupportCenter, not the static SupportSection above it. That screen
+        // was a list of links and a mailto: it could route somebody to the
+        // right page but could not TAKE a request, so anything it did not
+        // cover fell out of the product into an email nobody could track. A
+        // case is answerable, and both sides can see it.
+        return <SupportCenter />
       default:
         return null
     }

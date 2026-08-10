@@ -24,6 +24,7 @@ import * as ctrl from './support.controller.js'
 export const supportRouter = Router()
 supportRouter.use(authMiddleware)
 
+supportRouter.get('/articles', ctrl.articles)
 supportRouter.get('/cases', ctrl.listMine)
 supportRouter.get('/cases/:id', ctrl.getMine)
 

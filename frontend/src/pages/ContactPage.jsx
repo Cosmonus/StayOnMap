@@ -7,6 +7,8 @@ import {
 } from 'lucide-react'
 import { CITIES } from '@/config/cities'
 import { contactService } from '@services/contact.service'
+import { supportService } from '@services/support.service'
+import { useAuth } from '@features/auth/hooks/useAuth'
 import { usePlatformStats } from '@hooks/usePlatformStats'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
@@ -55,6 +57,16 @@ const FAQS = [
   { q: 'Do you offer partnerships for housing societies?', a: 'Yes! If you manage a society or corporate housing program, reach out via the partnerships channel. We offer bulk listing tools, branded pages, and priority verification.' },
 ]
 
+// The form's four topics, mapped onto case types. "Report a listing"
+// deliberately does NOT map to PROPERTY_REPORT — see the mutation below.
+const CONTACT_CASE_TYPE = {
+  question: 'GENERAL_SUPPORT',
+  report: 'SAFETY_REPORT',
+  partnership: 'OTHER',
+  other: 'OTHER',
+}
+const TOPIC_LABEL = Object.fromEntries(TOPICS.map((t) => [t.value, t.label]))
+
 const MAX_MESSAGE = 1000
 
 /* ================================================================ */
@@ -62,6 +74,7 @@ export default function ContactPage() {
   const [sent, setSent]   = useState(false)
   const [form, setForm]   = useState({ name: '', email: '', topic: '', message: '' })
   const [openFaq, setOpenFaq] = useState(0)
+  const { user } = useAuth()
   const { totalActive, isLoading, isError } = usePlatformStats()
   const statsUnknown = isLoading || isError
 
@@ -69,8 +82,24 @@ export default function ContactPage() {
   // no mailto, and no backend route existed. The success screen then promised a
   // reply within 24 hours to a message that had gone nowhere. The success state
   // is now set from the server's answer and nothing else.
+  // Signed in, it becomes a tracked CASE; signed out, it stays an email.
+  //
+  // The split is the whole point. A case can be replied to, followed and
+  // reopened, and both sides can see it — but it needs an account to belong to.
+  // Somebody locked out of theirs still has to be able to reach us, which is
+  // most of what a public contact form is for, so the email path stays.
   const mutation = useMutation({
-    mutationFn: (payload) => contactService.send(payload),
+    mutationFn: (payload) => (user
+      ? supportService.createCase({
+        // Mapped from the form's four topics. `report` does NOT become a
+        // PROPERTY_REPORT: that path runs the risk score and the auto-suspend
+        // rule and needs to know WHICH listing, which this form never asks.
+        // It opens a safety case a moderator can act on instead.
+        type: CONTACT_CASE_TYPE[payload.topic] ?? 'GENERAL_SUPPORT',
+        subject: `${TOPIC_LABEL[payload.topic] ?? 'Contact'} — ${payload.name}`.slice(0, 140),
+        description: payload.message,
+      })
+      : contactService.send(payload)),
     onSuccess: () => setSent(true),
   })
 

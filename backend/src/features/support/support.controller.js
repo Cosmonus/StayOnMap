@@ -1,6 +1,7 @@
 import * as service from './supportCase.service.js'
 import { ok, created } from '../../utils/response.js'
 import { ROLE } from './visibility.js'
+import * as knowledge from './knowledge.service.js'
 
 /**
  * HTTP only. Every authorisation decision is in the service, where it is a
@@ -107,4 +108,18 @@ export async function adminAssign(req, res, next) {
 
 export async function adminEscalate(req, res, next) {
   try { ok(res, await service.escalateCase(req.params.id, asStaff(req), req.body.reason)) } catch (err) { next(err) }
+}
+
+// ── Help centre ────────────────────────────────────────────────────────────
+// Public reads, but behind authMiddleware like the rest of this router: the
+// articles are about using an account, and there is no anonymous surface that
+// needs them. Making them public would be a separate decision with its own SEO
+// consequences (see .claude/seo.md on what is deliberately not indexed).
+export async function articles(req, res, next) {
+  try {
+    ok(res, {
+      categories: await knowledge.listCategories(),
+      articles: await knowledge.listArticles({ hat: hatOf(req), ...req.query }),
+    })
+  } catch (err) { next(err) }
 }

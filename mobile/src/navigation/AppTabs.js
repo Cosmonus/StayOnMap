@@ -31,9 +31,24 @@ import SettingsScreen from '@features/profile/screens/SettingsScreen'
 import HostDashboardScreen from '@features/host/screens/HostDashboardScreen'
 import HostProfileScreen from '@features/host/screens/HostProfileScreen'
 import CalendarScreen from '@features/host/screens/CalendarScreen'
-import SupportScreen from '@features/host/screens/SupportScreen'
+// The static SupportScreen (a list of links and a mailto) is replaced by the
+// case system: it could point somebody at the right page but could not TAKE a
+// request, so anything it did not cover left the product entirely.
+import SupportCenterScreen from '@features/support/screens/SupportCenterScreen'
+import SupportCaseScreen from '@features/support/screens/SupportCaseScreen'
+import SupportArticleScreen from '@features/support/screens/SupportArticleScreen'
+
 import LegalScreen from '@features/legal/screens/LegalScreen'
 import RulesScreen from '@features/legal/screens/RulesScreen'
+
+// Support travels as a GROUP: the centre, one case, and one article. Both the
+// renter and the host stack mount all three, so 'back' from a case returns to
+// the list inside the tab the reader came from rather than falling through.
+const SUPPORT_SCREENS = [
+  { name: 'Support', component: SupportCenterScreen, options: { headerShown: false } },
+  { name: 'SupportCase', component: SupportCaseScreen, options: { headerShown: false } },
+  { name: 'SupportArticle', component: SupportArticleScreen, options: { headerShown: false } },
+]
 
 const Tab = createBottomTabNavigator()
 
@@ -143,7 +158,7 @@ const ProfileStack = makeStack([
   NOTIFICATIONS_SCREEN,
   { name: 'Leases', component: LeasesScreen, options: { headerShown: false } },
   { name: 'Settings', component: SettingsScreen, options: { headerShown: false } },
-  { name: 'Support', component: SupportScreen, options: { headerShown: false } },
+  ...SUPPORT_SCREENS,
   { name: 'Legal', component: LegalScreen, options: { headerShown: false } },
   { name: 'Rules', component: RulesScreen, options: { headerShown: false } },
 ])
@@ -167,7 +182,7 @@ const HostProfileStack = makeStack([
   { name: 'HostProfileHome', component: HostProfileScreen, options: { headerShown: false } },
   NOTIFICATIONS_SCREEN,
   { name: 'Settings', component: SettingsScreen, options: { headerShown: false } },
-  { name: 'Support', component: SupportScreen, options: { headerShown: false } },
+  ...SUPPORT_SCREENS,
   { name: 'Legal', component: LegalScreen, options: { headerShown: false } },
   { name: 'Rules', component: RulesScreen, options: { headerShown: false } },
 ])

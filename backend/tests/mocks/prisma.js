@@ -147,6 +147,9 @@ export const prismaMock = {
   },
   knowledgeArticle: {
     findMany:   vi.fn().mockResolvedValue([]),
+    // findFirst, not findUnique: an article is fetched by slug AND published,
+    // so the read cannot be a unique lookup on slug alone.
+    findFirst:  vi.fn().mockResolvedValue(null),
     findUnique: vi.fn().mockResolvedValue(null),
   },
   savedListing: {
