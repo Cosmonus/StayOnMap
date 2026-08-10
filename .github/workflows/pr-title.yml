@@ -21,11 +21,17 @@ jobs:
       - name: Validate PR title
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_ACTOR: ${{ github.actor }}
+          # The PR's AUTHOR, not `github.actor`. github.actor is whoever
+          # triggered the event, so the moment a human touches a dependabot PR —
+          # "Update branch", a rerun, a pushed fixup — the actor becomes that
+          # human and the exemption stops applying to a title dependabot wrote
+          # and cannot change. That failed on the very first dependabot PR this
+          # workflow was fixed for. The author does not change.
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           # Dependabot's titles ("chore(deps): bump express from 4.18.2 to
           # 4.19.0") cannot match the format, and it has no way to produce one.
-          if [[ "$PR_ACTOR" == "dependabot[bot]" ]]; then
+          if [[ "$PR_AUTHOR" == "dependabot[bot]" ]]; then
             echo "Dependabot PR — title format not enforced: $PR_TITLE"
             exit 0
           fi
