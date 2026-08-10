@@ -124,5 +124,41 @@ export async function adminModerateReport(reportId, adminId, { action, note }) {
     }
   }
 
+  // Tell the person who reported it. Added 2026-08-10, and until then a report
+  // went into SILENCE: the owner was notified on submit, the owner was notified
+  // on a warning, and the reporter was told nothing at any point — not even
+  // when their report was upheld and they were quietly paid points for it.
+  //
+  // "We looked and did nothing" is a real answer and is sent too. The failure
+  // mode of reporting is not a wrong verdict, it is no verdict: someone reports
+  // a fraudulent listing, hears nothing for a week, and concludes that
+  // reporting does not work — which costs the next report, not this one.
+  //
+  // WHAT IT DOES NOT SAY IS THE CAREFUL PART. The wording is the same whether
+  // the listing was suspended, the owner was warned, or nothing happened at
+  // all. Confirming to a reporter that they got a listing taken down turns the
+  // report button into a scoreboard, and gives anyone testing how to remove a
+  // competitor a reliable signal to test against. `note` is an internal
+  // moderator note and is never forwarded.
+  //
+  // Anonymous reports have no reporterId and get nothing — the same honest
+  // trade as the points rule directly above.
+  const REPORTER_OUTCOME = {
+    RESOLVED:  'Thanks — we reviewed your report and have acted on it.',
+    DISMISSED: 'We reviewed your report and did not find a breach of our rules. Thank you for flagging it.',
+  }
+  if (report.reporterId && REPORTER_OUTCOME[newStatus]) {
+    await notifyUser(report.reporterId, {
+      type: 'REPORT_UPDATE',
+      title: 'Your report was reviewed',
+      body: REPORTER_OUTCOME[newStatus],
+      referenceId: reportId,
+      referenceType: 'PropertyReport',
+      // The reporter is wearing their renter hat — an owner reporting someone
+      // else's listing is still acting as a renter when they do it.
+      audience: 'TENANT',
+    })
+  }
+
   return updatedReport
 }

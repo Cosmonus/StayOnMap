@@ -249,13 +249,40 @@ const TYPE_LABEL = {
   LAND: 'Land / Plot', SHORT_STAY: 'Short stay',
 }
 
-function StatTile({ label, value, hint }) {
-  return (
-    <div className="bg-white border border-slate-100 rounded-2xl px-4 py-3.5">
+/**
+ * A headline number, and — where one exists — the way through to what it counts.
+ *
+ * These were six flat numbers until 2026-08-10: "Properties 13" with no way to
+ * see the thirteen. A count you cannot open is a fact you have to go and act on
+ * somewhere else, from memory.
+ *
+ * `onOpen` is OPTIONAL and two tiles deliberately go without it. "Tenants
+ * placed" and "Leases signed" have no admin section behind them — there is no
+ * leases tab — and a tile that looks clickable and lands on Overview is the
+ * dead-tab bug this panel already had twice. A tile with nowhere to go should
+ * look like a tile with nowhere to go.
+ */
+function StatTile({ label, value, hint, onOpen }) {
+  const body = (
+    <>
       <p className="text-2xl font-bold text-slate-900">{(value ?? 0).toLocaleString('en-IN')}</p>
       <p className="text-xs font-semibold text-slate-600 mt-0.5">{label}</p>
       {hint && <p className="text-[11px] text-slate-500 mt-0.5">{hint}</p>}
-    </div>
+    </>
+  )
+
+  if (!onOpen) {
+    return <div className="bg-white border border-slate-100 rounded-2xl px-4 py-3.5">{body}</div>
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="bg-white border border-slate-100 rounded-2xl px-4 py-3.5 text-left transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+    >
+      {body}
+    </button>
   )
 }
 
@@ -276,6 +303,9 @@ function MetricBar({ label, value, max, color = 'bg-brand-500' }) {
 
 // ── Section: Overview ──────────────────────────────────────────────────────
 function OverviewSection() {
+  const [, setSearchParams] = useSearchParams()
+  const go = (tab) => setSearchParams({ tab })
+
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-analytics'],
     queryFn: () => adminService.analytics().then(r => r.data),
@@ -314,10 +344,11 @@ function OverviewSection() {
           (status OCCUPIED) — a CURRENT count, since vacating clears it; signed
           leases are the all-time record of tenancies made through StayOnMap. */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <StatTile label="Users"          value={data?.users?.total} />
-        <StatTile label="Owners"         value={data?.users?.owners} />
-        <StatTile label="Renters only"   value={data?.users?.renters} />
-        <StatTile label="Properties"     value={data?.properties?.total} />
+        <StatTile label="Users"          value={data?.users?.total}   onOpen={() => go('users')} />
+        <StatTile label="Owners"         value={data?.users?.owners}  onOpen={() => go('users')} />
+        <StatTile label="Renters only"   value={data?.users?.renters} onOpen={() => go('users')} />
+        <StatTile label="Properties"     value={data?.properties?.total} onOpen={() => go('admin-properties')} />
+        {/* No `onOpen`: there is no leases section to open. See StatTile. */}
         <StatTile label="Tenants placed" value={data?.tenancy?.occupiedNow} hint="currently occupied" />
         <StatTile label="Leases signed"  value={data?.tenancy?.leasesSigned} hint="all time" />
       </div>
@@ -761,8 +792,23 @@ async function askModerationReason(status, title) {
 }
 
 // ── Section: All Properties — full-screen map ──────────────────────────────
+/** `?city=Chennai&type=APARTMENT&bhk=2` → an admin filter object. */
+function seedFiltersFromUrl(params) {
+  const city = params.get('city')
+  const type = params.get('type')
+  const bhk  = Number(params.get('bhk'))
+  return {
+    ...ADMIN_DEFAULT_FILTERS,
+    ...(city ? { city } : {}),
+    ...(type ? { types: [type] } : {}),
+    // 0 is Studio and a real value, so test the parse, not truthiness.
+    ...(Number.isFinite(bhk) && params.get('bhk') ? { bhk: [bhk] } : {}),
+  }
+}
+
 function AdminPropertiesMap() {
   const qc              = useQueryClient()
+  const [searchParams]  = useSearchParams()
   const containerRef    = useRef(null)
   const mapRef          = useRef(null)
   const markersRef      = useRef(new Map())
@@ -775,7 +821,16 @@ function AdminPropertiesMap() {
   // hand-rolled useStates (city/area/bhk/type/status) this panel used to keep.
   // `area` lives in here too — it's search context (geocode + fly), never sent
   // as a query param, same contract as the user side's SEARCH_KEYS.
-  const [filters, setFilters]           = useState(ADMIN_DEFAULT_FILTERS)
+  // Seeded ONCE from the URL, so another readout can hand this map a question:
+  // "unmet demand says 2 BHK flats in Chennai returned nothing — show me what
+  // we actually have there" (DemandCard). Read in the initialiser rather than an
+  // effect, because a later `setFilters` from an effect would fight whatever the
+  // admin had already changed by the time it ran.
+  //
+  // Deliberately narrow — city, type and bhk only. This is a starting point for
+  // a human, not a URL-sync feature: the map does not write filters BACK to the
+  // address bar, so a link cannot capture a whole filter set and go stale.
+  const [filters, setFilters]           = useState(() => seedFiltersFromUrl(searchParams))
   const [filterSheetOpen, setFilterSheetOpen] = useState(false)
   const [selectedId, setSelectedId]     = useState(null)
   const [popupProperty, setPopupProperty] = useState(null)

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { adminService } from '@services/admin.service'
 
 // What people searched for and we could not show them.
@@ -30,6 +31,24 @@ function describe(row) {
 }
 
 export default function DemandCard() {
+  const [, setSearchParams] = useSearchParams()
+
+  // The one action this readout can honestly offer. It cannot go and source a
+  // listing — that is not a thing an admin panel does — but it can answer the
+  // question the number immediately raises: is the gap real, and is there a
+  // paused or pending listing sitting there that would have matched?
+  //
+  // The AREA is deliberately not passed. `cellGeohash` is a ~5km cell, which is
+  // coarser than the map's own area search, so handing it over as a filter
+  // would narrow the view by a boundary that means nothing to a person.
+  const showWhatWeHave = (row) => {
+    const params = { tab: 'admin-properties' }
+    if (row.city) params.city = row.city
+    if (row.type) params.type = row.type
+    if (row.bhk != null) params.bhk = String(row.bhk)
+    setSearchParams(params)
+  }
+
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-demand'],
     queryFn: () => adminService.demand().then((r) => r.data),
@@ -88,28 +107,38 @@ export default function DemandCard() {
               Every recorded search returned at least one listing.
             </p>
           ) : (
+            <>
             <ul className="flex flex-col divide-y divide-slate-100">
               {unmet.map((row) => (
-                <li
-                  key={`${row.cellGeohash}-${row.type}-${row.bhk}-${row.rentBand}`}
-                  className="flex items-baseline justify-between gap-3 py-3"
-                >
-                  <span className="text-sm text-slate-800">
-                    {describe(row)}
-                    <span className="text-slate-500">
-                      {' '}&middot; {row.city ?? 'area'}{' '}
-                      <span className="font-mono text-xs">{row.cellGeohash}</span>
+                <li key={`${row.cellGeohash}-${row.type}-${row.bhk}-${row.rentBand}`}>
+                  <button
+                    type="button"
+                    onClick={() => showWhatWeHave(row)}
+                    className="w-full min-h-[44px] flex items-baseline justify-between gap-3 py-3 px-2 -mx-2 rounded-lg text-left hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                  >
+                    <span className="text-sm text-slate-800">
+                      {describe(row)}
+                      <span className="text-slate-500">
+                        {' '}&middot; {row.city ?? 'area'}{' '}
+                        <span className="font-mono text-xs">{row.cellGeohash}</span>
+                      </span>
                     </span>
-                  </span>
-                  <span className="text-xs text-slate-500 shrink-0">
-                    <span className="font-mono font-semibold text-slate-800">
-                      {row.zeroResults}
-                    </span>{' '}
-                    empty
-                  </span>
+                    <span className="text-xs text-slate-500 shrink-0">
+                      <span className="font-mono font-semibold text-slate-800">
+                        {row.zeroResults}
+                      </span>{' '}
+                      empty
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>
+            <p className="text-xs text-slate-500 mt-4 pt-4 border-t border-slate-100">
+              Open a row to see what we DO have there. Sourcing the gap is not something
+              this panel can do &mdash; but confirming it is real, and spotting a paused or
+              pending listing that would have matched, is.
+            </p>
+            </>
           )}
         </>
       )}

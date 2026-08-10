@@ -238,3 +238,45 @@ describe('when the endpoint fails', () => {
     expect(screen.queryByText('Owner reply time')).toBeNull()
   })
 })
+
+describe('the readouts offer an action, not just a number', () => {
+  // Audited 2026-08-10 on the standing rule that a metric which describes a
+  // problem and offers no way to act on it is half a feature. Both "worst"
+  // lists NAMED a listing and left you to go find it by hand — the readout
+  // stopped exactly one click short of the thing you would do about it.
+  //
+  // Asserted as "the row is a button", not by driving the router: the bug was
+  // that these rendered as inert `<li><span>` text, and that is visible without
+  // a navigation harness.
+  it('makes every named listing openable in both lists', async () => {
+    await renderWith(withData({
+      dead: {
+        days: 30, live: 9, unseen: 4, seenButUncontacted: 2,
+        worst: [{ id: 'p1', title: 'Quiet 2BHK', city: 'Chennai', views: 0, conversations: 0 }],
+      },
+      readiness: {
+        live: 9, photos: { none: 1, few: 0, enough: 8 }, noDescription: 1, verified: 3,
+        worst: [{ id: 'p2', title: 'Bare plot near OMR', photos: 0, thinDescription: true }],
+      },
+    }))
+
+    for (const title of ['Quiet 2BHK', 'Bare plot near OMR']) {
+      const row = await screen.findByText(title)
+      expect(
+        row.closest('button'),
+        `"${title}" is named but cannot be opened`,
+      ).toBeTruthy()
+    }
+  })
+
+  it('keeps the tap target at 44px, since these are list rows', async () => {
+    await renderWith(withData({
+      dead: {
+        days: 30, live: 2, unseen: 1, seenButUncontacted: 0,
+        worst: [{ id: 'p1', title: 'Quiet 2BHK', city: 'Chennai', views: 0, conversations: 0 }],
+      },
+    }))
+    const row = (await screen.findByText('Quiet 2BHK')).closest('button')
+    expect(row.className).toMatch(/min-h-\[44px\]/)
+  })
+})

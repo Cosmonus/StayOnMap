@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { adminService } from '@services/admin.service'
 
@@ -40,6 +41,33 @@ function Card({ title, hint, right, children }) {
 
 function Empty({ children }) {
   return <p className="text-sm text-slate-600 py-6">{children}</p>
+}
+
+/**
+ * A named listing that opens.
+ *
+ * Both "worst" lists named a listing and left you to find it by hand — the
+ * readout identified the problem and then stopped one click short of the thing
+ * you would do about it. That is the shape this whole panel was audited for on
+ * 2026-08-10: a metric that describes without offering.
+ *
+ * `?tab=review-listings&propertyId=` is the deep link ReviewListingsSection
+ * already reads (`deepLinkId`), and the same one the user-detail and reviews
+ * sections use — so this adds a caller, not a mechanism.
+ */
+function ListingLink({ id, title, right, onOpen }) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onOpen(id)}
+        className="w-full min-h-[44px] flex items-baseline justify-between gap-3 px-2 py-2 -mx-2 rounded-lg text-left hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+      >
+        <span className="text-sm text-slate-800 truncate">{title}</span>
+        <span className="text-xs text-slate-500 shrink-0">{right}</span>
+      </button>
+    </li>
+  )
 }
 
 /** A labelled row with a count and a proportional bar. */
@@ -216,7 +244,7 @@ function SupplyTrend({ supply }) {
   )
 }
 
-function DeadInventory({ dead }) {
+function DeadInventory({ dead, onOpenListing }) {
   return (
     <Card
       title="Listings nobody is looking at"
@@ -238,12 +266,9 @@ function DeadInventory({ dead }) {
             </div>
           </div>
           {dead.worst.length > 0 && (
-            <ul className="mt-5 pt-4 border-t border-slate-100 flex flex-col gap-2">
+            <ul className="mt-5 pt-4 border-t border-slate-100 flex flex-col gap-1">
               {dead.worst.map((p) => (
-                <li key={p.id} className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm text-slate-800 truncate">{p.title}</span>
-                  <span className="text-xs text-slate-500 shrink-0 font-mono">{p.views} views</span>
-                </li>
+                <ListingLink key={p.id} id={p.id} title={p.title} right={`${p.views} views`} onOpen={onOpenListing} />
               ))}
             </ul>
           )}
@@ -257,7 +282,7 @@ function DeadInventory({ dead }) {
   )
 }
 
-function Readiness({ readiness: r }) {
+function Readiness({ readiness: r, onOpenListing }) {
   return (
     <Card
       title="Are the listings good enough"
@@ -291,15 +316,15 @@ function Readiness({ readiness: r }) {
               listings and that tab queues PENDING ones, so the link would land
               on a page that cannot show them. */}
           {r.worst?.length > 0 && (
-            <ul className="mt-5 pt-4 border-t border-slate-100 flex flex-col gap-2">
+            <ul className="mt-5 pt-4 border-t border-slate-100 flex flex-col gap-1">
               {r.worst.map((p) => (
-                <li key={p.id} className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm text-slate-800 truncate">{p.title}</span>
-                  <span className="text-xs text-slate-500 shrink-0">
-                    {p.photos === 0 ? 'no photos' : `${p.photos} photo${p.photos === 1 ? '' : 's'}`}
-                    {p.thinDescription && ' · thin copy'}
-                  </span>
-                </li>
+                <ListingLink
+                  key={p.id}
+                  id={p.id}
+                  title={p.title}
+                  right={`${p.photos === 0 ? 'no photos' : `${p.photos} photo${p.photos === 1 ? '' : 's'}`}${p.thinDescription ? ' · thin copy' : ''}`}
+                  onOpen={onOpenListing}
+                />
               ))}
             </ul>
           )}
@@ -344,6 +369,12 @@ function WindowPicker({ days, onPick }) {
 
 export default function SupplySection() {
   const [days, setDays] = useState(30)
+  const [, setSearchParams] = useSearchParams()
+
+  // Opens a named listing in the moderation view. The same deep link
+  // ReviewListingsSection already reads, and the same one the user-detail and
+  // reviews sections use — a caller, not a new mechanism.
+  const onOpenListing = (id) => setSearchParams({ tab: 'review-listings', propertyId: id })
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-marketplace', days],
@@ -394,8 +425,8 @@ export default function SupplySection() {
       <DraftFunnel drafts={data.drafts} />
       <Responsiveness responsiveness={data.responsiveness} />
       <MatchChain chain={data.chain} />
-      <DeadInventory dead={data.dead} />
-      <Readiness readiness={data.readiness} />
+      <DeadInventory dead={data.dead} onOpenListing={onOpenListing} />
+      <Readiness readiness={data.readiness} onOpenListing={onOpenListing} />
       </div>
     </>
   )
