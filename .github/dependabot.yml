@@ -96,6 +96,14 @@ updates:
       - dependency-name: "react-native-*"
       - dependency-name: "@react-native-*"
       - dependency-name: "@react-native/*"
+      # react-test-renderer peers on an EXACT react — 19.2.8 demands
+      # react@^19.2.8 while Expo SDK 57 pins react 19.2.3 — so bumping it alone
+      # makes `npm ci` unresolvable and the whole mobile group PR uninstallable.
+      # It belongs to react's version, not to npm's latest, and moves with the
+      # SDK bump like everything else above. This was the one member of that
+      # family missing from the list, and it broke the mobile group PR every
+      # week (#175).
+      - dependency-name: "react-test-renderer"
 
   # ── GitHub Actions ─────────────────────────────────────────────────────
   - package-ecosystem: "github-actions"
