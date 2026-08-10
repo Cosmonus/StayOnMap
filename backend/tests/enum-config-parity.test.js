@@ -116,6 +116,12 @@ const TABLES = [
     'a moderator cannot tell who can read a message'],
   ['SupportVisibility', 'frontend/src/features/admin/components/support/supportVocab.js', 'MESSAGE_TONE',
     'an INTERNAL note is not tinted as internal — the dangerous one'],
+
+  // Two SERVER-side tables. They are here for the same reason as the client
+  // ones — a missing key reaches a moderator as a raw enum name — and they are
+  // on the server precisely so there is only one of each to keep complete.
+  ['FraudSignalType', 'backend/src/features/intelligence/signalLabels.js', 'FRAUD_SIGNAL_LABELS',
+    'moderation is shown the raw enum as the reason a listing is risky'],
 ]
 
 describe('the harness itself', () => {

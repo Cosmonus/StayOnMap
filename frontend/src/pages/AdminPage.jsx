@@ -10,7 +10,7 @@ import {
 } from 'chart.js'
 import {
   X, ChevronLeft, ChevronRight, Home, MapPin, Users, CircleCheck, ArrowLeft, Copy,
-  Star, Building2, Eye, EyeOff, User, MoreHorizontal,
+  Star, Building2, Eye, EyeOff, User, MoreHorizontal, ShieldAlert,
 } from 'lucide-react'
 import { adminService } from '@services/admin.service'
 import { formatPrice, formatCurrency, formatCompact, formatCompactPrice } from '@utils/format'
@@ -629,6 +629,27 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
         <div className="px-4 pt-4 pb-3 space-y-3">
           {/* Risk warning — renders nothing unless MEDIUM or worse */}
           {!isLoading && property?.riskScore && <RiskAlert riskScore={property.riskScore} />}
+
+          {/* WHY the risk score is what it is. The four detectors have been
+              writing these since the intelligence layer shipped and nothing
+              rendered them anywhere, so moderation saw a number and had no way
+              to ask what was behind it. Unresolved signals only. */}
+          {!isLoading && property?.fraudSignals?.length > 0 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-1.5">
+              <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wide flex items-center gap-1.5">
+                <ShieldAlert className="w-3.5 h-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
+                Integrity signals
+              </p>
+              <ul className="space-y-1">
+                {property.fraudSignals.map(s => (
+                  <li key={s.id} className="text-xs text-amber-900 leading-relaxed">
+                    {s.label}
+                    {s.detail && <span className="text-amber-800/80"> — {s.detail}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {isLoading ? (
             <div className="w-28 h-7 bg-slate-100 rounded animate-pulse" />
@@ -2453,6 +2474,22 @@ function AdminReviewCard({ r, onAction, busy }) {
             </div>
           </div>
         </div>
+
+        {/* Why this is in the queue. Above the body on purpose — it is the
+            reason to read the words below, so it cannot sit under them. */}
+        {r.integritySignals?.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {r.integritySignals.map(s => (
+              <span
+                key={s.key}
+                className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1"
+              >
+                <ShieldAlert className="w-3 h-3 shrink-0" strokeWidth={2} aria-hidden="true" />
+                {s.label}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Property pill */}
         {r.property && (

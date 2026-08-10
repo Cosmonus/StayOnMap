@@ -103,11 +103,16 @@ export const prismaMock = {
     update:     vi.fn(),
     count:      vi.fn().mockResolvedValue(0),
   },
-  // Host dashboard surfaces (features/host/host.service.js) + admin moderation
+  // Host dashboard surfaces (features/host/host.service.js) + admin moderation.
+  // findUnique defaults to null — "this person has not reviewed this listing
+  // before", which is the first-submission path and what decides whether an
+  // earlier moderator verdict still stands (see reviews.service.js).
   communityReview: {
-    findMany: vi.fn(),
-    count:    vi.fn(),
-    update:   vi.fn(),
+    findUnique: vi.fn().mockResolvedValue(null),
+    findMany:   vi.fn(),
+    count:      vi.fn(),
+    upsert:     vi.fn(),
+    update:     vi.fn(),
   },
   activityLog: {
     create: vi.fn().mockResolvedValue({}),

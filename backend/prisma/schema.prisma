@@ -1128,6 +1128,16 @@ model CommunityReview {
   status        ContentStatus @default(PENDING)
   ownerResponse String?
 
+  // Why a moderator is looking at this one — an array of REVIEW_SIGNALS keys
+  // from features/reviews/integrity.js, recomputed on every submit and edit.
+  // Empty array means "checked, nothing off"; NULL means the review predates
+  // the checks, and the two must not be shown the same way: a review that was
+  // never examined is not a review that passed.
+  //
+  // Json rather than columns for the same reason SpatialContext.modules is:
+  // it is read whole, never filtered on, and the set of checks will change.
+  integritySignals Json?
+
   createdAt DateTime @default(now())
 
   @@unique([reviewerId, propertyId])

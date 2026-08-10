@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
+import { useState, useRef } from 'react'
+import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet, Alert } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { reviewService } from '@services/review.service'
 import Icon from '@components/common/Icon'
@@ -56,11 +56,24 @@ function WriteReviewForm({ propertyId, onCancel, onSuccess }) {
   const qc = useQueryClient()
   const defaultRatings = Object.fromEntries(Object.keys(RATING_LABELS).map((k) => [k, 3]))
   const [form, setForm] = useState({ reviewerType: 'TENANT', recommend: true, isAnonymous: false, body: '', ...defaultRatings })
+  // How long the form was open. A ref, not state — reading it must never
+  // re-render, and it must survive every keystroke between mount and submit.
+  const openedAt = useRef(Date.now())
 
   const mutation = useMutation({
-    mutationFn: (data) => reviewService.submit(propertyId, data),
-    onSuccess: () => {
+    mutationFn: (data) => reviewService.submit(propertyId, { ...data, composeMs: Date.now() - openedAt.current }),
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['reviews', propertyId] })
+      // Web has said what happens next since it was built; mobile closed the
+      // form and said nothing, which was survivable while every review queued
+      // and is not now — a review held for a moderator would simply vanish.
+      const published = res?.data?.status === 'APPROVED'
+      Alert.alert(
+        published ? 'Review published' : 'Review submitted',
+        published
+          ? 'Thanks — your review is live on this listing.'
+          : 'A moderator will read this one before it appears.',
+      )
       onSuccess?.()
     },
   })

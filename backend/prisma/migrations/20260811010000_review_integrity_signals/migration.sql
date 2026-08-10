@@ -1,0 +1,18 @@
+-- Why a moderator is looking at a given review.
+--
+-- Reviews stopped queueing unconditionally in the same change that added this:
+-- anything averaging above 2.5 now publishes itself. That is right for the
+-- honest majority and exactly wrong for the fake that matters, because a
+-- planted or paid review is uniformly glowing and clears a rating threshold by
+-- design. features/reviews/integrity.js runs four deterministic checks on every
+-- submit and edit, and a signal HOLDS the review for a human — it never
+-- rejects one.
+--
+-- Deliberately NOT backfilled. Every existing review predates the checks, and
+-- writing an empty array onto them would claim they were examined and found
+-- clean. NULL says "never checked", which is the truth and is rendered
+-- differently in the admin panel.
+--
+-- No enum is touched here, so there is no split-migration requirement (see
+-- .claude/database.md's PostgreSQL enum gotcha).
+ALTER TABLE "CommunityReview" ADD COLUMN "integritySignals" JSONB;
