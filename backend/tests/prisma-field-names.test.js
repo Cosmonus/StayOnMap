@@ -78,8 +78,15 @@ function block(src, open) {
 /**
  * Keys at depth 1 of an object literal. `{ a: true, rel: { select: {…} } }`
  * yields ['a', 'rel'] — the relation name is checked, its children are not.
+ *
+ * Comments are stripped first. These blocks are heavily commented, and prose
+ * contains colons: a line reading "Nullable: an owner with no listings…" parses
+ * as a field named `Nullable` and fails the run on a sentence.
  */
-function topLevelKeys(objSrc) {
+function topLevelKeys(src) {
+  const objSrc = src
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1')
   const keys = []
   let depth = 0
   for (let i = 0; i < objSrc.length; i++) {

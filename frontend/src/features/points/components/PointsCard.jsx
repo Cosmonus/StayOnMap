@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Sparkles } from 'lucide-react'
-import { api } from '@lib/api'
+import { pointsService } from '@services/points.service'
 
 // Why each ledger action existed, in the user's language. The design rule
 // (docs/points-and-sharing.md): points reward helping the NEXT renter, never
@@ -23,7 +23,7 @@ const ACTION_LABELS = {
 export default function PointsCard() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['points'],
-    queryFn: () => api.get('/points').then((r) => r.data),
+    queryFn: () => pointsService.getSummary().then((r) => r.data),
   })
 
   if (isLoading) return <div className="bg-slate-100 animate-pulse rounded-2xl h-40" />

@@ -1359,6 +1359,41 @@ function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend, 
             <PropertyDetailBody property={property} variant="admin" />
           </div>
 
+          {/* Status history — admin-only, and the question moderation actually
+              asks. `Property.status` is ONE COLUMN THAT OVERWRITES ITSELF, so
+              the moment a listing goes OCCUPIED the evidence it was ever ACTIVE
+              is gone; PropertyStatusEvent is the append-only log that keeps it,
+              written by eleven services and, until 2026-08-10, read only in
+              aggregate. So the detail view showed a current status and no way
+              to answer "when did this go live, and who flipped it" — with the
+              answer already in the table.
+
+              `actor` is coarse by design (owner / admin / system) and never a
+              user id: WHO acted is ActivityLog's job, and an id here would make
+              a counting table into a weaker second audit trail. */}
+          {(property.statusEvents?.length ?? 0) > 0 && (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
+              <AdminCard title="Status history">
+                <ol className="space-y-2">
+                  {property.statusEvents.map(e => (
+                    <li key={e.id} className="flex items-center gap-2 text-xs">
+                      <span className="text-slate-500 shrink-0 w-28">{fmtDate(e.createdAt)}</span>
+                      {/* The first event has nothing before it — fromStatus is
+                          nullable, and "— → DRAFT" is the honest rendering of
+                          a listing coming into existence. */}
+                      {e.fromStatus
+                        ? <PropertyStatusPill status={e.fromStatus} size="sm" />
+                        : <span className="text-slate-500">new</span>}
+                      <span aria-hidden className="text-slate-500">→</span>
+                      <PropertyStatusPill status={e.toStatus} size="sm" />
+                      <span className="text-slate-500">by {e.actor}</span>
+                    </li>
+                  ))}
+                </ol>
+              </AdminCard>
+            </div>
+          )}
+
           {/* Wishlisted by — admin-only data with no tenant-page equivalent */}
           {(property.savedBy?.length ?? 0) > 0 && (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
@@ -1884,6 +1919,27 @@ function UserDetailView({ userId, onBack }) {
                 <HatStat label="Chats"    value={counts.ownerConversations} />
               </div>
 
+              {/* OwnerTrustScore is recalculated constantly and is shown to
+                  RENTERS — until 2026-08-10 the admin looking at the owner was
+                  the one person who could not see it. Absent means never
+                  scored (no listings yet), which is not the same as scoring
+                  zero, so it renders nothing rather than a row of dashes. */}
+              {user.ownerTrustScore && (
+                <div>
+                  <SectionLabel>Owner trust</SectionLabel>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <HatStat label="Score"       value={Math.round(user.ownerTrustScore.score)} />
+                    <HatStat label="Level"       value={user.ownerTrustScore.level} />
+                    <HatStat label="Answers"     value={`${Math.round(user.ownerTrustScore.responseRate)}%`} />
+                    <HatStat label="Verified"    value={user.ownerTrustScore.verificationLevel} />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Answers = visit requests responded to at all — accepted, declined or moved.
+                    Updated {fmtDate(user.ownerTrustScore.updatedAt)}.
+                  </p>
+                </div>
+              )}
+
               <div>
                 <SectionLabel>Listings ({counts.properties ?? 0})</SectionLabel>
                 {(user.properties ?? []).length > 0 ? (
@@ -1935,6 +1991,45 @@ function UserDetailView({ userId, onBack }) {
           )}
         </div>
       </div>
+
+      {/* ── Points ledger ──
+          Full width and outside both hat cards on purpose: points belong to
+          the PERSON, not to a role.
+
+          Award farming is the risk docs/points-and-sharing.md is built around
+          — it is why every award is idempotent by (user, action, reference)
+          and why the two biggest ones pay only on a moderator's decision — and
+          until 2026-08-10 an admin investigating it could not see anybody's
+          ledger. Read-only: a ledger an admin can edit is not a ledger. */}
+      {(user.pointsLedger ?? []).length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Points ledger</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {user.pointsLedger.reduce((sum, e) => sum + e.points, 0)} points across the {user.pointsLedger.length} most recent
+                {counts.pointsLedger > user.pointsLedger.length ? ` of ${counts.pointsLedger} awards` : ' awards'}
+              </p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {user.pointsLedger.map(entry => (
+              <div key={entry.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-700">{entry.action.replace(/_/g, ' ').toLowerCase()}</p>
+                  {/* '' means a once-per-account award (see the schema's
+                      default) — showing an empty reference would read as a
+                      missing one. */}
+                  <p className="text-xs text-slate-500 mt-0.5 truncate">
+                    {fmtDate(entry.createdAt)}{entry.referenceId ? ` · ${entry.referenceId}` : ' · one-time'}
+                  </p>
+                </div>
+                <span className="shrink-0 text-sm font-mono font-semibold text-slate-800">+{entry.points}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

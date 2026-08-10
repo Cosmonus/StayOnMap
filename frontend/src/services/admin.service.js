@@ -42,6 +42,12 @@ export const adminService = {
   setReviewStatus: (id, status) => adminApi.patch(`/admin/reviews/${id}/status`, { status }),
   getMonitorStatus: ()          => adminApi.get('/admin/monitor'),
   getDataQuality: ()            => adminApi.get('/admin/data-quality'),
+  // Not under /admin, but admin-authed all the same (graph.routes.js gates it
+  // with adminAuthMiddleware), so it belongs on the adminApi instance and here
+  // rather than in graph.service.js — which uses the USER instance for the two
+  // renter-facing graph surfaces. GraphHealthCard called adminApi directly
+  // until 2026-08-10.
+  getGraphHealth:   ()          => adminApi.get('/graph/health'),
   getProfile:       ()          => adminApi.get('/admin/profile'),
   updateProfile:    (data)      => adminApi.patch('/admin/profile', data),
   changePassword:   (data)      => adminApi.patch('/admin/profile/password', data),

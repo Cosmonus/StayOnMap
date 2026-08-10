@@ -174,7 +174,25 @@ export async function getUserDetail(userId) {
       avatarUrl: true, role: true, isVerified: true, isBlocked: true,
       isBusiness: true, businessSince: true, lastLoginAt: true, createdAt: true,
 
-      // Owner hat — their listings and the tenancies they granted
+      // Owner hat — their listings and the tenancies they granted.
+      //
+      // The score is recalculated constantly (trust.service.js) and shown to
+      // RENTERS, and until 2026-08-10 the admin looking at the owner was the
+      // one person who could not see it. Nullable: an owner with no listings
+      // has never been scored, which is different from scoring zero.
+      ownerTrustScore: {
+        select: { score: true, level: true, responseRate: true, reviewAvg: true, verificationLevel: true, updatedAt: true },
+      },
+      // Award farming is the risk docs/points-and-sharing.md is built around —
+      // the anti-farming rules (idempotent by (user, action, reference), the
+      // two largest awards paid only on a moderator's decision) exist because
+      // of it. An admin investigating it could not see anybody's ledger at all.
+      // Capped like every other list here; the true total is in _count below.
+      pointsLedger: {
+        select: { id: true, action: true, points: true, referenceId: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      },
       properties: {
         select: { id: true, title: true, status: true, city: true, type: true, rent: true, pricingModel: true, createdAt: true },
         orderBy: { createdAt: 'desc' },
@@ -230,6 +248,10 @@ export async function getUserDetail(userId) {
           tenantLeases: true, ownerLeases: true,
           tenantConversations: true, ownerConversations: true,
           savedListings: true,
+          // So the capped ledger above can say "20 of N" rather than implying
+          // 20 is the whole story — which is the number that matters when the
+          // question is whether someone is farming awards.
+          pointsLedger: true,
         },
       },
     },
@@ -301,6 +323,20 @@ export async function getAdminPropertyById(id) {
       owner: { select: { id: true, displayId: true, name: true, email: true, phone: true, avatarUrl: true, isVerified: true, isBusiness: true, createdAt: true } },
       trustScore: true,
       riskScore: true,
+      // Eleven services WRITE PropertyStatusEvent and, until 2026-08-10,
+      // nothing read it except in aggregate — so the detail view showed a
+      // current status with no history, and the exact question moderation asks
+      // ("when did this go ACTIVE, and who flipped it") was already sitting in
+      // the table unanswered. `Property.status` is one column that overwrites
+      // itself, which is the whole reason the log exists.
+      //
+      // Newest first and bounded: a listing toggled daily for a year would
+      // otherwise put 365 rows in a moderation payload.
+      statusEvents: {
+        select: { id: true, fromStatus: true, toStatus: true, actor: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      },
       amenities: { select: { amenity: { select: { id: true, name: true } } } },
       rules: true,
       appointments: {
