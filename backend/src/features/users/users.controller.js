@@ -2,13 +2,6 @@ import * as service from './users.service.js'
 import * as safety from './safety.service.js'
 import { ok, created } from '../../utils/response.js'
 
-export async function getProfile(req, res, next) {
-  try {
-    const user = await service.getUserById(req.user.id)
-    ok(res, user)
-  } catch (err) { next(err) }
-}
-
 export async function updateProfile(req, res, next) {
   try {
     const user = await service.updateUser(req.user.id, req.body)

@@ -51,7 +51,22 @@ export const TYPE_LABEL = {
 export const UNKNOWN_TYPE_COLOR = '#475569'
 
 export const typeColor = (type) => TYPE_COLOR[type] ?? UNKNOWN_TYPE_COLOR
-export const typeIcon = (type) => TYPE_ICON[type] ?? 'home'
+
+// null, not 'home' — aligned with web on 2026-08-10. `'home'` is a REAL icon
+// name, so a type missing from the table drew a house, and a plot or a shop
+// looked like somebody's flat. That is the precise shape of the bug web removed
+// when its own PropertyCard fallback silently rendered LAND and SHORT_STAY as
+// houses for weeks: a fallback that is itself a valid value HIDES the gap
+// instead of showing it.
+//
+// Safe at the one call site: `Icon` renders nothing for an unknown name
+// (components/common/Icon.js), so the pin degrades to its price — which is
+// true — rather than to a confident wrong glyph.
+//
+// typeColor is the deliberate EXCEPTION and stays: slate is not any type's
+// colour, so it cannot be mistaken for one. That is what separates an honest
+// fallback from a misleading one.
+export const typeIcon = (type) => TYPE_ICON[type] ?? null
 export const typeLabel = (type) => TYPE_LABEL[type] ?? null
 
 // A deeper shade of the same colour, for a filled surface that has to carry

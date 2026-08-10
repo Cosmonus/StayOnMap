@@ -7,7 +7,10 @@ import * as controller from './users.controller.js'
 
 const router = Router()
 
-router.get('/profile',         authMiddleware, controller.getProfile)
+// GET /profile was here until 2026-08-10 and had never had a caller on either
+// platform — git history confirms no client has ever requested it. Both read
+// the profile through GET /auth/me, which returns more (profileComplete,
+// missingProfileFields). PUT stays: it is the only way to update one.
 router.put('/profile',         authMiddleware, validate(updateProfileSchema), controller.updateProfile)
 router.get('/settings',        authMiddleware, controller.getSettings)
 router.get('/account-summary', authMiddleware, controller.getAccountSummary)

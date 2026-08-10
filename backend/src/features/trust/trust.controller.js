@@ -1,4 +1,7 @@
-import { recalculateTrustScore, recalculateRiskScore, recalculateOwnerTrust } from './trust.service.js'
+// getOwnerTrust() lived here until 2026-08-10 with no route and no caller.
+// recalculateOwnerTrust still runs — trust.service.js fires it whenever a
+// property's TrustScore changes, which is the only correct time for it.
+import { recalculateTrustScore, recalculateRiskScore } from './trust.service.js'
 import { ok } from '../../utils/response.js'
 
 export async function forceRecalculate(req, res, next) {
@@ -8,9 +11,3 @@ export async function forceRecalculate(req, res, next) {
   } catch (err) { next(err) }
 }
 
-export async function getOwnerTrust(req, res, next) {
-  try {
-    const result = await recalculateOwnerTrust(req.params.ownerId)
-    ok(res, result)
-  } catch (err) { next(err) }
-}

@@ -411,8 +411,19 @@ export function visibleRows(section, selectedTypes, mode = 'RENT') {
   return section.rows.filter((row) => matchesTypes(row.types, selectedTypes) && matchesMode(row.modes, mode))
 }
 
-export function visibleSections(selectedTypes, mode = 'RENT') {
-  return FILTER_SECTIONS.filter((section) => {
+// Which sections to render for the current property-type selection — a section
+// whose rows are all type-gated away is skipped entirely.
+//
+// The `sections` parameter exists on mobile ONLY to keep this signature
+// identical to web's, and defaults to the one config this app has. Web needs it
+// because the admin panel passes its own superset (ADMIN_FILTERS); mobile has
+// no admin surface and never will (admins are platform operators, not app
+// users). Without the parameter the signatures were (types, sections, mode) and
+// (types, mode) — so the next person copying a web fix across would pass the
+// sections OBJECT as `mode`, and every mode gate would silently fail closed.
+// One unused argument is cheaper than that.
+export function visibleSections(selectedTypes, sections = FILTER_SECTIONS, mode = 'RENT') {
+  return sections.filter((section) => {
     if (section.requiresType) {
       if (!intersects(selectedTypes, section.types)) return false
     } else if (!matchesTypes(section.types, selectedTypes)) return false
@@ -459,7 +470,7 @@ export function clearSectionPatch(section, selectedTypes = [], mode = 'RENT') {
 // visible must reset — an invisible PG filter would otherwise keep
 // constraining an Apartment search to zero results.
 export function staleFilterPatch(newTypes, mode = 'RENT') {
-  const visible = visibleSections(newTypes, mode)
+  const visible = visibleSections(newTypes, undefined, mode)
   const visibleIds = new Set(visible.flatMap((s) => sectionFilterIds(s, newTypes, mode)))
   const patch = {}
   for (const section of FILTER_SECTIONS) {

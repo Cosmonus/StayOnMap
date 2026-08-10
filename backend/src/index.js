@@ -54,7 +54,7 @@ import analyticsRoutes    from './features/analytics/analytics.routes.js'
 import localityRoutes     from './features/seo/locality.routes.js'
 import blogRoutes         from './features/blog/blog.routes.js'
 import contactRoutes      from './features/contact/contact.routes.js'
-import { startRefresher } from './features/spatial/refresher.js'
+import { startRefresher, stopRefresher } from './features/spatial/refresher.js'
 import aiRoutes          from './features/ai/ai.routes.js'
 import areaRoutes        from './features/areas/areas.routes.js'
 import metroRoutes       from './features/metro/metro.routes.js'
@@ -216,6 +216,13 @@ async function shutdown(signal) {
   try {
     await new Promise((resolve) => httpServer.close(resolve))
     try { getIO()?.disconnectSockets(true) } catch { /* socket layer already down */ }
+    // WIRED 2026-08-10 — stopRefresher() was exported and called by nothing,
+    // not even here. The spatial refresher runs on an interval and each tick
+    // materialises cells, which schedules BILLED third-party work; leaving it
+    // ticking through a drain means a request that started after we stopped
+    // accepting them, against a Prisma client about to disconnect. Before
+    // $disconnect for that reason.
+    try { await stopRefresher() } catch { /* nothing to stop */ }
     await prisma.$disconnect()
     console.log('[shutdown] clean')
     process.exit(0)

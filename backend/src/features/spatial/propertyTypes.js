@@ -69,7 +69,6 @@ export function appliesToType(module, propertyType) {
   return module.appliesTo.includes(propertyType)
 }
 
-/** Modules relevant to a type, in registry order. */
-export function modulesForType(modules, propertyType) {
-  return modules.filter((m) => appliesToType(m, propertyType))
-}
+// modulesForType(modules, type) lived here until 2026-08-10 — a one-line
+// `.filter(appliesToType)` with no importer. Callers use appliesToType directly,
+// which is the predicate they actually need.

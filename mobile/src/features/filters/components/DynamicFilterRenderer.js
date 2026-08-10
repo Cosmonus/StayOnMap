@@ -75,7 +75,7 @@ export default function DynamicFilterRenderer({ draft, patch }) {
   // Mode gates rows independently of type: Rent and Lease share the
   // rentMin/rentMax ids, so exactly one budget row may render.
   const mode = draft.pricingModel || 'RENT'
-  const sections = visibleSections(selectedTypes, mode)
+  const sections = visibleSections(selectedTypes, undefined, mode)
 
   return (
     <View style={styles.list}>

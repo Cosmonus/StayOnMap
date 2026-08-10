@@ -76,3 +76,44 @@ describe('per-type presentation tables', () => {
     expect(new Set(houses.map((t) => TYPE_LABEL[t])).size).toBe(houses.length)
   })
 })
+
+// The accessors, added 2026-08-10.
+//
+// This file's header has named `TYPE_ICON[type] ?? 'home'` as the root cause
+// since it was written — and never asserted it. Every test above reads the
+// TABLES directly, so the fallback that actually draws the pin was the one
+// thing here nobody checked, and it survived every green run.
+describe('the accessors fail visibly on an unknown type', () => {
+  const { typeIcon, typeLabel, typeColor, UNKNOWN_TYPE_COLOR } = require('./propertyTypes')
+
+  it('returns null for an icon rather than a real-looking house', () => {
+    // 'home' is a VALID icon name, so a type missing from the table drew a
+    // house and a plot looked like somebody's flat. `Icon` renders nothing for
+    // an unknown name, so the pin degrades to its price — which is true.
+    expect(typeIcon('SOMETHING_NEW')).toBeNull()
+    expect(typeIcon(undefined)).toBeNull()
+  })
+
+  it('returns null for a label rather than a plausible word', () => {
+    expect(typeLabel('SOMETHING_NEW')).toBeNull()
+  })
+
+  it('still resolves every type the enum defines', () => {
+    // The other half: "returns null for unknown" is only useful while nothing
+    // real is unknown.
+    // No second-argument message: jest's expect() throws on one, unlike
+    // vitest's. Naming the type in the assertion instead.
+    for (const t of PROPERTY_TYPES) {
+      expect({ type: t, icon: !!typeIcon(t), label: !!typeLabel(t) })
+        .toEqual({ type: t, icon: true, label: true })
+    }
+  })
+
+  it('keeps a colour fallback, because slate is not any type’s colour', () => {
+    // The deliberate exception, and the distinction worth keeping: a fallback
+    // that CANNOT be mistaken for a real value is honest; one that can is the
+    // bug this whole file is about.
+    expect(typeColor('SOMETHING_NEW')).toBe(UNKNOWN_TYPE_COLOR)
+    expect(Object.values(TYPE_COLOR)).not.toContain(UNKNOWN_TYPE_COLOR)
+  })
+})

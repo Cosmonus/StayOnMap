@@ -98,10 +98,12 @@ export async function poiFreshness(city) {
   }
 }
 
-/** The OSM source line for envelopes, with the city's real fetch date on it. */
-export async function osmSourceMeta(city) {
-  return { ...OSM_POI_SOURCE, fetchedAt: await poiFreshness(city) }
-}
+// osmSourceMeta(city) lived here until 2026-08-10 with no importer, and it was
+// SUPERSEDED rather than merely unused: it stamped a source line with the
+// city's overall fetch date, while every module now spreads
+// `{ ...OSM_POI_SOURCE, fetchedAt: <that result's own fetchedAt> }` — which is
+// the more honest number, since a cell's data can be older than the city's
+// newest fetch.
 
 /**
  * Fetch every row in a bbox, paging by id so the scan is exhaustive and
