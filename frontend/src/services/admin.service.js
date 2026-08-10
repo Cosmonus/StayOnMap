@@ -36,6 +36,11 @@ export const adminService = {
   deleteAmenity: (id)           => adminApi.delete(`/admin/amenities/${id}`),
   reports:       (params)       => adminApi.get('/admin/reports', { params }),
   moderateReport: (id, data)    => adminApi.patch(`/admin/reports/${id}/moderate`, data),
+  // The reporter↔moderator thread on a report. `awaiting` is how the queue
+  // badges a reply, since the admin side has no notification stream.
+  reportThread:  (id)           => adminApi.get(`/admin/reports/${id}/messages`),
+  replyToReport: (id, body)     => adminApi.post(`/admin/reports/${id}/messages`, { body }),
+  reportsAwaiting: ()           => adminApi.get('/admin/reports/awaiting'),
   verifications: (params)       => adminApi.get('/admin/verifications', { params }),
   reviewVerification: (id, data)=> adminApi.patch(`/admin/verifications/${id}`, data),
   reviews:       (params)       => adminApi.get('/admin/reviews', { params }),

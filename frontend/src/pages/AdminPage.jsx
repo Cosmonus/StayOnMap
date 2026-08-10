@@ -40,6 +40,7 @@ import ActionMenu from '@components/common/ActionMenu'
 import { confirm } from '@components/common/ConfirmDialog'
 import AdminMonitorSection from '@features/admin/components/AdminMonitorSection'
 import VerificationsSection from '@features/admin/components/VerificationsSection'
+import ReportThread from '@features/admin/components/ReportThread'
 import FunnelCard from '@features/admin/components/FunnelCard'
 import DemandCard from '@features/admin/components/DemandCard'
 import GraphHealthCard from '@features/admin/components/GraphHealthCard'
@@ -2253,6 +2254,19 @@ function ReportsSection() {
     queryFn: () => adminService.reports({ status, limit: 30 }).then(r => r.data),
   })
 
+  // Which reports have a reporter reply nobody has read. Its own query rather
+  // than a field on each row: it is one small read for the whole list, and it
+  // is the ONLY unread signal the admin side has — moderators work from this
+  // queue and have no notification stream to tell them somebody answered.
+  //
+  // Defaults to [] on failure. A missing badge understates the work; a crashed
+  // reports queue over a failed badge query would be a far worse trade.
+  const { data: awaitingData } = useQuery({
+    queryKey: ['admin-reports-awaiting'],
+    queryFn: () => adminService.reportsAwaiting().then(r => r.data),
+  })
+  const awaiting = awaitingData?.reportIds ?? []
+
   const mutation = useMutation({
     mutationFn: ({ id, action }) => adminService.moderateReport(id, { action }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-reports'] }),
@@ -2305,6 +2319,17 @@ function ReportsSection() {
                   />
                 </div>
               </div>
+              {/* Asking beats guessing. Before this the only options on a thin
+                  report were to guess or dismiss it, and dismissing for lack of
+                  detail is how a reporting feature teaches people not to use
+                  it. The badge is the admin side's only unread signal —
+                  moderators have no notification stream. */}
+              {awaiting.includes(r.id) && (
+                <p className="mt-3 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-[11px] font-semibold">
+                  Reporter replied
+                </p>
+              )}
+              <ReportThread reportId={r.id} />
             </div>
           ))}
           {(data?.reports ?? []).length === 0 && (

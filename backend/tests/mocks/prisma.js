@@ -110,6 +110,16 @@ export const prismaMock = {
   activityLog: {
     create: vi.fn().mockResolvedValue({}),
   },
+  moderationAction: {
+    create: vi.fn().mockResolvedValue({}),
+  },
+  // The reporter↔moderator thread on a report. Defaults to an empty thread,
+  // which is every report until somebody replies.
+  reportMessage: {
+    findMany:   vi.fn().mockResolvedValue([]),
+    create:     vi.fn().mockResolvedValue({}),
+    updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+  },
   savedListing: {
     count: vi.fn(),
   },
@@ -210,6 +220,10 @@ export const prismaMock = {
     create:     vi.fn(),
     findMany:   vi.fn(),
     findUnique: vi.fn(),
+    // Defaults to null, and that default is the safe one: the report thread
+    // scopes the reporter's read by (id, reporterId) through findFirst, so a
+    // mock returning something by accident would look like access granted.
+    findFirst:  vi.fn().mockResolvedValue(null),
     update:     vi.fn(),
     count:      vi.fn(),
   },

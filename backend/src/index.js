@@ -60,7 +60,7 @@ import areaRoutes        from './features/areas/areas.routes.js'
 import metroRoutes       from './features/metro/metro.routes.js'
 import itCorridorRoutes  from './features/itCorridors/itCorridors.routes.js'
 import adminRoutes       from './features/admin/admin.routes.js'
-import { adminReportRouter }       from './features/reports/reports.routes.js'
+import { adminReportRouter, reportThreadRouter } from './features/reports/reports.routes.js'
 import { adminVerificationRouter } from './features/verification/verification.routes.js'
 
 const app  = express()
@@ -136,6 +136,9 @@ app.use('/api/v1/graph',         graphRoutes)
 app.use('/api/v1/analytics',     analyticsRoutes)
 app.use('/api/v1/blog',          blogRoutes)
 app.use('/api/v1/contact',       contactRoutes)
+// The reporter's side of a report thread — addressed by REPORT id, because
+// that is what the notification carries. See reports.routes.js.
+app.use('/api/v1/reports',       reportThreadRouter)
 app.use('/api/v1/localities',    localityRoutes)
 app.use('/api/v1/metro',         metroRoutes)
 app.use('/api/v1/it-corridors',  itCorridorRoutes)

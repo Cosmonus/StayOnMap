@@ -7,6 +7,7 @@ import { getSocket } from '@lib/socket'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ErrorState from '@components/common/ErrorState'
+import ReportThreadSheet from '@features/reports/components/ReportThreadSheet'
 import { referenceDestination, navigateToReference } from '@navigation/navigationRef'
 import { useUiStore } from '@store/uiStore'
 import { colors } from '@theme/colors'
@@ -48,8 +49,21 @@ function dateGroup(date) {
 
 // Owns its own socket subscription — a mobile screen can't assume another
 // mounted component (like web's NotificationBell) is already listening.
-export default function NotificationsScreen({ navigation }) {
+export default function NotificationsScreen({ navigation, route }) {
   const qc = useQueryClient()
+
+  // A report thread, opened by the notification that announced it —
+  // navigationRef.js maps PropertyReport here with a reportId.
+  //
+  // Read STRAIGHT from the param, with no mirroring state: syncing it into
+  // useState needs an effect that calls setState during render, which is a
+  // cascading render (the lint says so) and would also fail to reopen on a
+  // re-tap, since the param is unchanged and the effect would not fire.
+  // Clearing the param on close is the idiomatic move and makes a second tap
+  // work for free.
+  const openReportId = route?.params?.reportId ?? null
+  const closeReport = () => navigation.setParams({ reportId: undefined })
+
   // Where a notification leads depends on the mode: the same Conversation is
   // the "Inbox" tab for a host and "Chat" for a renter (AppTabs.js).
   const hostMode = useUiStore((s) => s.hostMode)
@@ -200,6 +214,7 @@ export default function NotificationsScreen({ navigation }) {
           }}
         />
       )}
+      <ReportThreadSheet reportId={openReportId} onClose={closeReport} />
     </SafeAreaView>
   )
 }

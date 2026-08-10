@@ -783,7 +783,7 @@ model Property {
   // rule lives in features/properties/publishedAt.js. NULL means "live before
   // 2026-08-10", which is honest — it is deliberately not backfilled, because
   // `updatedAt` has moved for every edit and score recalculation since.
-  publishedAt     DateTime?
+  publishedAt DateTime?
 
   // Relations
   images             PropertyImage[]
@@ -1153,12 +1153,57 @@ model PropertyReport {
   ownerResponse String?
 
   moderationAction ModerationAction?
+  messages         ReportMessage[]
 
   createdAt DateTime @default(now())
 
   @@index([propertyId])
   @@index([status])
   @@index([severity])
+}
+
+/// A conversation between the person who filed a report and a moderator.
+///
+/// Added 2026-08-10, because a report went into SILENCE: the owner was notified
+/// on submit and on a warning, the reporter was told nothing at any point — not
+/// even when their report was upheld and they were quietly awarded points for
+/// it. Outcome notifications closed half of that; this closes the other half,
+/// which is the moderator being unable to ask "which listing, what happened".
+///
+/// NOT a `Conversation`. That model is tenant↔owner and `.claude/architecture.md`
+/// is explicit that admins are platform operators, never participants — putting
+/// an admin in it would mean rewriting the audience split, the per-hat unread
+/// counts and the socket rooms for one moderation surface. This is a moderation
+/// record that happens to have replies, and it stays on the report it is about.
+///
+/// THE OWNER IS NOT A PARTY AND MUST NEVER BE. A report can be anonymous, the
+/// owner already cannot see who filed one, and a thread the owner could read
+/// would undo that in the most direct way available.
+model ReportMessage {
+  id       String         @id @default(cuid())
+  report   PropertyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportId String
+
+  /// REPORTER | ADMIN. A plain string rather than an enum, following
+  /// PropertyStatusEvent.actor: adding an enum value costs two migrations
+  /// (Postgres cannot use a value in the transaction that created it), and this
+  /// vocabulary is closed at two by the design rather than by a constraint.
+  authorRole String
+
+  /// Set only on an ADMIN message, for accountability. A reporter message needs
+  /// no author column — the report already knows whose it is, and duplicating
+  /// `reporterId` here would let the two disagree.
+  adminId String?
+
+  body      String
+  createdAt DateTime @default(now())
+
+  /// When the OTHER side last read up to. Nullable on both: an unread message
+  /// and a message read at an unknown time are different facts.
+  readByReporterAt DateTime?
+  readByAdminAt    DateTime?
+
+  @@index([reportId, createdAt])
 }
 
 // ─────────────────────────────────────────────────────────────────
