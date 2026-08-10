@@ -56,6 +56,15 @@ module.exports = {
       env: { node: true },
       parserOptions: { sourceType: 'script' },
     },
+    {
+      // Tests run under vitest in Node, not in the browser. Some of them read
+      // real files — the backend's schema and services — so a shared constant is
+      // CHECKED against its source rather than transcribed beside it, which is
+      // the thing that drifts. That needs `process` and `node:fs`, neither of
+      // which exists in the browser env the app is linted against.
+      files: ['**/*.test.js', '**/*.test.jsx'],
+      env: { node: true },
+    },
   ],
   plugins: ['react', 'react-hooks'],
   extends: [

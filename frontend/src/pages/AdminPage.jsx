@@ -10,7 +10,7 @@ import {
 } from 'chart.js'
 import {
   X, ChevronLeft, ChevronRight, Home, MapPin, Users, CircleCheck, ArrowLeft, Copy,
-  Star, Building2, Eye, EyeOff, User,
+  Star, Building2, Eye, EyeOff, User, MoreHorizontal,
 } from 'lucide-react'
 import { adminService } from '@services/admin.service'
 import { formatPrice, formatCurrency, formatCompact, formatCompactPrice } from '@utils/format'
@@ -33,6 +33,7 @@ import Select           from '@components/common/Select'
 import TrustBadge       from '@components/common/TrustBadge'
 import RiskAlert        from '@components/common/RiskAlert'
 import PropertyStatusPill from '@components/common/PropertyStatusPill'
+import { moderationActionsFor, ACTION_META, NO_ACTION_REASON } from '@/config/moderationActions'
 import PropertyDetailBody from '@features/properties/components/detail/PropertyDetailBody'
 import UnifiedSidebar from '@components/layout/UnifiedSidebar'
 import { toast } from '@components/common/Toaster'
@@ -725,28 +726,28 @@ function AdminPropertyPopup({ property, isLoading, onClose, onViewFull, onApprov
             >
               View Full Details
             </button>
-            {/* Only what this status can actually become. "Approve" used to show
-                on a DRAFT too, which would have published an owner's unfinished
-                listing — the server refuses that now, so offering it was only
-                ever a route to an error. DRAFT / INACTIVE / OCCUPIED are the
-                owner's own states and an admin has no business writing them. */}
+            {/* Only what this status can actually become — from the SHARED
+                table, not from conditionals of its own. These had drifted from
+                the detail view's: this popup would reinstate a REJECTED listing
+                and reject an ACTIVE one, and the page literally called "Review
+                Listings" offered neither. Same decision, two answers, depending
+                on which screen you happened to be looking at.
+                See config/moderationActions.js. */}
             <div className="flex gap-2">
-              {['PENDING', 'SUSPENDED', 'REJECTED'].includes(property.status) && (
-                <button onClick={onApprove} className="min-h-[44px] flex-1 py-3 text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 rounded-xl border border-green-200 transition-colors">
-                  {property.status === 'SUSPENDED' ? 'Reinstate' : 'Approve'}
+              {moderationActionsFor(property.status).map((key) => (
+                <button
+                  key={key}
+                  onClick={() => ACTION_HANDLER[key]({ onApprove, onReject, onSuspend }, property.id)}
+                  className={`min-h-[44px] flex-1 py-3 text-xs font-semibold rounded-xl border transition-colors ${POPUP_ACTION_STYLE[key]}`}
+                >
+                  {ACTION_META[key].label}
                 </button>
-              )}
-              {['ACTIVE', 'PENDING', 'OCCUPIED'].includes(property.status) && (
-                <button onClick={onSuspend} className="min-h-[44px] flex-1 py-3 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-xl border border-orange-200 transition-colors">
-                  ⏸ Pause
-                </button>
-              )}
-              {property.status !== 'REJECTED' && property.status !== 'DRAFT' && (
-                <button onClick={onReject} className="min-h-[44px] flex-1 py-3 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-xl border border-red-200 transition-colors">
-                  Reject
-                </button>
-              )}
+              ))}
             </div>
+            {/* Never a blank row where controls would be. */}
+            {moderationActionsFor(property.status).length === 0 && NO_ACTION_REASON[property.status] && (
+              <p className="text-xs text-slate-500">{NO_ACTION_REASON[property.status]}</p>
+            )}
           </div>
         )}
       </div>
@@ -1309,9 +1310,43 @@ function RecheckMenu({ property, onRefresh }) {
     <ActionMenu
       items={items}
       label="Re-run checks"
-      triggerClassName="min-h-[44px] px-3 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
+      // Explicit, and a fixed 44px square rather than `px-3 py-3`: with no
+      // trigger the button had no content AND no width, so it painted as a
+      // narrow empty box beside the moderation buttons. Same glyph and same
+      // size as every other overflow menu in the app (ListingManager,
+      // HostDashboard) — an admin should recognise it as one.
+      trigger={<MoreHorizontal size={18} strokeWidth={2} aria-hidden="true" />}
+      triggerClassName="flex items-center justify-center w-11 h-11 shrink-0 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
     />
   )
+}
+
+// Which callback each action key fires, and how it looks. Separate from
+// config/moderationActions.js on purpose: that file says WHAT is offered and is
+// shared with the map popup; these are this screen's wiring and styling.
+const ACTION_HANDLER = {
+  approve:   (h, id) => h.onApprove?.(id),
+  reinstate: (h, id) => h.onApprove?.(id),
+  pause:     (h, id) => h.onSuspend?.(id),
+  reject:    (h, id) => h.onReject?.(id),
+}
+
+// The detail header sits on white and carries the primary decision, so approve
+// and reject are solid. The map popup sits on a photo card where three solid
+// buttons in a row would shout — soft fills with borders there. Same actions,
+// same order, two surfaces' weight.
+const ACTION_STYLE = {
+  approve:   'text-white bg-green-600 hover:bg-green-700',
+  reinstate: 'text-white bg-green-600 hover:bg-green-700',
+  pause:     'text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200',
+  reject:    'text-white bg-red-500 hover:bg-red-600',
+}
+
+const POPUP_ACTION_STYLE = {
+  approve:   'text-green-700 bg-green-50 hover:bg-green-100 border-green-200',
+  reinstate: 'text-green-700 bg-green-50 hover:bg-green-100 border-green-200',
+  pause:     'text-orange-700 bg-orange-50 hover:bg-orange-100 border-orange-200',
+  reject:    'text-red-700 bg-red-50 hover:bg-red-100 border-red-200',
 }
 
 function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend, onRefresh }) {
@@ -1320,6 +1355,8 @@ function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend, 
   useEffect(() => { setSelectedUserId(null) }, [property?.id])
 
   if (!property) return null
+
+  const actions = moderationActionsFor(property.status)
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null
 
@@ -1375,21 +1412,21 @@ function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend, 
             what an admin is reading this page to decide. */}
         <div className="flex items-center gap-2 shrink-0">
           <PropertyStatusPill status={property.status} />
-          {property.status === 'PENDING' && (
-            <>
-              <button onClick={() => onApprove(property.id)} className="min-h-[44px] px-4 py-3 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-colors">Approve</button>
-              <button onClick={() => onReject(property.id)} className="min-h-[44px] px-4 py-3 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors">Reject</button>
-            </>
-          )}
-          {['ACTIVE', 'PENDING', 'OCCUPIED'].includes(property.status) && (
-            <button onClick={() => onSuspend?.(property.id)} className="min-h-[44px] px-4 py-3 text-xs font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-xl transition-colors">
-              Pause
+          {actions.map((key) => (
+            <button
+              key={key}
+              onClick={() => ACTION_HANDLER[key]({ onApprove, onReject, onSuspend }, property.id)}
+              className={`min-h-[44px] px-4 py-3 text-xs font-semibold rounded-xl transition-colors ${ACTION_STYLE[key]}`}
+            >
+              {ACTION_META[key].label}
             </button>
-          )}
-          {property.status === 'SUSPENDED' && (
-            <button onClick={() => onApprove(property.id)} className="min-h-[44px] px-4 py-3 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-colors">
-              Reinstate
-            </button>
+          ))}
+          {/* Never a blank space where controls would be. DRAFT and INACTIVE are
+              the owner's own states and offer nothing on purpose — but a header
+              showing only a pill and an overflow menu reads as a page that
+              failed to load, which is exactly how this was reported. */}
+          {actions.length === 0 && NO_ACTION_REASON[property.status] && (
+            <p className="text-xs text-slate-500 max-w-[260px]">{NO_ACTION_REASON[property.status]}</p>
           )}
           {/* Behind the menu, not beside the moderation buttons: this row can
               already show three, and ui-ux.md caps it at two plus an overflow.
