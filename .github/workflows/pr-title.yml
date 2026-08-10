@@ -8,16 +8,27 @@ jobs:
   check-title:
     name: Enforce "stayonmap - <title>" format
     runs-on: ubuntu-latest
-    # Dependabot's auto-generated PR titles (e.g. "chore(backend): bump
-    # express from 4.18.2 to 4.19.0") never match ^stayonmap - .+ — exempt
-    # its PRs rather than let dependabot.yml's automation get blocked on a
-    # title format it has no way to produce.
-    if: github.actor != 'dependabot[bot]'
+    # The dependabot exemption is decided INSIDE the step, never with a
+    # job-level `if:`. This job is a REQUIRED status check on master, and a job
+    # that does not run does not report — so `if: github.actor != 'dependabot
+    # [bot]'` up here did the exact opposite of what it was added for: instead
+    # of exempting dependabot it blocked every one of its PRs permanently, and
+    # nine had accumulated by 2026-08-11 that could never have been merged.
+    #
+    # A skipped required check is indistinguishable from a missing one. Keep the
+    # job unconditional so it always reports, and let the script decide.
     steps:
       - name: Validate PR title
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_ACTOR: ${{ github.actor }}
         run: |
+          # Dependabot's titles ("chore(deps): bump express from 4.18.2 to
+          # 4.19.0") cannot match the format, and it has no way to produce one.
+          if [[ "$PR_ACTOR" == "dependabot[bot]" ]]; then
+            echo "Dependabot PR — title format not enforced: $PR_TITLE"
+            exit 0
+          fi
           if [[ ! "$PR_TITLE" =~ ^stayonmap\ -\ .+ ]]; then
             echo "::error::PR title must start with 'stayonmap - ', got: \"$PR_TITLE\""
             echo "Example: stayonmap - Fix appointment scheduling bug"
