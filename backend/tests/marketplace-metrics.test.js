@@ -119,6 +119,16 @@ describe('getMatchChain', () => {
     for (let i = 1; i < counts.length; i++) expect(counts[i]).toBeLessThanOrEqual(counts[i - 1])
   })
 
+  // These two fixtures carried `appointment: { createdAt }` until 2026-08-10 —
+  // a relation `Lease` does not have. The service selected it, Prisma threw
+  // PrismaClientValidationError on every real call, and the whole admin
+  // marketplace endpoint 500'd because the controller runs these in a
+  // Promise.all. The suite stayed green throughout, because a MOCK returns
+  // whatever shape the fixture invents.
+  //
+  // That is the lesson worth keeping: a fixture is not evidence a query can
+  // run. tests/prisma-field-names.test.js checks the field names against
+  // schema.prisma, which is the only thing here that can.
   it('measures time-to-lease from the visit request, not the lease offer', async () => {
     // `appointmentId` is a bare column on Lease with NO relation, so the start
     // date comes from a SECOND query. Selecting it as a relation is a runtime
@@ -146,6 +156,15 @@ describe('getMatchChain', () => {
     const res = await getMatchChain()
     expect(res.medianDaysToLease).toBeNull()
     expect(res.samples).toBe(0)
+  })
+
+  it('does not query appointments at all when no signed lease references one', async () => {
+    prismaMock.lease.findMany.mockResolvedValue([
+      { createdAt: ago(2 * 24 * HOUR), signedAt: ago(0), appointmentId: null },
+    ])
+    prismaMock.appointment.findMany.mockClear()
+    await getMatchChain()
+    expect(prismaMock.appointment.findMany).not.toHaveBeenCalled()
   })
 })
 

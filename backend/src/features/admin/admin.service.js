@@ -721,7 +721,13 @@ export async function moderateReview(reviewId, status, adminId) {
     // Points on APPROVAL, never on submit — otherwise writing junk reviews pays.
     // Idempotent by (userId, action, reviewId), so re-approving doesn't re-pay.
     const { awardPoints } = await import('../points/points.service.js')
-    awardPoints(review.authorId, 'REVIEW_APPROVED', reviewId).catch(() => {})
+    // `reviewerId`, not `authorId` — CommunityReview has never had an
+    // `authorId` column. This read undefined, `awardPoints` no-opped, and the
+    // fire-and-forget `.catch()` around it meant the largest award in the
+    // ledger (80 points) silently never fired for anyone. `.claude/database.md`
+    // documented the wrong name too; the doc drift and the bug were the same
+    // mistake, fixed together.
+    awardPoints(review.reviewerId, 'REVIEW_APPROVED', reviewId).catch(() => {})
   }
   return review
 }

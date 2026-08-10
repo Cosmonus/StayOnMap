@@ -200,7 +200,11 @@ export const TOOLS = {
         prisma.propertyRiskScore.findUnique({ where: { propertyId: a.propertyId } }),
         prisma.fraudSignal.findMany({
           where: { propertyId: a.propertyId, resolved: false },
-          select: { type: true, detail: true, createdAt: true },
+          // `detectedAt`, not `createdAt` — FraudSignal has never had one.
+          // Prisma threw PrismaClientValidationError on every call, `runTool`
+          // caught it as TOOL_FAILED, and this tool had therefore failed 100%
+          // of the time since it was written.
+          select: { type: true, detail: true, detectedAt: true },
           take: 20,
         }),
       ])

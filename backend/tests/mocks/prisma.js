@@ -101,10 +101,14 @@ export const prismaMock = {
     update:     vi.fn(),
     count:      vi.fn().mockResolvedValue(0),
   },
-  // Host dashboard surfaces (features/host/host.service.js)
+  // Host dashboard surfaces (features/host/host.service.js) + admin moderation
   communityReview: {
     findMany: vi.fn(),
     count:    vi.fn(),
+    update:   vi.fn(),
+  },
+  activityLog: {
+    create: vi.fn().mockResolvedValue({}),
   },
   savedListing: {
     count: vi.fn(),

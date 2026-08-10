@@ -35,7 +35,13 @@ async function flush() {
     // so only the app is forwarded. Builds released before this field exists
     // are identified by User-Agent instead; sending it explicitly is what lets
     // that fallback eventually be deleted.
-    await api.post('/api/v1/analytics/events', { events, platform: 'app' })
+    // RELATIVE. `api`'s baseURL already ends in /api/v1, so the absolute path
+    // this carried until 2026-08-10 resolved to /api/v1/api/v1/analytics/events
+    // — a 404 swallowed by the deliberate catch below. Every event the app has
+    // ever sent was lost, so the funnel has never counted mobile at all, on a
+    // product whose users are mostly on phones. Same mistake web made and fixed
+    // on 2026-08-09; this was ported from the pre-fix version.
+    await api.post('/analytics/events', { events, platform: 'app' })
   } catch {
     // Dropped on purpose — no retry queue. Telemetry that retries becomes a
     // second source of load exactly when the network is already failing.

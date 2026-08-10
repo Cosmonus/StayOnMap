@@ -24,7 +24,13 @@ export async function listConversations(req, res, next) {
 
 export async function listMessages(req, res, next) {
   try {
-    const messages = await chatService.getMessages(req.params.conversationId, req.user.id)
+    // Pagination was accepted by the service and never read here, which is how
+    // a thread could only ever return its oldest page. `before` pages backwards
+    // from the top of what the client already holds.
+    const messages = await chatService.getMessages(req.params.conversationId, req.user.id, {
+      before: req.query.before,
+      ...(req.query.limit ? { limit: req.query.limit } : {}),
+    })
     ok(res, messages)
   } catch (err) { next(err) }
 }

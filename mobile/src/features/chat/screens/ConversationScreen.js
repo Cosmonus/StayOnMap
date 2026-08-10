@@ -367,9 +367,16 @@ export default function ConversationScreen({ route, navigation }) {
         old.map((m) => (m.id === data.id ? { ...m, deletedAt: new Date().toISOString(), body: '', attachmentUrl: null } : m)))
     }
 
-    // Reconnect safety net (also covers foreground-after-background): catch
-    // up on anything missed while the socket was disconnected.
+    // Reconnect safety net (also covers foreground-after-background), and it
+    // needs BOTH halves.
+    //
+    // Rooms are per-CONNECTION on the server: a reconnect is a brand new socket
+    // that has joined nothing, so without the re-emit the open thread stopped
+    // receiving message:new / typing / message:read entirely until it was
+    // closed and reopened. On a phone this fires constantly — every tunnel,
+    // every lift, every backgrounding long enough to drop the socket.
     function onConnect() {
+      socket.emit('join:conversation', conversationId)
       qc.invalidateQueries({ queryKey: ['chat-messages', conversationId] })
     }
 

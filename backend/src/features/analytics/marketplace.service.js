@@ -165,6 +165,8 @@ export async function getMatchChain({ days = 90 } = {}) {
       // Selecting it as a relation is a runtime Prisma error, not a type error,
       // and a mocked client in a unit test validates nothing: it 500'd the
       // whole endpoint in production while the suite stayed green.
+      // tests/prisma-field-names.test.js now checks every select against
+      // schema.prisma, which is the only thing that could have caught it.
       select: { signedAt: true, createdAt: true, appointmentId: true },
     }),
   ])
