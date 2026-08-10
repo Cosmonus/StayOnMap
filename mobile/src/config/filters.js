@@ -263,6 +263,12 @@ export const FILTER_SECTIONS = [
     rows: [
       { kind: 'date', label: 'Move-in by', id: 'availableBy' },
       { kind: 'chips', label: 'Max lease duration', id: 'leaseDurationMax', single: true, options: [{ value: 6, label: '6 months' }, { value: 11, label: '11 months' }, { value: 12, label: '1 year' }, { value: 24, label: '2 years' }] },
+      // MOVED out of the PG section 2026-08-10. It sat inside 'pg', which is
+      // requiresType, so it only appeared once somebody had selected PG — yet
+      // the backend filter was never type-gated and flats, houses and shops can
+      // now state a notice period too. This section is already scoped to HOMES
+      // + PG + COMMERCIAL, which is exactly the set that has one.
+      { kind: 'chips', label: 'Max notice period', id: 'noticePeriodMax', single: true, options: [{ value: 15, label: '15 days' }, { value: 30, label: '1 month' }, { value: 60, label: '2 months' }] },
     ],
   },
   {
@@ -289,8 +295,7 @@ export const FILTER_SECTIONS = [
     rows: [
       { kind: 'chips', label: 'Sharing', id: 'sharing', options: [{ value: 1, label: 'Single' }, { value: 2, label: 'Double' }, { value: 3, label: 'Triple' }, { value: 4, label: '4+' }] },
       { kind: 'chips', label: 'Food & services', id: 'amenities', withIcons: true, options: asOptions(['Breakfast', 'Lunch', 'Dinner', 'Laundry', 'Housekeeping', 'WiFi', 'AC', 'Attached Bath', 'Study Desk']) },
-      { kind: 'toggles', items: [{ id: 'bedsAvailable', label: 'Beds available now' }, { id: 'noCurfew', label: 'No curfew' }] },
-      { kind: 'chips', label: 'Max notice period', id: 'noticePeriodMax', single: true, options: [{ value: 15, label: '15 days' }, { value: 30, label: '1 month' }, { value: 60, label: '2 months' }] },
+      { kind: 'toggles', items: [{ id: 'bedsAvailable', label: 'Beds available now' }, { id: 'noCurfew', label: 'No curfew' }] },
     ],
   },
   {

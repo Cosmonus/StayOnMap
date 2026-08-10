@@ -486,3 +486,52 @@ describe('wizard six-type contract — land records', () => {
     expect(payloadFor('land', draft).ecAvailable).toBe(false)
   })
 })
+
+// ── Notice period, added 2026-08-10 ─────────────────────────────────────────
+//
+// `noticePeriodDays` had existed on Property, in the backend filter registry
+// and in both clients' filter configs since PG shipped — and the WIZARD only
+// ever asked PG for it. So flats, houses and shops could never state one, and
+// the "Max notice period" chip sat inside the PG filter section, which is
+// requiresType: it appeared only once somebody selected PG.
+//
+// That is the same shape as the six amenities that could never match a listing:
+// a filter is only real if some owner can set the field it reads.
+describe('notice period reaches every type that has one', () => {
+  const HAS_NOTICE = ['apartment', 'house', 'shop']
+
+  it.each(HAS_NOTICE)('%s asks for it', (key) => {
+    expect(TERMS[key].map((r) => r.k)).toContain('noticePeriodDays')
+  })
+
+  it('PG asks for it once, in the describe step rather than twice', () => {
+    // A resident rents a bed by the month, so notice is the only term that
+    // binds them — but asking in both places would be two inputs writing one
+    // column, and whichever ran last would win.
+    expect(TERMS.pg.map((r) => r.k)).not.toContain('noticePeriodDays')
+    expect(FIELDS.pg.map((r) => r.k ?? r.field)).toContain('noticePeriodDays')
+  })
+
+  it.each(['land', 'stay'])('%s does not ask, and that is not an omission', (key) => {
+    // A plot has no tenancy at all; a short stay is bounded by
+    // minNights/maxNights. Hidden, not shown with a caveat.
+    expect(TERMS[key].map((r) => r.k)).not.toContain('noticePeriodDays')
+  })
+
+  it('survives the trip to the schema as an integer', () => {
+    const draft = {
+      ...COMPLETE_DRAFTS.apartment,
+      terms: { availableFrom: '2026-08-01', leaseDuration: '11', noticePeriodDays: '30' },
+    }
+    const r = createPropertySchema.safeParse(payloadFor('apartment', draft))
+    expect(r.success, r.success ? '' : JSON.stringify(r.error.issues)).toBe(true)
+    expect(r.data.noticePeriodDays).toBe(30)
+  })
+
+  it('stays optional — an owner who leaves it blank still publishes', () => {
+    // Every term here is optional by design. A required notice period would
+    // block a listing over a detail most owners settle in conversation.
+    const r = createPropertySchema.safeParse(payloadFor('apartment', COMPLETE_DRAFTS.apartment))
+    expect(r.success).toBe(true)
+  })
+})

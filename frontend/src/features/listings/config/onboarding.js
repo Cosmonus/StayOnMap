@@ -312,22 +312,29 @@ export const TERMS = {
   apartment: [
     { k: 'availableFrom',  t: 'date', label: 'Available from' },
     { k: 'leaseDuration',  t: 'num',  label: 'Minimum stay', suf: 'months', ph: '11' },
+    { k: 'noticePeriodDays', t: 'num', label: 'Notice period', suf: 'days', ph: '30' },
   ],
   house: [
     { k: 'availableFrom',  t: 'date', label: 'Available from' },
     { k: 'leaseDuration',  t: 'num',  label: 'Minimum stay', suf: 'months', ph: '11' },
+    { k: 'noticePeriodDays', t: 'num', label: 'Notice period', suf: 'days', ph: '30' },
   ],
   land: [
     { k: 'availableFrom',  t: 'date', label: 'Available from' },
   ],
-  // PG has no minimum-stay row: its notice period (FIELDS.pg) is the term
-  // that actually binds a resident, and beds-per-room is the describe answer.
+  // PG has no minimum-stay row: a resident rents a bed by the month, so the
+  // notice period is the only term that binds them — and it is asked in
+  // FIELDS.pg (the describe step) rather than here, so it is not repeated.
+  //
+  // LAND and STAY have neither, and neither is an omission: a plot has no
+  // tenancy at all, and a short stay is bounded by minNights/maxNights below.
   pg: [
     { k: 'availableFrom',  t: 'date', label: 'Available from' },
   ],
   shop: [
     { k: 'availableFrom',  t: 'date', label: 'Available from' },
     { k: 'leaseDuration',  t: 'num',  label: 'Lock-in period', suf: 'months', ph: '36' },
+    { k: 'noticePeriodDays', t: 'num', label: 'Notice period', suf: 'days', ph: '30' },
   ],
   stay: [
     { k: 'minNights', t: 'num', label: 'Minimum stay', suf: 'nights', ph: '1' },
@@ -686,6 +693,14 @@ export function buildPayload(categoryKey, type, draft, amenityIds) {
     // wants a full ISO datetime. On a sale this same field is the possession date.
     ...(terms.availableFrom && { availableFrom: new Date(`${terms.availableFrom}T00:00:00.000Z`).toISOString() }),
     ...(num(terms.leaseDuration) && { leaseDuration: num(terms.leaseDuration) }),
+    // Notice period reaches the payload from TERMS for flats, houses and shops.
+    // PG asks the same column in the DESCRIBE step, so it arrives via
+    // typedFields above instead — one column, two entry points, and only ever
+    // one of them per type. See TERMS' comment on pg.
+    //
+    // The `&&` skips 0, which is correct here: a zero-day notice period is not
+    // something an owner means, it is an empty box coerced to a number.
+    ...(num(terms.noticePeriodDays) && { noticePeriodDays: num(terms.noticePeriodDays) }),
     // Sale-only. Sent only in SALE mode so a rental listing can never carry a
     // possession status or a loan flag that means nothing on it.
     ...(isSale && {
