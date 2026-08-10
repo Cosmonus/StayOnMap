@@ -115,6 +115,27 @@ const HEALTH_CONFIG = [
     },
   },
   {
+    // The backend has fetched and returned this since phone verification
+    // shipped; the card was simply never added. It is the one channel whose
+    // configured state GATES PRODUCT SURFACES — the Settings verify row, the
+    // points checklist entry, and the SMS sign-in button all hide themselves
+    // when it is off (smsConfigured, see .claude/auth.md). So "unconfigured"
+    // here is not a warning, it is the explanation for three things being
+    // absent, which is exactly what an operator comes to this page to find.
+    key: 'sms',
+    label: 'SMS',
+    purpose: 'Phone verification and SMS sign-in codes. Costs money per message and needs TRAI DLT registration — deferred until funded, so unconfigured is the expected state.',
+    getOk:  d => d.system?.sms?.configured ?? false,
+    getLabel: d => {
+      const s = d.system?.sms
+      if (!s) return 'Unknown'
+      if (!s.configured) return 'Not configured — phone verification and SMS sign-in are hidden'
+      if (s.provider === 'dev-echo') return 'Dev echo — prints to the server console'
+      const name = { msg91: 'MSG91', fast2sms: 'Fast2SMS' }[s.provider] ?? s.provider
+      return `Active (${name}) · ${s.usedToday}/${s.dailyCap} sent today`
+    },
+  },
+  {
     key: 'mobile-push',
     label: 'Mobile Push',
     purpose: 'App notifications via the Expo push service. Needs no server key — reach is however many devices registered a token.',

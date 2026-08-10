@@ -283,6 +283,26 @@ function Readiness({ readiness: r }) {
               <p className="text-xs text-slate-500">ownership verified</p>
             </div>
           </div>
+          {/* getListingReadiness has always returned `worst`; only the buckets
+              were rendered. The buckets say how big the problem is, this says
+              WHICH listings it is — the only half an operator can act on, and
+              at ~13 listings it is a list you can work through in an afternoon.
+              Deliberately NOT linked into review-listings: these are LIVE
+              listings and that tab queues PENDING ones, so the link would land
+              on a page that cannot show them. */}
+          {r.worst?.length > 0 && (
+            <ul className="mt-5 pt-4 border-t border-slate-100 flex flex-col gap-2">
+              {r.worst.map((p) => (
+                <li key={p.id} className="flex items-baseline justify-between gap-3">
+                  <span className="text-sm text-slate-800 truncate">{p.title}</span>
+                  <span className="text-xs text-slate-500 shrink-0">
+                    {p.photos === 0 ? 'no photos' : `${p.photos} photo${p.photos === 1 ? '' : 's'}`}
+                    {p.thinDescription && ' · thin copy'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </>
       )}
     </Card>

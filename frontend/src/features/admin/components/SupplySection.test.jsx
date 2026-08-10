@@ -156,6 +156,42 @@ describe('dead inventory', () => {
   })
 })
 
+describe('listing readiness', () => {
+  // The buckets say how big the problem is; `worst` says WHICH listings it is,
+  // and that is the only half an operator can act on. The endpoint has always
+  // returned it and the card rendered only the buckets until 2026-08-10 — so
+  // "8 listings have no photos" arrived with no way to find the eight.
+  it('names the weakest listings, not just how many there are', async () => {
+    await renderWith(withData({
+      readiness: {
+        live: 9,
+        photos: { none: 1, few: 1, enough: 7 },
+        noDescription: 2,
+        verified: 3,
+        worst: [
+          { id: 'p1', title: 'Bare plot near OMR', photos: 0, thinDescription: true },
+          { id: 'p2', title: 'Studio in Adyar', photos: 2, thinDescription: false },
+        ],
+      },
+    }))
+
+    expect(await screen.findByText('Bare plot near OMR')).toBeTruthy()
+    expect(screen.getByText('Studio in Adyar')).toBeTruthy()
+    // "no photos", not "0 photos" — a bare zero beside a title reads as a
+    // count of something rather than the absence of everything.
+    expect(screen.getByText(/no photos · thin copy/i)).toBeTruthy()
+    expect(screen.getByText(/2 photos/)).toBeTruthy()
+  })
+
+  it('renders the buckets alone when every live listing is in good shape', async () => {
+    await renderWith(withData({
+      readiness: { live: 4, photos: { none: 0, few: 0, enough: 4 }, noDescription: 0, verified: 4, worst: [] },
+    }))
+    expect(await screen.findByText(/Are the listings good enough/i)).toBeTruthy()
+    expect(screen.queryByText(/thin copy/i)).toBeNull()
+  })
+})
+
 describe('the time window', () => {
   it('asks for 30 days until told otherwise', async () => {
     await renderWith(EMPTY)

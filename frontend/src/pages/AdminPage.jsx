@@ -358,6 +358,19 @@ function OverviewSection() {
             </span>
           </div>
         )}
+        {/* getDashboardAnalytics has returned these since it was written and
+            nothing read them. On a platform whose binding constraint is growth,
+            "did anyone join today" is the cheapest question the panel can
+            answer — and the monthly chart beside it cannot, because the current
+            month is still in progress. Rendered as a pair: today alone is
+            noisy at this size, the week alone is too slow to notice a stall. */}
+        {data?.users?.newThisWeek != null && (
+          <div className="flex items-center gap-4 pb-3 text-xs text-slate-500">
+            <span>New today <span className="font-bold text-slate-800 font-mono">{data.users.newToday}</span></span>
+            <span aria-hidden className="text-slate-300">·</span>
+            <span>This week <span className="font-bold text-slate-800 font-mono">{data.users.newThisWeek}</span></span>
+          </div>
+        )}
         <TotalUsersChart monthly={data?.users?.monthly ?? []} />
       </ChartCard>
 
