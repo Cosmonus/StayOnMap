@@ -349,6 +349,15 @@ export const pinsQuerySchema = z.object({
 // required: the count is always "matches in the current viewport").
 export const countQuerySchema = pinsQuerySchema
 
+// Marking who moved in. The route had NO validate() until 2026-08-10, so a
+// missing tenantId reached `findUnique({ where: { id: undefined } })` and came
+// back as a 500 where the honest answer is 400. Whether that person actually
+// contacted the listing is a separate check, in the service — a schema can see
+// the shape of an id but not what it refers to.
+export const markTenantSchema = z.object({
+  tenantId: z.string().trim().min(1, 'tenantId is required').max(64),
+})
+
 // The listing wizard's price benchmark: what comparable live listings ask.
 // Narrow on purpose — it takes exactly the four things that define a
 // comparable, so it can never grow into a second, unfiltered list endpoint.

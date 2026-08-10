@@ -12,9 +12,10 @@
  * how a DRAFT/SUSPENDED listing leaks out of the public map.
  */
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { pinsQuerySchema, listQuerySchema } from '../src/features/properties/properties.validation.js'
 import { adminPinsQuerySchema, adminPropertiesQuerySchema } from '../src/features/admin/admin.validation.js'
-import { FILTERS, ADMIN_FILTERS, buildFilterWhere, filterQueryShape } from '../src/features/properties/filters.registry.js'
+import { FILTERS, ADMIN_FILTERS, buildFilterWhere, filterQueryShape, PROPERTY_STATUSES } from '../src/features/properties/filters.registry.js'
 
 const bounds = { swLat: '12.8', swLng: '77.4', neLat: '13.1', neLng: '77.8' }
 const whereOf = (query, registry) => JSON.stringify(buildFilterWhere(query, registry))
@@ -144,5 +145,35 @@ describe('registry parameterisation keeps the user path unchanged', () => {
   it('ADMIN_FILTERS is a strict superset of FILTERS', () => {
     for (const id of Object.keys(FILTERS)) expect(ADMIN_FILTERS[id]).toBe(FILTERS[id])
     expect(Object.keys(ADMIN_FILTERS).length).toBe(Object.keys(FILTERS).length + 2)
+  })
+})
+
+// ── Every status is filterable ───────────────────────────────────────────────
+//
+// Added 2026-08-10, after OCCUPIED was found missing from PROPERTY_STATUSES and
+// from the panel's own STATUS_OPTIONS. The enum and the data both supported it;
+// the filter simply could not select it — so the one state a marketplace most
+// wants to count, the listings that actually found a tenant, was invisible from
+// the admin panel.
+//
+// It is the quiet kind of gap: the chip row still looks complete, and every
+// chip in it works. Nothing is broken, something is just absent.
+describe('the admin status filter covers the whole enum', () => {
+  const schemaStatuses = () => {
+    const src = readFileSync(new URL('../prisma/schema.prisma', import.meta.url), 'utf8')
+    const block = /enum PropertyStatus \{([^}]*)\}/.exec(src)[1]
+    return block.split('\n').map((l) => l.trim()).filter((l) => /^[A-Z_]+$/.test(l)).sort()
+  }
+
+  it('accepts every value PropertyStatus defines', () => {
+    expect(schemaStatuses().length).toBeGreaterThan(5)
+    expect([...PROPERTY_STATUSES].sort()).toEqual(schemaStatuses())
+  })
+
+  it('is offered by the admin panel too — a filter nothing can select is not a filter', () => {
+    const src = readFileSync(new URL('../../frontend/src/config/adminFilters.js', import.meta.url), 'utf8')
+    const block = src.split('export const STATUS_OPTIONS = [')[1].split(']')[0]
+    const offered = [...block.matchAll(/value:\s*'([A-Z_]+)'/g)].map((m) => m[1]).sort()
+    expect(offered).toEqual(schemaStatuses())
   })
 })

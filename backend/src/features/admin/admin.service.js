@@ -6,6 +6,7 @@ import { sendEmail, adminPasswordChangedEmail } from '../../services/email.servi
 import { mailStatus } from '../../lib/mailer.js'
 import { smsStatus } from '../../lib/smsSender.js'
 import { errorStatus } from '../../lib/errorLog.js'
+import { disconnectUser } from '../../lib/socket.js'
 import { aiEnabled } from '../ai/ai.service.js'
 import { ADMIN_FILTERS, buildFilterWhere } from '../properties/filters.registry.js'
 import { firstPublishStamp } from '../properties/publishedAt.js'
@@ -250,6 +251,15 @@ export async function toggleUserBlock(userId, blocked, reason, adminId) {
     })
     await prisma.property.updateMany({ where: { ownerId: userId, status: 'ACTIVE' }, data: { status: 'SUSPENDED' } })
     recordBulkStatusChange({ propertyIds: suspended.map((p) => p.id), from: 'ACTIVE', to: 'SUSPENDED', actor: 'admin' })
+
+    // Their listings are down and their next request will 403 — but a socket
+    // opened before this moment stays open, keeping them in every conversation
+    // room with messages still delivering. The handshake now checks isBlocked
+    // (lib/socket.js), which covers the next connection; this covers the
+    // current one, and someone being blocked mid-abuse is precisely the person
+    // who will not helpfully reconnect. Fire-and-forget: a socket layer that is
+    // down must not fail the block.
+    try { disconnectUser(userId) } catch { /* the block is what matters */ }
   }
   await prisma.activityLog.create({ data: { adminId, action: blocked ? 'USER_BLOCKED' : 'USER_UNBLOCKED', entity: 'User', entityId: userId, meta: { reason } } })
   return user

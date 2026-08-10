@@ -786,6 +786,26 @@ export async function markTenant(propertyId, ownerId, tenantId) {
   const tenant = await prisma.user.findUnique({ where: { id: tenantId }, select: { id: true } })
   if (!tenant) throw Object.assign(new Error('User not found'), { statusCode: 404 })
 
+  // "Only someone who actually contacted this listing" was a CLIENT rule until
+  // 2026-08-10 — both pickers offer exactly these two sets, and the server
+  // accepted any user id at all. That matters because being marked as someone's
+  // tenant is a claim about a stranger written into their account by a person
+  // they have never spoken to.
+  //
+  // Appointments ∪ conversations, matching both pickers exactly. `savedBy` is
+  // deliberately NOT included on either side: saving a listing is something you
+  // do alone, and it is not contact.
+  const [contacted, chatted] = await Promise.all([
+    prisma.appointment.count({ where: { propertyId, tenantId } }),
+    prisma.conversation.count({ where: { propertyId, tenantId } }),
+  ])
+  if (contacted + chatted === 0) {
+    throw Object.assign(
+      new Error('That person has not requested a visit or messaged you about this listing'),
+      { statusCode: 400 },
+    )
+  }
+
   recordStatusChange({ propertyId, from: property.status, to: 'OCCUPIED', actor: 'owner' })
   return prisma.property.update({
     where: { id: propertyId },

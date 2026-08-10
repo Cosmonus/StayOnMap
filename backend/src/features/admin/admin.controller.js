@@ -16,7 +16,8 @@ export async function analytics(req, res, next) {
 // (how many of the people who saw the map ever booked). Different questions.
 export async function funnel(req, res, next) {
   try {
-    const days = req.query.days ? Number(req.query.days) : undefined
+    // Already coerced and bounded to 1..365 by funnelQuerySchema on the route.
+    const { days } = req.query
     const [funnelData, seoFunnel, timeToPublish] = await Promise.all([
       productAnalytics.getFunnel({ days }),
       // The same funnel, restricted to sessions that arrived on a search
@@ -38,7 +39,7 @@ export async function funnel(req, res, next) {
 // at a specific listing to go and find.
 export async function demand(req, res, next) {
   try {
-    const days = req.query.days ? Number(req.query.days) : undefined
+    const { days } = req.query
     ok(res, await getUnmetDemand({ days }))
   } catch (err) { next(err) }
 }
@@ -50,12 +51,12 @@ export async function demand(req, res, next) {
 // would be four requests to render a single section.
 export async function marketplace(req, res, next) {
   try {
-    // Clamped, not trusted. `days` reaches three date-range queries and one of
-    // them scans a message log; an unbounded value from a query string is a way
-    // to make the admin panel slow from the address bar. 365 is a year, which is
-    // more history than any of these readouts can honestly claim anyway.
-    const raw = Number(req.query.days)
-    const days = Number.isFinite(raw) && raw > 0 ? Math.min(365, Math.round(raw)) : undefined
+    // Bounded to 1..365 by funnelQuerySchema on the route — a year is more
+    // history than any of these readouts can honestly claim anyway. This clamp
+    // used to be hand-rolled here while its two neighbouring routes had none,
+    // which is exactly how that gap stayed invisible; the rule now lives in one
+    // schema all three share.
+    const { days } = req.query
 
     const [drafts, responsiveness, chain, supply, dead, readiness] = await Promise.all([
       marketplaceMetrics.getDraftFunnel(days ? { days } : {}),

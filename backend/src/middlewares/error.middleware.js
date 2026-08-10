@@ -42,10 +42,48 @@ const PRISMA_MESSAGE = {
   P2003: 'Invalid reference',
 }
 
+// Multer's own errors, which are the CALLER's every time — a file too big, too
+// many files, the wrong field name. They carry no `statusCode`, so until
+// 2026-08-10 they defaulted to 500: the person got "Internal server error" for
+// picking a photo off their camera roll, and `recordServerError` filed their
+// mistake in the admin System Monitor's 5xx ring as a server fault. A triage
+// list that fills up with users' oversized holiday photos is a triage list
+// nobody reads.
+//
+// Mapped here rather than per-route for the same reason as the Prisma codes
+// above: there are four upload routes and a fifth will not remember.
+// `fileFilter` rejections already set their own statusCode and never reach this.
+const MULTER_STATUS = {
+  LIMIT_FILE_SIZE: 413,          // "Payload Too Large" — the honest answer
+  LIMIT_FILE_COUNT: 400,
+  LIMIT_UNEXPECTED_FILE: 400,
+  LIMIT_PART_COUNT: 400,
+  LIMIT_FIELD_KEY: 400,
+  LIMIT_FIELD_VALUE: 400,
+  LIMIT_FIELD_COUNT: 400,
+}
+
+// Multer's raw text is written for a developer ("File too large"). These say
+// what to do about it, since the person reading it is choosing another file.
+const MULTER_MESSAGE = {
+  LIMIT_FILE_SIZE: 'That file is too large. The limit is 5MB per file.',
+  LIMIT_FILE_COUNT: 'Too many files at once.',
+  LIMIT_UNEXPECTED_FILE: 'Unexpected file field.',
+}
+
 export function errorMiddleware(err, req, res, _next) {
   console.error(err)
 
   let status = err.statusCode || err.status || 500
+
+  // Same precedence rule as the Prisma map below: an upstream decision wins.
+  if (!err.statusCode && !err.status && err.name === 'MulterError') {
+    status = MULTER_STATUS[err.code] ?? 400
+    err = Object.assign(new Error(MULTER_MESSAGE[err.code] ?? 'That upload could not be accepted.'), {
+      code: err.code,
+      statusCode: status,
+    })
+  }
 
   // Only reinterpret when nothing upstream already decided. An explicit
   // statusCode from a service is a considered choice and outranks the map.

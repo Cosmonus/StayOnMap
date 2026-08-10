@@ -12,11 +12,16 @@ import { PARAM_DEFS, FILTER_SECTIONS } from './filters.js'
 // two disagreeing hardcoded status lists — AdminPropertiesMap's STATUS_FILTERS
 // and ReviewListingsSection's inline array, which was missing INACTIVE. One
 // list now feeds both.
+// Must cover every PropertyStatus the backend's PROPERTY_STATUSES accepts, or
+// the state is unfilterable from the panel. OCCUPIED was missing from BOTH
+// until 2026-08-10 — the one state a marketplace most wants to count, since it
+// is the listings that actually found a tenant.
 export const STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Active' },
   { value: 'PENDING', label: 'Pending' },
   { value: 'DRAFT', label: 'Draft' },
   { value: 'INACTIVE', label: 'Inactive' },
+  { value: 'OCCUPIED', label: 'Occupied' },
   { value: 'SUSPENDED', label: 'Suspended' },
   { value: 'REJECTED', label: 'Rejected' },
 ]

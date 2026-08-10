@@ -367,7 +367,10 @@ function OverviewSection() {
         {data?.users?.newThisWeek != null && (
           <div className="flex items-center gap-4 pb-3 text-xs text-slate-500">
             <span>New today <span className="font-bold text-slate-800 font-mono">{data.users.newToday}</span></span>
-            <span aria-hidden className="text-slate-300">·</span>
+            {/* No colour of its own — inherits the row's slate-500. A lighter
+                separator would be off-palette for text (see ui-ux.md), and it
+                does not need to recede: there are only two values beside it. */}
+            <span aria-hidden>·</span>
             <span>This week <span className="font-bold text-slate-800 font-mono">{data.users.newThisWeek}</span></span>
           </div>
         )}

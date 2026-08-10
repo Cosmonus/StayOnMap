@@ -9,7 +9,9 @@
 //   a step's own date must not let it outgrow the step above it
 //   a median must never be reported without its sample size
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { prismaMock } from './mocks/prisma.js'
+import { funnelQuerySchema } from '../src/features/analytics/analytics.validation.js'
 import { firstPublishStamp } from '../src/features/properties/publishedAt.js'
 import {
   getDraftFunnel,
@@ -231,31 +233,43 @@ describe('getListingReadiness', () => {
   })
 })
 
-describe('the days window on GET /admin/analytics/marketplace', () => {
-  it('clamps a hostile value instead of passing it through', async () => {
+// The bound MOVED on 2026-08-10, from a hand-rolled clamp inside `marketplace`
+// to funnelQuerySchema on the route — which is the point. `/analytics/funnel`
+// and `/analytics/demand` sit three lines away in the same router and had NO
+// bound at all: `Number(req.query.days)` turned "?days=abc" into NaN, then an
+// Invalid Date, then a 500, and a huge value was an unbounded scan of
+// AnalyticsEvent anyone with an admin session could trigger from the address
+// bar. The clamp existing next door is exactly what made its absence invisible.
+//
+// So these now assert the SCHEMA rather than one controller: one rule, checked
+// once, covering all three routes instead of the only one that had it.
+describe('the days window on the admin analytics routes', () => {
+  it('refuses a hostile value rather than passing it through', async () => {
     // `days` reaches three date-range queries, one of which scans a message
-    // log. An unbounded number from a query string is a way to make the admin
-    // panel slow from the address bar.
-    const controller = await import('../src/features/admin/admin.controller.js')
-    const res = { status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis() }
-    prismaMock.property.findMany.mockResolvedValue([])
-
-    await controller.marketplace({ query: { days: '99999' } }, res, vi.fn())
-
-    const body = res.json.mock.calls[0][0]
-    expect(body.data.drafts.days).toBe(365)
-    expect(body.data.responsiveness.days).toBe(365)
+    // log. Rejected at the edge, so no controller has to remember.
+    expect(funnelQuerySchema.safeParse({ days: '99999' }).success).toBe(false)
+    expect(funnelQuerySchema.safeParse({ days: '365' }).data.days).toBe(365)
   })
 
-  it('ignores a value that is not a positive number', async () => {
-    const controller = await import('../src/features/admin/admin.controller.js')
-    const res = { status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis() }
-    prismaMock.property.findMany.mockResolvedValue([])
+  it('refuses a value that is not a positive number', () => {
+    // 400, not NaN. NaN became an Invalid Date, which makes every date
+    // comparison in the query silently false — a readout of zeros that looks
+    // like a quiet week.
+    for (const days of ['yesterday', '0', '-5', '']) {
+      expect(funnelQuerySchema.safeParse({ days }).success).toBe(false)
+    }
+  })
 
-    await controller.marketplace({ query: { days: 'yesterday' } }, res, vi.fn())
+  it('leaves an absent value absent, so each readout keeps its own default', () => {
+    expect(funnelQuerySchema.safeParse({}).success).toBe(true)
+    expect(funnelQuerySchema.safeParse({}).data.days).toBeUndefined()
+  })
 
-    // Falls back to each readout's own default rather than NaN, which would
-    // make every date comparison in the query silently false.
-    expect(res.json.mock.calls[0][0].data.responsiveness.days).toBe(30)
+  it('is wired to all three analytics routes, not just the one that had a clamp', () => {
+    const src = readFileSync(new URL('../src/features/admin/admin.routes.js', import.meta.url), 'utf8')
+    for (const route of ['/analytics/funnel', '/analytics/demand', '/analytics/marketplace']) {
+      const line = src.split('\n').find((l) => l.includes(`'${route}'`))
+      expect(line, `${route} is not validated`).toMatch(/funnelQuerySchema/)
+    }
   })
 })

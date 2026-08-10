@@ -7,28 +7,9 @@ import AuthStack from './AuthStack'
 import AppTabs from './AppTabs'
 import OAuthRedirectHandler from '@features/auth/components/OAuthRedirectHandler'
 import { navigationRef, flushPendingReference } from './navigationRef'
-
-// Deep links resolve against the renter tab set (AppTabs.js's RENTER_TABS) —
-// the Explore stack owns PropertyDetail there.
-// Both prefixes resolve to the same screens. The https one is only reachable
-// once Android has VERIFIED the app against
-// https://www.stayonmap.com/.well-known/assetlinks.json (app.config.js's
-// intentFilters) — but it has to be listed here regardless, or a verified link
-// launches the app and then lands on the default tab instead of the property,
-// which looks like the deep link is broken when it is actually the router that
-// never recognised the URL. WWW only: the apex redirect drops the path.
-const linking = {
-  prefixes: ['stayonmap://', 'https://www.stayonmap.com'],
-  config: {
-    screens: {
-      Explore: {
-        screens: {
-          PropertyDetail: 'property/:propertyId',
-        },
-      },
-    },
-  },
-}
+// Deep-link path -> navigation state. Resolves per renter/host mode; see the
+// file for why a URL must not flip the mode the way a notification tap does.
+import { linking } from './linking'
 
 export default function RootNavigator() {
   const { user, loading } = useAuth()

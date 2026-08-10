@@ -46,17 +46,39 @@ export function initSocket(httpServer) {
   // Verify the user JWT before allowing a connection — same check as authMiddleware.
   // Never trust a client-supplied userId; a spoofed id would let anyone join another
   // user's room and read their chat messages / notifications.
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token
     if (!token) return next(new Error('Unauthorized'))
 
+    let payload
     try {
-      const payload = jwt.verify(token, env.jwtSecret)
-      socket.userId = payload.sub
-      next()
+      payload = jwt.verify(token, env.jwtSecret)
     } catch {
-      next(new Error('Unauthorized'))
+      return next(new Error('Unauthorized'))
     }
+
+    // isBlocked, for the same reason authMiddleware checks it per request:
+    // tokens live 7 days, so signature validity says nothing about whether the
+    // account is still allowed. This was JWT-only until 2026-08-10, and a
+    // socket outlives the request that opened it — so blocking someone
+    // mid-scam left their LIVE connection intact: rooms joined, presence
+    // broadcast, every incoming message still delivered, for the rest of the
+    // token's life. One indexed lookup, once per connection rather than once
+    // per request.
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { isBlocked: true },
+      })
+      if (!user || user.isBlocked) return next(new Error('Unauthorized'))
+    } catch {
+      // Never fall open. A database blip refusing a socket is recoverable; a
+      // database blip admitting a blocked account is not.
+      return next(new Error('Unauthorized'))
+    }
+
+    socket.userId = payload.sub
+    next()
   })
 
   // Track which users are online
@@ -116,4 +138,18 @@ export function emitToUser(userId, event, data) {
 
 export function emitToConversation(conversationId, event, data) {
   if (io) io.to(`conversation:${conversationId}`).emit(event, data)
+}
+
+/**
+ * Close every live socket for a user. The other half of the handshake's
+ * isBlocked check: that one stops the NEXT connection, this one ends the
+ * current ones. Without it, blocking someone who is already connected does
+ * nothing until they happen to reconnect — and someone actively misusing chat
+ * is exactly the person who will not.
+ *
+ * `disconnectSockets` is adapter-aware, so with the Redis adapter attached this
+ * reaches sockets held by other instances too, not only this process's.
+ */
+export function disconnectUser(userId) {
+  if (io) io.in(`user:${userId}`).disconnectSockets(true)
 }

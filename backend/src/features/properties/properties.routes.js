@@ -5,7 +5,7 @@ import { requireCompleteProfile } from '../../middlewares/requireCompleteProfile
 import { requireBusinessForType } from '../../middlewares/requireBusiness.middleware.js'
 import { validate } from '../../middlewares/validate.middleware.js'
 import * as controller from './properties.controller.js'
-import { createPropertySchema, updatePropertySchema, pinsQuerySchema, listQuerySchema, countQuerySchema, benchmarkQuerySchema } from './properties.validation.js'
+import { createPropertySchema, updatePropertySchema, pinsQuerySchema, listQuerySchema, countQuerySchema, benchmarkQuerySchema, markTenantSchema } from './properties.validation.js'
 import { propertyAppointmentRouter } from '../appointments/appointments.routes.js'
 import { propertyReviewRouter } from '../reviews/reviews.routes.js'
 import { propertyInsightRouter } from '../insights/insights.routes.js'
@@ -41,7 +41,7 @@ router.put('/:id',               authMiddleware, validate(updatePropertySchema),
 router.delete('/:id',            authMiddleware, controller.deleteProperty)
 router.patch('/:id/status',      authMiddleware, controller.togglePropertyStatus)
 router.patch('/:id/publish',     authMiddleware, controller.publishProperty)
-router.post('/:id/tenant',       authMiddleware, controller.markTenant)
+router.post('/:id/tenant',       authMiddleware, validate(markTenantSchema), controller.markTenant)
 router.delete('/:id/tenant',     authMiddleware, controller.vacateProperty)
 router.get('/:id/contacts',      authMiddleware, controller.getPropertyContacts)
 
