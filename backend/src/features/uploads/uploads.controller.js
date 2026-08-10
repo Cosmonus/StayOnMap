@@ -1,5 +1,6 @@
 import * as service from './uploads.service.js'
 import * as documents from './documents.service.js'
+import * as evidence from './evidence.service.js'
 import { prisma } from '../../lib/prisma.js'
 import { created } from '../../utils/response.js'
 
@@ -28,25 +29,17 @@ export async function uploadChatFile(req, res, next) {
 }
 
 /**
- * Support evidence — an image or a PDF through one door.
+ * Support evidence — any file type, through one door.
  *
- * Always returns { url, fileName, mimeType } whichever branch ran, because the
- * caller is going to POST exactly that to /support/cases/:id/attachments and
- * should not have to reshape it per type. Note the image branch reports
- * `image/webp`, not what was uploaded: uploadSingle CONVERTS, and reporting the
- * original type would store a mime the URL does not serve.
+ * No branching on type here, deliberately: `uploadEvidence` reads the BYTES and
+ * decides what may render, which is a decision that must live in one place and
+ * not be re-derived per caller. Returns { url, fileName, mimeType, sizeBytes },
+ * exactly the shape POST /support/cases/:id/attachments takes, so the client
+ * never reshapes it.
  */
 export async function uploadSupportFile(req, res, next) {
   try {
-    if (req.file?.mimetype === 'application/pdf') {
-      // uploadDocument answers { url, mime, name } — chat's own key names.
-      // Renamed here rather than there: chat's shape is what released clients
-      // parse, and changing it to suit a second caller is how one of them breaks.
-      const doc = await documents.uploadDocument(req.file, req.user.id, 'support-files')
-      return created(res, { url: doc.url, fileName: doc.name, mimeType: doc.mime })
-    }
-    const url = await service.uploadSingle(req.file, req.user.id, 'support', 1600, 80)
-    created(res, { url, fileName: req.file?.originalname ?? null, mimeType: 'image/webp' })
+    created(res, await evidence.uploadEvidence(req.file, req.user.id))
   } catch (err) { next(err) }
 }
 

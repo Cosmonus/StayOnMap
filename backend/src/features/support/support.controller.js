@@ -2,6 +2,7 @@ import * as service from './supportCase.service.js'
 import { ok, created } from '../../utils/response.js'
 import { ROLE } from './visibility.js'
 import * as knowledge from './knowledge.service.js'
+import * as evidence from '../uploads/evidence.service.js'
 
 /**
  * HTTP only. Every authorisation decision is in the service, where it is a
@@ -100,6 +101,25 @@ export async function adminReply(req, res, next) {
 
 export async function adminAttach(req, res, next) {
   try { created(res, await service.addAttachment(req.params.id, asStaff(req), req.body)) } catch (err) { next(err) }
+}
+
+/**
+ * Upload a file and attach it, in one call.
+ *
+ * `visibility` rides on the multipart body as a plain field, so it cannot go
+ * through `validate()` (which runs before multer has parsed anything). The
+ * service clamps it against `allowedVisibilities` regardless — the same clamp
+ * that protects every other write here — so an unrecognised value lands on the
+ * staff default of INTERNAL rather than anywhere wider.
+ */
+export async function adminUpload(req, res, next) {
+  try {
+    const stored = await evidence.uploadEvidence(req.file, req.admin.sub, 'support-staff')
+    created(res, await service.addAttachment(req.params.id, asStaff(req), {
+      ...stored,
+      visibility: req.body?.visibility,
+    }))
+  } catch (err) { next(err) }
 }
 
 export async function adminSetStatus(req, res, next) {

@@ -5,6 +5,7 @@ import { ArrowLeft, Lock } from 'lucide-react'
 import { adminService } from '@services/admin.service'
 import Select from '@components/common/Select'
 import { toast } from '@components/common/Toaster'
+import AdminAttach from './AdminAttach'
 import {
   STATUS_LABEL, STATUS_PILL, PRIORITY_LABEL, PRIORITY_PILL, TYPE_LABEL,
   VISIBILITY_LABEL, MESSAGE_TONE, AUTHOR_LABEL, caseRef, describeEvent,
@@ -302,12 +303,22 @@ export default function SupportCaseDetail({ caseId, onBack }) {
                   : 'border-slate-200 bg-slate-50 focus:border-[#111111] focus:bg-white'
               }`}
             />
-            <div className="flex items-center justify-between gap-3 mt-2">
+            <div className="flex items-center justify-between gap-3 mt-2 flex-wrap">
               <p className="text-xs text-slate-500">
                 {target === 'INTERNAL'
                   ? 'Internal — never leaves the admin panel.'
                   : `Goes to: ${VISIBILITY_LABEL[target]}`}
               </p>
+              {/* The audience selector above governs the FILE as well as the
+                  words. One control for both, because "who can read this" is
+                  one question — and an attachment with its own separate
+                  visibility picker is how a document gets shared to an audience
+                  the reply above it was never meant for. */}
+              <AdminAttach
+                caseId={caseId}
+                visibility={target}
+                onAttached={after}
+              />
               <button
                 type="button"
                 disabled={!draft.trim() || reply.isPending}

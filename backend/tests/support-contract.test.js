@@ -158,13 +158,35 @@ describe('the routes are mounted and separated', () => {
   })
 
   it('validates every write', () => {
+    // Two exemptions, and each one has to earn it — the point of this test is
+    // that adding a third requires editing this list and saying why.
+    const EXEMPT = {
+      // No body at all. There is nothing to validate and a schema for {} would
+      // be ceremony.
+      "'/cases/:id/close'": true,
+      // MULTIPART. `validate()` reads req.body, which multer has not populated
+      // yet at middleware time, so a Zod schema here would inspect an empty
+      // object and pass everything. The file is bounded by multer's own size
+      // limit, and its one text field (`visibility`) is clamped against
+      // allowedVisibilities in the service — where every other write's
+      // visibility is clamped too, rather than in a second place that could
+      // disagree.
+      "'/cases/:id/upload'": true,
+    }
+
     const writes = routes.split('\n').filter((l) => /\.(post|patch)\(/.test(l))
     expect(writes.length).toBeGreaterThan(6)
     for (const line of writes) {
-      // /close carries no body — there is nothing to validate, and a schema
-      // for {} would be ceremony.
-      if (line.includes("'/cases/:id/close'")) continue
+      if (Object.keys(EXEMPT).some((route) => line.includes(route))) continue
       expect(line, line.trim()).toMatch(/validate\(/)
     }
+  })
+
+  it('clamps the multipart route’s only text field in the service', () => {
+    // The exemption above is only safe while this holds.
+    const service = readFileSync(new URL('../src/features/support/supportCase.service.js', import.meta.url), 'utf8')
+    const addAttachment = service.slice(service.indexOf('export async function addAttachment'))
+    expect(addAttachment).toMatch(/allowedVisibilities\(role\)\.includes/)
+    expect(addAttachment).toMatch(/defaultVisibilityFor\(role\)/)
   })
 })

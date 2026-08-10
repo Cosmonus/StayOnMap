@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import multer from 'multer'
 import { authMiddleware } from '../../middlewares/auth.middleware.js'
 import { adminAuthMiddleware } from '../../middlewares/adminAuth.middleware.js'
 import { validate } from '../../middlewares/validate.middleware.js'
@@ -41,6 +42,13 @@ supportRouter.post('/cases/:id/messages', validate(caseMessageSchema), ctrl.repl
 supportRouter.post('/cases/:id/attachments', strictLimiter, validate(attachmentSchema), ctrl.attach)
 supportRouter.post('/cases/:id/close', ctrl.closeMine)
 
+// Same shape as /uploads/support-file's: every type, no fileFilter, 25MB.
+// evidence.service.js decides what may render, from the bytes — see its header.
+const evidenceUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 },
+})
+
 // ── Staff ──────────────────────────────────────────────────────────────────
 export const adminSupportRouter = Router()
 adminSupportRouter.use(adminAuthMiddleware)
@@ -55,6 +63,17 @@ adminSupportRouter.get('/cases/:id', ctrl.adminGet)
 
 adminSupportRouter.post('/cases/:id/messages', validate(caseMessageSchema), ctrl.adminReply)
 adminSupportRouter.post('/cases/:id/attachments', validate(attachmentSchema), ctrl.adminAttach)
+// Multipart, and the ONE upload route behind an admin JWT.
+//
+// /uploads/* is all `authMiddleware` — a USER token — so before this, staff
+// could record an attachment URL and had no way to produce one. A general
+// /admin/uploads router would be a new mount and a new surface for exactly one
+// consumer; evidence on a case is the only thing an admin uploads.
+//
+// Upload and attach in ONE call rather than the user side's two: there is no
+// storage-prefix guard to justify a separate record step when the same request
+// just wrote the file.
+adminSupportRouter.post('/cases/:id/upload', evidenceUpload.single('file'), ctrl.adminUpload)
 adminSupportRouter.patch('/cases/:id/status', validate(statusChangeSchema), ctrl.adminSetStatus)
 adminSupportRouter.patch('/cases/:id/priority', validate(prioritySchema), ctrl.adminSetPriority)
 adminSupportRouter.post('/cases/:id/assign', validate(assignSchema), ctrl.adminAssign)

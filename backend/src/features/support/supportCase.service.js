@@ -810,7 +810,7 @@ export async function createCaseForUser(userId, input, { hat = ROLE.TENANT } = {
  * a tenant's screenshot is TENANT_ONLY and never reaches the owner it may
  * identify them to.
  */
-export async function addAttachment(caseId, actor, { url, fileName, mimeType, sizeBytes, messageId }) {
+export async function addAttachment(caseId, actor, { url, fileName, mimeType, sizeBytes, messageId, visibility: requested }) {
   const found = await prisma.supportCase.findUnique({
     where: { id: caseId },
     select: { id: true, status: true, createdById: true, openedAs: true, relatedUserId: true, relatedPropertyId: true },
@@ -834,14 +834,25 @@ export async function addAttachment(caseId, actor, { url, fileName, mimeType, si
         uploadedByUserId: isStaff(role) ? null : actor.userId,
         uploadedByAdminId: isStaff(role) ? actor.adminId : null,
         url, fileName: fileName ?? null, mimeType, sizeBytes: sizeBytes ?? null,
-        // defaultVisibilityFor, NOT allowedVisibilities[0]. For a user the two
-        // agree — their list has one entry. For STAFF the allowed list starts
-        // at PUBLIC, so this quietly published every admin attachment to both
-        // parties: fixed 2026-08-10, and it had contradicted three things at
-        // once (defaultVisibilityFor, the column's @default(INTERNAL), and the
-        // schema comment saying a screenshot can identify who sent it).
-        // Widening it is a deliberate act, never a default.
-        visibility: defaultVisibilityFor(role),
+        // Clamped, then DEFAULTED — the same two steps addMessage takes, and in
+        // the same order.
+        //
+        // Staff may choose, because an admin showing an owner the document that
+        // settles a dispute has to be able to. A user may not: allowedVisibilities
+        // returns one value for a party, so a tenant asking for PUBLIC on a
+        // report case still gets TENANT_ONLY and cannot publish their own
+        // identity to the person they reported.
+        //
+        // The fallback is defaultVisibilityFor, NOT allowedVisibilities[0]. For
+        // a user the two agree; for STAFF that list starts at PUBLIC, which
+        // quietly published every admin attachment to both parties until
+        // 2026-08-10 — contradicting defaultVisibilityFor, the column's own
+        // @default(INTERNAL), and the schema comment about screenshots
+        // identifying who sent them. Widening is a deliberate act, never a
+        // default.
+        visibility: allowedVisibilities(role).includes(requested)
+          ? requested
+          : defaultVisibilityFor(role),
       },
       select: { id: true, url: true, fileName: true, mimeType: true, visibility: true, createdAt: true },
     })

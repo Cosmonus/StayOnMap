@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { View, Text, TextInput, Pressable, FlatList, ActivityIndicator, Alert, Linking, StyleSheet } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
+import * as DocumentPicker from 'expo-document-picker'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supportService } from '@services/support.service'
@@ -61,22 +62,25 @@ export default function SupportCaseScreen({ navigation, route }) {
   // about the sentence it arrived next to. It also removes the only
   // partial-failure path, since there is no message to orphan.
   //
-  // Photos only here. The endpoint takes PDFs too and web offers them, but a
-  // document picker is a native dependency this app does not add piecemeal
-  // (AGENTS.md §11) — a recorded divergence, not an oversight.
+  // ANY file type, matching web. Two pickers rather than one because Android
+  // has two: the photo picker is permissionless and shows a grid of your
+  // camera roll, the document picker reaches Downloads, Drive and everything
+  // else. Offering only the second would make attaching a screenshot — the
+  // commonest case by far — a trip through a file browser.
   const [attaching, setAttaching] = useState(false)
 
-  async function handleAttach() {
-    // Permissionless OS photo picker — the house convention, same as chat's.
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 })
-    if (result.canceled || !result.assets?.length) return
+  async function upload(asset) {
     setAttaching(true)
     try {
-      const { data } = await uploadService.uploadSupportFile(result.assets[0])
+      const { data } = await uploadService.uploadSupportFile(asset)
       await supportService.attach(caseId, {
         url: data.url,
-        fileName: data.fileName ?? result.assets[0].fileName ?? 'photo.jpg',
-        mimeType: data.mimeType ?? 'image/webp',
+        fileName: data.fileName ?? asset.name ?? asset.fileName ?? 'attachment',
+        // The type the SERVER decided to serve, never the one the device
+        // declared — a record that disagrees with storage makes something
+        // render on a promise storage will not keep.
+        mimeType: data.mimeType ?? 'application/octet-stream',
+        sizeBytes: data.sizeBytes,
       })
       after()
     } catch (err) {
@@ -84,6 +88,31 @@ export default function SupportCaseScreen({ navigation, route }) {
     } finally {
       setAttaching(false)
     }
+  }
+
+  function handleAttach() {
+    Alert.alert('Attach evidence', 'What would you like to send?', [
+      { text: 'Photo', onPress: pickPhoto },
+      { text: 'File', onPress: pickFile },
+      { text: 'Cancel', style: 'cancel' },
+    ])
+  }
+
+  async function pickPhoto() {
+    // Permissionless OS photo picker — the house convention, same as chat's.
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 })
+    if (result.canceled || !result.assets?.length) return
+    upload(result.assets[0])
+  }
+
+  async function pickFile() {
+    // `type: '*/*'` on purpose: narrowing it here would grey out the very files
+    // somebody needs to prove something, for a rule the server no longer has.
+    // copyToCacheDirectory, or the content:// URI can be unreadable by the time
+    // FormData tries to stream it.
+    const result = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true })
+    if (result.canceled || !result.assets?.length) return
+    upload(result.assets[0])
   }
 
   if (isLoading) {
@@ -185,10 +214,10 @@ export default function SupportCaseScreen({ navigation, route }) {
             disabled={attaching}
             style={styles.closeButton}
             accessibilityRole="button"
-            accessibilityLabel="Attach a photo"
+            accessibilityLabel="Attach evidence"
             accessibilityState={{ disabled: attaching }}
           >
-            <Text style={styles.closeText}>{attaching ? 'Attaching…' : 'Attach a photo'}</Text>
+            <Text style={styles.closeText}>{attaching ? 'Attaching…' : 'Attach evidence'}</Text>
           </Pressable>
           <TextInput
             value={draft}

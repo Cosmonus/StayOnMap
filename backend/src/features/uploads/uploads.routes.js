@@ -20,20 +20,23 @@ const uploadDoc = multer({
   },
 })
 
-// Support evidence is ONE endpoint taking either kind, unlike chat's split.
-// What somebody attaches to a support case is "the proof", and they should not
-// have to know whether ours is an image route or a document route: the fake
-// listing is a screenshot, the disputed agreement is a PDF, and it is the same
-// button in the same sentence. The service still branches on the real type.
+// Support evidence: ONE endpoint, EVERY file type, and deliberately no
+// fileFilter at all.
+//
+// Every other uploader here is an allowlist and should stay one. This is the
+// exception because narrowing the types narrows what somebody can PROVE — a
+// fabricated agreement is a .docx, a threatening voice note is an .m4a, a
+// WhatsApp export is a .txt in a .zip, and refusing those is refusing the
+// complaint. The safety lives in how the file is STORED rather than in whether
+// it is accepted: evidence.service.js serves inline only what the bytes prove
+// is safe and makes everything else download. Read the header there before
+// changing either half.
+//
+// 25MB rather than 5: a phone video and a scanned agreement are both routinely
+// larger than a photo, and the cap exists to bound abuse, not to curate.
 const uploadEvidence = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    if (![...ALLOWED_MIMETYPES, ...DOC_MIMETYPES].includes(file.mimetype)) {
-      return cb(Object.assign(new Error('Attach a JPEG, PNG, WebP image or a PDF'), { statusCode: 400 }))
-    }
-    cb(null, true)
-  },
+  limits: { fileSize: 25 * 1024 * 1024 },
 })
 
 const upload = multer({

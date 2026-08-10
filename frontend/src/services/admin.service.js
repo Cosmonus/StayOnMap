@@ -67,6 +67,15 @@ export const adminService = {
   supportAssign:   (id, assignedToId)   => adminApi.post(`/admin/support/cases/${id}/assign`, { assignedToId }),
   // Not under /cases — it is a list of people, not of cases.
   supportAssignees: ()          => adminApi.get('/admin/support/assignees'),
+  // Multipart: uploads and attaches in ONE call. /uploads/* is user-JWT only,
+  // so this is the only upload route staff can reach. `visibility` rides as a
+  // plain form field and is clamped server-side.
+  supportUpload:   (id, file, visibility) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (visibility) form.append('visibility', visibility)
+    return adminApi.post(`/admin/support/cases/${id}/upload`, form)
+  },
   supportEscalate: (id, reason) => adminApi.post(`/admin/support/cases/${id}/escalate`, { reason }),
 
   getProfile:       ()          => adminApi.get('/admin/profile'),
