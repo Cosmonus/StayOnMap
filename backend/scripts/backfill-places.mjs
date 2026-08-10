@@ -73,7 +73,10 @@ async function backfillCity(city) {
     if (!grids.has(poi.category)) grids.set(poi.category, new Map())
     const grid = grids.get(poi.category)
 
-    const match = matchPlace(record, [...neighbours(grid, record.lat, record.lng)])
+    // Category passed explicitly: the grid is already per-category, so the
+    // records carry no `category` field of their own and samePlace would
+    // otherwise fall back to the tightest tier for everything.
+    const match = matchPlace(record, [...neighbours(grid, record.lat, record.lng)], poi.category)
     if (match) {
       if (match._existingId) attachToExisting.push({ placeId: match._existingId, poi })
       else match._sources.push(poi)

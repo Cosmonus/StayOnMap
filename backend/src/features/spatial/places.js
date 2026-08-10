@@ -14,6 +14,7 @@
 // on the next conflation pass); a false merge DESTROYS a real place — so
 // every threshold errs toward "different".
 import { haversineMeters } from '../../lib/geohash.js'
+import { footprintFor } from './poiPolicy.js'
 
 /** Lowercase, strip punctuation, collapse whitespace → comparable tokens. */
 export function normalizeName(s) {
@@ -45,12 +46,25 @@ export function nameSimilarity(a, b) {
  * them destroys a real place. An unnamed record can't disagree, so it merges
  * on distance alone (that's the node/way double this leg exists for).
  */
-export function samePlace(a, b) {
+export function samePlace(a, b, category = null) {
+  // Category-aware since 2026-08-11 (poiPolicy.js's FOOTPRINTS). The flat
+  // 50/150 m pair this replaced was one number doing two incompatible jobs: at
+  // 50 m it merged two genuinely different kirana on the same Indian street,
+  // and at 150 m it still split a hospital campus mapped as six blocks. The
+  // categories are the thing that differ, so the thresholds have to be too.
+  //
+  // Falls back to the tightest tier when no category is supplied, which is the
+  // conservative direction — see policyFor's default.
+  const { unnamedM, namedM } = footprintFor(category ?? a.category ?? b.category)
   const d = haversineMeters(a.lat, a.lng, b.lat, b.lng)
   const sim = nameSimilarity(a.name, b.name)
   const eitherUnnamed = !normalizeName(a.name) || !normalizeName(b.name)
-  if (d <= 50) return eitherUnnamed || sim >= 0.5
-  if (d <= 150 && sim >= 0.5) return true
+  // Inside the unnamed radius a NAMED disagreement still keeps records apart —
+  // tightened after the first Chennai backfill claimed 22.5% of OSM rows were
+  // doubles. An unnamed record cannot disagree, so it merges on distance alone
+  // (the node/way double this leg exists for).
+  if (d <= unnamedM) return eitherUnnamed || sim >= 0.5
+  if (d <= namedM && sim >= 0.5) return true
   return false
 }
 
@@ -60,9 +74,9 @@ export function samePlace(a, b) {
  * Returns the matched place or null. First match wins: candidates should be
  * supplied nearest-first when order matters.
  */
-export function matchPlace(record, candidates) {
+export function matchPlace(record, candidates, category = null) {
   for (const place of candidates) {
-    if (samePlace(record, place)) return place
+    if (samePlace(record, place, category)) return place
   }
   return null
 }

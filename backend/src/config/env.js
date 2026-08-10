@@ -119,6 +119,22 @@ export const env = {
   // distances. Absent is a supported state: every consumer falls back to
   // haversine, so this can never break a page, only improve it.
   routingUrl: (process.env.ROUTING_URL || '').replace(/\/$/, '') || null,
+  // The POI intelligence layer's BACKGROUND half — entity conflation into
+  // Place/PlaceSource, attribute confidence and TrustScore recomputation.
+  //
+  // Default OFF, and what that gates is narrower than the name suggests. The
+  // parts that are pure data hygiene — marking absent POIs instead of deleting
+  // them, recording conflicts, validating coordinates — are NOT behind this
+  // flag and never will be: they run inside a manual seeder an operator invokes
+  // deliberately, they cannot change what a user sees, and gating a fix that
+  // stops losing data behind an opt-in means the data goes on being lost.
+  //
+  // What IS gated is the scheduled work: a recurring job that reads the whole
+  // POI table. That is a cost and a load, so it stays opt-in until shadow
+  // validation (scripts/poi-shadow-report.mjs) says the new numbers agree with
+  // the old ones. Absent is a supported state, like routing and CPCB — the
+  // serving path is untouched either way.
+  poiIntelligenceEnabled: process.env.POI_INTELLIGENCE_ENABLED === 'true',
   // data.gov.in — CPCB ground-station air quality. Free, registration only.
   // Absent is a supported state, not a misconfiguration: the environment module
   // declares `cpcb_station` as an input and leaves it absent, which holds its

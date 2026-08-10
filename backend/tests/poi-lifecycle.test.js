@@ -20,6 +20,7 @@ import {
   policyFor, footprintFor, volatilityFor, moveThresholdM, implausibleMoveM, POI_POLICY,
 } from '../src/features/spatial/poiPolicy.js'
 import { CATEGORY_KEYS } from '../src/features/spatial/poiCategories.js'
+import { categoryFreshness } from '../src/features/spatial/dataQuality.js'
 import {
   poisNear, listPoisNear, poiCoverage, cityCategoryCoverage, SERVING,
 } from '../src/features/spatial/poiProvider.js'
@@ -217,6 +218,43 @@ describe('poiPolicy', () => {
     expect(implausibleMoveM('cafe')).toBe(2000)
     // …but an airport, whose footprint is already 1 km, gets proportionally more.
     expect(implausibleMoveM('airport')).toBe(5000)
+  })
+})
+
+// ── Category-aware freshness ────────────────────────────────────────────────
+
+describe('categoryFreshness', () => {
+  const NOW = new Date('2026-08-11T00:00:00Z')
+  const daysAgo = (n) => new Date(NOW.getTime() - n * 24 * 60 * 60 * 1000)
+
+  it('gives full marks inside the category\'s own horizon', () => {
+    expect(categoryFreshness(daysAgo(30), 'restaurant', NOW)).toBe(1)
+    expect(categoryFreshness(daysAgo(300), 'metro_station', NOW)).toBe(1)
+  })
+
+  it('penalises a volatile category where a stable one is untouched', () => {
+    // 100 days. The single global band treated these identically, which is
+    // wrong twice over: the station is penalised for nothing and the salon is
+    // not penalised nearly enough.
+    expect(categoryFreshness(daysAgo(100), 'metro_station', NOW)).toBe(1)
+    expect(categoryFreshness(daysAgo(100), 'cafe', NOW)).toBeLessThan(1)
+  })
+
+  it('never falls to zero — old data is degraded, not absent', () => {
+    // A hospital mapped in 2019 is still a hospital. Driving this to 0 would
+    // make an old-but-correct record indistinguishable from one we never had.
+    expect(categoryFreshness(daysAgo(5000), 'cafe', NOW)).toBe(0.5)
+    expect(categoryFreshness(daysAgo(50_000), 'hospital', NOW)).toBe(0.5)
+  })
+
+  it('treats an unknown date as the floor, not as fresh', () => {
+    expect(categoryFreshness(null, 'cafe', NOW)).toBe(0.5)
+    expect(categoryFreshness('not a date', 'cafe', NOW)).toBe(0.5)
+  })
+
+  it('declines monotonically', () => {
+    const ages = [50, 100, 200, 400, 800].map((d) => categoryFreshness(daysAgo(d), 'supermarket', NOW))
+    for (let i = 1; i < ages.length; i++) expect(ages[i]).toBeLessThanOrEqual(ages[i - 1])
   })
 })
 

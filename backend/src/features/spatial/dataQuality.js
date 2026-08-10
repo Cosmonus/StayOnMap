@@ -12,6 +12,7 @@
 // the same distinction every module's `missing[]` field exists to preserve.
 import { prisma } from '../../lib/prisma.js'
 import { intelLog, intelError } from '../../lib/intelLog.js'
+import { volatilityFor } from './poiPolicy.js'
 
 /**
  * Share of rows carrying the fields that make a row useful, as a percentage.
@@ -206,6 +207,53 @@ export function freshnessFactor(fetchedAt, now = new Date()) {
 
   return { key: 'freshness', reason, multiplier: band.multiplier }
 }
+
+/**
+ * How stale this data is FOR THIS KIND OF PLACE, as a 0..1 multiplier.
+ *
+ * The band function above treats a metro station and a salon identically, which
+ * is wrong in both directions at once: at 100 days the station is penalised for
+ * nothing, and the salon is not penalised nearly enough. `poiPolicy.js` says
+ * how fast each category's facts actually rot; this reads it.
+ *
+ * Deliberately NOT a second set of bands. The shape is: full marks until the
+ * category's own `fullConfidenceDays`, then a linear slide to a FLOOR at four
+ * times that age. The floor is the important part and it is the same argument
+ * FRESHNESS_BANDS makes — old OSM data is still mostly right, because the
+ * things that anchor a neighbourhood do not move. The penalty lands on the
+ * shop-level facts that genuinely rot, and then it stops.
+ *
+ * Returns a bare number rather than a confidence factor because its consumer is
+ * the POI TrustScore (poiTrust.js), which composes several of these. Use
+ * `freshnessFactor` for module envelopes.
+ *
+ * @param {string|Date|null} fetchedAt
+ * @param {string} category
+ * @param {Date} [now]
+ * @returns {number} 0.5..1 — never 0. Data this old is degraded, not absent.
+ */
+export function categoryFreshness(fetchedAt, category, now = new Date()) {
+  if (!fetchedAt) return FRESHNESS_FLOOR
+  const then = fetchedAt instanceof Date ? fetchedAt : new Date(fetchedAt)
+  if (Number.isNaN(then.getTime())) return FRESHNESS_FLOOR
+
+  const ageDays = Math.floor((now.getTime() - then.getTime()) / MS_PER_DAY)
+  const { fullConfidenceDays } = volatilityFor(category)
+  if (ageDays <= fullConfidenceDays) return 1
+
+  const floorAt = fullConfidenceDays * 4
+  if (ageDays >= floorAt) return FRESHNESS_FLOOR
+
+  const through = (ageDays - fullConfidenceDays) / (floorAt - fullConfidenceDays)
+  return round3(1 - through * (1 - FRESHNESS_FLOOR))
+}
+
+// Data past its category's horizon is degraded, never worthless. A hospital
+// mapped in 2019 is still a hospital, and driving this to zero would make an
+// old-but-correct record indistinguishable from one we never had.
+const FRESHNESS_FLOOR = 0.5
+
+const round3 = (n) => Math.round(n * 1000) / 1000
 
 /**
  * The most recent run per (dataset, scope) pair.
