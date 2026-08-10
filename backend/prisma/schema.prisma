@@ -1806,11 +1806,51 @@ model ImageFingerprint {
 // into a bounding-box scan plus a haversine filter in JS, which is
 // comfortably fast at a few hundred thousand rows. See
 // docs/spatial-intelligence.md §3 for when that stops being true.
+
+// Deliberately TWO values, not the nine-stage pipeline a POI-quality brief
+// usually asks for. DISCOVERED / NORMALIZED / MATCHED / REVALIDATED describe
+// what the PIPELINE did, not what the row IS — and a column that answers "which
+// stage touched this last" drifts from reality the moment a stage is reordered.
+enum PoiStatus {
+  ACTIVE
+  ABSENT_FROM_SOURCE
+}
+
+// Conflicts are their own table rather than a POI status, because a place can be
+// perfectly ACTIVE and simultaneously have an open disagreement about its phone
+// number. Folding them together forces the row to pick one fact to report.
+enum PoiConflictStatus {
+  OPEN
+  ACCEPTED
+  REJECTED
+  SUPERSEDED
+}
+
 model PoiIndex {
   id           String  @id @default(cuid())
   // OSM element identity, e.g. "node/1234567". Unique so a re-run updates in
   // place instead of duplicating the whole dataset.
   osmId        String  @unique
+  // Does this place still exist as far as our sources are concerned?
+  //
+  // Until 2026-08-11 a row absent from a clean re-fetch was DELETED, so a shop
+  // closing left no trace and business churn was unanswerable from our own data
+  // forever. It is now marked instead. The read path filters `status: ACTIVE`,
+  // so an absent row is exactly as invisible as a deleted one was — it is just
+  // still there to count. See seedMaintenance.js's markAbsentPois.
+  //
+  // ABSENT_FROM_SOURCE is NOT "closed": we can observe an absence, never its
+  // reason (demolished, retagged, re-mapped under a new osmId, or a mapper's
+  // slip all look identical from here).
+  status          PoiStatus @default(ACTIVE)
+  statusReason    String?
+  // Null means never changed — true of every row that predates this column.
+  statusChangedAt DateTime?
+  // When we FIRST saw it. Deliberately NOT backfilled (Property.publishedAt's
+  // precedent): older rows can only be guessed from `fetchedAt`, which has moved
+  // on every re-seed since. NULL honestly means "here before we started
+  // counting"; a guessed date would look precise and be wrong.
+  firstSeenAt     DateTime?
   category     String // normalised to the spatial layer's own vocabulary, not raw OSM tags
   // The OSM tag this row was classified FROM, e.g. "leisure=garden".
   //
@@ -1835,10 +1875,80 @@ model PoiIndex {
   lng          Decimal @db.Decimal(10, 7)
   city         String
 
+  // Last seen, not merely "imported". Rewritten on every upsert — create and
+  // update alike — so it already means what a `lastSeenAt` column would, which
+  // is why there is no such column: a second copy of one number is a second copy
+  // free to drift.
   fetchedAt DateTime @default(now())
+
+  statusEvents PoiStatusEvent[]
+  conflicts    PoiConflict[]
 
   @@index([category, lat, lng])
   @@index([city])
+  // The serving path now carries a status predicate.
+  @@index([status, category])
+}
+
+// Append-only existence history — the same shape and the same argument as
+// PropertyStatusEvent. `status` is one column that overwrites itself, so the
+// moment a POI goes absent the evidence it was ever ACTIVE is gone. A place that
+// disappears and returns (routine in OSM — one mapper retags, another reverts)
+// is indistinguishable from one that never moved unless the TRANSITIONS are
+// recorded. This is what makes openings, closures and moves measurable.
+model PoiStatusEvent {
+  id         String     @id @default(cuid())
+  poi        PoiIndex   @relation(fields: [poiIndexId], references: [id], onDelete: Cascade)
+  poiIndexId String
+  // Nullable: the first event has nothing before it.
+  fromStatus PoiStatus?
+  toStatus   PoiStatus
+  reason     String?
+  createdAt  DateTime   @default(now())
+
+  @@index([poiIndexId, createdAt])
+  @@index([toStatus, createdAt])
+}
+
+// A disagreement between what we hold and what a source now asserts, recorded
+// instead of silently resolved.
+//
+// The seed's upsert used to replace name, category, lat and lng with whatever
+// the latest fetch said. A hospital's coordinate moving four kilometres was
+// applied in silence with the old value gone, so nothing afterwards could tell a
+// correction from an error or from vandalism.
+//
+// `applied` and `status` answer different questions and both are load-bearing:
+// `applied` is what ingestion mechanically did at detection time, `status` is
+// what a reviewer later decided. Collapsing them loses "what did we apply that
+// turned out to be wrong" — the only question that ever improves the thresholds.
+model PoiConflict {
+  id         String   @id @default(cuid())
+  poi        PoiIndex @relation(fields: [poiIndexId], references: [id], onDelete: Cascade)
+  poiIndexId String
+  // 'location' | 'name' | 'category'
+  attribute  String
+  // Text for every attribute: one table covers them all, and these values are
+  // for a human to read, never to compute on.
+  currentValue  String?
+  incomingValue String?
+  // Which source asserted the incoming value. One source today ('osm') — which
+  // is exactly why the column exists, because a disagreement BETWEEN sources and
+  // one between two observations FROM a source are different findings.
+  source     String
+  // Magnitude, for location conflicts only. Null elsewhere — a rename has no
+  // distance, and 0 would read as "it did not move".
+  distanceM  Int?
+  // False = we kept the stored value (an implausible jump). The withhold path.
+  applied    Boolean  @default(true)
+  status     PoiConflictStatus @default(OPEN)
+  detectedAt DateTime @default(now())
+  resolvedAt DateTime?
+  resolution String?
+
+  @@index([poiIndexId, detectedAt])
+  @@index([status, detectedAt])
+  @@index([attribute, detectedAt])
 }
 
 // Administrative boundaries from OpenStreetMap — wards, zones, districts.

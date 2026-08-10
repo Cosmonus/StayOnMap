@@ -56,6 +56,18 @@ const COVERAGE_TTL_S = 60 * 60
 const PAGE_SIZE = 2000
 const MAX_ROWS = 20_000
 
+// Rows a re-seed found missing are marked ABSENT_FROM_SOURCE rather than
+// deleted (seedMaintenance.js's markAbsentPois, 2026-08-11). Every serving
+// query therefore carries this predicate, and the result is byte-identical to
+// what the old hard-delete produced — an absent row is exactly as invisible as
+// a deleted one, it is simply still there to count.
+//
+// One constant, spread into all five reads, because a query that forgets it
+// does not fail: it silently starts telling users about a chemist that closed,
+// which is the single most credibility-damaging thing this table can do.
+// tests/poi-lifecycle.test.js asserts every read carries it.
+export const SERVING = { status: 'ACTIVE' }
+
 /**
  * Has PoiIndex been seeded for this city?
  * @returns {Promise<number>} row count (0 = not seeded)
@@ -67,7 +79,7 @@ export async function poiCoverage(city) {
   if (cached !== null && typeof cached === 'number') return cached
 
   try {
-    const count = await prisma.poiIndex.count({ where: { city } })
+    const count = await prisma.poiIndex.count({ where: { ...SERVING, city } })
     await cacheSet(key, count, COVERAGE_TTL_S)
     return count
   } catch (err) {
@@ -87,7 +99,7 @@ export async function poiFreshness(city) {
   if (cached?.v !== undefined) return cached.v
 
   try {
-    const agg = await prisma.poiIndex.aggregate({ where: { city }, _max: { fetchedAt: true } })
+    const agg = await prisma.poiIndex.aggregate({ where: { ...SERVING, city }, _max: { fetchedAt: true } })
     const iso = agg._max.fetchedAt ? agg._max.fetchedAt.toISOString().slice(0, 10) : null
     // Wrapped in { v } — cacheGet collapses "miss" and "stored null" otherwise.
     await cacheSet(key, { v: iso }, COVERAGE_TTL_S)
@@ -240,6 +252,7 @@ export async function poisNear(lat, lng, radiusM, categories, city) {
   try {
     const { rows, truncated } = await bboxScan(
       {
+        ...SERVING,
         category: { in: categories },
         lat: { gte: lat - dLat, lte: lat + dLat },
         lng: { gte: lng - dLng, lte: lng + dLng },
@@ -320,6 +333,7 @@ export async function listPoisNear(lat, lng, categories, radiusM, city) {
   try {
     const { rows, truncated } = await bboxScan(
       {
+        ...SERVING,
         category: { in: categories },
         lat: { gte: lat - dLat, lte: lat + dLat },
         lng: { gte: lng - dLng, lte: lng + dLng },
@@ -386,7 +400,7 @@ export async function cityCategoryCoverage(city) {
   try {
     const rows = await prisma.poiIndex.groupBy({
       by: ['category'],
-      where: { city },
+      where: { ...SERVING, city },
       _count: { _all: true },
     })
     const coverage = Object.fromEntries(rows.map((r) => [r.category, r._count._all]))

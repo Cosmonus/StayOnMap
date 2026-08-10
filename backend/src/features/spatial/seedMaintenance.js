@@ -11,33 +11,132 @@ import { intelLog, intelError } from '../../lib/intelLog.js'
 // Cells rewritten per round of invalidation. Bengaluru alone can hold thousands.
 const INVALIDATE_BATCH = 50
 
+// Status events written per round. A full Delhi re-seed can move thousands of
+// rows at once and one createMany of that size is a statement nobody wants to
+// see time out at the end of a two-hour fetch.
+const EVENT_BATCH = 500
+
 /**
- * Delete this city's POIs that the current fetch did not return.
+ * Write the append-only record of a status transition.
  *
- * A POI removed from OpenStreetMap — demolished, retagged out of our
- * vocabulary, or re-mapped from a node to a way (which changes its osmId) —
- * otherwise persists forever, because the seed only ever upserts what it
- * finds. That is where "places that no longer exist" came from.
+ * Never throws, and never blocks the transition it describes: the status change
+ * is the operational fact, the event is the history. Losing an event is bad;
+ * refusing to mark a POI absent because its event row would not insert is worse.
+ */
+async function recordStatusEvents(rows, fromStatus, toStatus, reason) {
+  if (!rows.length) return
+  try {
+    for (let i = 0; i < rows.length; i += EVENT_BATCH) {
+      await prisma.poiStatusEvent.createMany({
+        data: rows.slice(i, i + EVENT_BATCH).map((r) => ({
+          poiIndexId: r.id, fromStatus, toStatus, reason,
+        })),
+      })
+    }
+  } catch (err) {
+    intelError('spatial.poi_status_event_failed', err, { toStatus, count: rows.length })
+  }
+}
+
+/**
+ * Mark this city's POIs that the current fetch did not return as absent.
+ *
+ * Replaced a hard DELETE on 2026-08-11, and the deletion is the thing worth
+ * describing. A POI that leaves OpenStreetMap — demolished, retagged out of our
+ * vocabulary, or re-mapped from a node to a way, which changes its osmId — used
+ * to be removed outright. That made "which places near this listing closed last
+ * year" unanswerable from our own data at any price and for all time: deletion
+ * is the one data loss no later work can repair.
+ *
+ * Nothing user-facing changes. poiProvider.js filters `status: ACTIVE`, so an
+ * absent row is exactly as invisible as a deleted one was. It is simply still
+ * there to count, and the transition is now in PoiStatusEvent.
+ *
+ * ABSENT_FROM_SOURCE is deliberately not "closed". The absence is observed; the
+ * reason is not, and the four candidate reasons look identical from here.
  *
  * ONLY safe after a fully-successful fetch. With a failed tile, the rows that
- * tile would have refreshed are indistinguishable from genuine ghosts, and
- * deleting real coverage is far worse than keeping a stale row for one cycle.
- * The caller owns that decision; this function refuses to guess.
+ * tile would have refreshed are indistinguishable from genuine ghosts. That was
+ * true when this deleted and it stays true — marking every POI in a district
+ * absent because Overpass timed out would empty real cards. The caller owns
+ * that decision; this function refuses to guess.
  *
  * @param {string} city
  * @param {Date} before  the run's start time — rows older than this were not
  *                       touched by the run and are therefore absent from OSM
- * @returns {Promise<number>} rows deleted
+ * @returns {Promise<number>} rows marked absent
  */
-export async function removeStalePois(city, before) {
+export async function markAbsentPois(city, before) {
   try {
-    const { count } = await prisma.poiIndex.deleteMany({
-      where: { city, fetchedAt: { lt: before } },
+    // Read the ids first: updateMany returns a count, not the rows, and the
+    // history needs to name them. Already-absent rows are excluded by the
+    // status predicate, so a second consecutive re-seed writes no duplicate
+    // events for a place that has simply stayed gone.
+    const stale = await prisma.poiIndex.findMany({
+      where: { city, status: 'ACTIVE', fetchedAt: { lt: before } },
+      select: { id: true },
     })
-    if (count) intelLog('spatial.stale_pois_removed', { city, count })
+    if (!stale.length) return 0
+
+    const reason = `not returned by the ${before.toISOString().slice(0, 10)} ${city} fetch`
+
+    const { count } = await prisma.poiIndex.updateMany({
+      where: { id: { in: stale.map((r) => r.id) } },
+      data: {
+        status: 'ABSENT_FROM_SOURCE',
+        statusReason: reason,
+        statusChangedAt: before,
+      },
+    })
+
+    await recordStatusEvents(stale, 'ACTIVE', 'ABSENT_FROM_SOURCE', reason)
+
+    if (count) intelLog('spatial.pois_marked_absent', { city, count })
     return count
   } catch (err) {
-    intelError('spatial.stale_poi_removal_failed', err, { city })
+    intelError('spatial.poi_absence_marking_failed', err, { city })
+    return 0
+  }
+}
+
+/**
+ * Bring back POIs that this fetch returned and that were previously absent.
+ *
+ * The other half of the lifecycle, and the reason the history is worth keeping
+ * at all. A place vanishing and returning is routine in OpenStreetMap — one
+ * mapper retags a node, another reverts it a week later — and without this the
+ * row would sit ABSENT_FROM_SOURCE forever while the source plainly says it is
+ * there, which is a worse error than the deletion this replaced.
+ *
+ * Set-based rather than per-row inside the upsert loop, and symmetric with
+ * markAbsentPois: the upsert has already stamped `fetchedAt`, so "absent, but
+ * touched by this run" is exactly the set that came back.
+ *
+ * @param {string} city
+ * @param {Date} since  the run's start time
+ * @returns {Promise<number>} rows revived
+ */
+export async function reviveReturnedPois(city, since) {
+  try {
+    const returned = await prisma.poiIndex.findMany({
+      where: { city, status: 'ABSENT_FROM_SOURCE', fetchedAt: { gte: since } },
+      select: { id: true },
+    })
+    if (!returned.length) return 0
+
+    const reason = `returned in the ${since.toISOString().slice(0, 10)} ${city} fetch`
+
+    const { count } = await prisma.poiIndex.updateMany({
+      where: { id: { in: returned.map((r) => r.id) } },
+      data: { status: 'ACTIVE', statusReason: reason, statusChangedAt: since },
+    })
+
+    await recordStatusEvents(returned, 'ABSENT_FROM_SOURCE', 'ACTIVE', reason)
+
+    if (count) intelLog('spatial.pois_revived', { city, count })
+    return count
+  } catch (err) {
+    intelError('spatial.poi_revival_failed', err, { city })
     return 0
   }
 }

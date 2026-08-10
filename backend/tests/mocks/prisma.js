@@ -319,7 +319,25 @@ export const prismaMock = {
     groupBy:  vi.fn().mockResolvedValue([]),
     // poiFreshness — max(fetchedAt) per city. Null = date unknown.
     aggregate: vi.fn().mockResolvedValue({ _max: { fetchedAt: null } }),
+    // The lifecycle path marks rows absent instead of deleting them
+    // (seedMaintenance.js, 2026-08-11). `deleteMany` stays mocked because
+    // nothing should call it any more and a test asserting that needs it to
+    // exist in order to assert it was NOT called.
+    updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+  },
+  // Append-only POI existence history — openings, closures, returns.
+  poiStatusEvent: {
+    createMany: vi.fn().mockResolvedValue({ count: 0 }),
+    findMany:   vi.fn().mockResolvedValue([]),
+  },
+  // Recorded disagreements between what we hold and what a source asserts.
+  poiConflict: {
+    createMany: vi.fn().mockResolvedValue({ count: 0 }),
+    updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    findMany:   vi.fn().mockResolvedValue([]),
+    groupBy:    vi.fn().mockResolvedValue([]),
+    count:      vi.fn().mockResolvedValue(0),
   },
   // Per-cell proximity summary — derived data the filters join on.
   cellPoiSummary: {
