@@ -45,7 +45,7 @@ export default function ReportUserSheet({ visible, onClose, user, conversationId
       Alert.alert('Report sent', 'Our team will review it.')
       close()
     } catch (err) {
-      Alert.alert('Could not send', err?.response?.data?.message ?? 'Please try again.')
+      Alert.alert('Could not send', err?.message ?? 'Please try again.')
     } finally {
       setSaving(false)
     }

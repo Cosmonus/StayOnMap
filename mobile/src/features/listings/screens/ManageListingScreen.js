@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { View, Text, FlatList, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native'
 import { Image } from 'expo-image'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -8,6 +8,7 @@ import { formatPrice, formatDate, imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ContactRow, { buildContactStats } from '../components/ContactRow'
+import ReportsSheet from '../components/ReportsSheet'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -57,6 +58,7 @@ function ActionRow({ icon, label, sub, onPress, disabled, variant = 'default' })
 export default function ManageListingScreen({ navigation, route }) {
   const { propertyId } = route.params
   const qc = useQueryClient()
+  const [reportsOpen, setReportsOpen] = useState(false)
 
   const { data: property, isLoading, isError, refetch } = useQuery({
     queryKey: ['manage-listing', propertyId],
@@ -290,6 +292,18 @@ export default function ManageListingScreen({ navigation, route }) {
           onPress={() => navigation.navigate('EditListing', { propertyId })}
           disabled={busy}
         />
+        {/* Shown for every status, and unconditionally rather than badged on a
+            count: knowing whether to draw it would mean fetching the reports
+            for a listing that usually has none. The sheet answers "nobody has
+            reported this listing", which is the answer an owner wants and one
+            worth being able to ask for. */}
+        <ActionRow
+          icon="shield"
+          label="Reports on this listing"
+          sub="See what was flagged, and reply"
+          onPress={() => setReportsOpen(true)}
+          disabled={busy}
+        />
         <ActionRow icon="trash" label="Delete listing" sub="Permanent, cannot be undone" variant="danger" onPress={confirmDelete} disabled={busy} />
       </View>
 
@@ -344,6 +358,17 @@ export default function ManageListingScreen({ navigation, route }) {
             disabled={busy}
           />
         )}
+      />
+      {/* Reports filed against this listing, and the owner's one reply. Both
+          endpoints shipped with the reports feature and had no caller on
+          either platform until 2026-08-10 — so a listing could be reported,
+          and suspended on a risk score built partly from those reports, while
+          its owner had no way to see what was said. */}
+      <ReportsSheet
+        visible={reportsOpen}
+        onClose={() => setReportsOpen(false)}
+        propertyId={propertyId}
+        propertyTitle={property?.title}
       />
     </SafeAreaView>
   )

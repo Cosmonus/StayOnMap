@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ImageOff, MoreHorizontal, Eye, Pause, Play, Trash2, UserCheck } from 'lucide-react'
+import { ImageOff, MoreHorizontal, Eye, Pause, Play, Trash2, UserCheck, ShieldAlert } from 'lucide-react'
 import { propertyService } from '@services/property.service'
 import { formatPrice, formatAge } from '@utils/format'
 import PropertyStatusPill from '@components/common/PropertyStatusPill'
@@ -129,7 +129,7 @@ function RowStats({ property, inline = false }) {
 //   menu      everything else, with Delete last, red, and behind a tap
 // Delete sitting inline and identical to View was a Fitts's-law accident
 // waiting to happen: the most destructive control was the easiest to hit.
-function rowActions({ property, onEdit, onPreview, onVisitRequests, onResume, onDelete, onToggleStatus, onMarkTenant, onVacate }) {
+function rowActions({ property, onEdit, onPreview, onVisitRequests, onResume, onDelete, onToggleStatus, onMarkTenant, onVacate, onReports }) {
   const pendingVisits = property._count?.appointments ?? 0
   const del = { key: 'delete', label: 'Delete listing', icon: <Trash2 size={16} strokeWidth={1.8} />, danger: true, onClick: () => onDelete(property) }
   const edit = { label: 'Edit', onClick: () => onEdit(property.id) }
@@ -207,6 +207,18 @@ function rowActions({ property, onEdit, onPreview, onVisitRequests, onResume, on
     onClick: () => onMarkTenant(property),
   }
 
+  // In the menu, not on the row, and always present rather than badged on a
+  // count: the row would have to fetch every listing's reports to know whether
+  // to show it, and a listing with no reports is the normal case. The modal
+  // says "nobody has reported this listing" — which is the answer an owner
+  // wants, and worth being able to ask for.
+  const reports = {
+    key: 'reports',
+    label: 'Reports on this listing',
+    icon: <ShieldAlert size={16} strokeWidth={1.8} />,
+    onClick: () => onReports(property),
+  }
+
   // People waiting on the owner outrank everything else on the row. "Offer a
   // lease" was removed from here (2026-07-26): a lease offer needs a tenant,
   // and this row has no way to know which one, so it belongs in the Leases tab.
@@ -214,14 +226,14 @@ function rowActions({ property, onEdit, onPreview, onVisitRequests, onResume, on
     return {
       primary: { label: `Visit requests · ${pendingVisits}`, variant: 'primary', onClick: onVisitRequests },
       secondary: edit,
-      menu: [view, pause, markRented, { key: 'div', divider: true }, del].filter(Boolean),
+      menu: [view, pause, markRented, reports, { key: 'div', divider: true }, del].filter(Boolean),
     }
   }
 
   return {
     primary: { label: 'View listing', onClick: () => onPreview(property) },
     secondary: edit,
-    menu: [pause, markRented, { key: 'div', divider: true }, del].filter(Boolean),
+    menu: [pause, markRented, reports, { key: 'div', divider: true }, del].filter(Boolean),
   }
 }
 
@@ -313,7 +325,7 @@ function LocalDraftRow({ draft, label, onResume, onDiscard }) {
 
 export default function ListingManager({
   onAdd, onEdit, onPreview, onVisitRequests, onResume, onDelete, onToggleStatus,
-  onMarkTenant, onVacate,
+  onMarkTenant, onVacate, onReports,
   localDraft, localDraftLabel, onResumeLocalDraft, onDiscardLocalDraft,
 }) {
   const { data: listings = [], isLoading } = useQuery({
@@ -355,6 +367,7 @@ export default function ListingManager({
           onToggleStatus={onToggleStatus}
           onMarkTenant={onMarkTenant}
           onVacate={onVacate}
+          onReports={onReports}
         />
       ))}
       {localDraft && (

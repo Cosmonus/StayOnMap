@@ -192,7 +192,7 @@ export default function ConversationScreen({ route, navigation }) {
               qc.invalidateQueries({ queryKey: ['chat-unread'] })
               navigation.goBack()
             } catch (err) {
-              Alert.alert('Could not block', err?.response?.data?.message ?? 'Please try again.')
+              Alert.alert('Could not block', err?.message ?? 'Please try again.')
             }
           },
         },
