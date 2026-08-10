@@ -69,7 +69,10 @@ const FEATURES = [
 
 /* ================================================================ */
 export default function AboutPage() {
-  const { totalActive, activeOwners, cities, byCity, isLoading } = usePlatformStats()
+  const { totalActive, activeOwners, cities, byCity, isLoading, isError } = usePlatformStats()
+  // A failed fetch is not zero listings. Treated as still-loading so the page
+  // keeps its placeholder rather than publishing a number nobody measured.
+  const statsUnknown = isLoading || isError
   const milestones = [
     { label: 'Live Listings', value: totalActive },
     { label: 'Active Owners', value: activeOwners },
@@ -121,7 +124,11 @@ export default function AboutPage() {
               <Reveal key={label} delay={i * 0.08}>
                 <div className="text-center">
                   <p className="font-serif font-bold text-4xl md:text-5xl text-slate-900 leading-none mb-2">
-                    <CountUp target={value} />
+                    {/* An em-dash, not a counter animating up to 0. This is the
+                        page that tells a stranger how big the platform is; a
+                        confident zero here is worse than admitting we could not
+                        load the number. */}
+                    {statsUnknown ? '—' : <CountUp target={value} />}
                   </p>
                   <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">{label}</p>
                 </div>
@@ -276,7 +283,7 @@ export default function AboutPage() {
                   </div>
                   <h3 className="text-lg font-bold text-slate-900 mb-1">{city.name}</h3>
                   <p className="text-xs text-slate-500 mb-3">{city.state}</p>
-                  <p className="text-sm font-bold text-brand-600">{isLoading ? '…' : `${byCity[city.name] ?? 0} listings`}</p>
+                  <p className="text-sm font-bold text-brand-600">{statsUnknown ? '…' : `${byCity[city.name] ?? 0} listings`}</p>
                   <div className="flex flex-wrap justify-center gap-1.5 mt-3">
                     {city.areas.slice(0, 4).map(area => (
                       <span key={area} className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-50 text-slate-500 border border-slate-100">{area}</span>

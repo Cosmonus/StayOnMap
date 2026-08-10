@@ -22,6 +22,11 @@ module.exports = defineConfig([
         afterEach: 'readonly',
         beforeAll: 'readonly',
         afterAll: 'readonly',
+        // Node's CommonJS globals. Jest runs these files under Node, not in
+        // the RN runtime, so a lint that reads source off disk (api-paths)
+        // legitimately needs __dirname and require.
+        __dirname: 'readonly',
+        require: 'readonly',
       },
     },
   },

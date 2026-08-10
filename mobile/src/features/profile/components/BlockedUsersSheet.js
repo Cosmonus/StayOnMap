@@ -35,7 +35,7 @@ export default function BlockedUsersSheet({ visible, onClose }) {
       // list that hid them has to be refetched too.
       qc.invalidateQueries({ queryKey: ['conversations'] })
     },
-    onError: (err) => Alert.alert('Could not unblock', err?.response?.data?.message ?? 'Please try again.'),
+    onError: (err) => Alert.alert('Could not unblock', err?.message ?? 'Please try again.'),
   })
 
   const confirmUnblock = (row) => {

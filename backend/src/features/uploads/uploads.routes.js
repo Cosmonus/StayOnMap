@@ -20,6 +20,25 @@ const uploadDoc = multer({
   },
 })
 
+// Support evidence: ONE endpoint, EVERY file type, and deliberately no
+// fileFilter at all.
+//
+// Every other uploader here is an allowlist and should stay one. This is the
+// exception because narrowing the types narrows what somebody can PROVE — a
+// fabricated agreement is a .docx, a threatening voice note is an .m4a, a
+// WhatsApp export is a .txt in a .zip, and refusing those is refusing the
+// complaint. The safety lives in how the file is STORED rather than in whether
+// it is accepted: evidence.service.js serves inline only what the bytes prove
+// is safe and makes everything else download. Read the header there before
+// changing either half.
+//
+// 25MB rather than 5: a phone video and a scanned agreement are both routinely
+// larger than a photo, and the cap exists to bound abuse, not to curate.
+const uploadEvidence = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 },
+})
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
@@ -39,5 +58,6 @@ router.post('/property-image', authMiddleware, upload.single('image'), controlle
 router.post('/avatar',         authMiddleware, upload.single('image'), controller.uploadAvatar)
 router.post('/chat-image',     authMiddleware, upload.single('image'), controller.uploadChatImage)
 router.post('/chat-file',      authMiddleware, uploadDoc.single('file'), controller.uploadChatFile)
+router.post('/support-file',   authMiddleware, uploadEvidence.single('file'), controller.uploadSupportFile)
 
 export default router

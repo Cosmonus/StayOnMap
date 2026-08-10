@@ -1,8 +1,23 @@
 import { z } from 'zod'
 import { filterQueryShape, ADMIN_FILTERS } from '../properties/filters.registry.js'
 
+// The one admin write that had no schema at all. Not a mass-assignment hole —
+// the service destructures { name, email } — but an unvalidated `email` could
+// be any string, and the address an admin signs in with is not a field worth
+// letting them corrupt into something they cannot type.
+export const adminUpdateProfileSchema = z.object({
+  name:  z.string().trim().min(1, 'Name cannot be empty').max(100).optional(),
+  email: z.string().trim().email().optional(),
+}).refine((d) => d.name !== undefined || d.email !== undefined, {
+  message: 'Nothing to update',
+})
+
 export const adminLoginSchema = z.object({
-  email: z.string().email(),
+  // Trimmed here as well as in the service — a pasted email with a trailing
+  // space is the common case, and it should never reach a lookup at all.
+  // NOT lowercased: the stored address may legitimately carry capitals, so the
+  // case-insensitive match lives in adminLogin() instead.
+  email: z.string().trim().email(),
   password: z.string().min(8),
 })
 

@@ -19,7 +19,7 @@ import { isValidPhone, normalizePhone } from '@utils/validation'
 // would turn "wait 40s" into "something went wrong".
 const INPUT = 'w-full min-h-[44px] px-3 py-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#111111] focus:border-transparent bg-slate-50'
 
-const message = (err, fallback) => err?.response?.data?.message || fallback
+const message = (err, fallback) => err?.message || fallback
 
 export default function VerifyPhoneModal({ isOpen, onClose, currentPhone }) {
   const qc = useQueryClient()

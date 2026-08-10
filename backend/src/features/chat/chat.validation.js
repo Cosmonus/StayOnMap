@@ -22,3 +22,11 @@ export const editMessageSchema = z.object({
 export const searchQuerySchema = z.object({
   q: z.string().trim().min(1, 'Search query cannot be empty'),
 })
+
+// Paging BACKWARDS through a thread. `before` is the id of the oldest message
+// already on screen; the reply is the page before it. Absent → the newest page,
+// which is what every released client asks for and gets.
+export const messagesQuerySchema = z.object({
+  before: z.string().trim().min(1).max(60).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+})

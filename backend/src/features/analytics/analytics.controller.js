@@ -1,6 +1,5 @@
 import * as service from './analytics.service.js'
 import { forwardToGa4, isAppRequest } from './ga4.js'
-import { ok } from '../../utils/response.js'
 
 export async function ingest(req, res, next) {
   try {
@@ -36,13 +35,8 @@ export async function ingest(req, res, next) {
   } catch (err) { next(err) }
 }
 
-export async function funnel(req, res, next) {
-  try {
-    const days = req.query.days ? Number(req.query.days) : undefined
-    const [funnelData, timeToPublish] = await Promise.all([
-      service.getFunnel({ days }),
-      service.getTimeToPublish(),
-    ])
-    ok(res, { funnel: funnelData, timeToPublish })
-  } catch (err) { next(err) }
-}
+// A `funnel` handler lived here until 2026-08-10 with no route pointing at it.
+// It was a stale and strictly WORSE duplicate of admin.controller's: it omitted
+// the seo segment, and it carried the same unclamped Number(req.query.days)
+// that turned "?days=abc" into a 500 over there. Two answers to one question is
+// how the surviving one drifts.

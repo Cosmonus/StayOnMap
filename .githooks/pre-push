@@ -1,0 +1,109 @@
+#!/bin/sh
+#
+# Run what CI runs, before the push rather than after it.
+#
+# The loop this exists to break: push → CI goes red → read the log → fix a lint
+# error that was on disk the whole time → push again. Every one of those round
+# trips costs a CI run and a context switch, and none of the failures needed a
+# server to find.
+#
+# It mirrors .github/workflows/ci.yml deliberately, and only the parts that are
+# FAST and DETERMINISTIC:
+#
+#   backend    npm run lint  +  npm test
+#   frontend   npm run lint  +  npm test
+#   mobile     npm test
+#
+# Left to CI on purpose:
+#   - `npx expo export` (~90s) and `npm run build` — slow, and they fail for
+#     reasons lint and tests almost always catch first.
+#   - gitleaks — needs the action's binary. The cheap half of that job, the
+#     tracked-file denylist, runs below because a committed .env is the one
+#     mistake a later fix cannot undo.
+#
+# ONLY THE PACKAGES THAT CHANGED are checked, so a docs-only or single-package
+# push stays quick.
+#
+# Escape hatch: `git push --no-verify`. Use it when the push itself is the fix
+# (a revert, a hotfix on a red branch) — not to get past a failure you have not
+# read.
+#
+# Install (once per clone):  git config core.hooksPath .githooks
+
+set -e
+
+RED=''
+GREEN=''
+DIM=''
+OFF=''
+if [ -t 1 ]; then
+  RED=$(printf '\033[31m'); GREEN=$(printf '\033[32m')
+  DIM=$(printf '\033[2m');  OFF=$(printf '\033[0m')
+fi
+
+fail() {
+  printf '%s\n' "${RED}✗ pre-push: $1${OFF}" >&2
+  printf '%s\n' "${DIM}  Fix it, or push with --no-verify if you know why.${OFF}" >&2
+  exit 1
+}
+
+# ── What is actually being pushed ───────────────────────────────────────────
+# stdin gives "<local ref> <local sha> <remote ref> <remote sha>" per ref. A
+# remote sha of all zeros means the branch is new there, so compare against the
+# merge base with origin/master instead of against nothing.
+RANGE=""
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue   # deleting a branch
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    base=$(git merge-base origin/master "$local_sha" 2>/dev/null || echo "")
+    [ -n "$base" ] && RANGE="$base $local_sha"
+  else
+    RANGE="$remote_sha $local_sha"
+  fi
+done
+
+# Nothing on stdin happens when the hook is run by hand. Check the last commit
+# rather than silently passing — a hook that does nothing when confused is a
+# hook nobody notices has stopped working.
+if [ -z "$RANGE" ]; then
+  RANGE="HEAD~1 HEAD"
+fi
+
+CHANGED=$(git diff --name-only $RANGE 2>/dev/null || echo "")
+[ -z "$CHANGED" ] && exit 0
+
+# ── The one check that always runs ──────────────────────────────────────────
+# A credential reaching a remote is not undone by a force-push; it is undone by
+# rotating the credential. Cheap enough to never skip.
+SECRETS=$(git ls-files | grep -E '(^|/)\.env($|\.)|\.(pem|key|p12|jks|mobileprovision)$|google-services\.json$|GoogleService-Info\.plist$|serviceAccountKey.*\.json$' | grep -v '\.env\.example$' || true)
+if [ -n "$SECRETS" ]; then
+  printf '%s\n' "${RED}Tracked credential files:${OFF}" >&2
+  printf '%s\n' "$SECRETS" >&2
+  fail "rotate anything real, then untrack these"
+fi
+
+ROOT=$(git rev-parse --show-toplevel)
+
+# ── Per package, only if it changed ─────────────────────────────────────────
+# $2 is the npm scripts to run, space separated, in order.
+check() {
+  pkg=$1
+  scripts=$2
+  echo "$CHANGED" | grep -q "^$pkg/" || return 0
+
+  printf '%s\n' "${DIM}pre-push: $pkg${OFF}"
+  for s in $scripts; do
+    # Output is swallowed on success and shown in full on failure — a hook that
+    # prints a page of green on every push is a hook people stop reading.
+    if ! out=$( (cd "$ROOT/$pkg" && npm run --silent "$s" 2>&1) ); then
+      printf '%s\n' "$out" >&2
+      fail "$pkg: npm run $s"
+    fi
+  done
+}
+
+check backend  "lint test"
+check frontend "lint test"
+check mobile   "test"
+
+printf '%s\n' "${GREEN}✓ pre-push: clean${OFF}"

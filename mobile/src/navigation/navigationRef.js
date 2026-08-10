@@ -53,10 +53,22 @@ export function referenceDestination({ referenceId, referenceType }, hostMode) {
       return hostMode ? null : ['Profile', { screen: 'Leases', initial: false }]
     case 'Property':
       return [hostMode ? 'MyListing' : 'Explore', { screen: 'PropertyDetail', initial: false, params: { propertyId: referenceId } }]
+    case 'PropertyReport':
+      // A report has a THREAD as of 2026-08-10, so this is no longer a dead
+      // reference. It opens on the notifications screen rather than one of its
+      // own, because that is where the reader already is and a report has no
+      // other home in the product.
+      //
+      // Renter tab, always: a PropertyReport notification is addressed to the
+      // TENANT hat (the reporter is acting as a renter, even if they also own
+      // listings), so navigateToReference has already switched modes by the
+      // time this resolves. Host mode's Notifications lives under Dashboard and
+      // is the wrong list for it.
+      return ['Explore', { screen: 'Notifications', initial: false, params: { reportId: referenceId } }]
     default:
-      // PropertyReport and OwnershipVerification carry the REPORT's and the
-      // VERIFICATION's own id, and no screen takes either. Sending someone to
-      // a property would mean inventing an id we were never given.
+      // OwnershipVerification carries the VERIFICATION's own id and no screen
+      // takes it. Sending someone to a property would mean inventing an id we
+      // were never given.
       return null
   }
 }

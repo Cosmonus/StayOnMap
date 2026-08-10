@@ -13,10 +13,22 @@ import { adminService } from '@services/admin.service'
 // Read-only by design. A quality report records what a seeder observed; an
 // operator editing it would defeat the point of keeping it.
 
+// One entry per seeder that files a report. An unlabelled dataset falls back to
+// its raw snake_case key below, which is legible but reads as a bug in the
+// panel whose whole job is catching drift.
+//
+// Until 2026-08-10 this named `weather_normals` — a table DROPPED on
+// 2026-07-20 — and had nothing for roads, water, places or the pincode
+// directory, so four of the six real datasets rendered as raw keys.
+// backend/tests/data-quality-labels.test.js now pins this map to the `dataset:`
+// values the seeder scripts actually write.
 const DATASET_LABELS = {
   poi_index: 'Points of interest',
   boundaries: 'Administrative boundaries',
-  weather_normals: 'Climate normals',
+  roads: 'Road network',
+  water: 'Water bodies',
+  places: 'Canonical places',
+  pincode_directory: 'Pincode directory',
 }
 
 function ageOf(runAt) {

@@ -20,7 +20,7 @@ import { spacing } from '@theme/spacing'
 // Server messages are shown verbatim: every failure here is actionable (a
 // cooldown with seconds left, a daily cap, a number verified on another
 // account), and a house string would turn "wait 40s" into "something is wrong".
-const message = (err, fallback) => err?.response?.data?.message || fallback
+const message = (err, fallback) => err?.message || fallback
 
 export default function VerifyPhoneSheet({ visible, onClose, currentPhone }) {
   const qc = useQueryClient()

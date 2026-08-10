@@ -53,13 +53,15 @@ import graphRoutes        from './features/graph/graph.routes.js'
 import analyticsRoutes    from './features/analytics/analytics.routes.js'
 import localityRoutes     from './features/seo/locality.routes.js'
 import blogRoutes         from './features/blog/blog.routes.js'
-import { startRefresher } from './features/spatial/refresher.js'
+import contactRoutes      from './features/contact/contact.routes.js'
+import { startRefresher, stopRefresher } from './features/spatial/refresher.js'
 import aiRoutes          from './features/ai/ai.routes.js'
 import areaRoutes        from './features/areas/areas.routes.js'
 import metroRoutes       from './features/metro/metro.routes.js'
 import itCorridorRoutes  from './features/itCorridors/itCorridors.routes.js'
 import adminRoutes       from './features/admin/admin.routes.js'
-import { adminReportRouter }       from './features/reports/reports.routes.js'
+import { adminReportRouter, reportThreadRouter } from './features/reports/reports.routes.js'
+import { supportRouter, adminSupportRouter } from './features/support/support.routes.js'
 import { adminVerificationRouter } from './features/verification/verification.routes.js'
 
 const app  = express()
@@ -134,6 +136,12 @@ app.use('/api/v1/spatial',       spatialRoutes)
 app.use('/api/v1/graph',         graphRoutes)
 app.use('/api/v1/analytics',     analyticsRoutes)
 app.use('/api/v1/blog',          blogRoutes)
+app.use('/api/v1/contact',       contactRoutes)
+// The reporter's side of a report thread — addressed by REPORT id, because
+// that is what the notification carries. See reports.routes.js.
+app.use('/api/v1/reports',       reportThreadRouter)
+// Support cases — the unified layer behind every kind of human intervention.
+app.use('/api/v1/support',       supportRouter)
 app.use('/api/v1/localities',    localityRoutes)
 app.use('/api/v1/metro',         metroRoutes)
 app.use('/api/v1/it-corridors',  itCorridorRoutes)
@@ -141,6 +149,7 @@ app.use('/api/v1/it-corridors',  itCorridorRoutes)
 // Admin routes — high limit so moderation actions are never throttled
 app.use('/api/v1/admin',               adminLimiter, adminRoutes)
 app.use('/api/v1/admin/reports',       adminLimiter, adminReportRouter)
+app.use('/api/v1/admin/support',       adminLimiter, adminSupportRouter)
 app.use('/api/v1/admin/verifications', adminLimiter, adminVerificationRouter)
 app.use('/api/v1/admin/trust-scores',  adminLimiter, trustRoutes)
 app.use('/api/v1/admin/ai',            adminLimiter, aiRoutes)
@@ -214,6 +223,13 @@ async function shutdown(signal) {
   try {
     await new Promise((resolve) => httpServer.close(resolve))
     try { getIO()?.disconnectSockets(true) } catch { /* socket layer already down */ }
+    // WIRED 2026-08-10 — stopRefresher() was exported and called by nothing,
+    // not even here. The spatial refresher runs on an interval and each tick
+    // materialises cells, which schedules BILLED third-party work; leaving it
+    // ticking through a drain means a request that started after we stopped
+    // accepting them, against a Prisma client about to disconnect. Before
+    // $disconnect for that reason.
+    try { await stopRefresher() } catch { /* nothing to stop */ }
     await prisma.$disconnect()
     console.log('[shutdown] clean')
     process.exit(0)

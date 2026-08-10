@@ -1,5 +1,6 @@
 import * as service from './uploads.service.js'
 import * as documents from './documents.service.js'
+import * as evidence from './evidence.service.js'
 import { prisma } from '../../lib/prisma.js'
 import { created } from '../../utils/response.js'
 
@@ -24,6 +25,21 @@ export async function uploadChatFile(req, res, next) {
   try {
     const file = await documents.uploadDocument(req.file, req.user.id, 'chat-files')
     created(res, file)
+  } catch (err) { next(err) }
+}
+
+/**
+ * Support evidence — any file type, through one door.
+ *
+ * No branching on type here, deliberately: `uploadEvidence` reads the BYTES and
+ * decides what may render, which is a decision that must live in one place and
+ * not be re-derived per caller. Returns { url, fileName, mimeType, sizeBytes },
+ * exactly the shape POST /support/cases/:id/attachments takes, so the client
+ * never reshapes it.
+ */
+export async function uploadSupportFile(req, res, next) {
+  try {
+    created(res, await evidence.uploadEvidence(req.file, req.user.id))
   } catch (err) { next(err) }
 }
 

@@ -5,11 +5,13 @@ import { usePlatformStats } from '@hooks/usePlatformStats'
 
 export default function MapPreview() {
   const containerRef = useRef(null)
-  const { byCity, totalActive, isLoading } = usePlatformStats()
+  const { byCity, totalActive, isLoading, isError } = usePlatformStats()
+  // No city pills at all rather than a row of confident zeroes.
+  const statsUnknown = isLoading || isError
 
   useEffect(() => {
     const el = containerRef.current
-    if (!el || isLoading) return
+    if (!el || statsUnknown) return
 
     let cancelled = false
 
@@ -60,7 +62,7 @@ export default function MapPreview() {
     })
 
     return () => { cancelled = true }
-  }, [isLoading, byCity])
+  }, [statsUnknown, byCity])
 
   return (
     <div className="relative w-full h-96 sm:h-[480px] md:h-[680px]">

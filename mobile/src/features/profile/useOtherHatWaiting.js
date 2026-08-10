@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { chatService } from '@services/chat.service'
 import { notificationService } from '@services/notification.service'
+import { supportService } from '@services/support.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
 
@@ -31,9 +32,19 @@ export function useOtherHatWaiting() {
     // No interval — useRealtimeUpdates owns both keys this hook reads.
   })
 
+  // Support is per hat too, so it has the same hole and belongs in the same
+  // answer. Rides on the key the Help row already fetches — no extra request.
+  const { data: support } = useQuery({
+    queryKey: ['support-unread'],
+    queryFn: () => supportService.unread().then((r) => r.data),
+    enabled: !!user,
+  })
+
   const messages = conversations
     .filter((c) => (hostMode ? c.tenantId === user?.id : c.ownerId === user?.id))
     .reduce((n, c) => n + (c._count?.messages ?? 0), 0)
 
-  return messages + ((hostMode ? notifs?.asTenant : notifs?.asOwner) ?? 0)
+  return messages
+    + ((hostMode ? notifs?.asTenant : notifs?.asOwner) ?? 0)
+    + ((hostMode ? support?.asTenant : support?.asOwner) ?? 0)
 }

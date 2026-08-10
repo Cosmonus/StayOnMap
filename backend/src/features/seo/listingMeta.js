@@ -45,9 +45,27 @@ const NOUN = {
   LAND: 'Plot',
 }
 
-/** Where the listing is, in the words a person would search with. */
+/**
+ * Where the listing is, in the words a person would search with.
+ *
+ * THE RESOLVED LOCALITY WINS OVER THE OWNER'S TYPING, and that ordering is the
+ * whole function. `landmark` is free text: production titled a real listing
+ * "1 BHK apartment for rent in opp to pk store, Chennai" until 2026-08-10, and
+ * that string is what WhatsApp showed every time somebody shared it — the most
+ * common way a listing travels in Indian rentals. `Locality` is resolved from
+ * an OSM place, so it is the name a renter would actually type.
+ *
+ * The breadcrumb three functions below has preferred the resolved place since
+ * the entity shipped; this one simply never got told, which is why a listing
+ * could carry Velachery in its structured data and a shop in its title.
+ *
+ * `landmark` stays as the fallback rather than being dropped: most listings
+ * still have no resolved locality (see operator-actions.md §1.6i), and "opp to
+ * pk store, Chennai" is worse than a ward name but better than "Chennai" alone.
+ */
 export function localityOf(property) {
-  return [property.landmark, property.city].filter(Boolean).join(', ') || property.city || 'India'
+  const place = property.locality?.name || property.landmark
+  return [place, property.city].filter(Boolean).join(', ') || property.city || 'India'
 }
 
 /**
@@ -152,7 +170,10 @@ export function jsonLdFor(property) {
       // field IS the owner's choice, and structured data ends up mirroring
       // exactly what the page shows.
       ...(property.address ? { streetAddress: property.address } : {}),
-      addressLocality: property.landmark || property.city,
+      // Same precedence as the title — see localityOf. Structured data naming a
+      // shop while the breadcrumb names the ward is a page disagreeing with
+      // itself in the one place a crawler reads both.
+      addressLocality: property.locality?.name || property.landmark || property.city,
       addressRegion: property.state ?? undefined,
       postalCode: property.pincode ?? undefined,
       addressCountry: 'IN',

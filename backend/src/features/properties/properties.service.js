@@ -6,6 +6,7 @@ import { getContext, ensureContextForProperty, STATUS_FAILED } from '../spatial/
 import { generatePropertyDisplayId } from '../../utils/idGenerator.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { intelError } from '../../lib/intelLog.js'
+import { recordStatusChange } from './statusEvents.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
 import { cityMismatch } from '../../config/cityCenters.js'
 import { buildFilterWhere, filterCacheKey } from './filters.registry.js'
@@ -125,6 +126,15 @@ const FULL_INCLUDE = {
   // deleted from the payload there and never reaches a client.
   owner:         { select: { id: true, name: true, avatarUrl: true, createdAt: true, showExactLocation: true } },
   currentTenant: { select: { id: true, name: true, avatarUrl: true } },
+  // The resolved neighbourhood — an OSM place, not the owner's typing. Added
+  // 2026-08-10 because three things downstream had been written to prefer it
+  // and NONE of them could: the SEO title, the JSON-LD addressLocality, and the
+  // breadcrumb's locality rung all read `property.locality`, which this include
+  // never selected. So production titled a listing "1 BHK apartment for rent in
+  // opp to pk store, Chennai" — the string WhatsApp showed on every share — and
+  // shipped a two-rung breadcrumb whose middle rung was written and unreachable.
+  // The branch existed, the data never arrived.
+  locality:      { select: { id: true, name: true, slug: true, citySlug: true } },
 }
 
 export async function listProperties(filters, { skip, limit }, userId = null) {
@@ -614,6 +624,7 @@ export async function publishProperty(id, ownerId) {
     throw Object.assign(new Error('Only draft or rejected properties can be submitted for review'), { statusCode: 400 })
   }
   const updated = await prisma.property.update({ where: { id }, data: { status: 'PENDING', submittedAt: new Date() } })
+  recordStatusChange({ propertyId: id, from: property.status, to: 'PENDING', actor: 'owner' })
 
   // Fire-and-forget: re-evaluate at submission so the admin moderation queue
   // sees a current risk score, not the one from draft creation time
@@ -662,6 +673,7 @@ export async function toggleStatus(id, ownerId) {
     throw Object.assign(new Error('Only active or inactive listings can be toggled'), { statusCode: 400 })
   }
   const next = prop.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+  recordStatusChange({ propertyId: id, from: prop.status, to: next, actor: 'owner' })
   return prisma.property.update({ where: { id }, data: { status: next } })
 }
 
@@ -774,6 +786,27 @@ export async function markTenant(propertyId, ownerId, tenantId) {
   const tenant = await prisma.user.findUnique({ where: { id: tenantId }, select: { id: true } })
   if (!tenant) throw Object.assign(new Error('User not found'), { statusCode: 404 })
 
+  // "Only someone who actually contacted this listing" was a CLIENT rule until
+  // 2026-08-10 — both pickers offer exactly these two sets, and the server
+  // accepted any user id at all. That matters because being marked as someone's
+  // tenant is a claim about a stranger written into their account by a person
+  // they have never spoken to.
+  //
+  // Appointments ∪ conversations, matching both pickers exactly. `savedBy` is
+  // deliberately NOT included on either side: saving a listing is something you
+  // do alone, and it is not contact.
+  const [contacted, chatted] = await Promise.all([
+    prisma.appointment.count({ where: { propertyId, tenantId } }),
+    prisma.conversation.count({ where: { propertyId, tenantId } }),
+  ])
+  if (contacted + chatted === 0) {
+    throw Object.assign(
+      new Error('That person has not requested a visit or messaged you about this listing'),
+      { statusCode: 400 },
+    )
+  }
+
+  recordStatusChange({ propertyId, from: property.status, to: 'OCCUPIED', actor: 'owner' })
   return prisma.property.update({
     where: { id: propertyId },
     data: { status: 'OCCUPIED', currentTenantId: tenantId, occupiedSince: new Date() },
@@ -823,6 +856,7 @@ export async function vacateProperty(propertyId, ownerId) {
   if (!property) throw Object.assign(new Error('Property not found or access denied'), { statusCode: 404 })
   if (property.status !== 'OCCUPIED') throw Object.assign(new Error('Property is not currently occupied'), { statusCode: 400 })
 
+  recordStatusChange({ propertyId, from: property.status, to: 'ACTIVE', actor: 'owner' })
   // The third door into ACTIVE, and the one that deliberately does NOT stamp
   // publishedAt: a tenant moving out makes this listing available again, not
   // new. firstPublishStamp() refuses an OCCUPIED origin for exactly this case —

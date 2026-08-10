@@ -13,3 +13,13 @@ export const moderateReportSchema = z.object({
 export const ownerRespondSchema = z.object({
   ownerResponse: z.string().min(10).max(1000),
 })
+
+// A message on the report thread (reporter ↔ moderator).
+//
+// `min(1)` where the report itself demands 20 characters, deliberately: the
+// original report has to be substantive enough to act on, but "yes, that one"
+// is a complete and useful answer to a moderator's question. A floor copied
+// from `createReportSchema` would make the cheapest reply the hardest one.
+export const reportMessageSchema = z.object({
+  body: z.string().trim().min(1, 'Message cannot be empty').max(2000),
+})

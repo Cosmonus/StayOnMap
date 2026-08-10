@@ -39,11 +39,17 @@ async function prepareForUpload(asset) {
   }
 }
 
-function toFormData(asset) {
+// `field` because the support endpoint takes `file` and the rest take `image`.
+// `type` must be set or Android sends application/octet-stream and multer
+// rejects on the declared type before the bytes are ever sniffed.
+function toFormData(asset, field = 'image') {
   const form = new FormData()
-  form.append('image', {
+  form.append(field, {
     uri: asset.uri,
-    name: asset.fileName ?? `photo-${Date.now()}.jpg`,
+    // `name` before `fileName`: expo-document-picker answers `name`, the image
+    // picker answers `fileName`, and this helper now takes both. The fallback
+    // is a photo name because every other caller here IS a photo.
+    name: asset.name ?? asset.fileName ?? `photo-${Date.now()}.jpg`,
     type: asset.mimeType ?? 'image/jpeg',
   })
   return form
@@ -63,6 +69,26 @@ export const uploadService = {
     return api.post('/uploads/chat-image', toFormData(prepared), {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 30000,
+    })
+  },
+
+  /**
+   * Support evidence — ANY file type.
+   *
+   * `prepareForUpload` only downscales when the asset reports a width, so a
+   * document falls through it untouched: there is nothing to resize in a PDF,
+   * and re-encoding somebody's evidence would be worse than pointless. A photo
+   * still gets the 1920px pass, which is the difference between a few hundred
+   * KB and a few MB on Indian mobile data.
+   *
+   * Longer timeout than the others: 25MB over a phone connection is not 30
+   * seconds.
+   */
+  uploadSupportFile: async (asset) => {
+    const prepared = await prepareForUpload(asset)
+    return api.post('/uploads/support-file', toFormData(prepared, 'file'), {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,
     })
   },
 }

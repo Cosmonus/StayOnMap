@@ -121,3 +121,48 @@ describe('errorMiddleware outside production', () => {
     expect(body.error).toBe('P2025')
   })
 })
+
+// ── Multer ───────────────────────────────────────────────────────────────────
+//
+// Added 2026-08-10. There was zero MulterError handling anywhere in backend/src,
+// so a >5MB photo threw LIMIT_FILE_SIZE with no statusCode, defaulted to 500,
+// and in production came back sanitised as "Internal server error". Two things
+// wrong with that, and the second is the worse one: the person was told the
+// server broke when they picked a large photo, and `recordServerError` filed
+// their camera-roll upload in the admin System Monitor's 5xx ring as a server
+// fault. A triage list that fills with users' holiday photos is one nobody reads.
+describe('multer errors are the caller’s, not ours', () => {
+  const multerErr = (code) => Object.assign(new Error('File too large'), { name: 'MulterError', code })
+
+  it('answers an oversized file with 413 and says what the limit is', async () => {
+    const mw = await loadMiddleware('production')
+    const { status, body } = run(mw, multerErr('LIMIT_FILE_SIZE'))
+    expect(status).toBe(413)
+    // 4xx, so the message survives production sanitisation — which is the
+    // point: "Internal server error" tells someone choosing a photo nothing.
+    expect(body.message).toMatch(/5MB/)
+    expect(body.error).toBe('LIMIT_FILE_SIZE')
+    expect(body.statusCode).toBe(413)
+  })
+
+  it('treats every other multer limit as a 400 rather than a server fault', async () => {
+    const mw = await loadMiddleware('production')
+    for (const code of ['LIMIT_FILE_COUNT', 'LIMIT_UNEXPECTED_FILE', 'LIMIT_PART_COUNT']) {
+      expect(run(mw, multerErr(code)).status).toBe(400)
+    }
+  })
+
+  it('falls back to 400 for a multer code this map has never heard of', async () => {
+    const mw = await loadMiddleware('production')
+    const { status, body } = run(mw, multerErr('LIMIT_SOMETHING_NEW'))
+    expect(status).toBe(400)
+    expect(body.message).not.toMatch(/Internal server error/)
+  })
+
+  it('never overrides a status something upstream already chose', async () => {
+    // fileFilter rejections set their own 400 and must pass through untouched.
+    const mw = await loadMiddleware('production')
+    const err = Object.assign(new Error('Only PDF documents are allowed'), { statusCode: 400 })
+    expect(run(mw, err).body.message).toBe('Only PDF documents are allowed')
+  })
+})

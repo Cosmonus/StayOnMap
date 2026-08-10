@@ -146,7 +146,12 @@ export const FILTERS = {
   minRecommend: { schema: intIn(1, 100), where: (v) => ({ trustScore: { is: { recommendPercent: { gte: v } } } }) },
 }
 
-export const PROPERTY_STATUSES = ['DRAFT', 'ACTIVE', 'INACTIVE', 'PENDING', 'SUSPENDED', 'REJECTED']
+// Every value of the PropertyStatus enum. OCCUPIED was missing until
+// 2026-08-10, so the admin status filter could not select the one state a
+// marketplace most wants to count — the listings that actually found a tenant.
+// Pinned to schema.prisma by backend/tests/admin-filters.test.js: a status
+// added to the enum and not here is silently unfilterable.
+export const PROPERTY_STATUSES = ['DRAFT', 'ACTIVE', 'INACTIVE', 'PENDING', 'OCCUPIED', 'SUSPENDED', 'REJECTED']
 export const RISK_LEVELS = ['LOW', 'MEDIUM', 'HIGH', 'SUSPICIOUS']
 
 // ── Admin-only filters ────────────────────────────────────────────

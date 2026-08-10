@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Calendar, CircleCheck, Clipboard, CircleX, RefreshCw, Flag, SquarePen,
@@ -7,6 +7,7 @@ import {
 import { notificationService } from '@services/notification.service'
 import { useUiStore } from '@store/uiStore'
 import { referenceHref } from '../referenceHref'
+import ReportThreadModal from '@features/reports/components/ReportThreadModal'
 
 // ── Icon configs (same as NotificationBell) ─────────────────────────────────
 const TYPE_CONFIG = {
@@ -55,6 +56,17 @@ export default function NotificationCenter() {
   // received are two different jobs, and mixing them meant a host scrolling
   // past their own tenancy to find the one they were looking for.
   const audience = useUiStore((s) => (s.hostMode ? 'OWNER' : 'TENANT'))
+
+  // ?report=<id> opens the thread on that report, over this list. Set by
+  // referenceHref when a 'a moderator replied' notification is tapped, and
+  // cleared on close so a refresh does not reopen it.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const openReportId = searchParams.get('report')
+  const closeReport = () => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('report')
+    setSearchParams(next, { replace: true })
+  }
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications', audience],
@@ -145,6 +157,12 @@ export default function NotificationCenter() {
           )}
         </div>
       )}
+
+      {/* The reporter's side of a report conversation, opened by ?report=.
+          Rendered here rather than as its own route because a report has no
+          other home in the product, and this is where the notification that
+          announced it already lands. */}
+      {openReportId && <ReportThreadModal reportId={openReportId} onClose={closeReport} />}
     </div>
   )
 }

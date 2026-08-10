@@ -19,6 +19,7 @@ import {
 import { confirm } from '@components/common/ConfirmDialog'
 import ListingManager from '../ListingManager'
 import MarkTenantModal from '../MarkTenantModal'
+import ReportsModal from '../ReportsModal'
 import EditListingPanel from '../EditListingPanel'
 
 function DoneScreen({ category, onListAnother, onGoToListings }) {
@@ -117,7 +118,7 @@ function VisibilityNotice({ visibility }) {
 function ListingsOverview({
   profile,
   onAdd, onEdit, onPreview, onVisitRequests, onSubmitForReview, onDeleteListing, onToggleStatus,
-  onMarkTenant, onVacate,
+  onMarkTenant, onVacate, onReports,
   localDraft, localDraftLabel, onResumeLocalDraft, onDiscardLocalDraft,
 }) {
   const { data: listings = [] } = useQuery({
@@ -156,6 +157,7 @@ function ListingsOverview({
           onToggleStatus={onToggleStatus}
           onMarkTenant={onMarkTenant}
           onVacate={onVacate}
+          onReports={onReports}
           localDraft={localDraft}
           localDraftLabel={localDraftLabel}
           onResumeLocalDraft={onResumeLocalDraft}
@@ -271,6 +273,7 @@ export default function OnboardingWizard({ profile }) {
   // and back again when they leave. Web parity with mobile's ManageListing
   // (2026-07-27); the picker only offers people who contacted the listing.
   const [markTenantFor, setMarkTenantFor] = useState(null)
+  const [reportsFor, setReportsFor] = useState(null)
 
   const { mutate: markTenant, isPending: markTenantBusy } = useMutation({
     mutationFn: ({ propertyId, tenantId }) => propertyService.markTenant(propertyId, tenantId),
@@ -479,6 +482,7 @@ export default function OnboardingWizard({ profile }) {
           onToggleStatus={confirmToggleStatus}
           onMarkTenant={setMarkTenantFor}
           onVacate={confirmVacate}
+          onReports={setReportsFor}
           localDraft={localDraft}
           localDraftLabel={localDraftLabel}
           onResumeLocalDraft={resumeLocalDraft}
@@ -490,6 +494,12 @@ export default function OnboardingWizard({ profile }) {
           onClose={() => setMarkTenantFor(null)}
           onPick={pickTenant}
         />
+        {/* Reports filed against a listing, and the owner's one reply. Both
+            endpoints shipped with the reports feature and had no caller on
+            either platform until 2026-08-10 — so a listing could be reported,
+            and suspended on a risk score built partly from those reports, with
+            its owner unable to see what was said. */}
+        <ReportsModal property={reportsFor} onClose={() => setReportsFor(null)} />
       </>
     )
   }

@@ -27,7 +27,7 @@ export default function PrivacyPolicyPage() {
         description="How StayOnMap collects, uses, and protects your personal data — including owner verification documents."
         canonical={canonical('/privacy')}
       />
-      <LegalPageLayout title="Privacy Policy" lastUpdated="August 7, 2026" sections={SECTIONS}>
+      <LegalPageLayout title="Privacy Policy" lastUpdated="August 10, 2026" sections={SECTIONS}>
 
         <Section id="scope" title="1. Scope & who we are">
           <p>
@@ -91,7 +91,7 @@ export default function PrivacyPolicyPage() {
           <p><strong>Our website runs no analytics script at all.</strong> There is no Google
             Analytics tag and no advertising pixel on any page, nothing measures or profiles
             your browsing for us or for anyone else, and the website sets no cookies whatsoever
-            &mdash; see Section 8. The page does load fonts, map tiles and listing photos from
+            &mdash; see Section 8. The page does load map tiles and listing photos from
             the providers in Section 7, which necessarily see your IP address in order to send
             you the file; that is delivery, not measurement.</p>
           <p><strong>Google Analytics, from the mobile app only.</strong> For the app, our own
@@ -134,7 +134,6 @@ export default function PrivacyPolicyPage() {
             <li><strong>Supabase</strong> &mdash; stores uploaded property images and verification documents</li>
             <li><strong>Google Cloud Platform</strong> &mdash; hosts our application servers and database</li>
             <li><strong>Google Maps Platform</strong> &mdash; powers map display, address search, and geocoding (search queries and coordinates are sent to Google to resolve locations)</li>
-            <li><strong>Google Fonts</strong> &mdash; serves the typefaces our website is set in. Loading a font means your browser requests a file from Google, so Google sees your IP address and the page that asked for it. It sets no cookie and we send it nothing about you. The mobile app is unaffected: its fonts ship inside the app.</li>
             <li><strong>Zoho ZeptoMail</strong> &mdash; delivers transactional emails (appointment updates, password resets, sign-in codes). Your email address and the message content pass through it. Where ZeptoMail is not configured, an SMTP provider is used instead.</li>
             <li><strong>Expo</strong>, and through it <strong>Google (FCM)</strong> on Android or <strong>Apple (APNs)</strong> on iOS &mdash; deliver push notifications to your device. The notification&rsquo;s title and text pass through these services.</li>
             <li><strong>Google Analytics</strong> (Google LLC) &mdash; measures how the <strong>mobile app</strong> is used, and only the app. It receives the five funnel steps forwarded by our servers &mdash; the step, the city, the listing id, and a random session identifier &mdash; with no IP address and no device information. Our website sends it nothing at all: there is no Google Analytics tag on the website. It never receives your name, email, phone number, or the contents of your messages.</li>
@@ -211,7 +210,7 @@ export default function PrivacyPolicyPage() {
             with the <code>_ga</code> cookies it set. Nothing has replaced it.
           </p>
           <p>
-            <strong>What the website does still fetch from elsewhere</strong> is fonts, map
+            <strong>What the website does still fetch from elsewhere</strong> is map
             tiles and listing photos &mdash; from the providers named in Section 7. Serving you
             a file means seeing the IP address to send it to, so those providers do, but none of
             it is analytics: nothing is recorded about which pages you read, and none of them

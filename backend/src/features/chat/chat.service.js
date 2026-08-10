@@ -164,7 +164,28 @@ async function ownerReplyMinutesFor(conversations) {
   return out
 }
 
-export async function getMessages(conversationId, userId, { skip = 0, limit = 50 } = {}) {
+export const MESSAGE_PAGE_SIZE = 50
+
+/**
+ * The NEWEST window of a thread, oldest-first — plus a cursor for older pages.
+ *
+ * This ordered `asc` with `skip: 0, take: 50` until 2026-08-10, and no caller
+ * anywhere passed pagination. So every conversation past 50 messages opened on
+ * its OLDEST fifty and the recent half was unreachable over REST at all: you
+ * could watch new messages arrive live over the socket and lose them on the
+ * next reload. A chat that shows you the start of the conversation looks like
+ * a chat that is loading.
+ *
+ * `before` is a message id, not a timestamp: two messages can share a
+ * `createdAt` to the millisecond, and a timestamp cursor either drops one or
+ * repeats it. Ordering carries `id` as the tie-break for the same reason.
+ *
+ * The return stays a BARE ARRAY. Both released clients read the response as a
+ * list, so wrapping it in { messages, hasMore } would break them; "is there
+ * more" is answered by the page coming back full, which is what the clients
+ * already have to handle for the socket anyway.
+ */
+export async function getMessages(conversationId, userId, { before, limit = MESSAGE_PAGE_SIZE } = {}) {
   const convo = await prisma.conversation.findUnique({ where: { id: conversationId } })
   if (!convo) throw Object.assign(new Error('Conversation not found'), { statusCode: 404 })
   if (convo.tenantId !== userId && convo.ownerId !== userId) {
@@ -172,16 +193,21 @@ export async function getMessages(conversationId, userId, { skip = 0, limit = 50
   }
 
   // Opening a thread IS reading it — see markConversationRead below for what
-  // that clears.
+  // that clears. Still runs when paging backwards: reaching for older messages
+  // is not a reason to leave the newest ones unread.
   await applyRead(conversationId, userId)
 
-  return prisma.message.findMany({
+  // Newest-first on the way out of the database, reversed on the way back, so
+  // the caller always receives a thread that reads top-to-bottom.
+  const rows = await prisma.message.findMany({
     where: { conversationId },
-    orderBy: { createdAt: 'asc' },
-    skip,
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     take: limit,
+    ...(before ? { cursor: { id: before }, skip: 1 } : {}),
     include: { sender: { select: { id: true, name: true, email: true, avatarUrl: true } } },
   })
+
+  return rows.reverse()
 }
 
 // Everything that was pointing at this thread, retired at once: the other

@@ -263,6 +263,12 @@ export const FILTER_SECTIONS = [
     rows: [
       { kind: 'date', label: 'Move-in by', id: 'availableBy' },
       { kind: 'chips', label: 'Max lease duration', id: 'leaseDurationMax', single: true, options: [{ value: 6, label: '6 months' }, { value: 11, label: '11 months' }, { value: 12, label: '1 year' }, { value: 24, label: '2 years' }] },
+      // MOVED out of the PG section 2026-08-10. It sat inside 'pg', which is
+      // requiresType, so it only appeared once somebody had selected PG — yet
+      // the backend filter was never type-gated and flats, houses and shops can
+      // now state a notice period too. This section is already scoped to HOMES
+      // + PG + COMMERCIAL, which is exactly the set that has one.
+      { kind: 'chips', label: 'Max notice period', id: 'noticePeriodMax', single: true, options: [{ value: 15, label: '15 days' }, { value: 30, label: '1 month' }, { value: 60, label: '2 months' }] },
     ],
   },
   {
@@ -289,8 +295,7 @@ export const FILTER_SECTIONS = [
     rows: [
       { kind: 'chips', label: 'Sharing', id: 'sharing', options: [{ value: 1, label: 'Single' }, { value: 2, label: 'Double' }, { value: 3, label: 'Triple' }, { value: 4, label: '4+' }] },
       { kind: 'chips', label: 'Food & services', id: 'amenities', withIcons: true, options: asOptions(['Breakfast', 'Lunch', 'Dinner', 'Laundry', 'Housekeeping', 'WiFi', 'AC', 'Attached Bath', 'Study Desk']) },
-      { kind: 'toggles', items: [{ id: 'bedsAvailable', label: 'Beds available now' }, { id: 'noCurfew', label: 'No curfew' }] },
-      { kind: 'chips', label: 'Max notice period', id: 'noticePeriodMax', single: true, options: [{ value: 15, label: '15 days' }, { value: 30, label: '1 month' }, { value: 60, label: '2 months' }] },
+      { kind: 'toggles', items: [{ id: 'bedsAvailable', label: 'Beds available now' }, { id: 'noCurfew', label: 'No curfew' }] },
     ],
   },
   {
@@ -411,8 +416,19 @@ export function visibleRows(section, selectedTypes, mode = 'RENT') {
   return section.rows.filter((row) => matchesTypes(row.types, selectedTypes) && matchesMode(row.modes, mode))
 }
 
-export function visibleSections(selectedTypes, mode = 'RENT') {
-  return FILTER_SECTIONS.filter((section) => {
+// Which sections to render for the current property-type selection — a section
+// whose rows are all type-gated away is skipped entirely.
+//
+// The `sections` parameter exists on mobile ONLY to keep this signature
+// identical to web's, and defaults to the one config this app has. Web needs it
+// because the admin panel passes its own superset (ADMIN_FILTERS); mobile has
+// no admin surface and never will (admins are platform operators, not app
+// users). Without the parameter the signatures were (types, sections, mode) and
+// (types, mode) — so the next person copying a web fix across would pass the
+// sections OBJECT as `mode`, and every mode gate would silently fail closed.
+// One unused argument is cheaper than that.
+export function visibleSections(selectedTypes, sections = FILTER_SECTIONS, mode = 'RENT') {
+  return sections.filter((section) => {
     if (section.requiresType) {
       if (!intersects(selectedTypes, section.types)) return false
     } else if (!matchesTypes(section.types, selectedTypes)) return false
@@ -459,7 +475,7 @@ export function clearSectionPatch(section, selectedTypes = [], mode = 'RENT') {
 // visible must reset — an invisible PG filter would otherwise keep
 // constraining an Apartment search to zero results.
 export function staleFilterPatch(newTypes, mode = 'RENT') {
-  const visible = visibleSections(newTypes, mode)
+  const visible = visibleSections(newTypes, undefined, mode)
   const visibleIds = new Set(visible.flatMap((s) => sectionFilterIds(s, newTypes, mode)))
   const patch = {}
   for (const section of FILTER_SECTIONS) {

@@ -96,15 +96,61 @@ export const prismaMock = {
   },
   lease: {
     findUnique: vi.fn(),
+    // Same reasoning as conversation.findFirst above.
+    findFirst:  vi.fn().mockResolvedValue(null),
     findMany:   vi.fn(),
     create:     vi.fn(),
     update:     vi.fn(),
     count:      vi.fn().mockResolvedValue(0),
   },
-  // Host dashboard surfaces (features/host/host.service.js)
+  // Host dashboard surfaces (features/host/host.service.js) + admin moderation
   communityReview: {
     findMany: vi.fn(),
     count:    vi.fn(),
+    update:   vi.fn(),
+  },
+  activityLog: {
+    create: vi.fn().mockResolvedValue({}),
+  },
+  moderationAction: {
+    create: vi.fn().mockResolvedValue({}),
+  },
+  // ── Support & Trust ──────────────────────────────────────────────────────
+  // Defaults are "no cases, empty threads", which is a fresh install and the
+  // state every unrelated suite runs in — a report now creates a case as a side
+  // effect, so these are reached by tests that are not about support at all.
+  supportCase: {
+    create:     vi.fn().mockResolvedValue({ id: 'case-1', number: 1 }),
+    findUnique: vi.fn().mockResolvedValue(null),
+    findMany:   vi.fn().mockResolvedValue([]),
+    update:     vi.fn().mockResolvedValue({}),
+    count:      vi.fn().mockResolvedValue(0),
+    groupBy:    vi.fn().mockResolvedValue([]),
+  },
+  supportMessage: {
+    findMany:   vi.fn().mockResolvedValue([]),
+    create:     vi.fn().mockResolvedValue({ id: 'msg-1' }),
+    update:     vi.fn().mockResolvedValue({}),
+    updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    count:      vi.fn().mockResolvedValue(0),
+  },
+  supportAttachment: {
+    create:   vi.fn().mockResolvedValue({}),
+    findMany: vi.fn().mockResolvedValue([]),
+  },
+  supportEvent: {
+    create:   vi.fn().mockResolvedValue({}),
+    findMany: vi.fn().mockResolvedValue([]),
+  },
+  knowledgeCategory: {
+    findMany: vi.fn().mockResolvedValue([]),
+  },
+  knowledgeArticle: {
+    findMany:   vi.fn().mockResolvedValue([]),
+    // findFirst, not findUnique: an article is fetched by slug AND published,
+    // so the read cannot be a unique lookup on slug alone.
+    findFirst:  vi.fn().mockResolvedValue(null),
+    findUnique: vi.fn().mockResolvedValue(null),
   },
   savedListing: {
     count: vi.fn(),
@@ -123,6 +169,24 @@ export const prismaMock = {
     groupBy:    vi.fn().mockResolvedValue([]),
     findMany:   vi.fn().mockResolvedValue([]),
     deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+  },
+  // Append-only status log — supply measured net. Defaults resolve, because
+  // every writer is fire-and-forget and an unmocked reject would surface as an
+  // unhandled rejection in whichever suite happened to publish a listing.
+  // Platform operators — a separate table and a separate JWT secret from User
+  // (see .claude/auth.md). findFirst, not findUnique: admin sign-in matches the
+  // address case-insensitively.
+  admin: {
+    findFirst:  vi.fn().mockResolvedValue(null),
+    findUnique: vi.fn(),
+    update:     vi.fn(),
+    upsert:     vi.fn(),
+  },
+  propertyStatusEvent: {
+    create:     vi.fn().mockResolvedValue({}),
+    createMany: vi.fn().mockResolvedValue({ count: 0 }),
+    findMany:   vi.fn().mockResolvedValue([]),
+    groupBy:    vi.fn().mockResolvedValue([]),
   },
   propertyDailyView: {
     aggregate: vi.fn(),
@@ -188,6 +252,10 @@ export const prismaMock = {
     create:     vi.fn(),
     findMany:   vi.fn(),
     findUnique: vi.fn(),
+    // Defaults to null, and that default is the safe one: the report thread
+    // scopes the reporter's read by (id, reporterId) through findFirst, so a
+    // mock returning something by accident would look like access granted.
+    findFirst:  vi.fn().mockResolvedValue(null),
     update:     vi.fn(),
     count:      vi.fn(),
   },
@@ -201,6 +269,10 @@ export const prismaMock = {
   },
   conversation: {
     findUnique: vi.fn(),
+    // Null by default, and that default is the safe one: createCaseForUser
+    // verifies a related reference belongs to the caller before storing it, so
+    // "not yours" is what an unmocked call should look like.
+    findFirst:  vi.fn().mockResolvedValue(null),
     findMany:   vi.fn(),
     create:     vi.fn(),
     update:     vi.fn(),

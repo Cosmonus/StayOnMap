@@ -5,7 +5,7 @@ import * as oauth from './oauth.service.js'
 import { enabledProviders } from './oauth.providers.js'
 import { smsConfigured } from '../../lib/smsSender.js'
 import { env } from '../../config/env.js'
-import { ok, created } from '../../utils/response.js'
+import { ok, created, notFound } from '../../utils/response.js'
 import { missingProfileFields } from '../../middlewares/requireCompleteProfile.middleware.js'
 
 // Where sessions are born, the request's device fingerprint comes along.
@@ -237,7 +237,9 @@ export async function unlinkProvider(req, res, next) {
 export async function getMe(req, res, next) {
   try {
     const user = await service.getUserById(req.user.id)
-    if (!user) return res.status(404).json({ success: false, error: 'NOT_FOUND', message: 'User not found' })
+    // notFound(), not a hand-rolled body: the helper carries `statusCode`, which
+    // this was missing while every other 404 in the app has it.
+    if (!user) return notFound(res, 'User not found')
     // `profileComplete` / `missingProfileFields` mirror the requireCompleteProfile
     // middleware that gates POST /properties, computed from the same function so
     // the two can't disagree. The client needs this BEFORE the wizard, not as a

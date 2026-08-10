@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma.js'
+import { recordStatusChange } from '../properties/statusEvents.js'
 import { notifyUser } from '../notifications/notifications.service.js'
 import { awardPoints } from '../points/points.service.js'
 
@@ -85,6 +86,11 @@ export async function signLease(leaseId, tenantId, { tenantNote }) {
     }),
   ])
 
+  // The most important churn event in the product: a signed lease is how a
+  // listing actually leaves the market. Logged AFTER the transaction commits —
+  // inside it, a metrics row that failed would roll back the tenancy.
+  recordStatusChange({ propertyId: lease.propertyId, from: 'ACTIVE', to: 'OCCUPIED', actor: 'owner' })
+
   await notifyUser(lease.ownerId, {
     type:          'LEASE_SIGNED',
     title:         'Lease signed',
@@ -142,6 +148,11 @@ export async function terminateLease(leaseId, ownerId, { ownerNote }) {
       data: { status: 'ACTIVE', currentTenantId: null, occupiedSince: null },
     }),
   ])
+
+  // Back on the market. Not new supply — publishedAt.js refuses an OCCUPIED
+  // origin for the same reason — but it IS a listing becoming available, which
+  // is what the net line has to show.
+  recordStatusChange({ propertyId: lease.propertyId, from: 'OCCUPIED', to: 'ACTIVE', actor: 'owner' })
 
   await notifyUser(lease.tenantId, {
     type:          'SYSTEM',

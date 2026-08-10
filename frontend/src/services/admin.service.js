@@ -23,18 +23,61 @@ export const adminService = {
   logs:          (params)       => adminApi.get('/admin/logs', { params }),
   // Supply, owner responsiveness and the conversation-to-tenancy chain. One
   // call because they are one screen — see features/analytics/marketplace.service.js.
-  marketplace:   ()             => adminApi.get('/admin/analytics/marketplace'),
+  marketplace:   (params)       => adminApi.get('/admin/analytics/marketplace', { params }),
+
+  // Re-run the checks on one listing. Deterministic scores always work;
+  // the AI scans short-circuit to an empty result unless AI_PROVIDER is set,
+  // which is why their buttons are gated on `property.aiEnabled`.
+  recalculateScores: (propertyId) => adminApi.post(`/admin/trust-scores/${propertyId}/recalculate`),
+  fraudScan:         (propertyId) => adminApi.post(`/admin/ai/fraud-scan/${propertyId}`),
+  reviewScan:        (reviewId)   => adminApi.post(`/admin/ai/review-scan/${reviewId}`),
   amenities:     ()             => adminApi.get('/admin/amenities'),
   addAmenity:    (name)         => adminApi.post('/admin/amenities', { name }),
   deleteAmenity: (id)           => adminApi.delete(`/admin/amenities/${id}`),
   reports:       (params)       => adminApi.get('/admin/reports', { params }),
   moderateReport: (id, data)    => adminApi.patch(`/admin/reports/${id}/moderate`, data),
+  // The reporter↔moderator thread on a report. `awaiting` is how the queue
+  // badges a reply, since the admin side has no notification stream.
+  reportThread:  (id)           => adminApi.get(`/admin/reports/${id}/messages`),
+  replyToReport: (id, body)     => adminApi.post(`/admin/reports/${id}/messages`, { body }),
+  reportsAwaiting: ()           => adminApi.get('/admin/reports/awaiting'),
   verifications: (params)       => adminApi.get('/admin/verifications', { params }),
   reviewVerification: (id, data)=> adminApi.patch(`/admin/verifications/${id}`, data),
   reviews:       (params)       => adminApi.get('/admin/reviews', { params }),
   setReviewStatus: (id, status) => adminApi.patch(`/admin/reviews/${id}/status`, { status }),
   getMonitorStatus: ()          => adminApi.get('/admin/monitor'),
   getDataQuality: ()            => adminApi.get('/admin/data-quality'),
+  // Not under /admin, but admin-authed all the same (graph.routes.js gates it
+  // with adminAuthMiddleware), so it belongs on the adminApi instance and here
+  // rather than in graph.service.js — which uses the USER instance for the two
+  // renter-facing graph surfaces. GraphHealthCard called adminApi directly
+  // until 2026-08-10.
+  getGraphHealth:   ()          => adminApi.get('/graph/health'),
+  // ── Support & Trust ──────────────────────────────────────────────────────
+  // The unified case layer. `supportCounts` is its own call rather than a field
+  // on the list: the dashboard tiles are counts over EVERY case, and the list
+  // is one filtered page — deriving the tiles from the page would show "3 open"
+  // when three of the twenty-five on screen happen to be open.
+  supportCases:    (params)     => adminApi.get('/admin/support/cases', { params }),
+  supportCounts:   ()           => adminApi.get('/admin/support/cases/counts'),
+  supportCase:     (id)         => adminApi.get(`/admin/support/cases/${id}`),
+  supportReply:    (id, body, visibility) => adminApi.post(`/admin/support/cases/${id}/messages`, { body, visibility }),
+  supportSetStatus:(id, status, reason) => adminApi.patch(`/admin/support/cases/${id}/status`, { status, reason }),
+  supportSetPriority: (id, priority)    => adminApi.patch(`/admin/support/cases/${id}/priority`, { priority }),
+  supportAssign:   (id, assignedToId)   => adminApi.post(`/admin/support/cases/${id}/assign`, { assignedToId }),
+  // Not under /cases — it is a list of people, not of cases.
+  supportAssignees: ()          => adminApi.get('/admin/support/assignees'),
+  // Multipart: uploads and attaches in ONE call. /uploads/* is user-JWT only,
+  // so this is the only upload route staff can reach. `visibility` rides as a
+  // plain form field and is clamped server-side.
+  supportUpload:   (id, file, visibility) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (visibility) form.append('visibility', visibility)
+    return adminApi.post(`/admin/support/cases/${id}/upload`, form)
+  },
+  supportEscalate: (id, reason) => adminApi.post(`/admin/support/cases/${id}/escalate`, { reason }),
+
   getProfile:       ()          => adminApi.get('/admin/profile'),
   updateProfile:    (data)      => adminApi.patch('/admin/profile', data),
   changePassword:   (data)      => adminApi.patch('/admin/profile/password', data),

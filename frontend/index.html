@@ -86,10 +86,12 @@
     <!-- Performance hints -->
     <link rel="preconnect" href="https://maps.googleapis.com" />
     <link rel="preconnect" href="https://maps.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="dns-prefetch" href="https://rnfjdpbsxdwcpawvriqg.supabase.co" />
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <!-- Fonts are SELF-HOSTED (@font-face in src/index.css, files in
+         /public/fonts). Do not reintroduce a fonts.googleapis.com link: it was
+         the last third-party request this site made, /privacy §7 says there is
+         none, and no-third-party-tags.test.js fails the build if one returns. -->
+    <link rel="preload" href="/fonts/PlusJakartaSans-latin.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>
     <div id="root"></div>

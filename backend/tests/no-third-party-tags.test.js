@@ -24,7 +24,7 @@
  * not here.
  */
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -47,10 +47,16 @@ const indexHtml = () => readFileSync(join(ROOT, 'frontend', 'index.html'), 'utf8
 const ALLOWED_HOSTS = [
   'maps.googleapis.com',   // the Maps JS SDK — the product IS the map
   'maps.gstatic.com',      // map tiles and sprites for the above
-  'fonts.googleapis.com',  // Plus Jakarta Sans / Fraunces / JetBrains Mono
-  'fonts.gstatic.com',     // the font files themselves
   '.supabase.co',          // listing photos and verification documents
 ]
+
+// fonts.googleapis.com and fonts.gstatic.com were on this list until
+// 2026-08-10 and are now REMOVED, not merely unused: the three families are
+// served from /public/fonts, so the page reaches for them no more. The comment
+// above promised removing a host would be free, and it was. Re-adding either
+// one is a real decision — it puts an IP address in front of Google on every
+// page load — so let this test fail rather than widening the list back.
+const REMOVED_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com']
 
 // Strip HTML comments first — this file documents the removed tag by name, and
 // a checker that reads its own warning as a violation is worse than useless.
@@ -68,6 +74,30 @@ describe('frontend/index.html loads nothing that measures anybody', () => {
     // The failure message names the offender, because the fix is a decision
     // (does /privacy §8 have to change?) rather than a deletion.
     expect(externalUrls(indexHtml())).toEqual([])
+  })
+
+  it('no longer fetches its fonts from Google', () => {
+    // Not covered by the check above: those hosts WERE allow-listed, so a
+    // regression would have passed silently for exactly as long as the list
+    // still named them.
+    const src = withoutComments(indexHtml())
+    for (const host of REMOVED_HOSTS) {
+      expect(src, `index.html reaches ${host} again — the fonts are self-hosted`).not.toContain(host)
+    }
+  })
+
+  it('serves every self-hosted font file it declares', () => {
+    // A @font-face pointing at a missing file is invisible: the browser falls
+    // back silently and the site renders in Arial for everyone.
+    const css = readFileSync(join(ROOT, 'frontend', 'src', 'index.css'), 'utf8')
+    const declared = [...css.matchAll(/url\('\/fonts\/([^']+)'\)/g)].map((m) => m[1])
+    expect(declared.length).toBeGreaterThan(0)
+    for (const file of new Set(declared)) {
+      expect(
+        existsSync(join(ROOT, 'frontend', 'public', 'fonts', file)),
+        `index.css declares /fonts/${file}, which is not in frontend/public/fonts`,
+      ).toBe(true)
+    }
   })
 
   it('has no analytics or tag-manager snippet', () => {

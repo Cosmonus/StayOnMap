@@ -6,8 +6,11 @@ import { sendEmail, adminPasswordChangedEmail } from '../../services/email.servi
 import { mailStatus } from '../../lib/mailer.js'
 import { smsStatus } from '../../lib/smsSender.js'
 import { errorStatus } from '../../lib/errorLog.js'
+import { disconnectUser } from '../../lib/socket.js'
+import { aiEnabled } from '../ai/ai.service.js'
 import { ADMIN_FILTERS, buildFilterWhere } from '../properties/filters.registry.js'
 import { firstPublishStamp } from '../properties/publishedAt.js'
+import { recordStatusChange, recordBulkStatusChange } from '../properties/statusEvents.js'
 import { parseBounds, boundsFilter } from '../../utils/geo.js'
 import { getContext, STATUS_FAILED } from '../spatial/spatial.service.js'
 import { intelError } from '../../lib/intelLog.js'
@@ -15,7 +18,23 @@ import { notifyUser } from '../notifications/notifications.service.js'
 import { refreshSimilarityWithNeighbours } from '../graph/similarity.js'
 
 export async function adminLogin(email, password) {
-  const admin = await prisma.admin.findUnique({ where: { email } })
+  // findFirst + insensitive, NOT findUnique on the raw string.
+  //
+  // User login has normalised its email (`trim().toLowerCase()` in
+  // auth.validation.js) since it was written; admin login never did, and
+  // `findUnique` is exact-match. So a mobile keyboard autocapitalising the
+  // first letter, or a trailing space from a paste, returned "Invalid
+  // credentials" against a perfectly correct password — indistinguishable
+  // from a wrong one, because this function deliberately gives both the same
+  // answer.
+  //
+  // Matched case-insensitively rather than lowercasing the input, because
+  // neither prisma/seed.js nor scripts/update-admin.js normalises what it
+  // STORES: an account created with a capital in it would be locked out by the
+  // other fix. `Admin.email` is @unique, so there is no ambiguity to resolve.
+  const admin = await prisma.admin.findFirst({
+    where: { email: { equals: email.trim(), mode: 'insensitive' } },
+  })
   if (!admin) throw Object.assign(new Error('Invalid credentials'), { statusCode: 401 })
   const valid = await bcrypt.compare(password, admin.passwordHash)
   if (!valid) throw Object.assign(new Error('Invalid credentials'), { statusCode: 401 })
@@ -155,7 +174,25 @@ export async function getUserDetail(userId) {
       avatarUrl: true, role: true, isVerified: true, isBlocked: true,
       isBusiness: true, businessSince: true, lastLoginAt: true, createdAt: true,
 
-      // Owner hat — their listings and the tenancies they granted
+      // Owner hat — their listings and the tenancies they granted.
+      //
+      // The score is recalculated constantly (trust.service.js) and shown to
+      // RENTERS, and until 2026-08-10 the admin looking at the owner was the
+      // one person who could not see it. Nullable: an owner with no listings
+      // has never been scored, which is different from scoring zero.
+      ownerTrustScore: {
+        select: { score: true, level: true, responseRate: true, reviewAvg: true, verificationLevel: true, updatedAt: true },
+      },
+      // Award farming is the risk docs/points-and-sharing.md is built around —
+      // the anti-farming rules (idempotent by (user, action, reference), the
+      // two largest awards paid only on a moderator's decision) exist because
+      // of it. An admin investigating it could not see anybody's ledger at all.
+      // Capped like every other list here; the true total is in _count below.
+      pointsLedger: {
+        select: { id: true, action: true, points: true, referenceId: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      },
       properties: {
         select: { id: true, title: true, status: true, city: true, type: true, rent: true, pricingModel: true, createdAt: true },
         orderBy: { createdAt: 'desc' },
@@ -211,6 +248,10 @@ export async function getUserDetail(userId) {
           tenantLeases: true, ownerLeases: true,
           tenantConversations: true, ownerConversations: true,
           savedListings: true,
+          // So the capped ledger above can say "20 of N" rather than implying
+          // 20 is the whole story — which is the number that matters when the
+          // question is whether someone is farming awards.
+          pointsLedger: true,
         },
       },
     },
@@ -222,7 +263,25 @@ export async function getUserDetail(userId) {
 export async function toggleUserBlock(userId, blocked, reason, adminId) {
   const user = await prisma.user.update({ where: { id: userId }, data: { isBlocked: blocked } })
   if (blocked) {
+    // Resolved BEFORE the update: updateMany returns a count, not rows, so
+    // afterwards there is no way to know which listings were suspended. This is
+    // real churn — leaving it out understates exactly the weeks moderation was
+    // busiest.
+    const suspended = await prisma.property.findMany({
+      where: { ownerId: userId, status: 'ACTIVE' },
+      select: { id: true },
+    })
     await prisma.property.updateMany({ where: { ownerId: userId, status: 'ACTIVE' }, data: { status: 'SUSPENDED' } })
+    recordBulkStatusChange({ propertyIds: suspended.map((p) => p.id), from: 'ACTIVE', to: 'SUSPENDED', actor: 'admin' })
+
+    // Their listings are down and their next request will 403 — but a socket
+    // opened before this moment stays open, keeping them in every conversation
+    // room with messages still delivering. The handshake now checks isBlocked
+    // (lib/socket.js), which covers the next connection; this covers the
+    // current one, and someone being blocked mid-abuse is precisely the person
+    // who will not helpfully reconnect. Fire-and-forget: a socket layer that is
+    // down must not fail the block.
+    try { disconnectUser(userId) } catch { /* the block is what matters */ }
   }
   await prisma.activityLog.create({ data: { adminId, action: blocked ? 'USER_BLOCKED' : 'USER_UNBLOCKED', entity: 'User', entityId: userId, meta: { reason } } })
   return user
@@ -264,6 +323,20 @@ export async function getAdminPropertyById(id) {
       owner: { select: { id: true, displayId: true, name: true, email: true, phone: true, avatarUrl: true, isVerified: true, isBusiness: true, createdAt: true } },
       trustScore: true,
       riskScore: true,
+      // Eleven services WRITE PropertyStatusEvent and, until 2026-08-10,
+      // nothing read it except in aggregate — so the detail view showed a
+      // current status with no history, and the exact question moderation asks
+      // ("when did this go ACTIVE, and who flipped it") was already sitting in
+      // the table unanswered. `Property.status` is one column that overwrites
+      // itself, which is the whole reason the log exists.
+      //
+      // Newest first and bounded: a listing toggled daily for a year would
+      // otherwise put 365 rows in a moderation payload.
+      statusEvents: {
+        select: { id: true, fromStatus: true, toStatus: true, actor: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      },
       amenities: { select: { amenity: { select: { id: true, name: true } } } },
       rules: true,
       appointments: {
@@ -318,6 +391,13 @@ export async function getAdminPropertyById(id) {
     intelError('spatial.context_failed', err, { propertyId: property.id })
     return { modules: null, pending: false, status: STATUS_FAILED }
   })
+
+  // Can this deployment actually run an AI scan on this listing? Ridden along
+  // with the payload rather than fetched separately: it gates one button on
+  // this very screen, and a second request for one boolean is a request the
+  // screen does not need. Same shape as `phoneVerificationAvailable` on the
+  // user settings payload.
+  property.aiEnabled = aiEnabled()
 
   return property
 }
@@ -418,6 +498,7 @@ export async function setPropertyStatus(propertyId, status, note, adminId) {
     where: { id: propertyId },
     data: { status, ...firstPublishStamp(current, status) },
   })
+  recordStatusChange({ propertyId, from: current.status, to: status, actor: 'admin' })
 
   // Becoming ACTIVE is the moment a listing enters the recommendable set, so it
   // is where the SIMILAR_TO edges have to be built — in BOTH directions, or the
@@ -645,7 +726,15 @@ export async function getAdminProfile(adminId) {
 
 export async function updateAdminProfile(adminId, { name, email }) {
   if (email) {
-    const existing = await prisma.admin.findFirst({ where: { email, id: { not: adminId } } })
+    // Case-INSENSITIVE, and it has to be: adminLogin matches that way, while
+    // Postgres unique indexes are case-sensitive. A sensitive check here would
+    // happily accept "OPS@x.com" alongside an existing "ops@x.com", and then a
+    // sign-in as either would resolve to whichever row findFirst reached first
+    // — two admins, one credential, decided by row order. The DB constraint
+    // cannot express this; it is the query's job.
+    const existing = await prisma.admin.findFirst({
+      where: { email: { equals: email.trim(), mode: 'insensitive' }, id: { not: adminId } },
+    })
     if (existing) throw Object.assign(new Error('Email already in use'), { statusCode: 409 })
   }
   return prisma.admin.update({
@@ -678,7 +767,13 @@ export async function moderateReview(reviewId, status, adminId) {
     // Points on APPROVAL, never on submit — otherwise writing junk reviews pays.
     // Idempotent by (userId, action, reviewId), so re-approving doesn't re-pay.
     const { awardPoints } = await import('../points/points.service.js')
-    awardPoints(review.authorId, 'REVIEW_APPROVED', reviewId).catch(() => {})
+    // `reviewerId`, not `authorId` — CommunityReview has never had an
+    // `authorId` column. This read undefined, `awardPoints` no-opped, and the
+    // fire-and-forget `.catch()` around it meant the largest award in the
+    // ledger (80 points) silently never fired for anyone. `.claude/database.md`
+    // documented the wrong name too; the doc drift and the bug were the same
+    // mistake, fixed together.
+    awardPoints(review.reviewerId, 'REVIEW_APPROVED', reviewId).catch(() => {})
   }
   return review
 }

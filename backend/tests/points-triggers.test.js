@@ -55,6 +55,48 @@ describe('updateUser → PROFILE_COMPLETED', () => {
   })
 })
 
+describe('moderateReview → REVIEW_APPROVED', () => {
+  // The largest award in the ledger, and it had NEVER been paid. The call
+  // passed `review.authorId`; CommunityReview's column is `reviewerId`, so the
+  // id was undefined, `awardPoints` no-opped on it, and the fire-and-forget
+  // `.catch()` around the call meant nothing ever surfaced. `.claude/database.md`
+  // documented the wrong name too — the doc drift and the bug were one mistake.
+  //
+  // Asserting on the ARGUMENT rather than the ledger row, because that is where
+  // it went wrong: a mocked awardPoints would have accepted undefined happily.
+  it('pays the reviewer, reading the field the model actually has', async () => {
+    const { moderateReview } = await import('../src/features/admin/admin.service.js')
+
+    prismaMock.communityReview.update.mockResolvedValue({
+      id: 'rev-1', propertyId: 'prop-1', reviewerId: 'user-9', status: 'APPROVED',
+    })
+    prismaMock.activityLog.create.mockResolvedValue({})
+
+    await moderateReview('rev-1', 'APPROVED', 'admin-1')
+    await new Promise((r) => setImmediate(r))
+
+    expect(prismaMock.pointsLedger.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ userId: 'user-9', action: 'REVIEW_APPROVED' }),
+      })
+    )
+  })
+
+  it('pays nothing on a rejection', async () => {
+    const { moderateReview } = await import('../src/features/admin/admin.service.js')
+
+    prismaMock.communityReview.update.mockResolvedValue({
+      id: 'rev-2', propertyId: 'prop-1', reviewerId: 'user-9', status: 'REJECTED',
+    })
+    prismaMock.activityLog.create.mockResolvedValue({})
+
+    await moderateReview('rev-2', 'REJECTED', 'admin-1')
+    await new Promise((r) => setImmediate(r))
+
+    expect(prismaMock.pointsLedger.create).not.toHaveBeenCalled()
+  })
+})
+
 describe('getPointsSummary available-actions checklist', () => {
   it('never advertises PHONE_VERIFIED — there is no flow that can earn it', async () => {
     const summary = await getPointsSummary('u1')

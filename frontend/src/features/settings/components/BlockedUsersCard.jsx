@@ -34,7 +34,7 @@ export default function BlockedUsersCard() {
       qc.invalidateQueries({ queryKey: ['conversations'] })
       toast.success('Unblocked', 'They can message you again')
     },
-    onError: (err) => toast.error('Error', err?.response?.data?.message ?? 'Could not unblock'),
+    onError: (err) => toast.error('Error', err?.message ?? 'Could not unblock'),
   })
 
   return (

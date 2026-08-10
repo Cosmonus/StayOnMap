@@ -9,7 +9,9 @@
 //   a step's own date must not let it outgrow the step above it
 //   a median must never be reported without its sample size
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { prismaMock } from './mocks/prisma.js'
+import { funnelQuerySchema } from '../src/features/analytics/analytics.validation.js'
 import { firstPublishStamp } from '../src/features/properties/publishedAt.js'
 import {
   getDraftFunnel,
@@ -30,6 +32,7 @@ beforeEach(() => {
   prismaMock.appointment.count.mockResolvedValue(0)
   prismaMock.lease.count.mockResolvedValue(0)
   prismaMock.lease.findMany.mockResolvedValue([])
+  prismaMock.appointment.findMany.mockResolvedValue([])
   prismaMock.property.findMany.mockResolvedValue([])
   prismaMock.propertyDailyView.groupBy.mockResolvedValue([])
   prismaMock.conversation.groupBy.mockResolvedValue([])
@@ -118,11 +121,28 @@ describe('getMatchChain', () => {
     for (let i = 1; i < counts.length; i++) expect(counts[i]).toBeLessThanOrEqual(counts[i - 1])
   })
 
+  // These two fixtures carried `appointment: { createdAt }` until 2026-08-10 —
+  // a relation `Lease` does not have. The service selected it, Prisma threw
+  // PrismaClientValidationError on every real call, and the whole admin
+  // marketplace endpoint 500'd because the controller runs these in a
+  // Promise.all. The suite stayed green throughout, because a MOCK returns
+  // whatever shape the fixture invents.
+  //
+  // That is the lesson worth keeping: a fixture is not evidence a query can
+  // run. tests/prisma-field-names.test.js checks the field names against
+  // schema.prisma, which is the only thing here that can.
   it('measures time-to-lease from the visit request, not the lease offer', async () => {
+    // `appointmentId` is a bare column on Lease with NO relation, so the start
+    // date comes from a SECOND query. Selecting it as a relation is a runtime
+    // Prisma error that a mocked client cannot see — it 500'd production while
+    // this suite was green, which is why the fixture now mirrors the real two
+    // -query shape instead of a join that does not exist.
     const requested = ago(10 * 24 * HOUR)
     prismaMock.lease.findMany.mockResolvedValue([
-      { createdAt: ago(2 * 24 * HOUR), signedAt: ago(0), appointment: { createdAt: requested } },
+      { createdAt: ago(2 * 24 * HOUR), signedAt: ago(0), appointmentId: 'a1' },
     ])
+    prismaMock.appointment.findMany.mockResolvedValue([{ id: 'a1', createdAt: requested }])
+
     const res = await getMatchChain()
     expect(res.medianDaysToLease).toBe(10)
     expect(res.samples).toBe(1)
@@ -133,11 +153,20 @@ describe('getMatchChain', () => {
     // Falling back to the offer date would report a much shorter journey under
     // the same label.
     prismaMock.lease.findMany.mockResolvedValue([
-      { createdAt: ago(2 * 24 * HOUR), signedAt: ago(0), appointment: null },
+      { createdAt: ago(2 * 24 * HOUR), signedAt: ago(0), appointmentId: null },
     ])
     const res = await getMatchChain()
     expect(res.medianDaysToLease).toBeNull()
     expect(res.samples).toBe(0)
+  })
+
+  it('does not query appointments at all when no signed lease references one', async () => {
+    prismaMock.lease.findMany.mockResolvedValue([
+      { createdAt: ago(2 * 24 * HOUR), signedAt: ago(0), appointmentId: null },
+    ])
+    prismaMock.appointment.findMany.mockClear()
+    await getMatchChain()
+    expect(prismaMock.appointment.findMany).not.toHaveBeenCalled()
   })
 })
 
@@ -201,5 +230,46 @@ describe('getListingReadiness', () => {
     expect(res.verified).toBe(1)
     // Only the two that need work, never the healthy one.
     expect(res.worst.map((p) => p.id)).toEqual(['a', 'b'])
+  })
+})
+
+// The bound MOVED on 2026-08-10, from a hand-rolled clamp inside `marketplace`
+// to funnelQuerySchema on the route — which is the point. `/analytics/funnel`
+// and `/analytics/demand` sit three lines away in the same router and had NO
+// bound at all: `Number(req.query.days)` turned "?days=abc" into NaN, then an
+// Invalid Date, then a 500, and a huge value was an unbounded scan of
+// AnalyticsEvent anyone with an admin session could trigger from the address
+// bar. The clamp existing next door is exactly what made its absence invisible.
+//
+// So these now assert the SCHEMA rather than one controller: one rule, checked
+// once, covering all three routes instead of the only one that had it.
+describe('the days window on the admin analytics routes', () => {
+  it('refuses a hostile value rather than passing it through', async () => {
+    // `days` reaches three date-range queries, one of which scans a message
+    // log. Rejected at the edge, so no controller has to remember.
+    expect(funnelQuerySchema.safeParse({ days: '99999' }).success).toBe(false)
+    expect(funnelQuerySchema.safeParse({ days: '365' }).data.days).toBe(365)
+  })
+
+  it('refuses a value that is not a positive number', () => {
+    // 400, not NaN. NaN became an Invalid Date, which makes every date
+    // comparison in the query silently false — a readout of zeros that looks
+    // like a quiet week.
+    for (const days of ['yesterday', '0', '-5', '']) {
+      expect(funnelQuerySchema.safeParse({ days }).success).toBe(false)
+    }
+  })
+
+  it('leaves an absent value absent, so each readout keeps its own default', () => {
+    expect(funnelQuerySchema.safeParse({}).success).toBe(true)
+    expect(funnelQuerySchema.safeParse({}).data.days).toBeUndefined()
+  })
+
+  it('is wired to all three analytics routes, not just the one that had a clamp', () => {
+    const src = readFileSync(new URL('../src/features/admin/admin.routes.js', import.meta.url), 'utf8')
+    for (const route of ['/analytics/funnel', '/analytics/demand', '/analytics/marketplace']) {
+      const line = src.split('\n').find((l) => l.includes(`'${route}'`))
+      expect(line, `${route} is not validated`).toMatch(/funnelQuerySchema/)
+    }
   })
 })

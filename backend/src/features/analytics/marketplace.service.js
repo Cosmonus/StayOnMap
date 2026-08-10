@@ -160,7 +160,14 @@ export async function getMatchChain({ days = 90 } = {}) {
     prisma.lease.count({ where: { createdAt: window } }),
     prisma.lease.findMany({
       where: { createdAt: window, signedAt: { not: null } },
-      select: { signedAt: true, createdAt: true, appointment: { select: { createdAt: true } } },
+      // `appointmentId` is a BARE COLUMN on Lease — there is no `appointment`
+      // relation to include, so this is resolved in a second query below.
+      // Selecting it as a relation is a runtime Prisma error, not a type error,
+      // and a mocked client in a unit test validates nothing: it 500'd the
+      // whole endpoint in production while the suite stayed green.
+      // tests/prisma-field-names.test.js now checks every select against
+      // schema.prisma, which is the only thing that could have caught it.
+      select: { signedAt: true, createdAt: true, appointmentId: true },
     }),
   ])
 
@@ -169,9 +176,23 @@ export async function getMatchChain({ days = 90 } = {}) {
   // (an owner and renter who sorted it out in chat) has no such start, so it
   // is excluded from the duration rather than measured from the offer, which
   // would be a different and much shorter thing wearing the same label.
+  //
+  // Two queries rather than a join, because `Lease.appointmentId` is a plain
+  // column with no relation declared. One extra round trip on a handful of ids.
+  const appointmentIds = signedRows.map((l) => l.appointmentId).filter(Boolean)
+  const starts = appointmentIds.length
+    ? new Map(
+      (await prisma.appointment.findMany({
+        where: { id: { in: appointmentIds } },
+        select: { id: true, createdAt: true },
+      })).map((a) => [a.id, a.createdAt]),
+    )
+    : new Map()
+
   const durations = signedRows
-    .filter((l) => l.appointment?.createdAt)
-    .map((l) => (l.signedAt.getTime() - l.appointment.createdAt.getTime()) / DAY_MS)
+    .map((l) => ({ signedAt: l.signedAt, startedAt: starts.get(l.appointmentId) }))
+    .filter((l) => l.startedAt)
+    .map((l) => (l.signedAt.getTime() - l.startedAt.getTime()) / DAY_MS)
     .sort((a, b) => a - b)
 
   return {
@@ -330,12 +351,42 @@ export async function getSupplyTrend({ weeks = 12 } = {}) {
     ORDER BY week ASC
   `
 
+  // What LEFT the market, from the status log. Without this the chart only ever
+  // goes up — a picture of a market where nothing is rented, paused or removed.
+  const departures = await prisma.$queryRaw`
+    SELECT
+      TO_CHAR(DATE_TRUNC('week', "createdAt"), 'YYYY-MM-DD') AS week,
+      CAST(COUNT(*) AS INTEGER)                              AS left_market
+    FROM "PropertyStatusEvent"
+    WHERE "createdAt" >= ${since}
+      AND "fromStatus" = 'ACTIVE'
+      AND "toStatus" <> 'ACTIVE'
+    GROUP BY DATE_TRUNC('week', "createdAt")
+    ORDER BY DATE_TRUNC('week', "createdAt") ASC
+  `
+  const leftBy = new Map(departures.map((r) => [r.week, Number(r.left_market)]))
+
   return {
     weeks,
     // Said out loud rather than left for a reader to infer from a flat line:
     // every listing that went live before this date has a NULL publishedAt and
-    // cannot be placed on the published series.
+    // cannot be placed on the published series. The same is true of departures —
+    // the status log starts empty, so early weeks show no churn because none was
+    // recorded, not because none happened.
     publishedTrackedSince: '2026-08-10',
-    series: rows.map((r) => ({ week: r.week, created: Number(r.created), published: Number(r.published) })),
+    series: rows.map((r) => {
+      const published = Number(r.published)
+      const left = leftBy.get(r.week) ?? 0
+      return {
+        week: r.week,
+        created: Number(r.created),
+        published,
+        left,
+        // The number a marketplace lives on. Reported alongside its parts
+        // rather than instead of them: a net of zero from 8 in and 8 out is a
+        // different business from a net of zero from nothing happening.
+        net: published - left,
+      }
+    }),
   }
 }

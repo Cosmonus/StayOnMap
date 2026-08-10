@@ -11,6 +11,7 @@ import { useUiStore } from '@store/uiStore'
 import { useFilterStore } from '@store/filterStore'
 import { countActiveFilters } from '@/config/filters'
 import { chatService } from '@services/chat.service'
+import { supportService } from '@services/support.service'
 import { notificationService } from '@services/notification.service'
 import { authService } from '@services/auth.service'
 import MapFilterBar from '@features/map/components/MapFilterBar'
@@ -221,7 +222,7 @@ function GuestActions() {
 }
 
 // ── Traveler — logged in, not hosting ───────────────────────────────────────
-function TravelerActions({ unreadMessages, unreadOtherMode, onSwitchMode, isOwner, profile }) {
+function TravelerActions({ unreadMessages, unreadSupport, unreadOtherMode, onSwitchMode, isOwner, profile }) {
   const { pathname, search } = useLocation()
   const { signOut } = useAuth()
   const navigate = useNavigate()
@@ -248,7 +249,7 @@ function TravelerActions({ unreadMessages, unreadOtherMode, onSwitchMode, isOwne
     { key: 'leases',        label: 'Rented',        to: '/user?tab=leases',        icon: MENU_ICON.rented },
     { key: 'notifications', label: 'Notifications', to: '/user?tab=notifications', icon: MENU_ICON.notifications },
     { key: 'account',       label: 'Account',       to: '/user?tab=settings',      icon: MENU_ICON.account },
-    { key: 'support',       label: 'Support',       to: '/user?tab=support',       icon: MENU_ICON.support },
+    { key: 'support',       label: 'Support',       to: '/user?tab=support',       icon: MENU_ICON.support, badge: unreadSupport },
     { key: 'divider',       divider: true },
     // Badged with the OTHER hat's unread, because the tab badge beside it now
     // counts only this one. Without it, a message waiting on your host side is
@@ -294,7 +295,7 @@ function TravelerActions({ unreadMessages, unreadOtherMode, onSwitchMode, isOwne
 }
 
 // ── Host mode — persistent, replaces the traveler nav everywhere ───────────
-function HostActions({ unreadMessages, unreadOtherMode, onSwitchMode, profile }) {
+function HostActions({ unreadMessages, unreadSupport, unreadOtherMode, onSwitchMode, profile }) {
   const { pathname, search } = useLocation()
   const { signOut } = useAuth()
   const navigate = useNavigate()
@@ -315,7 +316,7 @@ function HostActions({ unreadMessages, unreadOtherMode, onSwitchMode, profile })
     { key: 'divider-tabs', divider: true },
     { key: 'notifications',      label: 'Notifications',      to: '/user?tab=notifications', icon: MENU_ICON.notifications },
     { key: 'account',            label: 'Account',             to: '/user?tab=settings',      icon: MENU_ICON.account },
-    { key: 'support',            label: 'Support',             to: '/user?tab=support',       icon: MENU_ICON.support },
+    { key: 'support',            label: 'Support',             to: '/user?tab=support',       icon: MENU_ICON.support, badge: unreadSupport },
     { key: 'divider',            divider: true },
     // See the matching note in TravelerActions: this badge is the renter-side
     // unread, which host mode's Inbox deliberately does not list.
@@ -379,13 +380,25 @@ export default function Header() {
     enabled: !!user,
   })
 
+  // Support is per hat for the same reason and by the same shape. It sits
+  // behind the hamburger with no other signal, so an answer to a request could
+  // otherwise sit unread indefinitely — the bell announces it once and the menu
+  // item never mentions it again.
+  const { data: unreadSupport } = useQuery({
+    queryKey: ['support-unread'],
+    queryFn: () => supportService.unread().then((r) => r.data),
+    enabled: !!user,
+  })
+
   const unreadMessages = (hostMode ? unread?.asOwner : unread?.asTenant) ?? 0
-  // What is waiting in the mode you are NOT in — messages and notifications
-  // together, because the switch answers one question: is there anything over
-  // there?
+  const unreadSupportHere = (hostMode ? unreadSupport?.asOwner : unreadSupport?.asTenant) ?? 0
+  // What is waiting in the mode you are NOT in — messages, notifications and
+  // support together, because the switch answers one question: is there
+  // anything over there?
   const unreadOtherMode =
     ((hostMode ? unread?.asTenant : unread?.asOwner) ?? 0) +
-    ((hostMode ? unreadNotifs?.asTenant : unreadNotifs?.asOwner) ?? 0)
+    ((hostMode ? unreadNotifs?.asTenant : unreadNotifs?.asOwner) ?? 0) +
+    ((hostMode ? unreadSupport?.asTenant : unreadSupport?.asOwner) ?? 0)
 
   const { data: profile } = useQuery({
     queryKey: ['me'],
@@ -443,9 +456,9 @@ export default function Header() {
         {!user ? (
           <GuestActions />
         ) : hostMode ? (
-          <HostActions unreadMessages={unreadMessages} unreadOtherMode={unreadOtherMode} onSwitchMode={switchMode} profile={profile ?? user} />
+          <HostActions unreadMessages={unreadMessages} unreadSupport={unreadSupportHere} unreadOtherMode={unreadOtherMode} onSwitchMode={switchMode} profile={profile ?? user} />
         ) : (
-          <TravelerActions unreadMessages={unreadMessages} unreadOtherMode={unreadOtherMode} onSwitchMode={switchMode} isOwner={isOwner} profile={profile ?? user} />
+          <TravelerActions unreadMessages={unreadMessages} unreadSupport={unreadSupportHere} unreadOtherMode={unreadOtherMode} onSwitchMode={switchMode} isOwner={isOwner} profile={profile ?? user} />
         )}
       </div>
 

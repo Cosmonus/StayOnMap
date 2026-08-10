@@ -31,7 +31,7 @@ export default function TermsOfServicePage() {
         description="The rules and disclaimers that govern your use of StayOnMap."
         canonical={canonical('/terms')}
       />
-      <LegalPageLayout title="Terms of Service" lastUpdated="August 7, 2026" sections={SECTIONS}>
+      <LegalPageLayout title="Terms of Service" lastUpdated="August 10, 2026" sections={SECTIONS}>
 
         <Section id="acceptance" title="1. Acceptance of terms">
           <p>

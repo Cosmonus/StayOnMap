@@ -643,3 +643,56 @@ describe('both place tiers are indexable; boundaries and landmarks are not', () 
     expect(pages.every((p) => p.indexable === false)).toBe(true)
   })
 })
+
+describe('a listing names the neighbourhood, not the owner\'s typing', () => {
+  // Production shipped `1 BHK apartment for rent in opp to pk store, Chennai`
+  // as a page title — the string WhatsApp showed every time somebody shared
+  // that listing, which in Indian rentals is how a listing travels at all.
+  //
+  // The cause was not the title code, which had been written to prefer a
+  // resolved Locality. It was that `FULL_INCLUDE` never selected `locality`, so
+  // the preference could not fire and the breadcrumb's middle rung was
+  // unreachable in the same stroke. A branch nothing can reach reads as
+  // implemented in review and is absent in production.
+  const withLocality = flat({
+    landmark: 'opp to pk store',
+    locality: { id: 'l1', name: 'Velachery', slug: 'velachery', citySlug: 'chennai' },
+  })
+
+  it('prefers the resolved locality in the title', () => {
+    expect(titleFor(withLocality)).toContain('Velachery')
+    expect(titleFor(withLocality)).not.toContain('opp to pk store')
+  })
+
+  it('prefers it in the structured address too', () => {
+    // A page whose breadcrumb says Velachery and whose addressLocality says a
+    // shop disagrees with itself in the one place a crawler reads both.
+    expect(jsonLdFor(withLocality).about.address.addressLocality).toBe('Velachery')
+  })
+
+  it('adds the locality rung to the breadcrumb', () => {
+    const names = jsonLdFor(withLocality).breadcrumb.itemListElement.map((c) => c.name)
+    expect(names.some((n) => n.startsWith('Velachery'))).toBe(true)
+  })
+
+  it('still falls back to the landmark when nothing is resolved', () => {
+    // Most listings have no locality yet (operator-actions.md 1.6g/1.6i), and
+    // "opp to pk store, Chennai" is worse than a ward name but better than
+    // "Chennai" alone.
+    const unresolved = flat({ landmark: 'opp to pk store', locality: null })
+    expect(titleFor(unresolved)).toContain('opp to pk store')
+    expect(jsonLdFor(unresolved).breadcrumb.itemListElement).toHaveLength(2)
+  })
+})
+
+describe('the query actually selects what the meta reads', () => {
+  it('FULL_INCLUDE carries locality, or every preference above is dead code', () => {
+    // The real defect was here, not in the meta. This asserts the JOIN exists,
+    // because a unit test of titleFor() passes a locality in by hand and can
+    // never notice that production has none.
+    const here = path.dirname(fileURLToPath(import.meta.url))
+    const src = readFileSync(path.resolve(here, '../src/features/properties/properties.service.js'), 'utf8')
+    const include = src.slice(src.indexOf('const FULL_INCLUDE'), src.indexOf('export async function listProperties'))
+    expect(include).toMatch(/locality:\s*\{/)
+  })
+})

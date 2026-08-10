@@ -6,7 +6,12 @@ import { intelLog, intelError } from '../../lib/intelLog.js'
 
 const MODEL = 'claude-haiku-4-5-20251001'
 
-function aiEnabled() {
+// Exported so a SURFACE can gate on it, not just this module. Every scan below
+// short-circuits to an empty result when this is false, so a button that
+// triggers one is a picture of a button — the same rule that hides the SMS
+// sign-in control where no provider is configured (see lib/smsSender.js's
+// smsConfigured).
+export function aiEnabled() {
   return env.aiProvider === 'anthropic' && !!env.anthropicApiKey
 }
 

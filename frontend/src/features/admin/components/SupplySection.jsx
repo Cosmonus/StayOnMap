@@ -1,4 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { adminService } from '@services/admin.service'
 
 // The supply side, and the handshake.
@@ -39,6 +41,33 @@ function Card({ title, hint, right, children }) {
 
 function Empty({ children }) {
   return <p className="text-sm text-slate-600 py-6">{children}</p>
+}
+
+/**
+ * A named listing that opens.
+ *
+ * Both "worst" lists named a listing and left you to find it by hand — the
+ * readout identified the problem and then stopped one click short of the thing
+ * you would do about it. That is the shape this whole panel was audited for on
+ * 2026-08-10: a metric that describes without offering.
+ *
+ * `?tab=review-listings&propertyId=` is the deep link ReviewListingsSection
+ * already reads (`deepLinkId`), and the same one the user-detail and reviews
+ * sections use — so this adds a caller, not a mechanism.
+ */
+function ListingLink({ id, title, right, onOpen }) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onOpen(id)}
+        className="w-full min-h-[44px] flex items-baseline justify-between gap-3 px-2 py-2 -mx-2 rounded-lg text-left hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+      >
+        <span className="text-sm text-slate-800 truncate">{title}</span>
+        <span className="text-xs text-slate-500 shrink-0">{right}</span>
+      </button>
+    </li>
+  )
 }
 
 /** A labelled row with a count and a proportional bar. */
@@ -161,12 +190,13 @@ function MatchChain({ chain }) {
 }
 
 function SupplyTrend({ supply }) {
-  const max = Math.max(1, ...supply.series.map((w) => Math.max(w.created, w.published)))
+  const max = Math.max(1, ...supply.series.map((w) => Math.max(w.created, w.published, w.left ?? 0)))
+  const netTotal = supply.series.reduce((n, w) => n + (w.net ?? 0), 0)
   return (
     <Card
       title="New listings by week"
       right={`last ${supply.weeks} weeks`}
-      hint="Two lines on purpose: started is when an owner began typing, live is when a renter could first see it."
+      hint="Three bars on purpose: started is when an owner began typing, live is when a renter could first see it, and left is a listing rented, paused or removed."
     >
       {supply.series.length === 0 ? (
         <Empty>No listings created in this window.</Empty>
@@ -174,9 +204,14 @@ function SupplyTrend({ supply }) {
         <>
           <div className="flex items-end gap-1.5 h-32">
             {supply.series.map((w) => (
-              <div key={w.week} className="flex-1 flex flex-col justify-end gap-0.5" title={`${w.week}: ${w.created} started, ${w.published} live`}>
+              <div
+                key={w.week}
+                className="flex-1 flex flex-col justify-end gap-0.5"
+                title={`${w.week}: ${w.created} started, ${w.published} live, ${w.left ?? 0} left — net ${w.net >= 0 ? '+' : ''}${w.net ?? 0}`}
+              >
                 <div className="rounded-t bg-brand-500" style={{ height: `${(w.created / max) * 100}%` }} />
-                <div className="rounded-b bg-slate-300" style={{ height: `${(w.published / max) * 100}%` }} />
+                <div className="bg-slate-300" style={{ height: `${(w.published / max) * 100}%` }} />
+                <div className="rounded-b bg-red-300" style={{ height: `${((w.left ?? 0) / max) * 100}%` }} />
               </div>
             ))}
           </div>
@@ -187,7 +222,16 @@ function SupplyTrend({ supply }) {
             <span className="flex items-center gap-2 text-xs text-slate-600">
               <span className="w-3 h-3 rounded bg-slate-300" aria-hidden="true" /> went live
             </span>
+            <span className="flex items-center gap-2 text-xs text-slate-600">
+              <span className="w-3 h-3 rounded bg-red-300" aria-hidden="true" /> left the market
+            </span>
           </div>
+          {/* Net alongside its parts, never instead of them: zero from 8 in and
+              8 out is a different business from zero from nothing happening. */}
+          <p className="text-sm text-slate-800 mt-4">
+            Net <span className="font-mono font-semibold">{netTotal >= 0 ? '+' : ''}{netTotal}</span> live
+            listings over {supply.weeks} weeks
+          </p>
           {/* Said out loud rather than left as a flat line somebody reads as
               "we published nothing before August". */}
           <p className="text-xs text-slate-500 mt-3">
@@ -200,7 +244,7 @@ function SupplyTrend({ supply }) {
   )
 }
 
-function DeadInventory({ dead }) {
+function DeadInventory({ dead, onOpenListing }) {
   return (
     <Card
       title="Listings nobody is looking at"
@@ -222,12 +266,9 @@ function DeadInventory({ dead }) {
             </div>
           </div>
           {dead.worst.length > 0 && (
-            <ul className="mt-5 pt-4 border-t border-slate-100 flex flex-col gap-2">
+            <ul className="mt-5 pt-4 border-t border-slate-100 flex flex-col gap-1">
               {dead.worst.map((p) => (
-                <li key={p.id} className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm text-slate-800 truncate">{p.title}</span>
-                  <span className="text-xs text-slate-500 shrink-0 font-mono">{p.views} views</span>
-                </li>
+                <ListingLink key={p.id} id={p.id} title={p.title} right={`${p.views} views`} onOpen={onOpenListing} />
               ))}
             </ul>
           )}
@@ -241,7 +282,7 @@ function DeadInventory({ dead }) {
   )
 }
 
-function Readiness({ readiness: r }) {
+function Readiness({ readiness: r, onOpenListing }) {
   return (
     <Card
       title="Are the listings good enough"
@@ -267,28 +308,102 @@ function Readiness({ readiness: r }) {
               <p className="text-xs text-slate-500">ownership verified</p>
             </div>
           </div>
+          {/* getListingReadiness has always returned `worst`; only the buckets
+              were rendered. The buckets say how big the problem is, this says
+              WHICH listings it is — the only half an operator can act on, and
+              at ~13 listings it is a list you can work through in an afternoon.
+              Deliberately NOT linked into review-listings: these are LIVE
+              listings and that tab queues PENDING ones, so the link would land
+              on a page that cannot show them. */}
+          {r.worst?.length > 0 && (
+            <ul className="mt-5 pt-4 border-t border-slate-100 flex flex-col gap-1">
+              {r.worst.map((p) => (
+                <ListingLink
+                  key={p.id}
+                  id={p.id}
+                  title={p.title}
+                  right={`${p.photos === 0 ? 'no photos' : `${p.photos} photo${p.photos === 1 ? '' : 's'}`}${p.thinDescription ? ' · thin copy' : ''}`}
+                  onOpen={onOpenListing}
+                />
+              ))}
+            </ul>
+          )}
         </>
       )}
     </Card>
   )
 }
 
+// Three windows, not a free-form date range. Each is a different question —
+// "is something wrong today", "how is this month going", "is the trend real" —
+// and a picker offering 43 days invites reading noise as signal at an inventory
+// this small.
+const WINDOWS = [
+  { days: 7, label: '7 days' },
+  { days: 30, label: '30 days' },
+  { days: 90, label: '90 days' },
+]
+
+function WindowPicker({ days, onPick }) {
+  return (
+    <div className="flex items-center gap-2 mb-5" role="group" aria-label="Time window">
+      {WINDOWS.map((w) => (
+        <button
+          key={w.days}
+          type="button"
+          onClick={() => onPick(w.days)}
+          aria-pressed={days === w.days}
+          className={[
+            'min-h-[44px] px-4 py-3 rounded-xl text-sm font-semibold border transition-all',
+            days === w.days
+              ? 'bg-brand-600 text-white border-brand-600'
+              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50',
+          ].join(' ')}
+        >
+          {w.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function SupplySection() {
+  const [days, setDays] = useState(30)
+  const [, setSearchParams] = useSearchParams()
+
+  // Opens a named listing in the moderation view. The same deep link
+  // ReviewListingsSection already reads, and the same one the user-detail and
+  // reviews sections use — a caller, not a new mechanism.
+  const onOpenListing = (id) => setSearchParams({ tab: 'review-listings', propertyId: id })
+
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['admin-marketplace'],
-    queryFn: () => adminService.marketplace().then((r) => r.data),
+    queryKey: ['admin-marketplace', days],
+    queryFn: () => adminService.marketplace({ days }).then((r) => r.data),
+    // The cards stay on screen while a new window loads. Without this the whole
+    // panel flips to skeletons on every click, which reads as slower than it is
+    // and loses the number you were comparing against.
+    placeholderData: keepPreviousData,
   })
 
+  // The picker renders in EVERY state, including the first load and the error.
+  // A control that appears only on success means the one moment you most want
+  // to try a different window — the screen is empty and you are wondering
+  // whether that is real — is the moment it is not there.
   if (isLoading) {
     return (
-      <div className="grid gap-5 lg:grid-cols-2">
-        {[0, 1, 2, 3].map((i) => <div key={i} className="h-64 bg-slate-100 rounded-2xl animate-pulse" />)}
-      </div>
+      <>
+        <WindowPicker days={days} onPick={setDays} />
+        <div className="grid gap-5 lg:grid-cols-2">
+          {[0, 1, 2, 3].map((i) => <div key={i} className="h-64 bg-slate-100 rounded-2xl animate-pulse" />)}
+        </div>
+      </>
     )
   }
 
   if (isError) {
     return (
+      <>
+      <WindowPicker days={days} onPick={setDays} />
       <div className="rounded-2xl border border-slate-200 bg-white p-5">
         <p className="text-sm text-slate-600">Could not load supply metrics.</p>
         <button
@@ -298,17 +413,21 @@ export default function SupplySection() {
           Try again
         </button>
       </div>
+      </>
     )
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
+    <>
+      <WindowPicker days={days} onPick={setDays} />
+      <div className="grid gap-5 lg:grid-cols-2">
       <SupplyTrend supply={data.supply} />
       <DraftFunnel drafts={data.drafts} />
       <Responsiveness responsiveness={data.responsiveness} />
       <MatchChain chain={data.chain} />
-      <DeadInventory dead={data.dead} />
-      <Readiness readiness={data.readiness} />
-    </div>
+      <DeadInventory dead={data.dead} onOpenListing={onOpenListing} />
+      <Readiness readiness={data.readiness} onOpenListing={onOpenListing} />
+      </div>
+    </>
   )
 }

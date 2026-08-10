@@ -36,15 +36,50 @@ import PropertyStatusPill from '@components/common/PropertyStatusPill'
 import PropertyDetailBody from '@features/properties/components/detail/PropertyDetailBody'
 import UnifiedSidebar from '@components/layout/UnifiedSidebar'
 import { toast } from '@components/common/Toaster'
+import ActionMenu from '@components/common/ActionMenu'
 import { confirm } from '@components/common/ConfirmDialog'
 import AdminMonitorSection from '@features/admin/components/AdminMonitorSection'
 import VerificationsSection from '@features/admin/components/VerificationsSection'
+import ReportThread from '@features/admin/components/ReportThread'
+import SupportInbox from '@features/admin/components/support/SupportInbox'
 import FunnelCard from '@features/admin/components/FunnelCard'
 import DemandCard from '@features/admin/components/DemandCard'
 import GraphHealthCard from '@features/admin/components/GraphHealthCard'
 import SupplySection from '@features/admin/components/SupplySection'
 import ActivityLogSection from '@features/admin/components/ActivityLogSection'
+import WaitlistByCity from '@features/admin/components/WaitlistByCity'
 import { formatTime } from '@utils/time'
+
+/**
+ * What a failed admin fetch must look like.
+ *
+ * Every section on this page destructured only `{ data, isLoading }` until
+ * 2026-08-10, so a rejected query left `data` undefined and fell through to
+ * `data?.rows ?? []` — rendering the EMPTY state. On a moderation surface that
+ * is the worst failure available: a reports queue that could not load looks
+ * exactly like a queue with nothing in it, and an admin reads "all clear" off a
+ * screen that failed. Every extracted component in features/admin already did
+ * this correctly; the 2,600-line page did not.
+ *
+ * Named, because "Something went wrong" over an empty table is barely better
+ * than the empty table.
+ */
+function SectionError({ what, onRetry }) {
+  return (
+    <div className="bg-white border border-red-200 rounded-2xl p-5">
+      <p className="text-sm font-semibold text-slate-900">Could not load {what}</p>
+      <p className="text-xs text-slate-500 mt-1">
+        This is a failure to fetch, not an empty list &mdash; do not read it as &ldquo;nothing to do&rdquo;.
+      </p>
+      <button
+        onClick={onRetry}
+        className="mt-4 min-h-[44px] px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+      >
+        Try again
+      </button>
+    </div>
+  )
+}
 
 // ── Shared chart card shell ────────────────────────────────────────────────
 function ChartCard({ title, value, footer, children }) {
@@ -216,13 +251,40 @@ const TYPE_LABEL = {
   LAND: 'Land / Plot', SHORT_STAY: 'Short stay',
 }
 
-function StatTile({ label, value, hint }) {
-  return (
-    <div className="bg-white border border-slate-100 rounded-2xl px-4 py-3.5">
+/**
+ * A headline number, and — where one exists — the way through to what it counts.
+ *
+ * These were six flat numbers until 2026-08-10: "Properties 13" with no way to
+ * see the thirteen. A count you cannot open is a fact you have to go and act on
+ * somewhere else, from memory.
+ *
+ * `onOpen` is OPTIONAL and two tiles deliberately go without it. "Tenants
+ * placed" and "Leases signed" have no admin section behind them — there is no
+ * leases tab — and a tile that looks clickable and lands on Overview is the
+ * dead-tab bug this panel already had twice. A tile with nowhere to go should
+ * look like a tile with nowhere to go.
+ */
+function StatTile({ label, value, hint, onOpen }) {
+  const body = (
+    <>
       <p className="text-2xl font-bold text-slate-900">{(value ?? 0).toLocaleString('en-IN')}</p>
       <p className="text-xs font-semibold text-slate-600 mt-0.5">{label}</p>
       {hint && <p className="text-[11px] text-slate-500 mt-0.5">{hint}</p>}
-    </div>
+    </>
+  )
+
+  if (!onOpen) {
+    return <div className="bg-white border border-slate-100 rounded-2xl px-4 py-3.5">{body}</div>
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="bg-white border border-slate-100 rounded-2xl px-4 py-3.5 text-left transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+    >
+      {body}
+    </button>
   )
 }
 
@@ -243,10 +305,15 @@ function MetricBar({ label, value, max, color = 'bg-brand-500' }) {
 
 // ── Section: Overview ──────────────────────────────────────────────────────
 function OverviewSection() {
-  const { data, isLoading } = useQuery({
+  const [, setSearchParams] = useSearchParams()
+  const go = (tab) => setSearchParams({ tab })
+
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-analytics'],
     queryFn: () => adminService.analytics().then(r => r.data),
   })
+
+  if (isError) return <SectionError what="the dashboard" onRetry={refetch} />
 
   if (isLoading) {
     return (
@@ -279,10 +346,11 @@ function OverviewSection() {
           (status OCCUPIED) — a CURRENT count, since vacating clears it; signed
           leases are the all-time record of tenancies made through StayOnMap. */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <StatTile label="Users"          value={data?.users?.total} />
-        <StatTile label="Owners"         value={data?.users?.owners} />
-        <StatTile label="Renters only"   value={data?.users?.renters} />
-        <StatTile label="Properties"     value={data?.properties?.total} />
+        <StatTile label="Users"          value={data?.users?.total}   onOpen={() => go('users')} />
+        <StatTile label="Owners"         value={data?.users?.owners}  onOpen={() => go('users')} />
+        <StatTile label="Renters only"   value={data?.users?.renters} onOpen={() => go('users')} />
+        <StatTile label="Properties"     value={data?.properties?.total} onOpen={() => go('admin-properties')} />
+        {/* No `onOpen`: there is no leases section to open. See StatTile. */}
         <StatTile label="Tenants placed" value={data?.tenancy?.occupiedNow} hint="currently occupied" />
         <StatTile label="Leases signed"  value={data?.tenancy?.leasesSigned} hint="all time" />
       </div>
@@ -321,6 +389,22 @@ function OverviewSection() {
               <span className="w-2.5 h-2.5 rounded-sm bg-sky-400 shrink-0" />
               Renters only <span className="font-bold text-slate-800">{data.users.renters}</span>
             </span>
+          </div>
+        )}
+        {/* getDashboardAnalytics has returned these since it was written and
+            nothing read them. On a platform whose binding constraint is growth,
+            "did anyone join today" is the cheapest question the panel can
+            answer — and the monthly chart beside it cannot, because the current
+            month is still in progress. Rendered as a pair: today alone is
+            noisy at this size, the week alone is too slow to notice a stall. */}
+        {data?.users?.newThisWeek != null && (
+          <div className="flex items-center gap-4 pb-3 text-xs text-slate-500">
+            <span>New today <span className="font-bold text-slate-800 font-mono">{data.users.newToday}</span></span>
+            {/* No colour of its own — inherits the row's slate-500. A lighter
+                separator would be off-palette for text (see ui-ux.md), and it
+                does not need to recede: there are only two values beside it. */}
+            <span aria-hidden>·</span>
+            <span>This week <span className="font-bold text-slate-800 font-mono">{data.users.newThisWeek}</span></span>
           </div>
         )}
         <TotalUsersChart monthly={data?.users?.monthly ?? []} />
@@ -710,8 +794,23 @@ async function askModerationReason(status, title) {
 }
 
 // ── Section: All Properties — full-screen map ──────────────────────────────
+/** `?city=Chennai&type=APARTMENT&bhk=2` → an admin filter object. */
+function seedFiltersFromUrl(params) {
+  const city = params.get('city')
+  const type = params.get('type')
+  const bhk  = Number(params.get('bhk'))
+  return {
+    ...ADMIN_DEFAULT_FILTERS,
+    ...(city ? { city } : {}),
+    ...(type ? { types: [type] } : {}),
+    // 0 is Studio and a real value, so test the parse, not truthiness.
+    ...(Number.isFinite(bhk) && params.get('bhk') ? { bhk: [bhk] } : {}),
+  }
+}
+
 function AdminPropertiesMap() {
   const qc              = useQueryClient()
+  const [searchParams]  = useSearchParams()
   const containerRef    = useRef(null)
   const mapRef          = useRef(null)
   const markersRef      = useRef(new Map())
@@ -724,7 +823,16 @@ function AdminPropertiesMap() {
   // hand-rolled useStates (city/area/bhk/type/status) this panel used to keep.
   // `area` lives in here too — it's search context (geocode + fly), never sent
   // as a query param, same contract as the user side's SEARCH_KEYS.
-  const [filters, setFilters]           = useState(ADMIN_DEFAULT_FILTERS)
+  // Seeded ONCE from the URL, so another readout can hand this map a question:
+  // "unmet demand says 2 BHK flats in Chennai returned nothing — show me what
+  // we actually have there" (DemandCard). Read in the initialiser rather than an
+  // effect, because a later `setFilters` from an effect would fight whatever the
+  // admin had already changed by the time it ran.
+  //
+  // Deliberately narrow — city, type and bhk only. This is a starting point for
+  // a human, not a URL-sync feature: the map does not write filters BACK to the
+  // address bar, so a link cannot capture a whole filter set and go stale.
+  const [filters, setFilters]           = useState(() => seedFiltersFromUrl(searchParams))
   const [filterSheetOpen, setFilterSheetOpen] = useState(false)
   const [selectedId, setSelectedId]     = useState(null)
   const [popupProperty, setPopupProperty] = useState(null)
@@ -907,6 +1015,7 @@ function AdminPropertiesMap() {
       <PropertyDetailView
         property={fullDetail}
         onBack={() => setFullDetail(null)}
+        onRefresh={() => adminService.propertyById(fullDetail.id).then(r => setFullDetail(r.data)).catch(() => {})}
         onApprove={(id) => moderateFullDetail(id, 'ACTIVE')}
         onReject={(id) => moderateFullDetail(id, 'REJECTED')}
         onSuspend={(id) => moderateFullDetail(id, 'SUSPENDED')}
@@ -1144,7 +1253,68 @@ function SectionLabel({ children }) {
 }
 
 /* ── Inline property detail view (3 columns: Property | Users | User Detail) ── */
-function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend }) {
+/**
+ * Re-run the checks on one listing.
+ *
+ * Both endpoints existed with NO caller anywhere in the app — `POST
+ * /admin/trust-scores/:id/recalculate` and `POST /admin/ai/fraud-scan/:id`,
+ * built and unreachable, like the activity log was. Surfaced 2026-08-10.
+ *
+ * The fraud scan is GATED on `property.aiEnabled`, because `scoreFraud`
+ * short-circuits to `{score: 0, signals: []}` whenever AI_PROVIDER is not
+ * anthropic — which is production. An always-inert button is the thing this
+ * codebase removed from the login screen the same week; it must not reappear
+ * here. Recalculation is deterministic and always offered.
+ */
+function RecheckMenu({ property, onRefresh }) {
+  const [busy, setBusy] = useState(null)
+
+  async function run(kind, fn, done) {
+    setBusy(kind)
+    try {
+      const res = await fn()
+      done(res.data)
+      // Refresh is passed IN, never assumed. This screen has two call sites and
+      // only one is React Query-backed: the properties map holds its detail in
+      // plain state, so invalidating a query key there would leave the new
+      // score computed, stored, and invisible — the action appearing to do
+      // nothing, which is the worst outcome for a button whose whole job is to
+      // recompute a number.
+      onRefresh?.()
+    } catch (err) {
+      toast.error('Could not run', err?.message ?? 'Please try again')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const items = [
+    {
+      label: busy === 'scores' ? 'Recalculating…' : 'Recalculate trust & risk',
+      onClick: () => run('scores', () => adminService.recalculateScores(property.id), (d) =>
+        toast.success('Scores recalculated', `Trust ${d?.trust?.overallScore ?? '—'} · risk ${d?.risk?.level ?? '—'}`)),
+    },
+    ...(property.aiEnabled
+      ? [{
+        label: busy === 'fraud' ? 'Scanning…' : 'Run AI fraud scan',
+        onClick: () => run('fraud', () => adminService.fraudScan(property.id), (d) =>
+          toast.success('Fraud scan complete', d?.score > 70
+            ? `Flagged — score ${d.score}`
+            : `No flag raised — score ${d?.score ?? 0}`)),
+      }]
+      : []),
+  ]
+
+  return (
+    <ActionMenu
+      items={items}
+      label="Re-run checks"
+      triggerClassName="min-h-[44px] px-3 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
+    />
+  )
+}
+
+function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend, onRefresh }) {
   const [selectedUserId, setSelectedUserId] = useState(null)
 
   useEffect(() => { setSelectedUserId(null) }, [property?.id])
@@ -1221,6 +1391,11 @@ function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend }
               Reinstate
             </button>
           )}
+          {/* Behind the menu, not beside the moderation buttons: this row can
+              already show three, and ui-ux.md caps it at two plus an overflow.
+              These are also a different KIND of action — they change nothing
+              a renter sees, they re-derive what we know about the listing. */}
+          <RecheckMenu property={property} onRefresh={onRefresh} />
         </div>
       </div>
 
@@ -1240,6 +1415,41 @@ function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend }
           <div className="pt-5">
             <PropertyDetailBody property={property} variant="admin" />
           </div>
+
+          {/* Status history — admin-only, and the question moderation actually
+              asks. `Property.status` is ONE COLUMN THAT OVERWRITES ITSELF, so
+              the moment a listing goes OCCUPIED the evidence it was ever ACTIVE
+              is gone; PropertyStatusEvent is the append-only log that keeps it,
+              written by eleven services and, until 2026-08-10, read only in
+              aggregate. So the detail view showed a current status and no way
+              to answer "when did this go live, and who flipped it" — with the
+              answer already in the table.
+
+              `actor` is coarse by design (owner / admin / system) and never a
+              user id: WHO acted is ActivityLog's job, and an id here would make
+              a counting table into a weaker second audit trail. */}
+          {(property.statusEvents?.length ?? 0) > 0 && (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
+              <AdminCard title="Status history">
+                <ol className="space-y-2">
+                  {property.statusEvents.map(e => (
+                    <li key={e.id} className="flex items-center gap-2 text-xs">
+                      <span className="text-slate-500 shrink-0 w-28">{fmtDate(e.createdAt)}</span>
+                      {/* The first event has nothing before it — fromStatus is
+                          nullable, and "— → DRAFT" is the honest rendering of
+                          a listing coming into existence. */}
+                      {e.fromStatus
+                        ? <PropertyStatusPill status={e.fromStatus} size="sm" />
+                        : <span className="text-slate-500">new</span>}
+                      <span aria-hidden className="text-slate-500">→</span>
+                      <PropertyStatusPill status={e.toStatus} size="sm" />
+                      <span className="text-slate-500">by {e.actor}</span>
+                    </li>
+                  ))}
+                </ol>
+              </AdminCard>
+            </div>
+          )}
 
           {/* Wishlisted by — admin-only data with no tenant-page equivalent */}
           {(property.savedBy?.length ?? 0) > 0 && (
@@ -1454,7 +1664,7 @@ function ReviewListingsSection() {
 
   const deepLinkId = searchParams.get('propertyId')
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-review-listings', statusFilter],
     queryFn: () => adminService.properties({ status: statusFilter || undefined, limit: 50 }).then(r => r.data),
     staleTime: 0,
@@ -1492,6 +1702,11 @@ function ReviewListingsSection() {
     mutation.mutate({ id, status, note: note || undefined })
   }
 
+  // Guarded here, after every hook, and BEFORE `properties` is derived —
+  // `data?.properties ?? []` is precisely the line that turns a failed fetch
+  // into "nothing to review".
+  if (isError) return <SectionError what="listings to review" onRetry={refetch} />
+
   const properties = data?.properties ?? []
 
   // Show detail view inline when a property is selected
@@ -1506,6 +1721,7 @@ function ReviewListingsSection() {
         onApprove={(id) => moderate(id, 'ACTIVE', selectedProperty.title)}
         onReject={(id) => moderate(id, 'REJECTED', selectedProperty.title)}
         onSuspend={(id) => moderate(id, 'SUSPENDED', selectedProperty.title)}
+        onRefresh={() => qc.invalidateQueries({ queryKey: ['admin-property', selectedId] })}
       />
     )
   }
@@ -1760,6 +1976,27 @@ function UserDetailView({ userId, onBack }) {
                 <HatStat label="Chats"    value={counts.ownerConversations} />
               </div>
 
+              {/* OwnerTrustScore is recalculated constantly and is shown to
+                  RENTERS — until 2026-08-10 the admin looking at the owner was
+                  the one person who could not see it. Absent means never
+                  scored (no listings yet), which is not the same as scoring
+                  zero, so it renders nothing rather than a row of dashes. */}
+              {user.ownerTrustScore && (
+                <div>
+                  <SectionLabel>Owner trust</SectionLabel>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <HatStat label="Score"       value={Math.round(user.ownerTrustScore.score)} />
+                    <HatStat label="Level"       value={user.ownerTrustScore.level} />
+                    <HatStat label="Answers"     value={`${Math.round(user.ownerTrustScore.responseRate)}%`} />
+                    <HatStat label="Verified"    value={user.ownerTrustScore.verificationLevel} />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Answers = visit requests responded to at all — accepted, declined or moved.
+                    Updated {fmtDate(user.ownerTrustScore.updatedAt)}.
+                  </p>
+                </div>
+              )}
+
               <div>
                 <SectionLabel>Listings ({counts.properties ?? 0})</SectionLabel>
                 {(user.properties ?? []).length > 0 ? (
@@ -1811,6 +2048,45 @@ function UserDetailView({ userId, onBack }) {
           )}
         </div>
       </div>
+
+      {/* ── Points ledger ──
+          Full width and outside both hat cards on purpose: points belong to
+          the PERSON, not to a role.
+
+          Award farming is the risk docs/points-and-sharing.md is built around
+          — it is why every award is idempotent by (user, action, reference)
+          and why the two biggest ones pay only on a moderator's decision — and
+          until 2026-08-10 an admin investigating it could not see anybody's
+          ledger. Read-only: a ledger an admin can edit is not a ledger. */}
+      {(user.pointsLedger ?? []).length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Points ledger</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {user.pointsLedger.reduce((sum, e) => sum + e.points, 0)} points across the {user.pointsLedger.length} most recent
+                {counts.pointsLedger > user.pointsLedger.length ? ` of ${counts.pointsLedger} awards` : ' awards'}
+              </p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {user.pointsLedger.map(entry => (
+              <div key={entry.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-700">{entry.action.replace(/_/g, ' ').toLowerCase()}</p>
+                  {/* '' means a once-per-account award (see the schema's
+                      default) — showing an empty reference would read as a
+                      missing one. */}
+                  <p className="text-xs text-slate-500 mt-0.5 truncate">
+                    {fmtDate(entry.createdAt)}{entry.referenceId ? ` · ${entry.referenceId}` : ' · one-time'}
+                  </p>
+                </div>
+                <span className="shrink-0 text-sm font-mono font-semibold text-slate-800">+{entry.points}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1820,7 +2096,7 @@ function UsersSection() {
   const [search, setSearch] = useState('')
   const [selectedUserId, setSelectedUserId] = useState(null)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-users', search],
     queryFn: () => adminService.users({ search, limit: 50 }).then(r => r.data),
   })
@@ -1828,7 +2104,10 @@ function UsersSection() {
   const blockMutation = useMutation({
     mutationFn: ({ id, blocked }) => adminService.blockUser(id, { blocked, reason: blocked ? 'Admin action' : 'Unblocked' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
+    onError: (err) => toast.error('Couldn’t update the user', err.message ?? 'Please try again'),
   })
+
+  if (isError) return <SectionError what="users" onRetry={refetch} />
 
   if (selectedUserId) {
     return <UserDetailView userId={selectedUserId} onBack={() => setSelectedUserId(null)} />
@@ -1902,10 +2181,12 @@ function UsersSection() {
 
 // ── Section: Waitlist — signups from cities outside SUPPORTED_CITIES ────────
 function WaitlistSection() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-waitlist'],
     queryFn: () => adminService.waitlist({ limit: 100 }).then(r => r.data),
   })
+
+  if (isError) return <SectionError what="the waitlist" onRetry={refetch} />
 
   return (
     <div className="space-y-5">
@@ -1916,37 +2197,9 @@ function WaitlistSection() {
         </p>
       </div>
 
-      {/* The rollup, above the list. This is the only place the product says
-          which city to open next, and it was answerable for a year — the rows
-          were all here, just never counted. Computed server-side over EVERY
-          entry, not the page on screen. */}
-      {!isLoading && (data?.byCity?.length ?? 0) > 0 && (
-        <div className="bg-white border border-slate-100 rounded-2xl p-5">
-          <h2 className="text-sm font-bold text-slate-900">Where they are waiting</h2>
-          <p className="text-xs text-slate-500 mt-0.5 mb-4">
-            Demand we turned away, by city. The top row is the strongest case for launching next.
-          </p>
-          <div className="flex flex-col gap-3">
-            {data.byCity.map(row => {
-              const max = Math.max(1, ...data.byCity.map(r => r.count))
-              return (
-                <div key={row.city}>
-                  <div className="flex items-baseline justify-between gap-3 mb-1.5">
-                    <span className="text-sm font-medium text-slate-800">{row.city}</span>
-                    <span className="text-xs text-slate-500 shrink-0">
-                      <span className="font-mono font-semibold text-slate-800">{row.count}</span>
-                      {row.lastSignup && <> &middot; latest {new Date(row.lastSignup).toLocaleDateString('en-IN')}</>}
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full rounded-full bg-brand-500" style={{ width: `${(row.count / max) * 100}%` }} />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
+      {/* Server-computed over EVERY entry — see WaitlistByCity for why that
+          matters and why it is not derived here from the page on screen. */}
+      {!isLoading && <WaitlistByCity rows={data?.byCity} />}
 
       {isLoading ? (
         <div className="h-48 bg-slate-100 rounded-2xl animate-pulse" />
@@ -1997,15 +2250,31 @@ function ReportsSection() {
   const qc = useQueryClient()
   const [status, setStatus] = useState('PENDING')
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-reports', status],
     queryFn: () => adminService.reports({ status, limit: 30 }).then(r => r.data),
   })
 
+  // Which reports have a reporter reply nobody has read. Its own query rather
+  // than a field on each row: it is one small read for the whole list, and it
+  // is the ONLY unread signal the admin side has — moderators work from this
+  // queue and have no notification stream to tell them somebody answered.
+  //
+  // Defaults to [] on failure. A missing badge understates the work; a crashed
+  // reports queue over a failed badge query would be a far worse trade.
+  const { data: awaitingData } = useQuery({
+    queryKey: ['admin-reports-awaiting'],
+    queryFn: () => adminService.reportsAwaiting().then(r => r.data),
+  })
+  const awaiting = awaitingData?.reportIds ?? []
+
   const mutation = useMutation({
     mutationFn: ({ id, action }) => adminService.moderateReport(id, { action }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-reports'] }),
+    onError: (err) => toast.error('Couldn’t moderate the report', err.message ?? 'Please try again'),
   })
+
+  if (isError) return <SectionError what="reports" onRetry={refetch} />
 
   return (
     <div className="space-y-5">
@@ -2051,6 +2320,17 @@ function ReportsSection() {
                   />
                 </div>
               </div>
+              {/* Asking beats guessing. Before this the only options on a thin
+                  report were to guess or dismiss it, and dismissing for lack of
+                  detail is how a reporting feature teaches people not to use
+                  it. The badge is the admin side's only unread signal —
+                  moderators have no notification stream. */}
+              {awaiting.includes(r.id) && (
+                <p className="mt-3 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-[11px] font-semibold">
+                  Reporter replied
+                </p>
+              )}
+              <ReportThread reportId={r.id} />
             </div>
           ))}
           {(data?.reports ?? []).length === 0 && (
@@ -2242,7 +2522,7 @@ function AdminReviewsSection() {
   const qc = useQueryClient()
   const [status, setStatus] = useState('PENDING')
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-reviews', status],
     queryFn: () => adminService.reviews({ status, limit: 50 }).then(r => r.data),
   })
@@ -2250,7 +2530,10 @@ function AdminReviewsSection() {
   const mutation = useMutation({
     mutationFn: ({ id, nextStatus }) => adminService.setReviewStatus(id, nextStatus),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-reviews'] }),
+    onError: (err) => toast.error('Couldn’t update the review', err.message ?? 'Please try again'),
   })
+
+  if (isError) return <SectionError what="reviews" onRetry={refetch} />
 
   const reviews = data?.reviews ?? []
   const TABS = ['PENDING', 'APPROVED', 'REJECTED', 'FLAGGED']
@@ -2302,6 +2585,13 @@ function AdminReviewsSection() {
 
 // ── Settings ───────────────────────────────────────────────────────────────
 
+// Mirrors ADMIN_MIN_PASSWORD_LENGTH in backend/src/features/admin/admin.validation.js.
+// Admins are the platform's highest-privilege accounts, which is why their
+// floor is higher than a user's. Pinned to the backend's value by
+// backend/tests/admin-password.test.js — a client floor BELOW the server's
+// turns a helpful inline hint into a 400 the admin cannot explain.
+const ADMIN_MIN_PASSWORD_LENGTH = 12
+
 function AdminSettingsSection() {
   const qc = useQueryClient()
 
@@ -2333,7 +2623,12 @@ function AdminSettingsSection() {
       setProfileOverrides({})
       setProfileMsg({ ok: true, text: 'Profile updated.' })
     } catch (err) {
-      setProfileMsg({ ok: false, text: err.response?.data?.message ?? 'Failed to update.' })
+      // `adminApi`'s interceptor rejects with the response BODY, so `err` IS
+      // { success, error, message, statusCode } — `err.response` does not
+      // exist here. Reading it meant every failure showed the fallback and the
+      // server's own explanation was thrown away. The toasts elsewhere in this
+      // file already read `err.message`; these two had drifted.
+      setProfileMsg({ ok: false, text: err.message ?? 'Failed to update.' })
     } finally { setProfileSaving(false) }
   }
 
@@ -2347,8 +2642,12 @@ function AdminSettingsSection() {
     if (pwForm.newPassword !== pwForm.confirmPassword) {
       setPwMsg({ ok: false, text: 'New passwords do not match.' }); return
     }
-    if (pwForm.newPassword.length < 8) {
-      setPwMsg({ ok: false, text: 'Password must be at least 8 characters.' }); return
+    // 12, matching ADMIN_MIN_PASSWORD_LENGTH in admin.validation.js. This said
+    // 8 until 2026-08-10, so an 8-11 character password passed the client and
+    // 400'd on the server — and because the catch below was reading the wrong
+    // path, the admin saw only "Failed to change password." with no reason.
+    if (pwForm.newPassword.length < ADMIN_MIN_PASSWORD_LENGTH) {
+      setPwMsg({ ok: false, text: `Password must be at least ${ADMIN_MIN_PASSWORD_LENGTH} characters.` }); return
     }
     setPwSaving(true)
     setPwMsg(null)
@@ -2357,7 +2656,7 @@ function AdminSettingsSection() {
       setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
       setPwMsg({ ok: true, text: 'Password changed successfully.' })
     } catch (err) {
-      setPwMsg({ ok: false, text: err.response?.data?.message ?? 'Failed to change password.' })
+      setPwMsg({ ok: false, text: err.message ?? 'Failed to change password.' })
     } finally { setPwSaving(false) }
   }
 
@@ -2596,6 +2895,7 @@ export default function AdminPage() {
       case 'review-listings': return <ReviewListingsSection />
       case 'users':           return <UsersSection />
       case 'waitlist':        return <WaitlistSection />
+      case 'support':         return <SupportInbox />
       case 'reports':         return <ReportsSection />
       case 'reviews':         return <AdminReviewsSection />
       case 'verifications':   return <VerificationsSection />

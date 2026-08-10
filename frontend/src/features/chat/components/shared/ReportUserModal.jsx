@@ -38,7 +38,7 @@ export default function ReportUserModal({ isOpen, onClose, user, conversationId 
       toast.success('Report sent. Our team will review it.')
       close()
     },
-    onError: (err) => toast.error(err?.response?.data?.message ?? 'Could not send the report'),
+    onError: (err) => toast.error(err?.message ?? 'Could not send the report'),
   })
 
   const tooShort = description.trim().length < MIN_DESCRIPTION

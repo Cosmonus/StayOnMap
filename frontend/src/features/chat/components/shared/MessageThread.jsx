@@ -515,8 +515,15 @@ export default function MessageThread({
         old.map(m => (m.id === data.id ? { ...m, deletedAt: new Date().toISOString(), body: '', attachmentUrl: null, attachmentName: null } : m)))
     }
 
-    // Reconnect safety net: catch up on anything missed while disconnected
+    // Reconnect safety net, and it needs BOTH halves.
+    //
+    // Rooms are per-CONNECTION on the server: a reconnect is a brand new socket
+    // that has joined nothing, so without the re-emit the open thread stopped
+    // receiving message:new / typing / message:read entirely until it was
+    // closed and reopened. The refetch alone only masked that, and only for as
+    // long as the messages endpoint happened to return the right window.
     function onConnect() {
+      socket.emit('join:conversation', conversationId)
       qc.invalidateQueries({ queryKey: ['chat-messages', conversationId] })
     }
 
@@ -589,7 +596,7 @@ export default function MessageThread({
       qc.invalidateQueries({ queryKey: ['chat-unread'] })
       toast.success(`${name} is blocked`)
     } catch (err) {
-      toast.error(err?.response?.data?.message ?? 'Could not block this person')
+      toast.error(err?.message ?? 'Could not block this person')
     }
   }
 

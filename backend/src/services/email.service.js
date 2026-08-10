@@ -241,6 +241,50 @@ export function accountLinkedEmail({ name, providerLabel }) {
   }
 }
 
+/**
+ * The public contact form, delivered to the support inbox.
+ *
+ * The ONLY template here fed by an unauthenticated stranger, which is why it is
+ * the only one that escapes. Every other template interpolates values that
+ * already passed through registration or a listing form and are rendered back
+ * to the person who wrote them; this one renders an anonymous body into an
+ * inbox we read. `<img src=x onerror=…>` in a message field is not an XSS in a
+ * mail client the way it is in a browser, but "the input is not attacker-shaped"
+ * is not a property this endpoint has, so it is escaped rather than trusted.
+ *
+ * There is no Reply-To: `sendMail` takes { to, subject, html, critical } and
+ * adding a header would mean touching all four provider paths for one caller.
+ * The sender's address is stated in the body instead, which is what a human
+ * replying actually needs.
+ */
+export function contactMessageEmail({ name, email, topic, message }) {
+  const esc = (s) => String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+
+  const TOPIC_LABELS = {
+    question:    'A question',
+    report:      'Report a listing',
+    partnership: 'Partnership',
+    other:       'Something else',
+  }
+  const label = TOPIC_LABELS[topic] ?? topic
+
+  return {
+    subject: `[${label}] Contact form — ${name}`,
+    html: layout({
+      heading: 'New message from the contact form',
+      body: panel(`
+      ${p(`<strong>From:</strong> ${esc(name)} &lt;${esc(email)}&gt;`)}
+      ${p(`<strong>Topic:</strong> ${esc(label)}`)}
+      <hr style="border:none;border-top:1px solid ${LINE};margin:18px 0;" />
+      <p style="margin:0;white-space:pre-wrap;">${esc(message)}</p>
+      `),
+      footNote: `Reply directly to ${esc(email)}.`,
+    }),
+  }
+}
+
 export function verificationUpdateEmail({ ownerName, propertyTitle, status, adminNote }) {
   const statusLabel = status === 'VERIFIED' ? 'approved' : status === 'REJECTED' ? 'rejected' : 'updated'
   return {

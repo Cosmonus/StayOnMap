@@ -16,7 +16,8 @@ export async function analytics(req, res, next) {
 // (how many of the people who saw the map ever booked). Different questions.
 export async function funnel(req, res, next) {
   try {
-    const days = req.query.days ? Number(req.query.days) : undefined
+    // Already coerced and bounded to 1..365 by funnelQuerySchema on the route.
+    const { days } = req.query
     const [funnelData, seoFunnel, timeToPublish] = await Promise.all([
       productAnalytics.getFunnel({ days }),
       // The same funnel, restricted to sessions that arrived on a search
@@ -38,7 +39,7 @@ export async function funnel(req, res, next) {
 // at a specific listing to go and find.
 export async function demand(req, res, next) {
   try {
-    const days = req.query.days ? Number(req.query.days) : undefined
+    const { days } = req.query
     ok(res, await getUnmetDemand({ days }))
   } catch (err) { next(err) }
 }
@@ -50,12 +51,25 @@ export async function demand(req, res, next) {
 // would be four requests to render a single section.
 export async function marketplace(req, res, next) {
   try {
+    // Bounded to 1..365 by funnelQuerySchema on the route — a year is more
+    // history than any of these readouts can honestly claim anyway. This clamp
+    // used to be hand-rolled here while its two neighbouring routes had none,
+    // which is exactly how that gap stayed invisible; the rule now lives in one
+    // schema all three share.
+    const { days } = req.query
+
     const [drafts, responsiveness, chain, supply, dead, readiness] = await Promise.all([
-      marketplaceMetrics.getDraftFunnel(),
-      marketplaceMetrics.getOwnerResponsiveness(),
-      marketplaceMetrics.getMatchChain(),
+      marketplaceMetrics.getDraftFunnel(days ? { days } : {}),
+      marketplaceMetrics.getOwnerResponsiveness(days ? { days } : {}),
+      marketplaceMetrics.getMatchChain(days ? { days } : {}),
+      // NOT windowed by `days`. The trend is in WEEKS and answers a different
+      // question — "is supply growing" needs a run of weeks, and squeezing it
+      // into a 7-day view would show one bar and call it a trend.
       marketplaceMetrics.getSupplyTrend(),
-      marketplaceMetrics.getDeadInventory(),
+      marketplaceMetrics.getDeadInventory(days ? { days } : {}),
+      // No window at all: readiness is a snapshot of what is live RIGHT NOW.
+      // A listing with no photos does not become acceptable because it was
+      // published outside the window somebody happened to pick.
       marketplaceMetrics.getListingReadiness(),
     ])
     ok(res, { drafts, responsiveness, chain, supply, dead, readiness })

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { adminApi } from '@lib/api'
+import { adminService } from '@services/admin.service'
 
 // Is the graph actually built?
 //
@@ -43,7 +43,7 @@ function Row({ label, part, total, pct, remedy }) {
 export default function GraphHealthCard() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['graph-health'],
-    queryFn: () => adminApi.get('/graph/health').then((r) => r.data),
+    queryFn: () => adminService.getGraphHealth().then((r) => r.data),
   })
 
   if (isLoading) return <div className="h-64 bg-slate-100 rounded-2xl animate-pulse" />
