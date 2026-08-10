@@ -53,6 +53,20 @@ export const adminService = {
   // renter-facing graph surfaces. GraphHealthCard called adminApi directly
   // until 2026-08-10.
   getGraphHealth:   ()          => adminApi.get('/graph/health'),
+  // ── Support & Trust ──────────────────────────────────────────────────────
+  // The unified case layer. `supportCounts` is its own call rather than a field
+  // on the list: the dashboard tiles are counts over EVERY case, and the list
+  // is one filtered page — deriving the tiles from the page would show "3 open"
+  // when three of the twenty-five on screen happen to be open.
+  supportCases:    (params)     => adminApi.get('/admin/support/cases', { params }),
+  supportCounts:   ()           => adminApi.get('/admin/support/cases/counts'),
+  supportCase:     (id)         => adminApi.get(`/admin/support/cases/${id}`),
+  supportReply:    (id, body, visibility) => adminApi.post(`/admin/support/cases/${id}/messages`, { body, visibility }),
+  supportSetStatus:(id, status, reason) => adminApi.patch(`/admin/support/cases/${id}/status`, { status, reason }),
+  supportSetPriority: (id, priority)    => adminApi.patch(`/admin/support/cases/${id}/priority`, { priority }),
+  supportAssign:   (id, assignedToId)   => adminApi.post(`/admin/support/cases/${id}/assign`, { assignedToId }),
+  supportEscalate: (id, reason) => adminApi.post(`/admin/support/cases/${id}/escalate`, { reason }),
+
   getProfile:       ()          => adminApi.get('/admin/profile'),
   updateProfile:    (data)      => adminApi.patch('/admin/profile', data),
   changePassword:   (data)      => adminApi.patch('/admin/profile/password', data),

@@ -41,6 +41,7 @@ import { confirm } from '@components/common/ConfirmDialog'
 import AdminMonitorSection from '@features/admin/components/AdminMonitorSection'
 import VerificationsSection from '@features/admin/components/VerificationsSection'
 import ReportThread from '@features/admin/components/ReportThread'
+import SupportInbox from '@features/admin/components/support/SupportInbox'
 import FunnelCard from '@features/admin/components/FunnelCard'
 import DemandCard from '@features/admin/components/DemandCard'
 import GraphHealthCard from '@features/admin/components/GraphHealthCard'
@@ -2894,6 +2895,7 @@ export default function AdminPage() {
       case 'review-listings': return <ReviewListingsSection />
       case 'users':           return <UsersSection />
       case 'waitlist':        return <WaitlistSection />
+      case 'support':         return <SupportInbox />
       case 'reports':         return <ReportsSection />
       case 'reviews':         return <AdminReviewsSection />
       case 'verifications':   return <VerificationsSection />
