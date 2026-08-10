@@ -198,6 +198,15 @@
     --color-success: #16a34a;
     --color-warning: #d97706;
 
+    /* The fixed header's height, for the pages that start beneath it.
+       Header.jsx MEASURES the real element and overwrites this on <html>
+       before first paint — this value only covers the frame before that, and
+       is the mobile height (a two-row map header), which is the narrower and
+       therefore safer guess. Do NOT hardcode a header offset in a page: the
+       last set of hand-written numbers drifted 24px out and left a visible
+       band between the filter bar and the map. */
+    --header-h: 134px;
+
     /* Elevation — strengthened for map-float context */
     --shadow-xs:    0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-sm:    0 1px 3px 0 rgb(0 0 0 / 0.10), 0 1px 2px -1px rgb(0 0 0 / 0.08);

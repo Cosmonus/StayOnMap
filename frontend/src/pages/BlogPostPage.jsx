@@ -66,8 +66,11 @@ export default function BlogPostPage() {
   // 1152px one.
   const showSidebar = isWide && !!post?.body && hasTableOfContents(post.body)
 
+  // White, matching /blog and the other editorial pages. An article is prose,
+  // not an app screen — see .claude/ui-ux.md's "App shell", which exempts
+  // long-form pages from the slate50 canvas.
   return (
-    <div className="min-h-screen bg-slate-50 pt-16">
+    <div className="min-h-screen bg-white pt-16">
       {post && (
         <SEOMeta
           title={post.seoTitle}

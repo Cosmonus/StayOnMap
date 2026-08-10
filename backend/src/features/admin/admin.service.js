@@ -10,6 +10,9 @@ import { disconnectUser } from '../../lib/socket.js'
 import { aiEnabled } from '../ai/ai.service.js'
 import { ADMIN_FILTERS, buildFilterWhere } from '../properties/filters.registry.js'
 import { firstPublishStamp } from '../properties/publishedAt.js'
+import { averageRating } from '../reviews/rating.js'
+import { REVIEW_SIGNALS } from '../reviews/integrity.js'
+import { labelFraudSignal } from '../intelligence/signalLabels.js'
 import { recordStatusChange, recordBulkStatusChange } from '../properties/statusEvents.js'
 import { parseBounds, boundsFilter } from '../../utils/geo.js'
 import { getContext, STATUS_FAILED } from '../spatial/spatial.service.js'
@@ -323,6 +326,19 @@ export async function getAdminPropertyById(id) {
       owner: { select: { id: true, displayId: true, name: true, email: true, phone: true, avatarUrl: true, isVerified: true, isBusiness: true, createdAt: true } },
       trustScore: true,
       riskScore: true,
+      // The four deterministic detectors (duplicate address, 50m geolocation,
+      // reused photos, shared owner phone) have been writing here since the
+      // intelligence layer shipped, and NOTHING rendered them on either
+      // platform — `FraudSignal` did not appear in a single frontend file. So
+      // moderation saw a risk NUMBER with no reason attached and no way to ask
+      // why. Unresolved only: a resolved signal is a closed question, and
+      // showing it beside open ones is how a cleared listing keeps looking
+      // guilty.
+      fraudSignals: {
+        where: { resolved: false },
+        select: { id: true, type: true, detail: true, detectedAt: true },
+        orderBy: { detectedAt: 'desc' },
+      },
       // Eleven services WRITE PropertyStatusEvent and, until 2026-08-10,
       // nothing read it except in aggregate — so the detail view showed a
       // current status with no history, and the exact question moderation asks
@@ -398,6 +414,14 @@ export async function getAdminPropertyById(id) {
   // screen does not need. Same shape as `phoneVerificationAvailable` on the
   // user settings payload.
   property.aiEnabled = aiEnabled()
+
+  // Labelled here, not in the client, so the words live beside the detectors
+  // that produce them and a new FraudSignalType cannot reach a moderator as a
+  // raw enum name.
+  // `?? []` because an absent relation is not a signal. The include above is
+  // what fills it, and dropping that include would empty this array silently —
+  // which is why admin-detail-depth.test.js asserts the join itself.
+  property.fraudSignals = (property.fraudSignals ?? []).map((s) => ({ ...s, label: labelFraudSignal(s.type) }))
 
   return property
 }
@@ -601,14 +625,8 @@ export async function deleteAmenity(id) {
   return prisma.amenity.delete({ where: { id } })
 }
 
-const RATING_KEYS = [
-  'ratingsSafety', 'ratingsClean', 'ratingsWater', 'ratingsNoise',
-  'ratingsInternet', 'ratingsParking', 'ratingsNeighborhood', 'ratingsTransport',
-  'ratingsMaintenance', 'ratingsOwnerBehavior', 'ratingsSecurity', 'ratingsPowerBackup',
-]
-
 function reviewOverallScore(r) {
-  return RATING_KEYS.reduce((s, k) => s + (r[k] ?? 0), 0) / RATING_KEYS.length
+  return averageRating(r) ?? 0
 }
 
 export async function listReviews({ status, propertyId, page = 1, limit = 30 }) {
@@ -633,6 +651,15 @@ export async function listReviews({ status, propertyId, page = 1, limit = 30 }) 
     content: r.body,
     overallScore: parseFloat(reviewOverallScore(r).toFixed(1)),
     author: r.isAnonymous ? null : r.reviewer,
+    // Why this one is in the queue. The reason travels WITH the review because
+    // a moderator opening a glowing 5-star review with no explanation attached
+    // has no way to guess it was held for anything but its rating — and the
+    // rating is the one thing that did not hold it. Labels resolved server-side
+    // so the vocabulary lives with the checks, not in a client table that can
+    // silently miss a new key (see .claude/ui-ux.md on enum-keyed configs).
+    integritySignals: Array.isArray(r.integritySignals)
+      ? r.integritySignals.map(key => ({ key, label: REVIEW_SIGNALS[key] ?? key }))
+      : null,
   }))
   return { reviews, total, page: pageNum, limit: limitNum }
 }

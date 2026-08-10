@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Star, X, Check, Reply, SquarePen } from 'lucide-react'
 import { reviewService } from '@services/review.service'
 import { toast } from '@components/common/Toaster'
@@ -63,12 +63,24 @@ function WriteReviewForm({ propertyId, onCancel, onSuccess }) {
   const qc = useQueryClient()
   const defaultRatings = Object.fromEntries(Object.keys(RATING_LABELS).map(k => [k, 3]))
   const [form, setForm] = useState({ reviewerType: 'TENANT', recommend: true, isAnonymous: false, body: '', ...defaultRatings })
+  // How long the form was open. A ref, not state — reading it must never
+  // re-render, and it must survive every keystroke between mount and submit.
+  const openedAt = useRef(Date.now())
 
   const mutation = useMutation({
-    mutationFn: (data) => reviewService.submit(propertyId, data),
-    onSuccess: () => {
+    mutationFn: (data) => reviewService.submit(propertyId, { ...data, composeMs: Date.now() - openedAt.current }),
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['reviews', propertyId] })
-      toast.success('Review submitted', 'Your review is under moderation and will appear once approved.')
+      // Most reviews publish immediately now (see AUTO_APPROVE_ABOVE in
+      // reviews.service.js), so telling everyone to wait for a moderator would
+      // be wrong for the majority and would hide a review that is already live.
+      const published = res?.data?.status === 'APPROVED'
+      toast.success(
+        published ? 'Review published' : 'Review submitted',
+        published
+          ? 'Thanks — your review is live on this listing.'
+          : 'A moderator will read this one before it appears.',
+      )
       onSuccess?.()
     },
     onError: (err) => {

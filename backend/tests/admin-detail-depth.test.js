@@ -102,4 +102,18 @@ describe('admin property detail', () => {
       expect(fields[f], `statusEvents.${f}`).toBe(true)
     }
   })
+
+  it('asks for the unresolved fraud signals', async () => {
+    // Four detectors have written FraudSignal since the intelligence layer
+    // shipped and nothing rendered them anywhere, so moderation saw a risk
+    // NUMBER with no reason attached. The read path tolerates the relation
+    // being absent (`?? []`), which means dropping this include would empty the
+    // panel silently rather than throw — so the JOIN is what has to be pinned.
+    await getAdminPropertyById('p1')
+    const signals = askedFor(prismaMock.property.findUnique).fraudSignals
+    expect(signals).toBeTruthy()
+    // Resolved ones are closed questions; showing them beside open ones is how
+    // a cleared listing keeps looking guilty.
+    expect(signals.where).toEqual({ resolved: false })
+  })
 })

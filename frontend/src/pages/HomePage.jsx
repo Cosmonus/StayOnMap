@@ -20,10 +20,13 @@ import { useFilterUrlSync } from '@features/filters/hooks/useFilterUrlSync'
 import { formatCurrency } from '@utils/format'
 
 // The header is two stacked rows and is position-fixed, so the page below it
-// starts at its full height. Kept as one constant per breakpoint so the map
-// and the padding can never disagree and leave a seam or a scrollbar.
-const HEADER_OFFSET = 'pt-[132px] md:pt-[166px]'
-const BELOW_HEADER_H = 'h-[calc(100vh-132px)] md:h-[calc(100vh-166px)]'
+// starts at its full height. That height is MEASURED and published as
+// --header-h by Header.jsx — these were `pt-[132px] md:pt-[166px]` against a
+// header that is really 134/142, which is where the band between the filter bar
+// and the map came from. A per-breakpoint constant cannot track a control
+// that gets resized in a different file.
+const HEADER_OFFSET = 'pt-[var(--header-h)]'
+const BELOW_HEADER_H = 'h-[calc(100vh-var(--header-h))]'
 
 const HOW_IT_WORKS_STEPS = [
   {
@@ -236,6 +239,22 @@ const MODE_COPY = {
 
 const modeCopy = (mode) => MODE_COPY[mode] ?? MODE_COPY.RENT
 
+// Six tiles: five listings plus the nearby card (or six listings when there is
+// no nearby card to show — the tile count is what the layout is built around).
+//
+// Every column count here divides six exactly, so the last row is always full
+// and there is never a lone card sitting beside dead space. That was the old
+// problem: `auto-fill,minmax(260px,1fr)` opens as many tracks as the container
+// fits — six or seven on a wide monitor — and leaves the surplus EMPTY rather
+// than stretching the cards into it, so four tiles ended halfway across the
+// screen. auto-FIT would have stretched them instead, which on a 1900px row of
+// four gives 450px-wide cards. Neither is what this section wants.
+//
+// Six-across waits for 2xl because below ~1536px it puts each card under 240px,
+// and the photo is the part that stops working first.
+const CARD_GRID = 'grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6'
+const TILES = 6
+
 function NearbyCard({ groups, complete, copy, hrefFor }) {
   if (!groups.length) return null
   return (
@@ -317,8 +336,10 @@ function RentingHere() {
       <section className="w-full border-t border-slate-200 bg-white px-4 py-14 md:px-6 md:py-16">
         <div className="h-7 w-56 animate-pulse rounded bg-slate-200" />
         <div className="mt-2 h-4 w-72 animate-pulse rounded bg-slate-200" />
-        <div className="mt-8 grid gap-5 [grid-template-columns:repeat(auto-fill,minmax(260px,1fr))]">
-          {[0, 1, 2, 3].map((i) => (
+        {/* Same grid and the same tile count as the real thing — a skeleton in
+            a different shape is a layout jump the moment the data lands. */}
+        <div className={`mt-8 ${CARD_GRID}`}>
+          {Array.from({ length: TILES }, (_, i) => (
             <div key={i} className="aspect-[4/3] animate-pulse rounded-2xl bg-slate-200" />
           ))}
         </div>
@@ -385,10 +406,12 @@ function RentingHere() {
         </Link>
       </div>
 
-      {/* auto-fill so the row never leaves a half-width orphan card, and never
-          pads itself out with placeholders that go nowhere. */}
-      <div className="mt-8 grid gap-5 [grid-template-columns:repeat(auto-fill,minmax(260px,1fr))]">
-        {rows.slice(0, 3).map((property) => (
+      <div className={`mt-8 ${CARD_GRID}`}>
+        {/* One fewer listing when the nearby card is there to take the last
+            tile, one more when it isn't — NearbyCard renders nothing without
+            groups, and a five-tile row would leave the hole this grid exists
+            to avoid. */}
+        {rows.slice(0, nearby.length ? TILES - 1 : TILES).map((property) => (
           <PropertyCard key={property.id} property={property} />
         ))}
         <NearbyCard groups={nearby} complete={complete} copy={copy} hrefFor={nearbyHref} />

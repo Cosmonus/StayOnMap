@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma.js'
+import { averageRating } from '../reviews/rating.js'
 
 // The host dashboard: what needs the owner TODAY, and what the last 30 days
 // actually did.
@@ -16,18 +17,11 @@ function daysAgo(n) {
   return d
 }
 
-// The 12 category ratings averaged into the one number a review is worth
-// summarising as ("left you 4 stars"). Same shape trust.service.js uses.
-const RATING_FIELDS = [
-  'ratingsSafety', 'ratingsClean', 'ratingsWater', 'ratingsNoise',
-  'ratingsInternet', 'ratingsParking', 'ratingsNeighborhood', 'ratingsTransport',
-  'ratingsMaintenance', 'ratingsOwnerBehavior', 'ratingsSecurity', 'ratingsPowerBackup',
-]
-
-function averageRating(review) {
-  const values = RATING_FIELDS.map((f) => review[f]).filter((v) => typeof v === 'number')
-  if (values.length === 0) return null
-  return Math.round(values.reduce((a, b) => a + b, 0) / values.length)
+// The one number a review is worth summarising as ("left you 4 stars"), rounded
+// because a host reading their own dashboard wants stars, not a decimal.
+function roundedRating(review) {
+  const avg = averageRating(review)
+  return avg === null ? null : Math.round(avg)
 }
 
 // "2 BHK Koramangala" — how an owner refers to their own listing.
@@ -102,7 +96,7 @@ async function needsYouToday(ownerId) {
     id: r.id,
     propertyId: r.propertyId,
     listing: listingLabel(r.property),
-    rating: averageRating(r),
+    rating: roundedRating(r),
     quote: r.body,
     askedAt: r.createdAt,
   }))

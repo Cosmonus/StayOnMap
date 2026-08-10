@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -357,6 +357,41 @@ export default function Header() {
   const mapFilterCount = useFilterStore((s) => countActiveFilters(s.filters))
   const isMapPage = pathname === '/' || pathname.startsWith('/properties')
 
+  // This header is fixed, so the pages beneath it need its exact height to
+  // start below it — and that height is not one number. The filter row only
+  // renders on the map routes, and its controls are taller from `md` up.
+  //
+  // Three hardcoded guesses had accumulated for it: HomePage said 132/166 and
+  // PropertiesPage said 132/160, against a header that is really 134/142. The
+  // homepage therefore carried a 24px gap between the filter bar and the top of
+  // the map, /properties an 18px one, and both overlapped by 2px on mobile.
+  // Nothing could catch that, because nothing derived the numbers from the
+  // thing they described — the constants were written once and the controls
+  // were resized later (the 2026-07-26 44px target-size pass).
+  //
+  // So measure it and publish it. Pages consume `var(--header-h)`; the default
+  // in index.css only covers the frame before this runs.
+  const headerRef = useRef(null)
+  useLayoutEffect(() => {
+    const el = headerRef.current
+    if (!el) return
+    const publish = () => {
+      document.documentElement.style.setProperty('--header-h', `${el.offsetHeight}px`)
+    }
+    publish()
+    // offsetHeight ignores the hide-on-scroll transform, so this fires on real
+    // size changes only: gaining or losing the filter row, crossing the md
+    // breakpoint, a webfont finally landing and reflowing the wordmark.
+    const observer = new ResizeObserver(publish)
+    observer.observe(el)
+    return () => {
+      observer.disconnect()
+      // Back to the stylesheet default. Only routes that RENDER this header
+      // consume the variable, so nothing is left reading a stale value.
+      document.documentElement.style.removeProperty('--header-h')
+    }
+  }, [])
+
   // Per HAT, not per account. ChatPanel shows host mode only the threads you
   // own and renter mode only the ones you started, so the whole-account total
   // badged "Inbox · 1" for a message sitting in a thread host mode does not
@@ -441,7 +476,7 @@ export default function Header() {
   }, [])
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200 transition-transform duration-300 ${hidden ? '-translate-y-full' : 'translate-y-0'}`}>
+    <header ref={headerRef} className={`fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200 transition-transform duration-300 ${hidden ? '-translate-y-full' : 'translate-y-0'}`}>
       {/* One container for every mode (2026-07-27): guest/traveler used a
           centered max-w-7xl with wider padding while host ran edge-to-edge,
           so the wordmark and avatar jumped sideways on every mode switch and

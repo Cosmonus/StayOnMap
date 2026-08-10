@@ -151,7 +151,10 @@ export default function PropertiesPage() {
     <>
       <SEOMeta title={pageTitle} description={pageDesc} canonical={canonical('/properties')} />
 
-      <main className="min-h-screen bg-white pt-[132px] md:pt-40 pb-20">
+      {/* --header-h is measured by Header.jsx. This was `pt-[132px] md:pt-40`
+          — a third hand-written guess at the same header, 18px too tall on
+          desktop and 2px short on mobile. */}
+      <main className="min-h-screen bg-white pt-[var(--header-h)] pb-20">
         {/* Full width with the homepage's slim gutters — the old centered
             80%/max-w cap read as dead space either side of the grid */}
         <div className="w-full px-4 md:px-6">

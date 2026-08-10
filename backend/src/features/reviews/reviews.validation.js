@@ -18,6 +18,11 @@ export const createReviewSchema = z.object({
   ratingsPowerBackup: rating,
   body: z.string().min(10).max(2000),
   mediaUrls: z.array(z.string().url()).max(5).default([]),
+  // How long the form was open, in ms. Optional and forgeable, which is why
+  // features/reviews/integrity.js only ever lets a SMALL value raise
+  // suspicion — omitting it or inflating it buys nothing. Not a column: the
+  // service strips it before the write.
+  composeMs: z.number().int().min(0).max(86_400_000).optional(),
 })
 
 // `vote` read req.body.recommend and `ownerRespond` read req.body.response

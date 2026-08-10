@@ -24,6 +24,14 @@ import { resolve } from 'node:path'
 
 const read = (p) => readFileSync(resolve(process.cwd(), p), 'utf8')
 
+// Block, line, and JSX `{/* */}` comments. Needed wherever a file DOCUMENTS the
+// bad value it used to hold — otherwise the explanation trips the check that
+// the explanation exists to justify.
+const stripComments = (src) => src
+  .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, '')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/\/\/[^\n]*/g, '')
+
 // The class as written in the markup, not the pixel value. The pixel value is
 // the token's business and is meant to be changed in one place.
 const SHELL = /max-w-page/
@@ -74,6 +82,54 @@ describe('the token exists and is a real width', () => {
     // Not full-bleed either: these are card grids, and past roughly this width
     // a four-up row on a 2560px monitor puts a metre between first and last.
     expect(px).toBeLessThan(1920)
+  })
+})
+
+describe('the pages that start beneath the fixed header', () => {
+  // Same failure as the shell widths above, on the vertical axis, and it had
+  // already happened: HomePage said `pt-[132px] md:pt-[166px]` and
+  // PropertiesPage `pt-[132px] md:pt-40` for ONE header that measures 134/142.
+  // The homepage carried a 24px band between the filter bar and the top of the
+  // map, /properties an 18px one, and both tucked 2px under it on mobile.
+  //
+  // Nothing could have caught it while the numbers were literals — they were
+  // written once and the header's controls were resized later, in a third
+  // file. Header.jsx now measures the element and publishes --header-h.
+  const UNDER_HEADER = {
+    'the homepage': 'src/pages/HomePage.jsx',
+    'the properties grid': 'src/pages/PropertiesPage.jsx',
+  }
+
+  for (const [name, file] of Object.entries(UNDER_HEADER)) {
+    it(`${name} takes its offset from the measured header`, () => {
+      expect(read(file), `${file} should use var(--header-h)`).toMatch(/pt-\[var\(--header-h\)\]/)
+    })
+
+    it(`${name} has not gone back to a hand-written offset`, () => {
+      // Any literal top padding on these two is the bug returning, whether it
+      // is a pixel value or a spacing step. Both forms shipped.
+      //
+      // Read from the MARKUP, not the file: both pages name the old values in
+      // a comment explaining what went wrong, and a whole-file match flags the
+      // explanation as the offence. Same reasoning as
+      // backend/tests/enum-config-parity.test.js's `strip`.
+      const src = stripComments(read(file))
+      expect(src, `${name} hardcodes a px top offset`).not.toMatch(/pt-\[\d+px\]/)
+      expect(src, `${name} hardcodes a step top offset`).not.toMatch(/\bmd:pt-\d+\b/)
+    })
+  }
+
+  it('the header actually publishes the variable', () => {
+    // The consumers above render with NO top padding if this stops happening —
+    // the map would slide under the header rather than leaving a gap, which is
+    // the louder failure but still one nothing else checks.
+    const header = read('src/components/layout/Header.jsx')
+    expect(header).toMatch(/setProperty\('--header-h'/)
+    expect(header, 'the measurement must survive a resize').toMatch(/ResizeObserver/)
+  })
+
+  it('and the stylesheet carries a fallback for the first frame', () => {
+    expect(read('src/index.css')).toMatch(/--header-h:\s*\d+px/)
   })
 })
 
