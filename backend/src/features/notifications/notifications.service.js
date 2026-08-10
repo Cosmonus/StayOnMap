@@ -10,7 +10,11 @@ import { sendPushToUser } from '../../services/push.service.js'
 import { sendExpoPushToUser } from '../../services/expoPush.service.js'
 
 const EMAIL_TYPES = new Set(['APPOINTMENT_ACCEPTED', 'APPOINTMENT_REJECTED', 'VERIFICATION_UPDATE'])
-const PUSH_TYPES  = new Set(['APPOINTMENT_ACCEPTED', 'APPOINTMENT_REJECTED', 'LEASE_OFFERED', 'LEASE_SIGNED', 'LEASE_REJECTED', 'MESSAGE'])
+// Support cases push on a REPLY and on a RESOLUTION — the two moments somebody
+// is actually waiting for — and deliberately not on SUPPORT_CASE_UPDATE, which
+// covers assignment and triage. A push saying "your case was assigned to an
+// agent" is a notification about our internal process, not about them.
+const PUSH_TYPES  = new Set(['APPOINTMENT_ACCEPTED', 'APPOINTMENT_REJECTED', 'LEASE_OFFERED', 'LEASE_SIGNED', 'LEASE_REJECTED', 'MESSAGE', 'SUPPORT_CASE_MESSAGE', 'SUPPORT_CASE_RESOLVED'])
 
 // `audience` says which hat the recipient is wearing — TENANT or OWNER. Every
 // caller passes it explicitly; it cannot be derived from `type` (see the

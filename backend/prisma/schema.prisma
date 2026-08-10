@@ -232,6 +232,12 @@ enum NotificationType {
   LEASE_REJECTED
   SYSTEM
   MESSAGE
+  // Support & Trust (2026-08-10). Three DELIVERY categories, not one per
+  // event — SupportEvent is the log of what happened; these decide push and
+  // email routing. See migration 20260810030000.
+  SUPPORT_CASE_MESSAGE
+  SUPPORT_CASE_UPDATE
+  SUPPORT_CASE_RESOLVED
 }
 
 enum LeaseStatus {
@@ -255,7 +261,17 @@ model Admin {
   moderationActions ModerationAction[]
   activityLogs      ActivityLog[]
 
-  createdAt DateTime @default(now())
+  createdAt            DateTime            @default(now())
+  // Staff side of the same four relations, plus assignment.
+  supportCasesAssigned SupportCase[]       @relation("SupportCasesAssigned")
+  supportMessages      SupportMessage[]    @relation("SupportMessagesByAdmin")
+  supportAttachments   SupportAttachment[] @relation("SupportAttachmentsByAdmin")
+  supportEvents        SupportEvent[]      @relation("SupportEventsByAdmin")
+
+  /// Coarse staff role. A plain string rather than an enum, matching
+  /// PropertyStatusEvent.actor: the vocabulary is small, and adding an enum
+  /// value costs two migrations in Postgres. ADMIN | SUPPORT_AGENT.
+  role String @default("ADMIN")
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -334,8 +350,16 @@ model User {
   // "in the last week".
   savedSeenAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  // Support & Trust. Named relations because User reaches SupportCase twice
+  // (the person who opened it, and the person it is ABOUT) and those are
+  // different questions — a case can be opened by one user against another.
+  supportCasesCreated SupportCase[]       @relation("SupportCasesCreated")
+  supportCasesAbout   SupportCase[]       @relation("SupportCasesAbout")
+  supportMessages     SupportMessage[]    @relation("SupportMessagesByUser")
+  supportAttachments  SupportAttachment[] @relation("SupportAttachmentsByUser")
+  supportEvents       SupportEvent[]      @relation("SupportEventsByUser")
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -839,8 +863,9 @@ model Property {
   // submitted, not touched.
   submittedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  supportCases SupportCase[]
 
   @@index([city])
   @@index([status])
@@ -1059,8 +1084,9 @@ model Appointment {
   // on RESCHEDULE_REQUESTED.
   tenantNote    String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  supportCases SupportCase[]
 
   @@unique([tenantId, propertyId, status])
   @@index([propertyId])
@@ -1153,57 +1179,27 @@ model PropertyReport {
   ownerResponse String?
 
   moderationAction ModerationAction?
-  messages         ReportMessage[]
+
+  /// The generic half of this report's workflow — status transitions,
+  /// assignment, the reporter conversation, attachments and the audit timeline
+  /// all live on the case, while every specialised field above stays here.
+  ///
+  /// NULLABLE and one-to-one. Nullable because reports written before the
+  /// support layer existed have no case until the backfill runs, and a report
+  /// with no case must keep working rather than 500 — the read paths fall back
+  /// to the report's own `status`, which is still the source of truth for
+  /// moderation.
+  ///
+  /// SetNull rather than Cascade: deleting a case must never delete the report
+  /// it was created for. The report is the record; the case is the workflow.
+  supportCase   SupportCase? @relation(fields: [supportCaseId], references: [id], onDelete: SetNull)
+  supportCaseId String?      @unique
 
   createdAt DateTime @default(now())
 
   @@index([propertyId])
   @@index([status])
   @@index([severity])
-}
-
-/// A conversation between the person who filed a report and a moderator.
-///
-/// Added 2026-08-10, because a report went into SILENCE: the owner was notified
-/// on submit and on a warning, the reporter was told nothing at any point — not
-/// even when their report was upheld and they were quietly awarded points for
-/// it. Outcome notifications closed half of that; this closes the other half,
-/// which is the moderator being unable to ask "which listing, what happened".
-///
-/// NOT a `Conversation`. That model is tenant↔owner and `.claude/architecture.md`
-/// is explicit that admins are platform operators, never participants — putting
-/// an admin in it would mean rewriting the audience split, the per-hat unread
-/// counts and the socket rooms for one moderation surface. This is a moderation
-/// record that happens to have replies, and it stays on the report it is about.
-///
-/// THE OWNER IS NOT A PARTY AND MUST NEVER BE. A report can be anonymous, the
-/// owner already cannot see who filed one, and a thread the owner could read
-/// would undo that in the most direct way available.
-model ReportMessage {
-  id       String         @id @default(cuid())
-  report   PropertyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  reportId String
-
-  /// REPORTER | ADMIN. A plain string rather than an enum, following
-  /// PropertyStatusEvent.actor: adding an enum value costs two migrations
-  /// (Postgres cannot use a value in the transaction that created it), and this
-  /// vocabulary is closed at two by the design rather than by a constraint.
-  authorRole String
-
-  /// Set only on an ADMIN message, for accountability. A reporter message needs
-  /// no author column — the report already knows whose it is, and duplicating
-  /// `reporterId` here would let the two disagree.
-  adminId String?
-
-  body      String
-  createdAt DateTime @default(now())
-
-  /// When the OTHER side last read up to. Nullable on both: an unread message
-  /// and a message read at an unknown time are different facts.
-  readByReporterAt DateTime?
-  readByAdminAt    DateTime?
-
-  @@index([reportId, createdAt])
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -1371,17 +1367,18 @@ model Notification {
 // ─────────────────────────────────────────────────────────────────
 
 model Conversation {
-  id            String       @id @default(cuid())
+  id            String        @id @default(cuid())
   propertyId    String
-  property      Property     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  property      Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   tenantId      String
-  tenant        User         @relation("TenantConversations", fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        User          @relation("TenantConversations", fields: [tenantId], references: [id], onDelete: Cascade)
   ownerId       String
-  owner         User         @relation("OwnerConversations", fields: [ownerId], references: [id], onDelete: Cascade)
+  owner         User          @relation("OwnerConversations", fields: [ownerId], references: [id], onDelete: Cascade)
   messages      Message[]
   userReports   UserReport[]
-  lastMessageAt DateTime     @default(now())
-  createdAt     DateTime     @default(now())
+  lastMessageAt DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  supportCases  SupportCase[]
 
   @@unique([propertyId, tenantId])
   @@index([tenantId])
@@ -1460,8 +1457,9 @@ model Lease {
   tenant   User     @relation("TenantLeases", fields: [tenantId], references: [id], onDelete: Cascade)
   owner    User     @relation("OwnerLeases", fields: [ownerId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  supportCases SupportCase[]
 
   @@index([tenantId])
   @@index([ownerId])
@@ -2167,4 +2165,310 @@ enum UserReportCategory {
   IMPERSONATION
   HATE_OR_ABUSE
   OTHER
+}
+
+// ═════════════════════════════════════════════════════════════════
+// Support & Trust — the unified case layer
+// ═════════════════════════════════════════════════════════════════
+//
+// ONE concept for everything that needs a human: SupportCase. Before this the
+// platform had four unconnected halves — a property report with its own thread,
+// a contact form that emailed and stored nothing at all, a UserReport table
+// with one writer and zero readers, and a "Support" screen that was a list of
+// links. None of them could be assigned, prioritised, escalated or audited, and
+// none could say how long anything took.
+//
+// PropertyReport is NOT replaced. It keeps every field it has — category,
+// severity, evidenceUrls, ownerResponse, isAnonymous — and gains a case that
+// carries the generic half: status, assignment, messages, attachments, events.
+// The specialised record stays specialised; the workflow becomes shared.
+
+enum SupportCaseType {
+  GENERAL_SUPPORT
+  PROPERTY_REPORT
+  LISTING_ISSUE
+  OWNER_VERIFICATION
+  TENANT_COMPLAINT
+  APPOINTMENT_ISSUE
+  CHAT_ISSUE
+  LEASE_ISSUE
+  PAYMENT_ISSUE
+  FRAUD_REPORT
+  SAFETY_REPORT
+  TECHNICAL_ISSUE
+  ACCOUNT_ISSUE
+  OTHER
+}
+
+enum SupportCaseStatus {
+  OPEN
+  TRIAGED
+  IN_PROGRESS
+  WAITING_FOR_USER
+  WAITING_FOR_OWNER
+  ESCALATED
+  RESOLVED
+  CLOSED
+}
+
+enum SupportPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+/// Who is speaking. SUPPORT_AGENT and ADMIN are both staff and differ only in
+/// seniority; SYSTEM is for messages nobody typed (a status change rendered
+/// into the thread), which is why it exists rather than being faked as an admin.
+enum SupportAuthorRole {
+  TENANT
+  OWNER
+  ADMIN
+  SUPPORT_AGENT
+  SYSTEM
+}
+
+/// Who may read a message or attachment, BESIDES staff — staff always see
+/// everything, which is what makes moderation possible.
+///
+/// Four values, not the five a generic ticketing system would carry: ADMIN_ONLY
+/// and INTERNAL mean exactly the same thing, and two names for one rule is how
+/// half the call sites end up using the one that was never enforced.
+///
+///   PUBLIC       every party to the case
+///   TENANT_ONLY  the tenant/reporter side + staff
+///   OWNER_ONLY   the owner side + staff
+///   INTERNAL     staff only — never leaves the admin panel
+enum SupportVisibility {
+  PUBLIC
+  TENANT_ONLY
+  OWNER_ONLY
+  INTERNAL
+}
+
+enum SupportEventType {
+  CASE_CREATED
+  CASE_ASSIGNED
+  CASE_REASSIGNED
+  STATUS_CHANGED
+  PRIORITY_CHANGED
+  MESSAGE_SENT
+  ATTACHMENT_ADDED
+  OWNER_NOTIFIED
+  REPORT_SUBMITTED
+  OWNER_RESPONDED
+  EVIDENCE_REQUESTED
+  CASE_ESCALATED
+  LISTING_RESTRICTED
+  CASE_RESOLVED
+  CASE_CLOSED
+  INTERNAL_NOTE_ADDED
+}
+
+model SupportCase {
+  id String @id @default(cuid())
+
+  /// Human-quotable reference, rendered as "SC-1042" (features/support/caseRef.js).
+  /// An autoincrement Int rather than a generated string: a formatted number
+  /// built in application code races under concurrent inserts, and the database
+  /// already has a sequence that cannot.
+  number Int @unique @default(autoincrement())
+
+  type     SupportCaseType
+  status   SupportCaseStatus @default(OPEN)
+  priority SupportPriority   @default(NORMAL)
+
+  subject     String
+  description String
+
+  /// Nullable, because an ANONYMOUS property report has no author and must
+  /// still become a case — the moderation queue is exactly where it belongs.
+  createdBy   User?   @relation("SupportCasesCreated", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById String?
+
+  /// The hat it was opened wearing. NOT derivable from User.role: an owner
+  /// reporting somebody else's listing is acting as a renter, and this decides
+  /// which support centre the case appears in.
+  openedAs SupportAuthorRole @default(TENANT)
+
+  assignedTo   Admin?  @relation("SupportCasesAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedToId String?
+
+  // ── What the case is ABOUT ────────────────────────────────────────────────
+  // Real foreign keys, one per kind, rather than a polymorphic
+  // (entityType, entityId) pair. The polymorphic version cannot be joined,
+  // cannot cascade and cannot be constrained — every read becomes a switch and
+  // every orphan is invisible. Nullable, and only the relevant ones are set.
+  //
+  // There is no separate `relatedListing`: in this codebase a listing IS a
+  // Property. A second column would be the same row under two names.
+  relatedUser   User?   @relation("SupportCasesAbout", fields: [relatedUserId], references: [id], onDelete: SetNull)
+  relatedUserId String?
+
+  relatedProperty   Property? @relation(fields: [relatedPropertyId], references: [id], onDelete: SetNull)
+  relatedPropertyId String?
+
+  relatedAppointment   Appointment? @relation(fields: [relatedAppointmentId], references: [id], onDelete: SetNull)
+  relatedAppointmentId String?
+
+  relatedConversation   Conversation? @relation(fields: [relatedConversationId], references: [id], onDelete: SetNull)
+  relatedConversationId String?
+
+  relatedLease   Lease?  @relation(fields: [relatedLeaseId], references: [id], onDelete: SetNull)
+  relatedLeaseId String?
+
+  // ── SLA. Measured, never enforced yet ─────────────────────────────────────
+  // Three stamps are the whole data model for "time to first response" and
+  // "time to resolution". Automated enforcement can be added later without a
+  // migration; the numbers cannot be recovered after the fact.
+  firstResponseAt DateTime?
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages    SupportMessage[]
+  attachments SupportAttachment[]
+  events      SupportEvent[]
+  report      PropertyReport?
+
+  @@index([status, priority, createdAt])
+  @@index([type, status])
+  @@index([assignedToId, status])
+  @@index([createdById, createdAt])
+  @@index([relatedPropertyId])
+}
+
+model SupportMessage {
+  id     String      @id @default(cuid())
+  case   SupportCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  caseId String
+
+  authorRole SupportAuthorRole
+
+  /// One of these is set, or neither for SYSTEM. Two nullable columns rather
+  /// than one polymorphic author id: staff and users live in different tables
+  /// behind different secrets, and a single column would make "which table is
+  /// this id in" a question every reader has to answer.
+  authorUser   User?   @relation("SupportMessagesByUser", fields: [authorUserId], references: [id], onDelete: SetNull)
+  authorUserId String?
+
+  authorAdmin   Admin?  @relation("SupportMessagesByAdmin", fields: [authorAdminId], references: [id], onDelete: SetNull)
+  authorAdminId String?
+
+  /// Defaults to the SAFEST value, not the most convenient one. A message that
+  /// reaches the wrong party cannot be recalled, so the default leaks nothing
+  /// and callers must opt INTO wider visibility.
+  visibility SupportVisibility @default(INTERNAL)
+
+  body String
+
+  readByUserAt  DateTime?
+  readByAdminAt DateTime?
+
+  createdAt   DateTime            @default(now())
+  attachments SupportAttachment[]
+
+  @@index([caseId, createdAt])
+}
+
+model SupportAttachment {
+  id     String      @id @default(cuid())
+  case   SupportCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  caseId String
+
+  /// Nullable: evidence can belong to the case rather than to any one message.
+  message   SupportMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId String?
+
+  uploadedByUser   User?   @relation("SupportAttachmentsByUser", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+  uploadedByUserId String?
+
+  uploadedByAdmin   Admin?  @relation("SupportAttachmentsByAdmin", fields: [uploadedByAdminId], references: [id], onDelete: SetNull)
+  uploadedByAdminId String?
+
+  url       String
+  fileName  String?
+  mimeType  String
+  sizeBytes Int?
+
+  /// Same rule as a message, and it matters more here: a screenshot of a chat
+  /// can identify the person who sent it.
+  visibility SupportVisibility @default(INTERNAL)
+
+  createdAt DateTime @default(now())
+
+  @@index([caseId, createdAt])
+}
+
+/// The audit trail. Append-only by discipline — nothing in the codebase updates
+/// or deletes a row here, and the service takes an explicit `actor` rather than
+/// reading one from the request, so an event cannot be attributed by accident.
+model SupportEvent {
+  id     String      @id @default(cuid())
+  case   SupportCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  caseId String
+
+  type      SupportEventType
+  actorRole SupportAuthorRole
+
+  actorUser   User?   @relation("SupportEventsByUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorUserId String?
+
+  actorAdmin   Admin?  @relation("SupportEventsByAdmin", fields: [actorAdminId], references: [id], onDelete: SetNull)
+  actorAdminId String?
+
+  /// What changed, as DATA — { from: 'OPEN', to: 'TRIAGED' }. Never a
+  /// pre-rendered sentence: the timeline is read by a person now and by a
+  /// classifier later, and a sentence is the one form neither can query.
+  meta Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([caseId, createdAt])
+}
+
+// ── Knowledge base ─────────────────────────────────────────────────────────
+// Deliberately small. The point is that a support request can be AVOIDED, not
+// that we have a wiki — so a handful of real articles about things this product
+// actually does, and no generated filler.
+
+model KnowledgeCategory {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  title       String
+  description String?
+  order       Int     @default(0)
+
+  articles  KnowledgeArticle[]
+  createdAt DateTime           @default(now())
+}
+
+model KnowledgeArticle {
+  id    String @id @default(cuid())
+  slug  String @unique
+  title String
+
+  /// Plain text with light markdown. No HTML and no rich-text editor: this
+  /// renders in a React app AND a native one, and HTML would need sanitising
+  /// in both.
+  body String
+
+  category   KnowledgeCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+
+  /// Unpublished is invisible to users and readable in admin. A draft that is
+  /// live is worse than no article.
+  published Boolean @default(false)
+
+  /// Null = everyone. Otherwise the hat it is written for, so an owner is never
+  /// offered "how to book a viewing".
+  audience SupportAuthorRole?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId, published])
 }

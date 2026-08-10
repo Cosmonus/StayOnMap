@@ -29,6 +29,12 @@ export const NOTIFICATION_TYPES = [
   'LEASE_REJECTED',
   'SYSTEM',
   'MESSAGE',
+  // Support & Trust (2026-08-10). Three DELIVERY categories, not one per event
+  // — SupportEvent is the log of what happened; these decide push and email
+  // routing (notifications.service.js's PUSH_TYPES).
+  'SUPPORT_CASE_MESSAGE',
+  'SUPPORT_CASE_UPDATE',
+  'SUPPORT_CASE_RESOLVED',
 ]
 
 const audience = z.enum(['TENANT', 'OWNER']).optional()
