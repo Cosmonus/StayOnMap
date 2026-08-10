@@ -12,9 +12,14 @@
  *
  * Run:  node --env-file=.env scripts/seed-knowledge.mjs
  */
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+// The singleton, not `new PrismaClient()` — .claude/database.md's rule, and
+// under Prisma 7 it is not a style preference. Prisma 7 removed schema-level
+// `url = env(...)`, so a bare constructor throws
+// PrismaClientInitializationError before it reaches a single query: the client
+// now needs an explicit PrismaPg driver adapter, which src/lib/prisma.js is the
+// one place that builds. This script shipped with the bare form and could never
+// have run.
+import { prisma } from '../src/lib/prisma.js'
 
 const CATEGORIES = [
   { slug: 'renting', title: 'Renting a home', description: 'Searching, visiting and signing.', order: 1 },
