@@ -13,6 +13,20 @@ import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 import { track } from '@lib/analytics'
 
+// Part-of-day grouping for the time chips. The values mirror web's
+// VisitSlotPicker.jsx exactly; see the note beside timeGroups below.
+const PERIODS = [
+  { key: 'morning',   label: 'Morning',   from: 0,  to: 12 },
+  { key: 'afternoon', label: 'Afternoon', from: 12, to: 17 },
+  { key: 'evening',   label: 'Evening',   from: 17, to: 24 },
+]
+const hourOf = (t) => Number(String(t).split(':')[0])
+const periodOf = (t) => (t ? PERIODS.find((p) => hourOf(t) >= p.from && hourOf(t) < p.to) : undefined)
+
+// Below this, every slot shows flat. Grouping cures a wall of chips and nothing
+// else — an owner offering five times must not have three hidden behind a tab.
+const FLAT_MAX = 8
+
 // Nobody can act on a request made for 20 minutes' time, and offering it
 // invites a slot that's stale before the owner opens the notification. Web has
 // had this since the "Today · 9:00 AM at 3pm" bug; mobile never did, so the
@@ -38,6 +52,10 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
   // typing nothing, i.e. clearing it — it becomes a string and stops falling
   // back, so we never re-impose a number they deliberately deleted.
   const [form, setForm] = useState({ requestedDate: '', requestedTime: '', message: '', contactNumber: null })
+  // Which part of day is open. Null until tapped — the ACTIVE group is derived
+  // below rather than stored, so a chosen time, a change of day and a tap
+  // cannot disagree about which is showing.
+  const [periodTap, setPeriodTap] = useState(null)
   const [submitted, setSubmitted] = useState(false)
   const [chatLoading, setChatLoading] = useState(false)
 
@@ -140,6 +158,30 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
   }, [availability, slotsFor])
 
   const slots = form.requestedDate ? slotsFor(form.requestedDate) : withinWindow
+
+  // Mirrors web's VisitSlotPicker — same three periods, same FLAT_MAX, same
+  // precedence — because it is the same decision on a smaller screen. Kept as
+  // parallel code rather than a shared module: the two render with entirely
+  // different primitives and nothing but these numbers is common.
+  //
+  // 09:00–20:00 every half hour is 23 chips. Mobile scrolled them horizontally
+  // so they were reachable, which web's grid was not — but a strip you swipe
+  // through twenty-three times to reach the evening is the same complaint
+  // wearing a gesture.
+  const timeGroups = useMemo(() => {
+    if (slots.length <= FLAT_MAX) return [{ key: 'all', label: 'All', slots }]
+    return PERIODS
+      .map((p) => ({ ...p, slots: slots.filter((t) => hourOf(t) >= p.from && hourOf(t) < p.to) }))
+      .filter((p) => p.slots.length > 0)
+  }, [slots])
+
+  // The tab tapped, then the period holding the chosen time, then the first
+  // with anything in it. Each falls through only if the one before is empty on
+  // THIS day, so a tap from yesterday cannot open an empty group today.
+  const activeTimeGroup =
+    timeGroups.find((g) => g.key === periodTap)
+    ?? timeGroups.find((g) => g.key === periodOf(form.requestedTime)?.key)
+    ?? timeGroups[0]
 
   // A date change can invalidate the chosen time (picking Today late in the
   // day). Clearing it beats submitting a combination the server refuses.
@@ -246,8 +288,28 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
       {slots.length === 0 ? (
         <Text style={styles.emptySlots}>No times left on this day. Pick another day.</Text>
       ) : (
+        <>
+        {timeGroups.length > 1 && (
+          <View style={styles.periodRow} accessibilityRole="tablist">
+            {timeGroups.map((g) => {
+              const on = g.key === activeTimeGroup.key
+              return (
+                <Pressable
+                  key={g.key}
+                  onPress={() => setPeriodTap(g.key)}
+                  style={[styles.period, on && styles.periodActive]}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: on }}
+                  accessibilityLabel={`${g.label}, ${g.slots.length} times`}
+                >
+                  <Text style={[styles.periodText, on && styles.periodTextActive]}>{g.label}</Text>
+                </Pressable>
+              )
+            })}
+          </View>
+        )}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
-          {slots.map((t) => (
+          {activeTimeGroup.slots.map((t) => (
             <Pressable
               key={t}
               style={[styles.chip, form.requestedTime === t && styles.chipActive]}
@@ -261,6 +323,7 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
             </Pressable>
           ))}
         </ScrollView>
+        </>
       )}
       {windowStart && windowEnd && <Text style={styles.hint}>Owner available {formatTime(windowStart)} – {formatTime(windowEnd)}</Text>}
 
@@ -320,6 +383,11 @@ const styles = StyleSheet.create({
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: spacing.sm },
   label: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, color: colors.slate600 },
   chipScroll: { gap: spacing.sm, paddingVertical: 4 },
+  periodRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
+  period: { minHeight: 36, justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radius.sm, backgroundColor: colors.slate100 },
+  periodActive: { backgroundColor: colors.slate800 ?? colors.slate900 },
+  periodText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate600 },
+  periodTextActive: { color: colors.white },
   chip: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.white },
   chipActive: { backgroundColor: colors.brand600, borderColor: colors.brand600 },
   chipDisabled: { backgroundColor: colors.slate50, borderColor: colors.slate200 },
