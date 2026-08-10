@@ -3,6 +3,21 @@ export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
+      maxWidth: {
+        // The card-grid page shell. ONE token because Services and Guides were
+        // deliberately matched to each other (operator decision 2026-08-08) and
+        // two literals is how that pairing quietly ends.
+        //
+        // 1280 (max-w-7xl) was too tight for the grids inside it: Services runs
+        // four columns at xl, so 1280 − 64 padding − 60 gaps left each card
+        // ~289px for a title, a description and three chips. At 1560 it is
+        // ~360px, and Guides' three-up goes ~389 → ~480.
+        //
+        // Not full-bleed: these are card grids, not the map. Past roughly this
+        // width a 4-up grid on a 2560px monitor starts putting a metre between
+        // the first card and the last.
+        page: '1560px',
+      },
       colors: {
         // ── Primary brand — Terrain Jade ───────────────────────────────────
         brand: {

@@ -47,7 +47,7 @@ export default function BlogPage() {
     <div className="min-h-screen bg-slate-50 pt-16">
       <SEOMeta title={TITLE} description={DESCRIPTION} canonical={canonical('/blog')} />
 
-      <div className="mx-auto max-w-7xl px-4 md:px-8 py-10 md:py-14">
+      <div className="mx-auto max-w-page px-4 md:px-8 py-10 md:py-14">
         <header className="mb-8">
           <h1 className="text-4xl font-bold text-slate-800 leading-tight">Renting, explained</h1>
           {/* Prose stays at 60ch even though the grid below is full width —

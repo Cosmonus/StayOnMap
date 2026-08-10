@@ -153,7 +153,7 @@ export default function PropertyDetailBody({ property, variant = 'public' }) {
           This page was the outlier at max-w-6xl with lg:px-8, which made it the
           narrowest content column in the app — ~1088px of usable width against
           everyone else's ~1232px. */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-24 lg:pb-10">
+      <div className="max-w-page mx-auto px-4 sm:px-6 pb-24 lg:pb-10">
 
         {/* ── Top bar: Back + Actions ─────────────────────────────── */}
         <DetailTopBar property={property} />

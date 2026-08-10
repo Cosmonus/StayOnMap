@@ -18,7 +18,7 @@ function PageSkeleton() {
     <div className="flex-1 overflow-y-auto bg-slate-50 animate-pulse">
       {/* Must track the real container in PropertyDetailBody, or the page
           jumps sideways the moment the skeleton is replaced. */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="max-w-page mx-auto px-4 sm:px-6 py-6 space-y-6">
         <div className="h-5 w-32 bg-slate-200 rounded" />
         <div className="hidden md:grid grid-cols-4 grid-rows-2 gap-2 rounded-2xl overflow-hidden h-[420px]">
           <div className="col-span-2 row-span-2 bg-slate-200" />
