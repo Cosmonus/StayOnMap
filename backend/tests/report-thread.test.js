@@ -26,13 +26,27 @@ import {
   getThreadForAdmin, addAdminMessage, reportsAwaitingModerator,
 } from '../src/features/reports/reportThread.service.js'
 
-const MINE = { id: 'rep-1', reporterId: 'user-7', category: 'FRAUD', status: 'PENDING', propertyId: 'prop-1', createdAt: new Date() }
+// A report now carries a supportCaseId — the storage moved to SupportMessage
+// on 2026-08-10 and this file's assertions moved with it. Every BEHAVIOURAL
+// assertion below is unchanged; only the mocks and the two that reached into
+// the old table's column names were rewritten.
+const MINE = { id: 'rep-1', reporterId: 'user-7', category: 'FRAUD', status: 'PENDING', propertyId: 'prop-1', createdAt: new Date(), supportCaseId: 'case-1' }
+
+/** The case getCaseForUser loads when the reporter opens their thread. */
+const CASE_FOR_MINE = {
+  id: 'case-1', number: 7, type: 'PROPERTY_REPORT', status: 'OPEN', subject: 'Report: fraud',
+  description: 'd', createdAt: new Date(), updatedAt: new Date(), resolvedAt: null, closedAt: null,
+  createdById: 'user-7', openedAs: 'TENANT', relatedUserId: null, relatedPropertyId: 'prop-1',
+  relatedProperty: null, messages: [], attachments: [],
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
-  prismaMock.reportMessage.findMany.mockResolvedValue([])
-  prismaMock.reportMessage.updateMany.mockResolvedValue({ count: 0 })
-  prismaMock.reportMessage.create.mockResolvedValue({ id: 'msg-1' })
+  prismaMock.supportMessage.findMany.mockResolvedValue([])
+  prismaMock.supportMessage.updateMany.mockResolvedValue({ count: 0 })
+  prismaMock.supportMessage.create.mockResolvedValue({ id: 'msg-1', authorRole: 'ADMIN', body: 'b', createdAt: new Date(), attachments: [] })
+  prismaMock.supportCase.findUnique.mockResolvedValue(CASE_FOR_MINE)
+  prismaMock.property.findUnique.mockResolvedValue({ ownerId: 'owner-2' })
 })
 
 describe('a reporter reading their own thread', () => {
@@ -58,10 +72,16 @@ describe('a reporter reading their own thread', () => {
     prismaMock.propertyReport.findFirst.mockResolvedValue(MINE)
     await getThreadForReporter('rep-1', 'user-7')
 
-    expect(prismaMock.reportMessage.updateMany).toHaveBeenCalledWith({
-      where: { reportId: 'rep-1', authorRole: 'ADMIN', readByReporterAt: null },
-      data: { readByReporterAt: expect.any(Date) },
-    })
+    // Same rule, new storage: only messages this side can actually SEE are
+    // marked. A message they were never shown must not count as read, or the
+    // admin panel reports somebody saw an answer they never received.
+    const call = prismaMock.supportMessage.updateMany.mock.calls[0][0]
+    expect(call.where.caseId).toBe('case-1')
+    expect(call.where.readByUserAt).toBeNull()
+    expect(call.where.authorRole.in).toContain('ADMIN')
+    expect(call.where.authorRole.in).not.toContain('TENANT')
+    expect(call.where.visibility.in).toContain('TENANT_ONLY')
+    expect(call.where.visibility.in).not.toContain('OWNER_ONLY')
   })
 
   it('never exposes which admin wrote a reply', async () => {
@@ -69,9 +89,23 @@ describe('a reporter reading their own thread', () => {
     // moderator handled you is not information a reporter needs and is one a
     // determined person could act on.
     prismaMock.propertyReport.findFirst.mockResolvedValue(MINE)
-    await getThreadForReporter('rep-1', 'user-7')
-    const { select } = prismaMock.reportMessage.findMany.mock.calls[0][0]
-    expect(select.adminId).toBeUndefined()
+    prismaMock.supportCase.findUnique.mockResolvedValue({
+      ...CASE_FOR_MINE,
+      messages: [{ id: 'm1', authorRole: 'ADMIN', body: 'hi', visibility: 'TENANT_ONLY', createdAt: new Date(), authorUser: null, attachments: [] }],
+    })
+
+    const { messages } = await getThreadForReporter('rep-1', 'user-7')
+
+    // Asserted on the OUTPUT rather than on a select, which is stronger: it
+    // holds however the row was fetched.
+    //
+    // `authorRole: 'ADMIN'` is REQUIRED — both clients branch on it to decide
+    // which side of the thread a bubble sits on. What must never appear is
+    // WHICH admin: an id or a name is what a determined person could act on.
+    expect(messages[0].authorRole).toBe('ADMIN')
+    for (const key of ['authorAdminId', 'adminId', 'authorAdmin', 'authorUser']) {
+      expect(messages[0], key).not.toHaveProperty(key)
+    }
   })
 })
 
@@ -79,7 +113,7 @@ describe('a reporter replying', () => {
   it('is refused on a report that is not theirs', async () => {
     prismaMock.propertyReport.findFirst.mockResolvedValue(null)
     await expect(addReporterMessage('rep-1', 'someone-else', 'hi')).rejects.toMatchObject({ statusCode: 404 })
-    expect(prismaMock.reportMessage.create).not.toHaveBeenCalled()
+    expect(prismaMock.supportMessage.create).not.toHaveBeenCalled()
   })
 
   it('notifies nobody — admins have no notification stream', async () => {
@@ -93,7 +127,7 @@ describe('a reporter replying', () => {
 
 describe('a moderator replying', () => {
   it('tells the reporter, and does not put the reply text in the notification', async () => {
-    prismaMock.propertyReport.findUnique.mockResolvedValue({ id: 'rep-1', reporterId: 'user-7' })
+    prismaMock.propertyReport.findUnique.mockResolvedValue({ id: 'rep-1', reporterId: 'user-7', supportCaseId: 'case-1' })
     await addAdminMessage('rep-1', 'admin-1', 'Which of the photos looked reused?')
 
     expect(notifyUser).toHaveBeenCalledWith('user-7', expect.objectContaining({
@@ -107,40 +141,48 @@ describe('a moderator replying', () => {
 
   it('refuses to reply to an anonymous report rather than storing it nowhere', async () => {
     // A moderator who typed an answer deserves to know it cannot be delivered.
-    prismaMock.propertyReport.findUnique.mockResolvedValue({ id: 'rep-1', reporterId: null })
+    prismaMock.propertyReport.findUnique.mockResolvedValue({ id: 'rep-1', reporterId: null, supportCaseId: 'case-1' })
     await expect(addAdminMessage('rep-1', 'admin-1', 'hello?')).rejects.toMatchObject({
       statusCode: 400, expose: true,
     })
-    expect(prismaMock.reportMessage.create).not.toHaveBeenCalled()
+    expect(prismaMock.supportMessage.create).not.toHaveBeenCalled()
   })
 
   it('records which admin replied', async () => {
-    prismaMock.propertyReport.findUnique.mockResolvedValue({ id: 'rep-1', reporterId: 'user-7' })
+    prismaMock.propertyReport.findUnique.mockResolvedValue({ id: 'rep-1', reporterId: 'user-7', supportCaseId: 'case-1' })
     await addAdminMessage('rep-1', 'admin-1', 'thanks')
-    expect(prismaMock.reportMessage.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ authorRole: 'ADMIN', adminId: 'admin-1' }) }),
+    expect(prismaMock.supportMessage.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ authorRole: 'ADMIN', authorAdminId: 'admin-1' }) }),
     )
   })
 })
 
 describe('the moderator’s view', () => {
   it('says up front whether a reply is even possible', async () => {
-    prismaMock.propertyReport.findUnique.mockResolvedValue({ id: 'rep-1', reporterId: null, isAnonymous: true })
+    prismaMock.propertyReport.findUnique.mockResolvedValue({ id: 'rep-1', reporterId: null, isAnonymous: true, supportCaseId: 'case-1' })
     expect((await getThreadForAdmin('rep-1')).canReply).toBe(false)
 
-    prismaMock.propertyReport.findUnique.mockResolvedValue({ id: 'rep-1', reporterId: 'user-7' })
+    prismaMock.propertyReport.findUnique.mockResolvedValue({ id: 'rep-1', reporterId: 'user-7', supportCaseId: 'case-1' })
     expect((await getThreadForAdmin('rep-1')).canReply).toBe(true)
   })
 
   it('surfaces reports with an unread reporter message', async () => {
     // The admin side has no notifications, so without this a reporter's reply
     // lands in a thread nobody opens.
-    prismaMock.reportMessage.findMany.mockResolvedValue([{ reportId: 'rep-1' }, { reportId: 'rep-9' }])
+    prismaMock.supportMessage.findMany.mockResolvedValue([
+      { case: { report: { id: 'rep-1' } } },
+      { case: { report: { id: 'rep-9' } } },
+    ])
     expect(await reportsAwaitingModerator()).toEqual(['rep-1', 'rep-9'])
 
-    const { where, distinct } = prismaMock.reportMessage.findMany.mock.calls[0][0]
-    expect(where).toEqual({ authorRole: 'REPORTER', readByAdminAt: null })
-    expect(distinct).toEqual(['reportId'])
+    // Same rule on the new storage: unread REPORTER messages only, one row per
+    // case, and scoped to cases that are actually reports — a general support
+    // request is not part of the moderation queue.
+    const { where, distinct } = prismaMock.supportMessage.findMany.mock.calls[0][0]
+    expect(where.authorRole).toBe('TENANT')
+    expect(where.readByAdminAt).toBeNull()
+    expect(where.case).toEqual({ report: { isNot: null } })
+    expect(distinct).toEqual(['caseId'])
   })
 })
 

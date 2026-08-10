@@ -2,6 +2,61 @@ import { prisma } from '../../lib/prisma.js'
 import { recordStatusChange } from '../properties/statusEvents.js'
 import { recalculateRiskScore } from '../trust/trust.service.js'
 import { notifyUser } from '../notifications/notifications.service.js'
+import { createCase } from '../support/supportCase.service.js'
+import { recordEvent } from '../support/supportEvent.service.js'
+import { intelLog } from '../../lib/intelLog.js'
+
+/**
+ * The report → case mapping, in one place.
+ *
+ * Category drives the case TYPE so a fraud report lands in the fraud queue
+ * rather than a generic pile, and severity drives priority but is capped at
+ * HIGH: severity is client-supplied on a public endpoint (it is why
+ * auto-suspend needs two identified reporters), so nobody gets to mark their
+ * own report URGENT.
+ *
+ * Kept identical to the SQL in migration 20260810050000, which backfilled the
+ * same mapping for historical reports — two different answers for the same
+ * report would show as a queue that sorts differently either side of a date.
+ */
+const CASE_TYPE_BY_CATEGORY = {
+  FRAUD: 'FRAUD_REPORT',
+  BROKER_SPAM: 'FRAUD_REPORT',
+  UNSAFE: 'SAFETY_REPORT',
+  ILLEGAL: 'SAFETY_REPORT',
+  HARASSMENT: 'SAFETY_REPORT',
+}
+
+const PRIORITY_BY_SEVERITY = { CRITICAL: 'HIGH', HIGH: 'HIGH', MEDIUM: 'NORMAL', LOW: 'LOW' }
+
+async function linkReportToCase(report, propertyId) {
+  const property = await prisma.property.findUnique({ where: { id: propertyId }, select: { ownerId: true } })
+
+  await prisma.$transaction(async (tx) => {
+    const supportCase = await createCase({
+      type: CASE_TYPE_BY_CATEGORY[report.category] ?? 'PROPERTY_REPORT',
+      subject: `Report: ${String(report.category).replace(/_/g, ' ').toLowerCase()}`,
+      description: report.description,
+      createdById: report.reporterId,
+      // Reporting is a renter action even when an owner does it — see
+      // visibility.js's partyRole.
+      openedAs: 'TENANT',
+      relatedPropertyId: propertyId,
+      relatedUserId: property?.ownerId ?? null,
+      priority: PRIORITY_BY_SEVERITY[report.severity] ?? 'NORMAL',
+    }, { tx, actor: { role: 'TENANT', userId: report.reporterId } })
+
+    await tx.propertyReport.update({ where: { id: report.id }, data: { supportCaseId: supportCase.id } })
+
+    await recordEvent({
+      caseId: supportCase.id,
+      type: 'REPORT_SUBMITTED',
+      actor: { role: 'TENANT', userId: report.reporterId },
+      meta: { reportId: report.id, category: report.category, severity: report.severity },
+      tx,
+    })
+  })
+}
 
 // Auto-suspend needs corroboration from this many *distinct, identified*
 // reporters. Severity alone is client-supplied on a public endpoint, so acting
@@ -12,6 +67,25 @@ const MIN_DISTINCT_REPORTERS_TO_SUSPEND = 2
 
 export async function submitReport(reporterId, propertyId, data) {
   const report = await prisma.propertyReport.create({ data: { ...data, reporterId: data.isAnonymous ? null : reporterId, propertyId } })
+
+  // Every report is also a SupportCase (2026-08-10). The report keeps every
+  // specialised field it has — category, severity, evidenceUrls, ownerResponse,
+  // isAnonymous — and the case carries the generic workflow: status,
+  // assignment, the conversation, attachments, escalation and the audit
+  // timeline. Nothing about the report's own behaviour changed.
+  //
+  // Atomic with the link, so a case can never exist without its report
+  // pointing at it — a half-written pair would show in the support queue as a
+  // case about nothing.
+  //
+  // NOT fatal, deliberately. The report itself is already written and the risk
+  // score below is what protects the platform; a support layer that is down
+  // must not stop somebody reporting a fraudulent listing. A case-less report
+  // still works everywhere — the read paths fall back to the report's own
+  // status, exactly as they do for reports predating the backfill.
+  await linkReportToCase(report, propertyId).catch((err) => {
+    intelLog('support.case_link_failed', { reportId: report.id, message: err?.message })
+  })
 
   await recalculateRiskScore(propertyId)
 

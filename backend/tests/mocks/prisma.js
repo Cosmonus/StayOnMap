@@ -113,12 +113,39 @@ export const prismaMock = {
   moderationAction: {
     create: vi.fn().mockResolvedValue({}),
   },
-  // The reporter↔moderator thread on a report. Defaults to an empty thread,
-  // which is every report until somebody replies.
-  reportMessage: {
+  // ── Support & Trust ──────────────────────────────────────────────────────
+  // Defaults are "no cases, empty threads", which is a fresh install and the
+  // state every unrelated suite runs in — a report now creates a case as a side
+  // effect, so these are reached by tests that are not about support at all.
+  supportCase: {
+    create:     vi.fn().mockResolvedValue({ id: 'case-1', number: 1 }),
+    findUnique: vi.fn().mockResolvedValue(null),
     findMany:   vi.fn().mockResolvedValue([]),
-    create:     vi.fn().mockResolvedValue({}),
+    update:     vi.fn().mockResolvedValue({}),
+    count:      vi.fn().mockResolvedValue(0),
+    groupBy:    vi.fn().mockResolvedValue([]),
+  },
+  supportMessage: {
+    findMany:   vi.fn().mockResolvedValue([]),
+    create:     vi.fn().mockResolvedValue({ id: 'msg-1' }),
+    update:     vi.fn().mockResolvedValue({}),
     updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    count:      vi.fn().mockResolvedValue(0),
+  },
+  supportAttachment: {
+    create:   vi.fn().mockResolvedValue({}),
+    findMany: vi.fn().mockResolvedValue([]),
+  },
+  supportEvent: {
+    create:   vi.fn().mockResolvedValue({}),
+    findMany: vi.fn().mockResolvedValue([]),
+  },
+  knowledgeCategory: {
+    findMany: vi.fn().mockResolvedValue([]),
+  },
+  knowledgeArticle: {
+    findMany:   vi.fn().mockResolvedValue([]),
+    findUnique: vi.fn().mockResolvedValue(null),
   },
   savedListing: {
     count: vi.fn(),

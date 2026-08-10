@@ -53,7 +53,19 @@ describe('notification audience', () => {
       if (file.endsWith(join('notifications', 'notifications.service.js'))) continue
 
       for (const call of notifyUserCalls(source)) {
-        if (!/\baudience\s*:/.test(call)) {
+        // `audience: 'TENANT'` and the shorthand `audience,` are equally
+        // explicit — the second passes a variable of that exact name, which is
+        // the thing this lint is checking for. It accepted only the first until
+        // 2026-08-10, when the support layer picked the hat per recipient and
+        // passed it through.
+        //
+        // Comments stripped first, or a call whose comment mentions "the
+        // audience," would satisfy the check by talking about it.
+        const code = call
+          .replace(/\/\*[\s\S]*?\*\//g, '')
+          .replace(/(^|[^:])\/\/.*$/gm, '$1')
+
+        if (!/\baudience\s*(:|,|\})/.test(code)) {
           offenders.push(`${file.replace(SRC, '')} — ${call.slice(0, 90).replace(/\s+/g, ' ')}…`)
         }
       }
