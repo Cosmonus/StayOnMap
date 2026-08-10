@@ -103,14 +103,17 @@ export default function ServicesPage() {
       />
 
       <main className="min-h-screen bg-white pt-28 md:pt-32 pb-24">
-        {/* max-w-7xl, matching Guides (/blog) — operator decision 2026-08-08.
+        {/* max-w-page, matching Guides (/blog) — operator decision 2026-08-08,
+            widened from max-w-7xl 2026-08-10 because four columns in 1280 left
+            each card ~289px. The pairing is now a TOKEN rather than two
+            literals, which is what keeps it a pairing.
             This was full-bleed `w-full px-4 md:px-6`, copied from PropertiesPage
             on the reasoning that a 7xl cap "read as dead space either side".
             That holds for a MAP-backed grid, which is inventory and wants every
             pixel; it does not hold for an editorial page sitting next to
             Guides, where the two being different widths is the thing you
             actually notice. Content pages share one measure. */}
-        <div className="mx-auto max-w-7xl px-4 md:px-8">
+        <div className="mx-auto max-w-page px-4 md:px-8">
 
           {/* Hero */}
           <div className="text-center max-w-2xl mx-auto">
