@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   Shield, Camera, IndianRupee, Clock, Check, Heart, TriangleAlert, Ban,
   Copy, Lock, User, Wrench, Flag, MessageSquare, FileText, Mail, X, Info, CircleAlert,
-  House, KeyRound, Handshake,
+  House, KeyRound, Handshake, BookOpen, ChevronRight,
 } from 'lucide-react'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
@@ -288,6 +288,30 @@ export default function RulesPage() {
             ))}
           </div>
         </div>
+
+        {/* The other half of this page. These rules say what is and isn't
+            allowed; the guide says how the app actually works — searching,
+            contacting an owner, how reviews get published, why nobody rates
+            tenants. The post links here, so this closes the loop rather than
+            leaving a one-way reference. */}
+        <Link
+          to="/blog/how-to-use-stayonmap"
+          className="group mb-10 flex min-h-[44px] items-center gap-4 rounded-2xl bg-white border border-slate-200 p-5 no-underline transition-colors hover:border-brand-200 hover:bg-brand-50/40"
+        >
+          <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
+            <BookOpen size={18} color="#0d8a5f" strokeWidth={2} aria-hidden="true" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-bold text-slate-800 group-hover:text-brand-700 transition-colors">
+              New here? Read the walkthrough
+            </h3>
+            <p className="text-sm text-slate-600 leading-relaxed mt-0.5">
+              How to search, contact an owner, book a visit, and write a review that helps
+              the next person — plus why you rate homes here, never people.
+            </p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-brand-600 shrink-0 transition-colors" strokeWidth={2} aria-hidden="true" />
+        </Link>
 
         {/* Community pledge */}
         <div className="rounded-2xl bg-[#111111] p-6 sm:p-8 relative overflow-hidden">

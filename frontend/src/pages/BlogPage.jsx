@@ -43,8 +43,13 @@ export default function BlogPage() {
   const available = Object.entries(clusters).filter(([key]) => posts.some((p) => p.cluster === key))
   const visible = cluster ? posts.filter((p) => p.cluster === cluster) : posts
 
+  // White, like the other editorial pages (/about, /services, /contact) and
+  // unlike the app surfaces — see .claude/ui-ux.md's "App shell", which scopes
+  // the slate50-canvas rule to app screens and exempts long-form ones. The
+  // cards carry their own slate-200 ring, which is what separates them from the
+  // page now that the canvas no longer does it.
   return (
-    <div className="min-h-screen bg-slate-50 pt-16">
+    <div className="min-h-screen bg-white pt-16">
       <SEOMeta title={TITLE} description={DESCRIPTION} canonical={canonical('/blog')} />
 
       <div className="mx-auto max-w-page px-4 md:px-8 py-10 md:py-14">

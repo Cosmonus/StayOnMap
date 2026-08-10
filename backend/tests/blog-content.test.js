@@ -115,6 +115,31 @@ describe('internal references', () => {
     }
   })
 
+  it('no FRONTEND page links to a blog post that does not exist', () => {
+    // The test above covers post→post. This covers page→post, which is the
+    // riskier direction: a slug hardcoded in JSX has nothing validating it, and
+    // renaming or retiring an article would leave a 404 behind a button that
+    // still looks fine in review. /rules links to the walkthrough this way.
+    //
+    // Scans source rather than a list of known call sites — a guard that has to
+    // be told where to look stops covering the next one somebody adds.
+    const SRC = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'frontend', 'src')
+    const known = new Set(raw.map((r) => r.data.slug))
+
+    const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const full = join(dir, e.name)
+      if (e.isDirectory()) return walk(full)
+      return /\.jsx?$/.test(e.name) ? [full] : []
+    })
+
+    for (const file of walk(SRC)) {
+      const src = readFileSync(file, 'utf8')
+      for (const m of src.matchAll(/["'`]\/blog\/([a-z0-9][a-z0-9-]*)["'`]/g)) {
+        expect(known.has(m[1]), `${file} → links to /blog/${m[1]} which does not exist`).toBe(true)
+      }
+    }
+  })
+
   it('no post links to a bare apex URL', () => {
     // The apex 302s and DROPS the path (see .claude/roadmap.md P5), so an apex
     // link in an article is a redirect to the homepage.
