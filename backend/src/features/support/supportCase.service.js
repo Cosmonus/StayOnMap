@@ -2,7 +2,7 @@ import { prisma } from '../../lib/prisma.js'
 import { notifyUser } from '../notifications/notifications.service.js'
 import { recordEvent, listEvents } from './supportEvent.service.js'
 import { caseRef, parseCaseRef } from './caseRef.js'
-import { ROLE, VISIBILITY, visibleTo, isStaff, allowedVisibilities, partyRole } from './visibility.js'
+import { ROLE, VISIBILITY, visibleTo, canSee, isStaff, allowedVisibilities, defaultVisibilityFor, partyRole } from './visibility.js'
 import { STATUS, assertTransition, transitionStamps, statusAfterReply } from './lifecycle.js'
 
 /**
@@ -90,15 +90,18 @@ export async function createCase({
 // ── Reading, as a user ─────────────────────────────────────────────────────
 
 /**
- * Every case this user is a party to, newest first.
+ * Which cases belong to a hat — the answer to "every case this user is a party
+ * to", which is two different facts: cases they OPENED, and cases opened
+ * against a property they own. The second is what makes an owner's support
+ * centre show the reports filed about their listings without giving them any
+ * case they merely appear in.
  *
- * Two sources, because being a party is two different facts: cases they OPENED,
- * and cases opened against a property they own. The second is what makes an
- * owner's support centre show the reports filed about their listings without
- * giving them any case they merely appear in.
+ * Extracted so the LIST and the BADGE cannot answer it differently. A badge
+ * counting a set the list then excludes is the exact bug the chat unread count
+ * had — badge 1, empty inbox, and no way to find what it meant.
  */
-export async function listCasesForUser(userId, { hat = ROLE.TENANT } = {}) {
-  const where = hat === ROLE.OWNER
+function casesForHat(userId, hat) {
+  return hat === ROLE.OWNER
     // As an owner: their own owner-hat cases, plus anything about their
     // listings. `relatedProperty.ownerId` rather than a denormalised column —
     // one join, and it cannot go stale when a listing changes hands.
@@ -111,30 +114,56 @@ export async function listCasesForUser(userId, { hat = ROLE.TENANT } = {}) {
     // As a renter: only what they opened wearing that hat. A case about a
     // property they happen to own is not their renter business.
     : { createdById: userId, openedAs: ROLE.TENANT }
+}
 
+/** Staff messages this hat can see and has not read. Same rule in both places. */
+function unreadMessagesForHat(hat) {
+  return {
+    readByUserAt: null,
+    authorRole: { in: [ROLE.ADMIN, ROLE.SUPPORT_AGENT] },
+    visibility: hat === ROLE.OWNER
+      ? { in: [VISIBILITY.PUBLIC, VISIBILITY.OWNER_ONLY] }
+      : { in: [VISIBILITY.PUBLIC, VISIBILITY.TENANT_ONLY] },
+  }
+}
+
+export async function listCasesForUser(userId, { hat = ROLE.TENANT } = {}) {
   return prisma.supportCase.findMany({
-    where,
+    where: casesForHat(userId, hat),
     orderBy: { updatedAt: 'desc' },
     take: 100,
     select: {
       ...USER_CASE_SELECT,
       // The unread marker: staff messages this side has not seen. Counted, not
       // listed, because the list page does not render message bodies.
-      _count: {
-        select: {
-          messages: {
-            where: {
-              readByUserAt: null,
-              authorRole: { in: [ROLE.ADMIN, ROLE.SUPPORT_AGENT] },
-              visibility: hat === ROLE.OWNER
-                ? { in: [VISIBILITY.PUBLIC, VISIBILITY.OWNER_ONLY] }
-                : { in: [VISIBILITY.PUBLIC, VISIBILITY.TENANT_ONLY] },
-            },
-          },
-        },
-      },
+      _count: { select: { messages: { where: unreadMessagesForHat(hat) } } },
     },
   })
+}
+
+/**
+ * "Is there something waiting for me in support?" — per hat, like everything
+ * else on this platform.
+ *
+ * Counts CASES, not messages. The badge answers "is there something here", and
+ * three replies on one request is one thing to go and read; the per-row marker
+ * inside the list is the finer-grained answer. Same choice the chat badge
+ * makes, for the same reason.
+ *
+ * Both hats are always returned, so each mode can show what is waiting in the
+ * OTHER one — splitting a list by hat without that is how something addressed
+ * to the hat you are not wearing becomes invisible everywhere.
+ */
+export async function unreadCountsForUser(userId) {
+  const [asTenant, asOwner] = await Promise.all(
+    [ROLE.TENANT, ROLE.OWNER].map((hat) => prisma.supportCase.count({
+      where: {
+        ...casesForHat(userId, hat),
+        messages: { some: unreadMessagesForHat(hat) },
+      },
+    })),
+  )
+  return { asTenant, asOwner, count: asTenant + asOwner }
 }
 
 /**
@@ -216,7 +245,7 @@ export async function addMessage(caseId, actor, body, requestedVisibility, { not
   const found = await prisma.supportCase.findUnique({
     where: { id: caseId },
     select: {
-      id: true, status: true, createdById: true, openedAs: true,
+      id: true, status: true, createdById: true, openedAs: true, assignedToId: true,
       relatedUserId: true, relatedPropertyId: true, firstResponseAt: true, number: true, subject: true,
     },
   })
@@ -268,12 +297,24 @@ export async function addMessage(caseId, actor, body, requestedVisibility, { not
     const isVisibleStaffReply = isStaff(role) && visibility !== VISIBILITY.INTERNAL
     const nextStatus = statusAfterReply(found.status, role)
 
-    if ((isVisibleStaffReply && !found.firstResponseAt) || nextStatus) {
+    // AUTO-CLAIM. Writing on a case is what "I am handling this" actually looks
+    // like, so an unassigned case claims itself for whoever writes on it —
+    // including on an internal note, because reading a case and noting what you
+    // found is picking it up.
+    //
+    // This, not the assign dropdown, is what stops two admins answering the same
+    // case: a control that has to be clicked FIRST protects nobody, because the
+    // person about to duplicate your work is the person who did not click it.
+    // Reassignment stays manual and explicit.
+    const claimBy = isStaff(role) && !found.assignedToId && actor.adminId ? actor.adminId : null
+
+    if ((isVisibleStaffReply && !found.firstResponseAt) || nextStatus || claimBy) {
       await tx.supportCase.update({
         where: { id: caseId },
         data: {
           ...(isVisibleStaffReply && !found.firstResponseAt ? { firstResponseAt: new Date() } : {}),
           ...(nextStatus ? { status: nextStatus, ...transitionStamps(nextStatus, found) } : {}),
+          ...(claimBy ? { assignedToId: claimBy } : {}),
         },
       })
       if (nextStatus) {
@@ -281,6 +322,17 @@ export async function addMessage(caseId, actor, body, requestedVisibility, { not
           caseId, type: 'STATUS_CHANGED',
           actor: { role: ROLE.SYSTEM },
           meta: { from: found.status, to: nextStatus, reason: 'reply' },
+          tx,
+        })
+      }
+      if (claimBy) {
+        // CASE_ASSIGNED, not a separate CASE_CLAIMED type: the fact is the same
+        // and the timeline should not need two words for it. `via: 'reply'` is
+        // what distinguishes it for anyone counting.
+        await recordEvent({
+          caseId, type: 'CASE_ASSIGNED',
+          actor: { role, adminId: actor.adminId },
+          meta: { from: null, to: claimBy, via: 'reply' },
           tx,
         })
       }
@@ -318,10 +370,28 @@ async function notifyCounterparty(supportCase, authorRole, visibility) {
   if (!isStaff(authorRole)) return
 
   const recipients = []
-  if (visibility === VISIBILITY.PUBLIC || visibility === VISIBILITY.TENANT_ONLY) {
-    if (supportCase.createdById) recipients.push({ userId: supportCase.createdById, audience: 'TENANT' })
+
+  // The creator's audience is the HAT THEY OPENED IN, never a fixed 'TENANT'.
+  // It was fixed until 2026-08-10, and the bug was silent in the worst way: a
+  // host raising a verification case got an OWNER-side reply announced to the
+  // TENANT stream, which host mode filters out by design (see the audience
+  // split in .claude/architecture.md). The notification existed, was correct,
+  // and was invisible from the only screen they were on.
+  //
+  // canSee, not a visibility whitelist, for the same reason: an OWNER_ONLY
+  // reply on a case with no related property reached nobody at all, because the
+  // only owner it looked for was the property's.
+  // canSee takes a VIEWER, not a role string — a bare string has no `.role`,
+  // and the fail-closed default silences every notification rather than
+  // throwing. Which is the design working; it is still worth naming.
+  if (supportCase.createdById && canSee({ role: supportCase.openedAs }, visibility)) {
+    recipients.push({
+      userId: supportCase.createdById,
+      audience: supportCase.openedAs === ROLE.OWNER ? 'OWNER' : 'TENANT',
+    })
   }
-  if (visibility === VISIBILITY.PUBLIC || visibility === VISIBILITY.OWNER_ONLY) {
+
+  if (canSee({ role: ROLE.OWNER }, visibility)) {
     const ownerId = await relatedOwnerId(supportCase)
     // Never twice: on a case an owner opened themselves, they are both the
     // creator and the property owner.
@@ -344,7 +414,10 @@ async function notifyCounterparty(supportCase, authorRole, visibility) {
 export async function changeStatus(caseId, to, actor, { reason } = {}) {
   const found = await prisma.supportCase.findUnique({
     where: { id: caseId },
-    select: { id: true, status: true, number: true, subject: true, createdById: true, resolvedAt: true, relatedPropertyId: true },
+    select: {
+      id: true, status: true, number: true, subject: true,
+      createdById: true, openedAs: true, resolvedAt: true, relatedPropertyId: true,
+    },
   })
   if (!found) throw notFound()
 
@@ -368,19 +441,73 @@ export async function changeStatus(caseId, to, actor, { reason } = {}) {
     return next
   })
 
-  // Only the outcomes somebody is waiting for. "Triaged" is our process.
-  if ((to === STATUS.RESOLVED || to === STATUS.CLOSED) && found.createdById) {
-    await notifyUser(found.createdById, {
-      type: 'SUPPORT_CASE_RESOLVED',
-      title: to === STATUS.RESOLVED ? 'Your support request was resolved' : 'Your support request was closed',
-      body: `${caseRef(found.number)} · ${found.subject}`,
-      referenceId: caseId,
-      referenceType: 'SupportCase',
-      audience: 'TENANT',
-    }).catch(() => {})
-  }
+  await notifyStatus(found, to).catch(() => {})
 
   return updated
+}
+
+/**
+ * Say a status changed — but only where somebody is waiting on the answer.
+ *
+ * Three kinds of change, and they are deliberately not one type:
+ *
+ *   RESOLVED / CLOSED   an OUTCOME. `SUPPORT_CASE_RESOLVED`, and pushed,
+ *                       because it ends the wait.
+ *   WAITING_FOR_*       we are BLOCKED ON THEM, and there is nowhere else they
+ *                       could learn that. `SUPPORT_CASE_UPDATE`, deliberately
+ *                       NOT in PUSH_TYPES — a bell entry, not an interruption.
+ *   IN_PROGRESS         somebody picked it up. Same type, same reasoning.
+ *
+ * Everything else — TRIAGED, ESCALATED — is OUR process, and announcing our
+ * process is how you train somebody to ignore the notifications that mean
+ * something. `SUPPORT_CASE_UPDATE` existed in the enum, the Zod list and the
+ * push exclusion from the day the layer shipped, with nothing sending it; this
+ * is the meaning it was declared for.
+ *
+ * WAITING_FOR_OWNER goes to the PROPERTY OWNER, who on a report is not the
+ * person who opened the case — the whole point of that status is that we are
+ * waiting on the other side.
+ */
+async function notifyStatus(supportCase, to) {
+  const creatorAudience = supportCase.openedAs === ROLE.OWNER ? 'OWNER' : 'TENANT'
+
+  if (to === STATUS.WAITING_FOR_OWNER) {
+    const ownerId = await relatedOwnerId(supportCase)
+    if (!ownerId) return
+    return notifyUser(ownerId, {
+      type: 'SUPPORT_CASE_UPDATE',
+      title: 'We need something from you',
+      body: `${caseRef(supportCase.number)} · ${supportCase.subject}`,
+      referenceId: supportCase.id,
+      referenceType: 'SupportCase',
+      audience: 'OWNER',
+    })
+  }
+
+  if (!supportCase.createdById) return
+
+  const OUTCOME = {
+    [STATUS.RESOLVED]: 'Your support request was resolved',
+    [STATUS.CLOSED]: 'Your support request was closed',
+  }
+  const PROGRESS = {
+    [STATUS.WAITING_FOR_USER]: 'We need something from you',
+    [STATUS.IN_PROGRESS]: 'We are looking into your request',
+  }
+
+  const title = OUTCOME[to] ?? PROGRESS[to]
+  if (!title) return
+
+  return notifyUser(supportCase.createdById, {
+    type: OUTCOME[to] ? 'SUPPORT_CASE_RESOLVED' : 'SUPPORT_CASE_UPDATE',
+    title,
+    body: `${caseRef(supportCase.number)} · ${supportCase.subject}`,
+    referenceId: supportCase.id,
+    referenceType: 'SupportCase',
+    // The hat it was opened in — same rule as notifyCounterparty, same bug if
+    // it is hardcoded.
+    audience: creatorAudience,
+  })
 }
 
 export async function setPriority(caseId, priority, actor) {
@@ -392,6 +519,21 @@ export async function setPriority(caseId, priority, actor) {
     const next = await tx.supportCase.update({ where: { id: caseId }, data: { priority } })
     await recordEvent({ caseId, type: 'PRIORITY_CHANGED', actor, meta: { from: found.priority, to: priority }, tx })
     return next
+  })
+}
+
+/**
+ * Who a case can be handed to.
+ *
+ * Deliberately NOT a general admin directory: id, name and the coarse staff
+ * role, which is everything an assignment control needs. Email is left out
+ * because nothing here has to send one, and a list of staff addresses is a
+ * thing worth not having in a payload at all.
+ */
+export async function listAssignees() {
+  return prisma.admin.findMany({
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true, role: true },
   })
 }
 
@@ -692,7 +834,14 @@ export async function addAttachment(caseId, actor, { url, fileName, mimeType, si
         uploadedByUserId: isStaff(role) ? null : actor.userId,
         uploadedByAdminId: isStaff(role) ? actor.adminId : null,
         url, fileName: fileName ?? null, mimeType, sizeBytes: sizeBytes ?? null,
-        visibility: allowedVisibilities(role)[0],
+        // defaultVisibilityFor, NOT allowedVisibilities[0]. For a user the two
+        // agree — their list has one entry. For STAFF the allowed list starts
+        // at PUBLIC, so this quietly published every admin attachment to both
+        // parties: fixed 2026-08-10, and it had contradicted three things at
+        // once (defaultVisibilityFor, the column's @default(INTERNAL), and the
+        // schema comment saying a screenshot can identify who sent it).
+        // Widening it is a deliberate act, never a default.
+        visibility: defaultVisibilityFor(role),
       },
       select: { id: true, url: true, fileName: true, mimeType: true, visibility: true, createdAt: true },
     })

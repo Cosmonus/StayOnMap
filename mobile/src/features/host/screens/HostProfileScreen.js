@@ -10,6 +10,7 @@ import { useOtherHatWaiting } from '@features/profile/useOtherHatWaiting'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
 import { spacing } from '@theme/spacing'
+import { useSupportWaiting } from '@features/support/useSupportWaiting'
 
 // The host's account screen. Deliberately the SAME screen as the renter's
 // (@features/profile/screens/ProfileScreen) down to the shared row primitives —
@@ -25,6 +26,7 @@ export default function HostProfileScreen({ navigation }) {
   const { user, signOut } = useAuth()
   const setHostMode = useUiStore((s) => s.setHostMode)
   const waiting = useOtherHatWaiting()
+  const supportWaiting = useSupportWaiting()
 
   const { data: account, isLoading, isError, refetch } = useQuery({
     queryKey: ['account-summary'],
@@ -77,7 +79,7 @@ export default function HostProfileScreen({ navigation }) {
           <AccountGroup>
             <AccountRow label="Notifications" onPress={() => navigation.navigate('Notifications')} />
             <AccountRow label="Settings" onPress={() => navigation.navigate('Settings')} />
-            <AccountRow label="Help" onPress={() => navigation.navigate('Support')} />
+            <AccountRow label="Help" count={supportWaiting} onPress={() => navigation.navigate('Support')} />
           </AccountGroup>
 
           {/* Its own group, deliberately: an irreversible action should not sit

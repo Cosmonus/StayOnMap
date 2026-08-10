@@ -15,5 +15,16 @@ export const supportService = {
   reply:      (id, body) => api.post(`/support/cases/${id}/messages`, { body }),
   close:      (id) => api.post(`/support/cases/${id}/close`),
 
+  // Both hats always, so the mode you are NOT in can still say something is
+  // waiting over there — the same shape as chat's and notifications' counts.
+  unread:     () => api.get('/support/cases/unread'),
+
+  // The UPLOAD lives in upload.service.js (`uploadSupportFile`), where the
+  // on-device downscale already is — a second FormData builder here would be a
+  // photo that leaves the phone at full camera size on Indian mobile data.
+  // This only records the result: the case stores a URL our own uploader
+  // returned, and the server enforces that rather than trusting the order.
+  attach:     (id, payload) => api.post(`/support/cases/${id}/attachments`, payload),
+
   articles:   (params) => api.get('/support/articles', { params }),
 }

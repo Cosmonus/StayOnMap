@@ -20,6 +20,22 @@ const uploadDoc = multer({
   },
 })
 
+// Support evidence is ONE endpoint taking either kind, unlike chat's split.
+// What somebody attaches to a support case is "the proof", and they should not
+// have to know whether ours is an image route or a document route: the fake
+// listing is a screenshot, the disputed agreement is a PDF, and it is the same
+// button in the same sentence. The service still branches on the real type.
+const uploadEvidence = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (![...ALLOWED_MIMETYPES, ...DOC_MIMETYPES].includes(file.mimetype)) {
+      return cb(Object.assign(new Error('Attach a JPEG, PNG, WebP image or a PDF'), { statusCode: 400 }))
+    }
+    cb(null, true)
+  },
+})
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
@@ -39,5 +55,6 @@ router.post('/property-image', authMiddleware, upload.single('image'), controlle
 router.post('/avatar',         authMiddleware, upload.single('image'), controller.uploadAvatar)
 router.post('/chat-image',     authMiddleware, upload.single('image'), controller.uploadChatImage)
 router.post('/chat-file',      authMiddleware, uploadDoc.single('file'), controller.uploadChatFile)
+router.post('/support-file',   authMiddleware, uploadEvidence.single('file'), controller.uploadSupportFile)
 
 export default router

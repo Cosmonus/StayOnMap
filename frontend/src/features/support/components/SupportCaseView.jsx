@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Paperclip } from 'lucide-react'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { supportService } from '@services/support.service'
 import { toast } from '@components/common/Toaster'
+import AttachEvidence from './AttachEvidence'
 import { STATUS_COPY, CATEGORY_LABEL, caseRef, authorName } from './supportCopy'
 
 /**
@@ -31,6 +32,7 @@ export default function SupportCaseView({ caseId, onBack }) {
     // count is stale the moment this renders.
     qc.invalidateQueries({ queryKey: ['notifications'] })
     qc.invalidateQueries({ queryKey: ['notification-unread'] })
+    qc.invalidateQueries({ queryKey: ['support-unread'] })
   }
 
   const reply = useMutation({
@@ -92,6 +94,27 @@ export default function SupportCaseView({ caseId, onBack }) {
             About {c.relatedProperty.title}{c.relatedProperty.city ? ` · ${c.relatedProperty.city}` : ''}
           </p>
         )}
+
+        {/* Only what this reader may see — the server filtered before sending,
+            so a file on screen was meant for them. Rendered even when empty is
+            not: a heading above nothing is the panel bug all over again. */}
+        {c.attachments?.length > 0 && (
+          <ul className="flex flex-wrap gap-2 mt-4">
+            {c.attachments.map((a) => (
+              <li key={a.id}>
+                <a
+                  href={a.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+                >
+                  <Paperclip size={13} aria-hidden="true" />
+                  <span className="truncate max-w-[180px]">{a.fileName ?? 'Attachment'}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl p-5">
@@ -131,19 +154,22 @@ export default function SupportCaseView({ caseId, onBack }) {
               className="w-full px-3.5 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder-slate-500 outline-none focus:border-[#111111] focus:bg-white focus:ring-2 focus:ring-black/8 transition resize-none leading-relaxed"
             />
             <div className="flex items-center justify-between gap-3 mt-2 flex-wrap">
-              {/* Offered only once WE have said it is resolved. Closing is the
-                  requester agreeing, not deciding — and a Close button on an
-                  unanswered request is an invitation to give up. */}
-              {c.status === 'RESOLVED' ? (
-                <button
-                  type="button"
-                  onClick={() => close.mutate()}
-                  disabled={close.isPending}
-                  className="min-h-[44px] px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  {close.isPending ? 'Closing…' : 'That fixed it — close'}
-                </button>
-              ) : <span />}
+              <div className="flex items-center gap-2 flex-wrap">
+                <AttachEvidence caseId={caseId} onAttached={after} />
+                {/* Offered only once WE have said it is resolved. Closing is the
+                    requester agreeing, not deciding — and a Close button on an
+                    unanswered request is an invitation to give up. */}
+                {c.status === 'RESOLVED' && (
+                  <button
+                    type="button"
+                    onClick={() => close.mutate()}
+                    disabled={close.isPending}
+                    className="min-h-[44px] px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    {close.isPending ? 'Closing…' : 'That fixed it — close'}
+                  </button>
+                )}
+              </div>
               <button
                 type="button"
                 disabled={!draft.trim() || reply.isPending}

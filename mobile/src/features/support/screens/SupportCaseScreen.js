@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import { View, Text, TextInput, Pressable, FlatList, ActivityIndicator, Alert, StyleSheet } from 'react-native'
+import { View, Text, TextInput, Pressable, FlatList, ActivityIndicator, Alert, Linking, StyleSheet } from 'react-native'
+import * as ImagePicker from 'expo-image-picker'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supportService } from '@services/support.service'
+import { uploadService } from '@services/upload.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ErrorState from '@components/common/ErrorState'
+import Icon from '@components/common/Icon'
 import { STATUS_COPY, CATEGORY_LABEL, caseRef, authorName } from '../supportCopy'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -38,6 +41,7 @@ export default function SupportCaseScreen({ navigation, route }) {
     // count is stale the moment this renders.
     qc.invalidateQueries({ queryKey: ['notifications'] })
     qc.invalidateQueries({ queryKey: ['notification-unread'] })
+    qc.invalidateQueries({ queryKey: ['support-unread'] })
   }
 
   const reply = useMutation({
@@ -51,6 +55,36 @@ export default function SupportCaseScreen({ navigation, route }) {
     onSuccess: after,
     onError: (err) => Alert.alert('Could not close it', err?.message ?? 'Please try again.'),
   })
+
+  // Evidence belongs to the CASE, not to a message — that is how the model is
+  // shaped, and it is the simpler truth: a screenshot is about the problem, not
+  // about the sentence it arrived next to. It also removes the only
+  // partial-failure path, since there is no message to orphan.
+  //
+  // Photos only here. The endpoint takes PDFs too and web offers them, but a
+  // document picker is a native dependency this app does not add piecemeal
+  // (AGENTS.md §11) — a recorded divergence, not an oversight.
+  const [attaching, setAttaching] = useState(false)
+
+  async function handleAttach() {
+    // Permissionless OS photo picker — the house convention, same as chat's.
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 })
+    if (result.canceled || !result.assets?.length) return
+    setAttaching(true)
+    try {
+      const { data } = await uploadService.uploadSupportFile(result.assets[0])
+      await supportService.attach(caseId, {
+        url: data.url,
+        fileName: data.fileName ?? result.assets[0].fileName ?? 'photo.jpg',
+        mimeType: data.mimeType ?? 'image/webp',
+      })
+      after()
+    } catch (err) {
+      Alert.alert('Could not attach that', err?.message ?? 'Please try again.')
+    } finally {
+      setAttaching(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -92,6 +126,25 @@ export default function SupportCaseScreen({ navigation, route }) {
                 About {c.relatedProperty.title}{c.relatedProperty.city ? ` · ${c.relatedProperty.city}` : ''}
               </Text>
             ) : null}
+
+            {/* Only what this reader may see — the server filtered before
+                sending, so a file on screen was meant for them. */}
+            {c.attachments?.length > 0 && (
+              <View style={styles.files}>
+                {c.attachments.map((a) => (
+                  <Pressable
+                    key={a.id}
+                    onPress={() => Linking.openURL(a.url)}
+                    style={styles.file}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open ${a.fileName ?? 'attachment'}`}
+                  >
+                    <Icon name="attach" size={13} color={colors.slate600} />
+                    <Text style={styles.fileName} numberOfLines={1}>{a.fileName ?? 'Attachment'}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
           </View>
         )}
         ListEmptyComponent={(
@@ -127,6 +180,16 @@ export default function SupportCaseScreen({ navigation, route }) {
               <Text style={styles.closeText}>{close.isPending ? 'Closing…' : 'That fixed it — close'}</Text>
             </Pressable>
           )}
+          <Pressable
+            onPress={handleAttach}
+            disabled={attaching}
+            style={styles.closeButton}
+            accessibilityRole="button"
+            accessibilityLabel="Attach a photo"
+            accessibilityState={{ disabled: attaching }}
+          >
+            <Text style={styles.closeText}>{attaching ? 'Attaching…' : 'Attach a photo'}</Text>
+          </Pressable>
           <TextInput
             value={draft}
             onChangeText={(t) => t.length <= 4000 && setDraft(t)}
@@ -167,6 +230,14 @@ const styles = StyleSheet.create({
   body: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800, lineHeight: 20 },
   empty: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, textAlign: 'center', paddingVertical: spacing.lg },
   closed: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, padding: spacing.md, textAlign: 'center' },
+  files: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
+  file: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    minHeight: 40, paddingHorizontal: spacing.sm,
+    borderRadius: radius.sm, borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.slate200, backgroundColor: colors.slate50,
+  },
+  fileName: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate600, maxWidth: 160 },
   composer: { padding: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.slate200, backgroundColor: colors.white, gap: spacing.sm },
   input: {
     fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate800,

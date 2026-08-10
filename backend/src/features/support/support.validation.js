@@ -15,6 +15,19 @@ export const CASE_STATUSES = [
   'ESCALATED', 'RESOLVED', 'CLOSED',
 ]
 
+// Our own storage, or nothing. Falls open only when SUPABASE_URL is unset,
+// which is a local checkout with no uploader at all — the same shape as
+// properties.validation.js's storageImageUrl, deliberately not a copy of the
+// value: one place derives the prefix, both read process.env.
+const STORAGE_PREFIX = process.env.SUPABASE_URL
+  ? `${process.env.SUPABASE_URL}/storage/v1/object/public/`
+  : null
+
+const storageUrl = z.string().url().max(600).refine(
+  (url) => !STORAGE_PREFIX || url.startsWith(STORAGE_PREFIX),
+  { message: 'Attach a file uploaded to StayOnMap' },
+)
+
 export const PRIORITIES = ['LOW', 'NORMAL', 'HIGH', 'URGENT']
 export const VISIBILITIES = ['PUBLIC', 'TENANT_ONLY', 'OWNER_ONLY', 'INTERNAL']
 
@@ -59,10 +72,16 @@ export const caseMessageSchema = z.object({
 
 export const attachmentSchema = z.object({
   // A URL our own uploader returned. The upload itself goes through
-  // POST /uploads/*, which owns the mime allowlist, the size cap and the
-  // randomUUID path — this only records the result, so it must not become a
+  // POST /uploads/support-file, which owns the mime allowlist, the size cap and
+  // the randomUUID path — this only records the result, so it must not become a
   // second way to attach an arbitrary remote URL to a case.
-  url: z.string().url().max(600),
+  //
+  // That sentence was a COMMENT until 2026-08-10 and nothing enforced it: any
+  // https URL passed. An attachment is rendered to an admin and to the other
+  // party, so an arbitrary one is a way to make staff fetch a chosen URL — and
+  // a link that looked like evidence and pointed elsewhere would be believed.
+  // Same guard `storageImageUrl` has applied to property images all along.
+  url: storageUrl,
   fileName: z.string().trim().max(200).optional(),
   mimeType: z.string().trim().max(120),
   sizeBytes: z.number().int().min(0).max(50_000_000).optional(),

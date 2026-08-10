@@ -121,6 +121,19 @@ export default function SupportCaseDetail({ caseId, onBack }) {
     onSuccess: after,
     onError: onError('escalate this'),
   })
+  const assign = useMutation({
+    mutationFn: (assignedToId) => adminService.supportAssign(caseId, assignedToId),
+    onSuccess: after,
+    onError: onError('reassign this'),
+  })
+
+  // Staff rarely change, and a stale name in a dropdown is harmless — 5 minutes
+  // rather than a fetch on every case opened.
+  const { data: assignees } = useQuery({
+    queryKey: ['admin-support-assignees'],
+    queryFn: () => adminService.supportAssignees().then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  })
 
   if (isLoading) {
     return (
@@ -191,6 +204,22 @@ export default function SupportCaseDetail({ caseId, onBack }) {
                   onChange={(v) => setPriority.mutate(v)}
                   options={PRIORITY_OPTIONS}
                   label="Priority"
+                />
+              </div>
+              {/* Reassignment, not claiming. A case assigns itself to whoever
+                  writes on it (supportCase.service.js), because a control that
+                  has to be clicked FIRST protects nobody — the person about to
+                  duplicate your work is the person who did not click it. This
+                  is for handing a case over. */}
+              <div className="w-44">
+                <Select
+                  value={c.assignedTo?.id ?? ''}
+                  onChange={(v) => assign.mutate(v || null)}
+                  options={[
+                    { value: '', label: 'Nobody' },
+                    ...(assignees ?? []).map((a) => ({ value: a.id, label: a.name })),
+                  ]}
+                  label="Assigned to"
                 />
               </div>
             </div>

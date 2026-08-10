@@ -36,6 +36,12 @@ export async function getMine(req, res, next) {
   try { ok(res, await service.getCaseForUser(req.params.id, req.user.id)) } catch (err) { next(err) }
 }
 
+// Both hats, always — the mode you are NOT in has to be able to say something
+// is waiting over there, or splitting the list by hat hides it everywhere.
+export async function unread(req, res, next) {
+  try { ok(res, await service.unreadCountsForUser(req.user.id)) } catch (err) { next(err) }
+}
+
 export async function create(req, res, next) {
   try {
     created(res, await service.createCaseForUser(req.user.id, req.body, { hat: hatOf(req) }))
@@ -76,6 +82,10 @@ export async function adminList(req, res, next) {
 
 export async function adminCounts(_req, res, next) {
   try { ok(res, await service.adminCaseCounts()) } catch (err) { next(err) }
+}
+
+export async function adminAssignees(_req, res, next) {
+  try { ok(res, await service.listAssignees()) } catch (err) { next(err) }
 }
 
 export async function adminGet(req, res, next) {

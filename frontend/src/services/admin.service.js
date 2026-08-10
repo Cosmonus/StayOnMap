@@ -65,6 +65,8 @@ export const adminService = {
   supportSetStatus:(id, status, reason) => adminApi.patch(`/admin/support/cases/${id}/status`, { status, reason }),
   supportSetPriority: (id, priority)    => adminApi.patch(`/admin/support/cases/${id}/priority`, { priority }),
   supportAssign:   (id, assignedToId)   => adminApi.post(`/admin/support/cases/${id}/assign`, { assignedToId }),
+  // Not under /cases — it is a list of people, not of cases.
+  supportAssignees: ()          => adminApi.get('/admin/support/assignees'),
   supportEscalate: (id, reason) => adminApi.post(`/admin/support/cases/${id}/escalate`, { reason }),
 
   getProfile:       ()          => adminApi.get('/admin/profile'),

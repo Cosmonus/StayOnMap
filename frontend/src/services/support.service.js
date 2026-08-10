@@ -19,5 +19,19 @@ export const supportService = {
   // resolved is not.
   close:      (id) => api.post(`/support/cases/${id}/close`),
 
+  // Both hats always, so the mode you are NOT in can still say something is
+  // waiting over there — the same shape as chat's and notifications' counts.
+  unread: () => api.get('/support/cases/unread'),
+
+  // Two steps on purpose: /uploads owns the mime allowlist, the size cap and
+  // the random path, and the case only ever records a URL our own uploader
+  // returned. The server enforces that — this order is not the protection.
+  uploadFile: (file) => {
+    const form = new FormData()
+    form.append('file', file)
+    return api.post('/uploads/support-file', form)
+  },
+  attach: (id, payload) => api.post(`/support/cases/${id}/attachments`, payload),
+
   articles: (params) => api.get('/support/articles', { params }),
 }

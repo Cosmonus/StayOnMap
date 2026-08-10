@@ -39,9 +39,12 @@ async function prepareForUpload(asset) {
   }
 }
 
-function toFormData(asset) {
+// `field` because the support endpoint takes `file` and the rest take `image`.
+// `type` must be set or Android sends application/octet-stream and multer
+// rejects on the declared type before the bytes are ever sniffed.
+function toFormData(asset, field = 'image') {
   const form = new FormData()
-  form.append('image', {
+  form.append(field, {
     uri: asset.uri,
     name: asset.fileName ?? `photo-${Date.now()}.jpg`,
     type: asset.mimeType ?? 'image/jpeg',
@@ -61,6 +64,18 @@ export const uploadService = {
   uploadChatImage: async (asset) => {
     const prepared = await prepareForUpload(asset)
     return api.post('/uploads/chat-image', toFormData(prepared), {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 30000,
+    })
+  },
+
+  // Support evidence. The endpoint takes images OR PDFs; mobile only ever sends
+  // an image, because a document picker is a native dependency and this app
+  // does not add those piecemeal (see mobile/AGENTS.md §11). A deliberate,
+  // recorded divergence from web — not a gap left open by accident.
+  uploadSupportFile: async (asset) => {
+    const prepared = await prepareForUpload(asset)
+    return api.post('/uploads/support-file', toFormData(prepared, 'file'), {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 30000,
     })

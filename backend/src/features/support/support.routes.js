@@ -25,6 +25,9 @@ export const supportRouter = Router()
 supportRouter.use(authMiddleware)
 
 supportRouter.get('/articles', ctrl.articles)
+// Before `/cases/:id`, or "unread" is read as a case id — the same trap the
+// admin router's /cases/counts sits above.
+supportRouter.get('/cases/unread', ctrl.unread)
 supportRouter.get('/cases', ctrl.listMine)
 supportRouter.get('/cases/:id', ctrl.getMine)
 
@@ -41,6 +44,9 @@ supportRouter.post('/cases/:id/close', ctrl.closeMine)
 // ── Staff ──────────────────────────────────────────────────────────────────
 export const adminSupportRouter = Router()
 adminSupportRouter.use(adminAuthMiddleware)
+
+// Not under /cases at all — it is a list of people, not of cases.
+adminSupportRouter.get('/assignees', ctrl.adminAssignees)
 
 // Before `/cases/:id`, or "counts" is read as a case id.
 adminSupportRouter.get('/cases/counts', ctrl.adminCounts)
