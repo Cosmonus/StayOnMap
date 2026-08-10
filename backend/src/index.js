@@ -61,6 +61,7 @@ import metroRoutes       from './features/metro/metro.routes.js'
 import itCorridorRoutes  from './features/itCorridors/itCorridors.routes.js'
 import adminRoutes       from './features/admin/admin.routes.js'
 import { adminReportRouter, reportThreadRouter } from './features/reports/reports.routes.js'
+import { supportRouter, adminSupportRouter } from './features/support/support.routes.js'
 import { adminVerificationRouter } from './features/verification/verification.routes.js'
 
 const app  = express()
@@ -139,6 +140,8 @@ app.use('/api/v1/contact',       contactRoutes)
 // The reporter's side of a report thread — addressed by REPORT id, because
 // that is what the notification carries. See reports.routes.js.
 app.use('/api/v1/reports',       reportThreadRouter)
+// Support cases — the unified layer behind every kind of human intervention.
+app.use('/api/v1/support',       supportRouter)
 app.use('/api/v1/localities',    localityRoutes)
 app.use('/api/v1/metro',         metroRoutes)
 app.use('/api/v1/it-corridors',  itCorridorRoutes)
@@ -146,6 +149,7 @@ app.use('/api/v1/it-corridors',  itCorridorRoutes)
 // Admin routes — high limit so moderation actions are never throttled
 app.use('/api/v1/admin',               adminLimiter, adminRoutes)
 app.use('/api/v1/admin/reports',       adminLimiter, adminReportRouter)
+app.use('/api/v1/admin/support',       adminLimiter, adminSupportRouter)
 app.use('/api/v1/admin/verifications', adminLimiter, adminVerificationRouter)
 app.use('/api/v1/admin/trust-scores',  adminLimiter, trustRoutes)
 app.use('/api/v1/admin/ai',            adminLimiter, aiRoutes)

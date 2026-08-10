@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/prisma.js'
 import { notifyUser } from '../notifications/notifications.service.js'
-import { recordEvent } from './supportEvent.service.js'
-import { caseRef } from './caseRef.js'
+import { recordEvent, listEvents } from './supportEvent.service.js'
+import { caseRef, parseCaseRef } from './caseRef.js'
 import { ROLE, VISIBILITY, visibleTo, isStaff, allowedVisibilities, partyRole } from './visibility.js'
 import { STATUS, assertTransition, transitionStamps, statusAfterReply } from './lifecycle.js'
 
@@ -425,4 +425,282 @@ export async function assignCase(caseId, assignedToId, actor) {
 export async function escalateCase(caseId, actor, reason) {
   const updated = await changeStatus(caseId, STATUS.ESCALATED, actor, { reason })
   return updated
+}
+
+// ── Reading, as staff ──────────────────────────────────────────────────────
+
+/**
+ * The support inbox.
+ *
+ * No visibility filtering, because staff see everything — that is what makes
+ * moderation possible. What IS filtered is the page size, which is capped
+ * rather than trusted: an admin session with `?limit=100000` reaching a table
+ * that grows with every support request is a way to make the panel slow from
+ * the address bar, the same rule the marketplace readouts already follow.
+ */
+export async function adminListCases({
+  status, type, priority, assignedToId, unassigned, city, search,
+  page = 1, limit = 25,
+} = {}) {
+  const take = Math.min(100, Math.max(1, Number(limit) || 25))
+  const skip = (Math.max(1, Number(page) || 1) - 1) * take
+
+  const where = {
+    ...(status ? { status } : {}),
+    ...(type ? { type } : {}),
+    ...(priority ? { priority } : {}),
+    // `unassigned` is its own flag rather than assignedToId=null, because a
+    // query string cannot express null and "the ones nobody has picked up" is
+    // the single most useful filter on this screen.
+    ...(unassigned ? { assignedToId: null } : assignedToId ? { assignedToId } : {}),
+    ...(city ? { relatedProperty: { city } } : {}),
+    ...(search ? searchClause(search) : {}),
+  }
+
+  const [rows, total] = await Promise.all([
+    prisma.supportCase.findMany({
+      where,
+      // Urgent first, then oldest — a queue sorted newest-first buries the case
+      // that has been waiting longest, which is the one that most needs
+      // answering.
+      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+      skip,
+      take,
+      select: {
+        id: true, number: true, type: true, status: true, priority: true,
+        subject: true, createdAt: true, updatedAt: true, firstResponseAt: true,
+        createdBy: { select: { id: true, name: true, email: true } },
+        assignedTo: { select: { id: true, name: true } },
+        relatedProperty: { select: { id: true, title: true, city: true } },
+        report: { select: { id: true, category: true, severity: true } },
+        _count: {
+          select: {
+            // Unread from the USER side — what is waiting on staff. Staff have
+            // no notification stream, so this count is the whole signal.
+            messages: { where: { readByAdminAt: null, authorRole: { in: [ROLE.TENANT, ROLE.OWNER] } } },
+          },
+        },
+      },
+    }),
+    prisma.supportCase.count({ where }),
+  ])
+
+  return { cases: rows, total, page: Math.max(1, Number(page) || 1), limit: take }
+}
+
+/**
+ * Search across the things a person actually quotes at you.
+ *
+ * "SC-1042" first, because a case reference is exact and everything else is a
+ * guess — resolving it to a number means an admin pasting a reference out of an
+ * email gets one row rather than a text match. Falls through to subject, the
+ * requester and the listing.
+ *
+ * Deliberately NOT a search over message bodies: those include internal notes
+ * and the reporter's private words, and a search box is the wrong place to
+ * decide visibility.
+ */
+function searchClause(raw) {
+  const term = String(raw).trim()
+  const number = parseCaseRef(term)
+  if (number) return { number }
+
+  return {
+    OR: [
+      { subject: { contains: term, mode: 'insensitive' } },
+      { createdBy: { OR: [
+        { name: { contains: term, mode: 'insensitive' } },
+        { email: { contains: term, mode: 'insensitive' } },
+      ] } },
+      { relatedProperty: { title: { contains: term, mode: 'insensitive' } } },
+    ],
+  }
+}
+
+/**
+ * One case, in full, for a moderator.
+ *
+ * Everything: internal notes, the timeline, both sides of the conversation,
+ * every attachment. This is the page the spec asks to make sufficient on its
+ * own — "the admin should never need to navigate across five pages to
+ * understand a case" — so it loads the related property, the requester and the
+ * report in one call rather than making the client stitch them.
+ */
+export async function adminGetCase(caseId) {
+  const found = await prisma.supportCase.findUnique({
+    where: { id: caseId },
+    select: {
+      id: true, number: true, type: true, status: true, priority: true,
+      subject: true, description: true, openedAs: true,
+      createdAt: true, updatedAt: true, firstResponseAt: true, resolvedAt: true, closedAt: true,
+      createdBy: { select: { id: true, name: true, email: true, phone: true, createdAt: true } },
+      assignedTo: { select: { id: true, name: true } },
+      relatedUser: { select: { id: true, name: true, email: true } },
+      relatedProperty: { select: { id: true, title: true, city: true, status: true, ownerId: true } },
+      relatedAppointment: { select: { id: true, status: true, requestedDate: true } },
+      relatedConversation: { select: { id: true } },
+      relatedLease: { select: { id: true, status: true } },
+      report: {
+        select: {
+          id: true, category: true, severity: true, status: true,
+          description: true, evidenceUrls: true, isAnonymous: true, ownerResponse: true,
+        },
+      },
+      messages: {
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true, authorRole: true, body: true, visibility: true, createdAt: true,
+          authorUser: { select: { id: true, name: true } },
+          authorAdmin: { select: { id: true, name: true } },
+          attachments: { select: { id: true, url: true, fileName: true, mimeType: true, visibility: true } },
+        },
+      },
+      attachments: {
+        orderBy: { createdAt: 'asc' },
+        select: { id: true, url: true, fileName: true, mimeType: true, sizeBytes: true, visibility: true, messageId: true, createdAt: true },
+      },
+    },
+  })
+  if (!found) throw notFound()
+
+  // Reading a case IS reading its user messages — the queue's "waiting on us"
+  // count is driven by readByAdminAt, and a moderator who has the case open is
+  // exactly who it was waiting for.
+  await prisma.supportMessage.updateMany({
+    where: { caseId, readByAdminAt: null, authorRole: { in: [ROLE.TENANT, ROLE.OWNER] } },
+    data: { readByAdminAt: new Date() },
+  })
+
+  return { ...found, events: await listEvents(caseId) }
+}
+
+/**
+ * The queue counters.
+ *
+ * One grouped query rather than six counts. Every number the dashboard shows —
+ * Open, Urgent, Unassigned, Waiting, Escalated, Resolved — is derived from the
+ * same snapshot, so they cannot disagree with each other the way six separate
+ * round trips can when a case moves between them.
+ */
+export async function adminCaseCounts() {
+  const [byStatus, urgent, unassigned] = await Promise.all([
+    prisma.supportCase.groupBy({ by: ['status'], _count: { _all: true } }),
+    prisma.supportCase.count({ where: { priority: 'URGENT', status: { notIn: [STATUS.RESOLVED, STATUS.CLOSED] } } }),
+    prisma.supportCase.count({ where: { assignedToId: null, status: { notIn: [STATUS.RESOLVED, STATUS.CLOSED] } } }),
+  ])
+
+  const count = (s) => byStatus.find((r) => r.status === s)?._count?._all ?? 0
+
+  return {
+    open: count(STATUS.OPEN),
+    triaged: count(STATUS.TRIAGED),
+    inProgress: count(STATUS.IN_PROGRESS),
+    // The two WAITING states are one number on the dashboard: to whoever is
+    // triaging, "waiting on somebody else" is a single bucket to skip past.
+    waiting: count(STATUS.WAITING_FOR_USER) + count(STATUS.WAITING_FOR_OWNER),
+    escalated: count(STATUS.ESCALATED),
+    resolved: count(STATUS.RESOLVED),
+    closed: count(STATUS.CLOSED),
+    urgent,
+    unassigned,
+  }
+}
+
+/**
+ * Open a case as a user, with every reference verified.
+ *
+ * THE REFERENCES ARE THE ATTACK SURFACE. "Related appointment" arrives as an id
+ * in a request body, and an unchecked one would let anybody attach a stranger's
+ * appointment — or a stranger's private conversation — to a case they then read
+ * the admin's replies on. So each is confirmed to belong to the caller before
+ * it is stored, and a reference that does not is DROPPED rather than rejected:
+ * the support request itself is still valid and a person asking for help should
+ * not be met with a validation error about plumbing they never saw.
+ *
+ * A property is the exception and is kept unverified on purpose — anybody may
+ * ask about any listing ("this one looks fake", "is this address real"), and
+ * requiring a relationship would make the most common support request
+ * impossible. It is public data either way.
+ */
+export async function createCaseForUser(userId, input, { hat = ROLE.TENANT } = {}) {
+  const [appointment, conversation, lease] = await Promise.all([
+    input.relatedAppointmentId
+      ? prisma.appointment.findFirst({
+        where: { id: input.relatedAppointmentId, OR: [{ tenantId: userId }, { ownerId: userId }] },
+        select: { id: true },
+      })
+      : null,
+    input.relatedConversationId
+      ? prisma.conversation.findFirst({
+        where: { id: input.relatedConversationId, OR: [{ tenantId: userId }, { ownerId: userId }] },
+        select: { id: true },
+      })
+      : null,
+    input.relatedLeaseId
+      ? prisma.lease.findFirst({
+        where: { id: input.relatedLeaseId, OR: [{ tenantId: userId }, { ownerId: userId }] },
+        select: { id: true },
+      })
+      : null,
+  ])
+
+  return createCase({
+    type: input.type,
+    subject: input.subject,
+    description: input.description,
+    createdById: userId,
+    openedAs: hat,
+    relatedPropertyId: input.relatedPropertyId ?? null,
+    relatedAppointmentId: appointment?.id ?? null,
+    relatedConversationId: conversation?.id ?? null,
+    relatedLeaseId: lease?.id ?? null,
+  }, { actor: { role: hat, userId } })
+}
+
+/**
+ * Record an uploaded file against a case.
+ *
+ * Takes a URL our own uploader returned rather than doing the upload: the
+ * multipart route owns the mime allowlist, the 5MB cap and the randomUUID path,
+ * and duplicating that here would be a second, weaker door to the same bucket.
+ *
+ * Visibility follows the uploader's hat through the same rule as a message, so
+ * a tenant's screenshot is TENANT_ONLY and never reaches the owner it may
+ * identify them to.
+ */
+export async function addAttachment(caseId, actor, { url, fileName, mimeType, sizeBytes, messageId }) {
+  const found = await prisma.supportCase.findUnique({
+    where: { id: caseId },
+    select: { id: true, status: true, createdById: true, openedAs: true, relatedUserId: true, relatedPropertyId: true },
+  })
+  if (!found) throw notFound()
+
+  let role = actor.role
+  if (!isStaff(role)) {
+    role = partyRole(found, actor.userId, await relatedOwnerId(found))
+    if (!role) throw notFound()
+  }
+  if (found.status === STATUS.CLOSED) {
+    throw Object.assign(new Error('This case is closed.'), { statusCode: 400, expose: true })
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const attachment = await tx.supportAttachment.create({
+      data: {
+        caseId,
+        messageId: messageId ?? null,
+        uploadedByUserId: isStaff(role) ? null : actor.userId,
+        uploadedByAdminId: isStaff(role) ? actor.adminId : null,
+        url, fileName: fileName ?? null, mimeType, sizeBytes: sizeBytes ?? null,
+        visibility: allowedVisibilities(role)[0],
+      },
+      select: { id: true, url: true, fileName: true, mimeType: true, visibility: true, createdAt: true },
+    })
+    await recordEvent({
+      caseId, type: 'ATTACHMENT_ADDED',
+      actor: { role, userId: actor.userId, adminId: actor.adminId },
+      meta: { mimeType }, tx,
+    })
+    return attachment
+  })
 }

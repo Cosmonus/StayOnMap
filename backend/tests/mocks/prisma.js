@@ -96,6 +96,8 @@ export const prismaMock = {
   },
   lease: {
     findUnique: vi.fn(),
+    // Same reasoning as conversation.findFirst above.
+    findFirst:  vi.fn().mockResolvedValue(null),
     findMany:   vi.fn(),
     create:     vi.fn(),
     update:     vi.fn(),
@@ -264,6 +266,10 @@ export const prismaMock = {
   },
   conversation: {
     findUnique: vi.fn(),
+    // Null by default, and that default is the safe one: createCaseForUser
+    // verifies a related reference belongs to the caller before storing it, so
+    // "not yours" is what an unmocked call should look like.
+    findFirst:  vi.fn().mockResolvedValue(null),
     findMany:   vi.fn(),
     create:     vi.fn(),
     update:     vi.fn(),
