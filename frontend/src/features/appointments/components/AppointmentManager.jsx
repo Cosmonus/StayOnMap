@@ -89,7 +89,12 @@ function OwnerCard({ appt, onAction, onMove }) {
   const thumb = appt.property?.images?.[0]?.url
 
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-4 hover:border-slate-200 transition-colors">
+    // flex-col + h-full: the grid stretches every card in a row to the same
+    // height, and the action block below carries mt-auto — so Accept/Reject/
+    // Move sit on ONE line across the row, whether or not a card has a note.
+    // Before this, a card with no note had its buttons up high and its noted
+    // neighbour had them at the bottom, and a row of cards read as a zig-zag.
+    <div className="flex h-full flex-col bg-white rounded-xl border border-slate-100 p-4 hover:border-slate-200 transition-colors">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
           {appt.tenant?.avatarUrl ? (
@@ -169,50 +174,55 @@ function OwnerCard({ appt, onAction, onMove }) {
         </div>
       )}
 
-      {needsAnswer && !rejecting && (
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <button onClick={() => onAction(appt.id, 'ACCEPTED')} className="flex-1 min-h-[44px] py-3 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-colors" style={{ background: '#111111' }}>
-              {proposed ? 'Accept new time' : 'Accept'}
-            </button>
-            <button onClick={() => setRejecting(true)} className="flex-1 min-h-[44px] py-3 rounded-lg bg-red-50 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors">
-              Reject
+      {/* Everything actionable lives in ONE block pinned to the card's
+          bottom (mt-auto). Content above ends wherever it ends; the buttons
+          always sit on the same line as every neighbouring card's. */}
+      <div className="mt-auto pt-1">
+        {needsAnswer && !rejecting && (
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <button onClick={() => onAction(appt.id, 'ACCEPTED')} className="flex-1 min-h-[44px] py-3 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-colors" style={{ background: '#111111' }}>
+                {proposed ? 'Accept new time' : 'Accept'}
+              </button>
+              <button onClick={() => setRejecting(true)} className="flex-1 min-h-[44px] py-3 rounded-lg bg-red-50 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors">
+                Reject
+              </button>
+            </div>
+            {/* The middle answer. Accept-or-reject forced a binary onto the
+                commonest real reply — "yes, but Sunday": until now the owner's
+                only route was rejecting the visit and typing an apology. Ghost
+                weight below the pair, because it is the alternative, not a
+                third equal. */}
+            <button
+              onClick={() => onMove(appt)}
+              className="w-full min-h-[40px] rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+            >
+              Propose a different time
             </button>
           </div>
-          {/* The middle answer. Accept-or-reject forced a binary onto the
-              commonest real reply — "yes, but Sunday": until now the owner's
-              only route was rejecting the visit and typing an apology. Ghost
-              weight below the pair, because it is the alternative, not a
-              third equal. */}
+        )}
+
+        {/* Moving an ACCEPTED visit — the owner's plans changed after saying
+            yes. The renter is notified of the new time straight away. */}
+        {appt.status === 'ACCEPTED' && (
           <button
             onClick={() => onMove(appt)}
-            className="w-full min-h-[40px] rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+            className="w-full min-h-[40px] rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:border-brand-500 hover:text-brand-700 transition-colors"
           >
-            Propose a different time
+            Move this visit
           </button>
-        </div>
-      )}
+        )}
 
-      {/* Moving an ACCEPTED visit — the owner's plans changed after saying
-          yes. The renter is notified of the new time straight away. */}
-      {appt.status === 'ACCEPTED' && (
-        <button
-          onClick={() => onMove(appt)}
-          className="w-full min-h-[40px] rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:border-brand-500 hover:text-brand-700 transition-colors"
-        >
-          Move this visit
-        </button>
-      )}
-
-      {needsAnswer && rejecting && (
-        <div className="space-y-2">
-          <textarea rows={2} placeholder="Reason (optional)" value={note} onChange={(e) => setNote(e.target.value)} className="min-h-[44px] w-full border border-slate-200 rounded-lg px-3 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-red-300 resize-none" />
-          <div className="flex gap-2">
-            <button onClick={() => { setRejecting(false); setNote('') }} className="flex-1 min-h-[44px] py-3 rounded-lg bg-slate-100 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
-            <button onClick={() => onAction(appt.id, 'REJECTED', note || undefined)} className="flex-1 min-h-[44px] py-3 rounded-lg bg-red-600 text-xs font-semibold text-white hover:bg-red-700 transition-colors">Confirm</button>
+        {needsAnswer && rejecting && (
+          <div className="space-y-2">
+            <textarea rows={2} placeholder="Reason (optional)" value={note} onChange={(e) => setNote(e.target.value)} className="min-h-[44px] w-full border border-slate-200 rounded-lg px-3 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-red-300 resize-none" />
+            <div className="flex gap-2">
+              <button onClick={() => { setRejecting(false); setNote('') }} className="flex-1 min-h-[44px] py-3 rounded-lg bg-slate-100 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors">Cancel</button>
+              <button onClick={() => onAction(appt.id, 'REJECTED', note || undefined)} className="flex-1 min-h-[44px] py-3 rounded-lg bg-red-600 text-xs font-semibold text-white hover:bg-red-700 transition-colors">Confirm</button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
@@ -227,7 +237,9 @@ function TenantCard({ appt, onCancel, onPropose }) {
   const waitingOnOwner = appt.status === 'RESCHEDULE_REQUESTED'
 
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-4 hover:border-slate-200 transition-colors">
+    // Same anchoring as OwnerCard: equal-height cards, actions pinned to the
+    // bottom, so a row of requests reads as a row rather than a zig-zag.
+    <div className="flex h-full flex-col bg-white rounded-xl border border-slate-100 p-4 hover:border-slate-200 transition-colors">
       <div className="flex items-center gap-3 mb-3">
         {thumb ? (
           <img src={thumb} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
@@ -277,8 +289,9 @@ function TenantCard({ appt, onCancel, onPropose }) {
       {open && (
         // Two actions, and the reversible one leads. Proposing a time keeps the
         // request and the thread alive; cancelling ends both, which is why it is
-        // the quieter of the two rather than the default.
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        // the quieter of the two rather than the default. mt-auto pins the pair
+        // to the card's bottom edge, level with its neighbours'.
+        <div className="mt-auto pt-3 flex flex-col gap-2 sm:flex-row">
           <button
             onClick={() => onPropose(appt)}
             className="flex-1 min-h-[44px] py-3 rounded-lg bg-brand-50 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
