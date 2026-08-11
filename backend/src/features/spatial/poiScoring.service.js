@@ -12,7 +12,7 @@
 import { prisma } from '../../lib/prisma.js'
 import { intelLog, intelError } from '../../lib/intelLog.js'
 import { env } from '../../config/env.js'
-import { STATE_OF_CITY } from '../../config/cities.js'
+import { statesOfMetro } from '../../config/cities.js'
 import { poiTrustScore, verifyByPincode } from './poiTrust.js'
 
 // How many POIs one pass scores. Small enough that a tick is short and a
@@ -134,10 +134,12 @@ export async function scorePoiBatch({ city = null, limit = BATCH, now = new Date
 
     const updates = pois.map((poi) => {
       // Verification first — its result feeds the score.
+      // statesOfMetro, not STATE_OF_CITY: `poi.city` is a metro-area label, and
+      // Delhi's spans four states. See config/cities.js's METRO_STATES.
       const check = verifyByPincode(
         poi.postcode,
         evidence.byPincode.get(poi.postcode) ?? [],
-        STATE_OF_CITY[poi.city] ?? null
+        statesOfMetro(poi.city)
       )
       if (check.status === 'CROSS_CHECKED') verified++
       if (check.status === 'CONTRADICTED') contradicted++

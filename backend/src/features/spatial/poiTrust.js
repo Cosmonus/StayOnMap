@@ -287,26 +287,41 @@ export function poiTrustScore(poi, ctx = {}) {
  * is already seeded, and the join is one indexed lookup on a column most rows
  * do not even have.
  *
- * Deliberately checks the STATE, not the district or the city. A pincode's
- * delivery area is a route set, not a polygon — India publishes no pincode
- * boundaries — so a pincode legitimately spans districts and straddles city
- * edges, and asserting a district match would manufacture contradictions out of
- * correct data. State is the level at which the claim is safe.
+ * Checks the STATE, never the district. A pincode's delivery area is a route
+ * set, not a polygon — India publishes no pincode boundaries — so a pincode
+ * legitimately spans districts, and asserting a district match would
+ * manufacture contradictions out of correct data.
+ *
+ * ⚠ It takes a LIST of acceptable states, because the same mistake is available
+ * one level up and this code made it. `city` here is a METRO-AREA label from
+ * `resolveCity()`, not an administrative one: Delhi's 60 km radius covers
+ * Gurgaon, Noida and Ghaziabad, whose pincodes are honestly Haryana and Uttar
+ * Pradesh. The first production run flagged 44% of Delhi's pincoded POIs as
+ * CONTRADICTED — roughly 15,000 correctly-mapped places — before this was fixed.
+ * Callers pass `statesOfMetro(city)` from config/cities.js.
  *
  * @param {string|null} postcode
  * @param {Array<{state: string}>} directoryRows  rows for that pincode
- * @param {string|null} expectedState
+ * @param {string[]|string|null} expectedStates   every state this metro spans
  * @returns {{status: string, method: string|null}}
  */
-export function verifyByPincode(postcode, directoryRows, expectedState) {
-  if (!postcode || !expectedState || !directoryRows?.length) {
+export function verifyByPincode(postcode, directoryRows, expectedStates) {
+  // A bare string still works — a caller that knows a city sits in exactly one
+  // state should not have to wrap it to say so.
+  const wanted = Array.isArray(expectedStates)
+    ? expectedStates
+    : (expectedStates ? [expectedStates] : [])
+
+  if (!postcode || !wanted.length || !directoryRows?.length) {
     // Not checked is not a finding. A POI with no postcode is not suspicious;
-    // it is a POI whose mapper did not fill in an optional tag.
+    // it is a POI whose mapper did not fill in an optional tag. An unknown city
+    // and an unseeded directory land here too, for the same reason.
     return { status: 'UNVERIFIED', method: null }
   }
+
   const norm = (s) => String(s ?? '').toLowerCase().replace(/\s+/g, ' ').trim()
   const states = new Set(directoryRows.map((r) => norm(r.state)))
-  return states.has(norm(expectedState))
+  return wanted.some((w) => states.has(norm(w)))
     ? { status: 'CROSS_CHECKED', method: 'india_post_pincode' }
     : { status: 'CONTRADICTED', method: 'india_post_pincode' }
 }
