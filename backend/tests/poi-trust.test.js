@@ -12,6 +12,7 @@ import {
   conflictMultiplier, ATTRIBUTES, CORE_ATTRIBUTES,
 } from '../src/features/spatial/poiTrust.js'
 import { POI_SOURCES, sourceFor, isPersistable, canAssert } from '../src/features/spatial/poiSources.js'
+import { statesOfMetro, SUPPORTED_CITIES } from '../src/config/cities.js'
 import { scorePoiBatch, runPoiScoringTick } from '../src/features/spatial/poiScoring.service.js'
 
 const NOW = new Date('2026-08-11T00:00:00Z')
@@ -286,6 +287,14 @@ describe('verifyByPincode', () => {
     expect(verifyByPincode(null, KA, 'KARNATAKA').status).toBe('UNVERIFIED')
     expect(verifyByPincode('560095', [], 'KARNATAKA').status).toBe('UNVERIFIED')
     expect(verifyByPincode('560095', KA, null).status).toBe('UNVERIFIED')
+    expect(verifyByPincode('560095', KA, []).status).toBe('UNVERIFIED')
+  })
+
+  it('accepts any state the metro spans', () => {
+    // The bug this replaced: `city` is a METRO-AREA label, not an
+    // administrative one, and a single expected state made NCR unverifiable.
+    const haryana = [{ pincode: '122001', state: 'HARYANA' }]
+    expect(verifyByPincode('122001', haryana, statesOfMetro('Delhi')).status).toBe('CROSS_CHECKED')
   })
 
   it('compares STATE, never district — a pincode is a route set, not a polygon', () => {
@@ -301,6 +310,57 @@ describe('verifyByPincode', () => {
 
   it('is insensitive to spelling noise', () => {
     expect(verifyByPincode('560095', [{ state: '  karnataka ' }], 'KARNATAKA').status).toBe('CROSS_CHECKED')
+  })
+})
+
+// ── The metro-extent regression ─────────────────────────────────────────────
+// Every case below is a REAL row count from the first production scoring run,
+// which flagged ~15,000 correctly-mapped places as CONTRADICTED. The two halves
+// matter equally: the structural spill must pass, and the typos must still fail.
+// A fix that only did the first would leave verification unable to fail at all.
+
+describe('metro areas that cross a state line', () => {
+  const at = (state) => [{ state }]
+  const check = (city, state) => verifyByPincode('000000', at(state), statesOfMetro(city)).status
+
+  it('accepts the NCR — 15,216 real POIs that were being called wrong', () => {
+    expect(check('Delhi', 'DELHI')).toBe('CROSS_CHECKED')          // 18,802 rows
+    expect(check('Delhi', 'HARYANA')).toBe('CROSS_CHECKED')        // 11,233 — Gurgaon
+    expect(check('Delhi', 'UTTAR PRADESH')).toBe('CROSS_CHECKED')  //  3,817 — Noida
+    expect(check('Delhi', 'RAJASTHAN')).toBe('CROSS_CHECKED')      //    166 — Bhiwadi
+  })
+
+  it('accepts Bengaluru reaching Hosur', () => {
+    expect(check('Bengaluru', 'KARNATAKA')).toBe('CROSS_CHECKED')
+    expect(check('Bengaluru', 'TAMIL NADU')).toBe('CROSS_CHECKED') // 405 rows
+  })
+
+  it('STILL catches the typos — the half a lazy fix would have destroyed', () => {
+    // None of these states is adjacent to the city. Whitelisting whatever the
+    // data contained would have laundered every one of them into "verified".
+    expect(check('Mumbai', 'WEST BENGAL')).toBe('CONTRADICTED')   //  1 row
+    expect(check('Bengaluru', 'BIHAR')).toBe('CONTRADICTED')      //  4 rows
+    expect(check('Hyderabad', 'ODISHA')).toBe('CONTRADICTED')     // 15 rows
+    expect(check('Pune', 'UTTAR PRADESH')).toBe('CONTRADICTED')   // 31 rows
+  })
+
+  it('leaves a single-state city needing no entry', () => {
+    expect(statesOfMetro('Chennai')).toEqual(['TAMIL NADU'])
+    expect(check('Chennai', 'TAMIL NADU')).toBe('CROSS_CHECKED')
+    expect(check('Chennai', 'KERALA')).toBe('CONTRADICTED')
+  })
+
+  it('returns nothing for an unknown city, so it reads as "cannot check"', () => {
+    // Never "everything is wrong" — an unrecognised city is our gap, not the
+    // data's fault.
+    expect(statesOfMetro('Jaipur')).toEqual([])
+    expect(verifyByPincode('302001', at('RAJASTHAN'), statesOfMetro('Jaipur')).status).toBe('UNVERIFIED')
+  })
+
+  it('covers every supported city', () => {
+    for (const city of SUPPORTED_CITIES) {
+      expect(statesOfMetro(city).length, `${city} has no states`).toBeGreaterThan(0)
+    }
   })
 })
 
