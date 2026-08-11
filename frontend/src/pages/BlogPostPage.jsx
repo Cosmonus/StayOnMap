@@ -121,16 +121,8 @@ export default function BlogPostPage() {
 
         {post && (
           <>
-            {/* The cover sits ABOVE the header, full content width rather than
-                capped at the prose measure — it is the one element on the page
-                that is allowed to be as wide as the layout, and clipping it to
-                68ch beside an empty sidebar column looked like a mistake. */}
-            <div className="mt-6 overflow-hidden rounded-2xl ring-1 ring-slate-200 animate-fade-in">
-              <BlogCover post={post} priority />
-            </div>
-
-            {/* The reading group: header, prose and contents, centred as one
-                unit at exactly the width of its own columns
+            {/* The reading group: cover, header, prose and contents, centred as
+                one unit at exactly the width of its own columns
                 (68ch + the gap + the sidebar). Sized to its CONTENT rather than
                 to the page, because the alternative — letting these stretch and
                 pushing the sidebar to the far edge with `justify-between` —
@@ -138,6 +130,23 @@ export default function BlogPostPage() {
                 contents at 1560. Centring the pair keeps them reading as one
                 thing, and keeps the header aligned with the prose beneath it. */}
             <div className={`mx-auto w-full ${showSidebar ? 'max-w-[calc(68ch+3rem+16rem)]' : 'max-w-[68ch]'}`}>
+              {/* The cover is IN the group, not spanning the shell. It ran full
+                  width for about an hour on 2026-08-11 and the reason it does
+                  not any more is worth keeping: BlogCover is `aspect-video`, so
+                  at the 1496px content width it rendered 842px tall — an entire
+                  viewport before a single word of the article.
+                  And most posts have no image yet, so what actually filled that
+                  space was the PLACEHOLDER. That placeholder is deliberate
+                  (BlogCover, operator decision 2026-08-07): it is meant to read
+                  as "an image goes here" so that it gets replaced. At 1496x842
+                  it stops reading as a placeholder and starts reading as a
+                  broken page — the decision was undone by scale rather than by
+                  anyone disagreeing with it. At the group width it is 619px and
+                  lines up with the headline underneath. */}
+              <div className="mt-6 overflow-hidden rounded-2xl ring-1 ring-slate-200 animate-fade-in">
+                <BlogCover post={post} priority />
+              </div>
+
               <header className="mt-8 max-w-[68ch] animate-slide-up">
                 <span className="text-badge font-semibold uppercase tracking-wide text-brand-700">
                   {post.clusterLabel}
