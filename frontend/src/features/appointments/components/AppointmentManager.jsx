@@ -77,7 +77,7 @@ function EmptyState({ title = 'No appointments', message }) {
 }
 
 // ── Owner card (incoming requests) ──────────────────────────────────
-function OwnerCard({ appt, onAction }) {
+function OwnerCard({ appt, onAction, onMove }) {
   const [rejecting, setRejecting] = useState(false)
   const [note, setNote] = useState('')
   const [resumeOpen, setResumeOpen] = useState(false)
@@ -170,14 +170,38 @@ function OwnerCard({ appt, onAction }) {
       )}
 
       {needsAnswer && !rejecting && (
-        <div className="flex gap-2">
-          <button onClick={() => onAction(appt.id, 'ACCEPTED')} className="flex-1 min-h-[44px] py-3 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-colors" style={{ background: '#111111' }}>
-            {proposed ? 'Accept new time' : 'Accept'}
-          </button>
-          <button onClick={() => setRejecting(true)} className="flex-1 min-h-[44px] py-3 rounded-lg bg-red-50 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors">
-            Reject
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <button onClick={() => onAction(appt.id, 'ACCEPTED')} className="flex-1 min-h-[44px] py-3 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-colors" style={{ background: '#111111' }}>
+              {proposed ? 'Accept new time' : 'Accept'}
+            </button>
+            <button onClick={() => setRejecting(true)} className="flex-1 min-h-[44px] py-3 rounded-lg bg-red-50 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors">
+              Reject
+            </button>
+          </div>
+          {/* The middle answer. Accept-or-reject forced a binary onto the
+              commonest real reply — "yes, but Sunday": until now the owner's
+              only route was rejecting the visit and typing an apology. Ghost
+              weight below the pair, because it is the alternative, not a
+              third equal. */}
+          <button
+            onClick={() => onMove(appt)}
+            className="w-full min-h-[40px] rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            Propose a different time
           </button>
         </div>
+      )}
+
+      {/* Moving an ACCEPTED visit — the owner's plans changed after saying
+          yes. The renter is notified of the new time straight away. */}
+      {appt.status === 'ACCEPTED' && (
+        <button
+          onClick={() => onMove(appt)}
+          className="w-full min-h-[40px] rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:border-brand-500 hover:text-brand-700 transition-colors"
+        >
+          Move this visit
+        </button>
       )}
 
       {needsAnswer && rejecting && (
@@ -297,6 +321,7 @@ export default function AppointmentManager() {
   })
 
   const [proposing, setProposing] = useState(null)
+  const [ownerMoving, setOwnerMoving] = useState(null)
 
   const mutation = useMutation({
     mutationFn: ({ id, ...body }) => appointmentService.updateStatus(id, body),
@@ -384,7 +409,7 @@ export default function AppointmentManager() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {filteredOwner.map(appt => (
-                <OwnerCard key={appt.id} appt={appt} onAction={handleAction} />
+                <OwnerCard key={appt.id} appt={appt} onAction={handleAction} onMove={setOwnerMoving} />
               ))}
             </div>
           )}
@@ -410,7 +435,20 @@ export default function AppointmentManager() {
         open={!!proposing}
         onClose={() => setProposing(null)}
         pending={mutation.isPending}
-        onSubmit={(body) => mutation.mutate({ id: proposing.id, status: 'RESCHEDULE_REQUESTED', ...body })}
+        onSubmit={({ note, ...body }) => mutation.mutate({ id: proposing.id, status: 'RESCHEDULE_REQUESTED', tenantNote: note, ...body })}
+      />
+
+      {/* The owner's version of the same picker. RESCHEDULED, not
+          RESCHEDULE_REQUESTED: an owner does not ask permission to move a
+          visit on their own listing — the server rewrites all three slot
+          fields from this one pair, so every card shows the new time. */}
+      <ProposeTimeModal
+        role="owner"
+        appt={ownerMoving}
+        open={!!ownerMoving}
+        onClose={() => setOwnerMoving(null)}
+        pending={mutation.isPending}
+        onSubmit={({ note, ...body }) => mutation.mutate({ id: ownerMoving.id, status: 'RESCHEDULED', ownerNote: note, ...body })}
       />
     </div>
   )

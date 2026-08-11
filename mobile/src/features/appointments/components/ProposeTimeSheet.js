@@ -21,7 +21,11 @@ const LEAD_MINUTES = 30
 const pad = (n) => String(n).padStart(2, '0')
 const localISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 
-export default function ProposeTimeSheet({ visible, appt, onClose, onSubmit, saving }) {
+// `role` decides the words and the promise, not the picker — a renter
+// PROPOSES (the visit stays open until the owner confirms), an owner MOVES
+// (their say is final, the renter is told straight away). Same sheet because
+// the question is identical; mirrors web's ProposeTimeModal.
+export default function ProposeTimeSheet({ visible, appt, onClose, onSubmit, saving, role = 'renter' }) {
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [note, setNote] = useState('')
@@ -85,14 +89,14 @@ export default function ProposeTimeSheet({ visible, appt, onClose, onSubmit, sav
     <FormSheet
       visible={visible}
       onClose={onClose}
-      title="Propose a different time"
-      saveLabel="Send to owner"
+      title={role === 'owner' ? 'Move this visit' : 'Propose a different time'}
+      saveLabel={role === 'owner' ? 'Move visit' : 'Send to owner'}
       saving={saving}
       onSave={date && time
         ? () => onSubmit({
           requestedDate: new Date(date).toISOString(),
           requestedTime: time,
-          tenantNote: note.trim() || undefined,
+          note: note.trim() || undefined,
         })
         : undefined}
     >

@@ -416,3 +416,59 @@ describe('updateAppointmentStatus — tenant proposing a different time', () => 
       .rejects.toMatchObject({ statusCode: 403 })
   })
 })
+
+describe('updateAppointmentStatus — the OWNER moving a visit', () => {
+  // The owner's reschedule was API-only until 2026-08-12 — the enum value and
+  // the service branch existed, but no client offered the button, and sending
+  // scheduledAt alone would have left every queue card showing the OLD slot
+  // (both platforms render requestedDate/requestedTime as "the slot on the
+  // table"). These pin the shape that makes the UI honest: one slot in, three
+  // consistent fields out.
+
+  it('writes requestedDate/Time AND composes scheduledAt from the same slot', async () => {
+    const appt = makeAppointment()
+    prismaMock.appointment.findUnique.mockResolvedValue(appt)
+    prismaMock.appointment.update.mockImplementation(({ data }) => ({ ...appt, ...data }))
+
+    const newDate = daysFromNow(5)
+    await updateAppointmentStatus('appt-1', 'owner-1', {
+      status: 'RESCHEDULED', requestedDate: newDate, requestedTime: '16:30',
+    })
+
+    const { data } = prismaMock.appointment.update.mock.calls[0][0]
+    expect(data.requestedTime).toBe('16:30')
+    expect(data.requestedDate.toISOString().slice(0, 10)).toBe(newDate)
+    // Composed server-side, never client-supplied — so the instant and the
+    // displayed pair cannot disagree. 16:30 IST is 11:00 UTC.
+    expect(data.scheduledAt.toISOString()).toBe(`${newDate}T11:00:00.000Z`)
+  })
+
+  it('refuses a reschedule with no new slot', async () => {
+    prismaMock.appointment.findUnique.mockResolvedValue(makeAppointment())
+    await expect(updateAppointmentStatus('appt-1', 'owner-1', { status: 'RESCHEDULED' }))
+      .rejects.toMatchObject({ statusCode: 400 })
+    expect(prismaMock.appointment.update).not.toHaveBeenCalled()
+  })
+
+  it('refuses a slot in the past — whoever proposes it', async () => {
+    prismaMock.appointment.findUnique.mockResolvedValue(makeAppointment())
+    await expect(updateAppointmentStatus('appt-1', 'owner-1', {
+      status: 'RESCHEDULED', requestedDate: daysFromNow(-2), requestedTime: '10:00',
+    })).rejects.toMatchObject({ statusCode: 400 })
+  })
+
+  it('tells the TENANT the new time, not just that something changed', async () => {
+    const appt = makeAppointment()
+    prismaMock.appointment.findUnique.mockResolvedValue(appt)
+    prismaMock.appointment.update.mockImplementation(({ data }) => ({ ...appt, ...data }))
+
+    await updateAppointmentStatus('appt-1', 'owner-1', {
+      status: 'RESCHEDULED', requestedDate: daysFromNow(5), requestedTime: '16:30',
+    })
+
+    expect(notifyUser).toHaveBeenCalledWith('tenant-1', expect.objectContaining({
+      audience: 'TENANT',
+      body: expect.stringContaining('moved your visit to'),
+    }))
+  })
+})
