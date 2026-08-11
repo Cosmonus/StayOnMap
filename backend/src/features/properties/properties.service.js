@@ -835,14 +835,20 @@ export async function getPropertyContacts(propertyId, ownerId) {
         select: {
           id: true, status: true, requestedDate: true, requestedTime: true,
           message: true, ownerNote: true, contactNumber: true, tenantId: true, createdAt: true,
-          tenant: { select: { id: true, name: true, email: true, avatarUrl: true, phone: true } },
+          // contactVisibility is selected so the gate below can READ it —
+          // dropping it from this select is the dangerous edit: the gate then
+          // reads undefined, which is not 'NOBODY', and a withheld number
+          // ships (the chat-contact-visibility lesson, same file rule).
+          tenant: { select: { id: true, name: true, email: true, avatarUrl: true, phone: true, contactVisibility: true } },
         },
         orderBy: { createdAt: 'desc' },
       },
       conversations: {
         select: {
           id: true, tenantId: true, lastMessageAt: true,
-          tenant: { select: { id: true, name: true, email: true, avatarUrl: true } },
+          // phone + contactVisibility together, or the gate reads undefined —
+          // see the appointments select above.
+          tenant: { select: { id: true, name: true, email: true, avatarUrl: true, phone: true, contactVisibility: true } },
           messages: {
             select: { id: true, senderId: true, body: true, createdAt: true, sender: { select: { id: true, name: true } } },
             orderBy: { createdAt: 'desc' },
@@ -859,6 +865,21 @@ export async function getPropertyContacts(propertyId, ownerId) {
     },
   })
   if (!property) throw Object.assign(new Error('Property not found or access denied'), { statusCode: 404 })
+
+  // The per-PERSON phone gate, same rule as chat's gateParticipantPhones: a
+  // profile number is withheld when its owner set contactVisibility NOBODY,
+  // and the setting itself is never returned. This endpoint shipped 2026-07-27
+  // leaking the profile phone UNGATED — found 2026-08-12 while the contacts
+  // list grew a call button, which is exactly when the leak would have started
+  // to matter. (Appointment.contactNumber is untouched: that number was given
+  // BY the tenant TO this owner for a visit on this listing — an explicit
+  // share in context, already rendered on the visit card.)
+  for (const row of [...property.appointments, ...property.conversations]) {
+    if (row.tenant) {
+      if (row.tenant.contactVisibility === 'NOBODY') row.tenant.phone = null
+      delete row.tenant.contactVisibility
+    }
+  }
   return property
 }
 
