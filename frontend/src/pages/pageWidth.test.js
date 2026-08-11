@@ -154,29 +154,45 @@ describe('an article shares the shell but not the measure', () => {
     expect(post()).toMatch(SHELL)
   })
 
-  it('still caps the PROSE at its reading measure', () => {
-    // The thing that actually matters. 68ch is ~68 characters; past that a
-    // reader loses the line on the return sweep, whatever the monitor.
+  it('still caps the PROSE at a reading measure', () => {
+    // The thing that actually matters, and it survived the measure being
+    // WIDENED (68ch → 90ch, 2026-08-11). The number is the operator's to
+    // choose; that there is a cap at all is not.
     const src = stripComments(post())
-    expect(src, 'the article body must stay at 68ch').toMatch(/max-w-\[68ch\]/)
-    expect(read('src/features/blog/components/ArticleBody.jsx')).toMatch(/max-w-\[68ch\]/)
+    expect(src, 'the article must cap its prose').toMatch(/max-w-measure/)
+    expect(read('src/features/blog/components/ArticleBody.jsx')).toMatch(/max-w-measure/)
   })
 
-  it('never lets the prose column grow with the page', () => {
+  it('measures in CHARACTERS, not in pixels or viewport fractions', () => {
     // The regression the original test was written to prevent, stated as
-    // itself: a prose container sized as a FRACTION of the shell rather than in
-    // characters. `w-full` on the centred reading group is fine — it is capped
-    // by the max-w beside it.
-    const src = stripComments(post())
-    expect(src, 'prose sized to the viewport instead of to characters')
-      .not.toMatch(/max-w-\[68ch\][^>]*\b(w-screen|max-w-full)\b/)
+    // itself. A measure in px stops tracking the font; a measure in vw or a
+    // fraction of the shell is not a measure at all.
+    const config = read('tailwind.config.js')
+    expect(config, 'the measure must be defined in ch').toMatch(/measure:\s*'\d+ch'/)
+    const ch = Number(/measure:\s*'(\d+)ch'/.exec(config)?.[1])
+    // Generous is fine; unbounded is not. Past ~100 characters the return sweep
+    // fails often enough that people stop reading, which is the actual cost.
+    expect(ch).toBeGreaterThan(50)
+    expect(ch).toBeLessThanOrEqual(100)
   })
 
   it('keeps the reading group narrower than the shell', () => {
-    // The centred wrapper is 68ch + gap + sidebar. If someone deletes the cap,
-    // the group inherits the full 1560 and the sidebar drifts ~500px from the
-    // text it belongs to — which is what `justify-between` used to do.
-    expect(stripComments(post())).toMatch(/max-w-\[calc\(68ch/)
+    // The group is measure + gap + sidebar. Delete the cap and it inherits the
+    // full 1560, and the sidebar drifts hundreds of px from the text it belongs
+    // to — which is what `justify-between` used to do.
+    expect(stripComments(post())).toMatch(/max-w-reading/)
+    expect(read('tailwind.config.js'), 'the group must be derived from the measure, not a second literal')
+      .toMatch(/reading:\s*'calc\(\d+ch\s*\+/)
+  })
+
+  it('derives the group from the SAME number as the measure', () => {
+    // Two literals that must agree with nothing making them agree is exactly
+    // how `max-w-page` came to need a test. If these drift, the prose column
+    // and its container disagree and the sidebar shifts.
+    const config = read('tailwind.config.js')
+    const measure = /measure:\s*'(\d+)ch'/.exec(config)?.[1]
+    const inGroup = /reading:\s*'calc\((\d+)ch/.exec(config)?.[1]
+    expect(inGroup, 'reading: does not start from measure:').toBe(measure)
   })
 
   it('the admin property view stays inside its own column', () => {

@@ -84,14 +84,17 @@ export default function BlogPostPage() {
           navigating from the listing to an article does not jump the page frame
           inward. Widened from max-w-6xl/3xl on 2026-08-11.
 
-          The page is wide; the TEXT is not, and that split is the whole layout.
-          A reading measure is a typographic constant, not a fraction of the
-          viewport: 68ch is ~68 characters, and lines longer than that lose the
-          reader on the return sweep whatever the monitor. So the extra width
-          goes to the things that genuinely scale — the cover, the related-posts
+          The prose is wide too, but not shell-wide. The measure is a token
+          (`max-w-measure`, 90ch — see tailwind.config.js), widened from 68ch on
+          the same day: the first pass gave the extra width to the cover and the
+          related-posts grid and left the text where it was, which read as the
+          image growing and the article not. 90ch is a quarter wider.
+          It stops short of the full 1496px because a line of body text there
+          runs ~160 characters and the eye loses the start of the next line long
+          before that — the failure mode is people stopping reading, not the page
+          looking wrong. The remaining slack goes to the cover, the related-posts
           grid (the SAME three-up as /blog, which is what makes the two pages
-          read as one place) and the CTA — while the prose and its contents
-          sidebar sit centred at their own measure. */}
+          read as one place) and the CTA. */}
       <article className="mx-auto max-w-page px-4 md:px-8 py-8 md:py-12">
         <Link
           to="/blog"
@@ -105,10 +108,10 @@ export default function BlogPostPage() {
             A skeleton that is wider than the article it stands in for promises
             the wrong shape, and a one-line error centred in 1560px of white
             reads as a broken page rather than a handled one. */}
-        {isLoading && <div className="mt-6 mx-auto w-full max-w-[68ch]"><ArticleSkeleton /></div>}
+        {isLoading && <div className="mt-6 mx-auto w-full max-w-measure"><ArticleSkeleton /></div>}
 
         {isError && error?.response?.status !== 404 && (
-          <div className="mt-8 mx-auto w-full max-w-[68ch] rounded-2xl bg-white ring-1 ring-slate-200 p-8 text-center">
+          <div className="mt-8 mx-auto w-full max-w-measure rounded-2xl bg-white ring-1 ring-slate-200 p-8 text-center">
             <p className="text-base text-slate-600">We couldn&apos;t load this article.</p>
             <Link
               to="/blog"
@@ -121,12 +124,23 @@ export default function BlogPostPage() {
 
         {post && (
           <>
-            {/* The cover sits ABOVE the header, full content width rather than
-                capped at the prose measure — it is the one element on the page
-                that is allowed to be as wide as the layout, and clipping it to
-                68ch beside an empty sidebar column looked like a mistake. */}
+            {/* The cover spans the full shell — it is the one element allowed
+                to be as wide as the layout.
+
+                Its HEIGHT is capped, and that is the load-bearing part. BlogCover
+                is `aspect-video`, so at the 1496px content width it renders 842px
+                tall: an entire viewport of cover before a word of the article.
+                Worse, most posts have no image yet, so what fills it is the
+                PLACEHOLDER — which is deliberately plain so it reads as "an image
+                goes here" and gets replaced (BlogCover, operator decision
+                2026-08-07). At 842px it stops reading as a placeholder and starts
+                reading as a broken page: the decision undone by scale rather than
+                by anyone disagreeing with it.
+                Capping the height rather than the width keeps the wide cover and
+                loses the void. `object-cover` on the image means a real hero
+                crops rather than squashes. */}
             <div className="mt-6 overflow-hidden rounded-2xl ring-1 ring-slate-200 animate-fade-in">
-              <BlogCover post={post} priority />
+              <BlogCover post={post} priority className="max-h-[460px]" />
             </div>
 
             {/* The reading group: header, prose and contents, centred as one
@@ -137,8 +151,8 @@ export default function BlogPostPage() {
                 opens a ~500px void between the text and its own table of
                 contents at 1560. Centring the pair keeps them reading as one
                 thing, and keeps the header aligned with the prose beneath it. */}
-            <div className={`mx-auto w-full ${showSidebar ? 'max-w-[calc(68ch+3rem+16rem)]' : 'max-w-[68ch]'}`}>
-              <header className="mt-8 max-w-[68ch] animate-slide-up">
+            <div className={`mx-auto w-full ${showSidebar ? 'max-w-reading' : 'max-w-measure'}`}>
+              <header className="mt-8 max-w-measure animate-slide-up">
                 <span className="text-badge font-semibold uppercase tracking-wide text-brand-700">
                   {post.clusterLabel}
                 </span>
@@ -173,8 +187,12 @@ export default function BlogPostPage() {
               {/* No `justify-between`: the wrapper above is exactly the width of
                   these two columns plus the gap, so there is no slack left to
                   distribute — and asking for it back would reintroduce the void. */}
-              <div className={showSidebar ? 'grid grid-cols-[minmax(0,68ch)_16rem] items-start gap-12' : ''}>
-                <div className="min-w-0 max-w-[68ch]">
+              {/* `1fr`, not a repeat of the measure: the GROUP above is already
+                  measure + gap + sidebar, so the remaining space IS the measure
+                  and stating it twice is two numbers that must agree with
+                  nothing making them agree. */}
+              <div className={showSidebar ? 'grid grid-cols-[minmax(0,1fr)_16rem] items-start gap-12' : ''}>
+                <div className="min-w-0 max-w-measure">
                   {!showSidebar && <TableOfContents markdown={post.body} />}
 
                   <ArticleBody markdown={post.body} />

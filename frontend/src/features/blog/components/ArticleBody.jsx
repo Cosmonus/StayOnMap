@@ -54,7 +54,7 @@ export default function ArticleBody({ markdown }) {
   const blocks = parseBlocks(markdown)
 
   return (
-    <div className="max-w-[68ch]">
+    <div className="max-w-measure">
       {blocks.map((b, i) => {
         switch (b.type) {
           case 'h2':
