@@ -1,7 +1,7 @@
 import {
   Compass, Search, MessageCircle, User, Heart, Star,
   Share2, Camera, Send, Plus, Pencil, Trash2, Repeat2, LogOut, Paperclip, Maximize2,
-  ChevronLeft, ChevronRight, ChevronDown, X, SlidersHorizontal, Layers, List, LayoutGrid, Map, LocateFixed,
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X, SlidersHorizontal, Layers, List, LayoutGrid, Map, LocateFixed,
   Check, CircleCheck, TriangleAlert, Info, Bell, Shield, ShieldCheck, Clock, Calendar, Eye, EyeOff,
   Users, Phone, Mail, Lock, Key, Settings,
   House, Building2, MapPin, BedDouble, Ruler, IndianRupee, Sofa, Package, Wifi,
@@ -49,6 +49,7 @@ const ICONS = {
   chevronLeft: ChevronLeft,
   chevronRight: ChevronRight,
   chevronDown: ChevronDown,
+  chevronUp: ChevronUp,
   close: X,
   filter: SlidersHorizontal,
   layers: Layers,
