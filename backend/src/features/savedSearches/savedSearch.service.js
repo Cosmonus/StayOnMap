@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma.js'
 import { boundsFilter } from '../../utils/geo.js'
 import { buildFilterWhere } from '../properties/filters.registry.js'
@@ -36,16 +35,15 @@ export async function createSavedSearch(userId, { name, query }) {
 }
 
 export async function deleteSavedSearch(userId, id) {
-  try {
-    // Ownership via the compound where — the same pattern as every other
-    // owner-scoped delete; a stranger's id answers 404, not 403.
-    await prisma.savedSearch.delete({ where: { id, userId } })
-  } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
-      throw Object.assign(new Error('Not found'), { statusCode: 404 })
-    }
-    throw err
-  }
+  // deleteMany, not delete — the saved.service.js pattern. Ownership lives in
+  // the where, so a stranger's id deletes zero rows and reads as 404, never
+  // 403 (an id must not be a way to learn a search exists). It also spares
+  // this file the ONLY `@prisma/client` import in backend/src: tests mock the
+  // client wholesale and CI never generates it, so importing the real package
+  // for its error class broke four unrelated suites on CI while passing on
+  // every machine that had run `prisma generate`.
+  const { count } = await prisma.savedSearch.deleteMany({ where: { id, userId } })
+  if (!count) throw Object.assign(new Error('Not found'), { statusCode: 404 })
 }
 
 /** The Prisma where that asks "does this ONE property satisfy this search". */

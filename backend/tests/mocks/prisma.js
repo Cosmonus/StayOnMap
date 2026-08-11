@@ -167,7 +167,7 @@ export const prismaMock = {
     findUnique: vi.fn(),
     count:     vi.fn(),
     create:    vi.fn(),
-    delete:    vi.fn(),
+    deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
   },
   listingDraft: {
     findUnique: vi.fn(),

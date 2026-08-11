@@ -154,14 +154,16 @@ describe('create/delete ownership', () => {
   })
 
   it('deletes through the compound where, so a stranger gets 404', async () => {
-    const { Prisma } = await import('@prisma/client')
-    prismaMock.savedSearch.delete.mockRejectedValue(
-      new Prisma.PrismaClientKnownRequestError('nope', { code: 'P2025', clientVersion: 'test' })
-    )
+    prismaMock.savedSearch.deleteMany.mockResolvedValue({ count: 0 })
     await expect(deleteSavedSearch('someone-else', 's1'))
       .rejects.toMatchObject({ statusCode: 404 })
-    expect(prismaMock.savedSearch.delete).toHaveBeenCalledWith({
+    expect(prismaMock.savedSearch.deleteMany).toHaveBeenCalledWith({
       where: { id: 's1', userId: 'someone-else' },
     })
+  })
+
+  it('deletes cleanly for the owner', async () => {
+    prismaMock.savedSearch.deleteMany.mockResolvedValue({ count: 1 })
+    await expect(deleteSavedSearch('renter-1', 's1')).resolves.toBeUndefined()
   })
 })
