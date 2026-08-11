@@ -269,6 +269,92 @@ export const TOOLS = {
       return network ?? { available: false, reason: `no metro network on file for ${a.city}` }
     },
   },
+
+  // ── POI trust ──────────────────────────────────────────────────────────────
+  // The tool that exists so an agent CANNOT invent a place.
+  //
+  // Everything else in this registry answers "what is there". This one answers
+  // "and how sure are we", which is the question that decides whether a caller
+  // is allowed to state something as fact. It returns UNKNOWN for a POI nobody
+  // has scored and UNVERIFIED for one nothing has corroborated, and those are
+  // deliberately different from a low score — a caller that cannot tell "we
+  // never looked" from "we looked and doubt it" will phrase both as certainty.
+  getPoiTrust: {
+    description:
+      'How much we trust what we hold about a place: its TrustScore, per-attribute confidence, ' +
+      'verification status, and the reasons behind them. Returns UNKNOWN when a POI has never ' +
+      'been scored — which is not the same as a low score and must never be stated as one.',
+    input: z.object({
+      // By our own id or OSM's. No name search: resolving "the Apollo near
+      // Koramangala" to one row is exactly the guess this tool exists to stop,
+      // and it belongs to a search tool that can return several candidates.
+      poiId: z.string().min(1).max(64).optional(),
+      osmId: z.string().min(1).max(64).optional(),
+    }).refine((a) => a.poiId || a.osmId, { message: 'poiId or osmId is required' }),
+    handler: async (a) => {
+      const poi = await prisma.poiIndex.findFirst({
+        where: a.poiId ? { id: a.poiId } : { osmId: a.osmId },
+        select: {
+          id: true, osmId: true, name: true, category: true, city: true,
+          status: true, trustScore: true, trustReasons: true, confidence: true,
+          scoredAt: true, verificationStatus: true, verificationMethod: true,
+          verifiedAt: true, fetchedAt: true,
+        },
+      })
+      if (!poi) return { found: false, trust: 'UNKNOWN', reason: 'no such POI in our index' }
+
+      return {
+        found: true,
+        poi: { id: poi.id, osmId: poi.osmId, name: poi.name, category: poi.category, city: poi.city },
+        // The distinction the whole tool exists for, made structurally rather
+        // than left to the reader: an unscored POI reports UNKNOWN, never 0.
+        trust: poi.trustScore == null ? 'UNKNOWN' : poi.trustScore,
+        band: poi.trustReasons?.band ?? 'UNKNOWN',
+        reasons: poi.trustReasons?.reasons ?? [],
+        confidence: poi.confidence ?? null,
+        verification: {
+          status: poi.verificationStatus,
+          method: poi.verificationMethod,
+          at: poi.verifiedAt,
+        },
+        // A place the source no longer lists. Surfaced explicitly because it is
+        // the one state where repeating what we hold would be actively wrong.
+        stillListed: poi.status === 'ACTIVE',
+        observedAt: poi.fetchedAt,
+        scoredAt: poi.scoredAt,
+      }
+    },
+  },
+
+  getPoiConflicts: {
+    description:
+      'Recorded disagreements about a place — what our sources said, what changed, and whether ' +
+      'we applied it. Use before repeating an attribute as settled fact.',
+    input: z.object({
+      poiId: z.string().min(1).max(64),
+      limit: z.coerce.number().int().min(1).max(50).optional(),
+    }),
+    limit: 50,
+    handler: async (a) => {
+      const rows = await prisma.poiConflict.findMany({
+        where: { poiIndexId: a.poiId },
+        select: {
+          attribute: true, currentValue: true, incomingValue: true, source: true,
+          distanceM: true, applied: true, status: true, detectedAt: true,
+        },
+        orderBy: { detectedAt: 'desc' },
+        take: Math.min(a.limit ?? 50, 50),
+      })
+      return {
+        count: rows.length,
+        conflicts: rows,
+        // Stated rather than left to be inferred from `applied: false`, because
+        // this is the case a caller most needs to hedge on and the easiest to
+        // skim past.
+        servingDisputedLocation: rows.some((r) => r.attribute === 'location' && !r.applied && r.status === 'OPEN'),
+      }
+    },
+  },
 }
 
 export const TOOL_NAMES = Object.keys(TOOLS)

@@ -148,24 +148,28 @@ describe('dedupeCategory', () => {
     ...extra,
   })
 
+  // The radii are per category since 2026-08-11 (poiPolicy.js), so every case
+  // names the category it is about. `pharmacy` and `bank` are both the SMALL
+  // tier — 30 m unnamed, 100 m named.
+
   it('collapses the same named place mapped twice (node + building way)', () => {
-    const kept = dedupeCategory([poi('Apollo Pharmacy', 100), poi('Apollo Pharmacy', 180)])
+    const kept = dedupeCategory([poi('Apollo Pharmacy', 100), poi('Apollo Pharmacy', 180)], 'pharmacy')
     expect(kept).toHaveLength(1)
     expect(kept[0].distanceM).toBe(100) // nearest copy wins
   })
 
   it('collapses an unnamed point sitting on top of a kept place', () => {
-    const kept = dedupeCategory([poi('State Bank', 100), poi(null, 115)])
+    const kept = dedupeCategory([poi('State Bank', 100), poi(null, 115)], 'bank')
     expect(kept).toHaveLength(1)
   })
 
   it('keeps two genuinely different places at similar distance', () => {
-    const kept = dedupeCategory([poi('HDFC Bank', 100), poi('ICICI Bank', 130)])
+    const kept = dedupeCategory([poi('HDFC Bank', 100), poi('ICICI Bank', 130)], 'bank')
     expect(kept).toHaveLength(2)
   })
 
   it('keeps same-name places far apart — a chain has real branches', () => {
-    const kept = dedupeCategory([poi('Apollo Pharmacy', 100), poi('Apollo Pharmacy', 900)])
+    const kept = dedupeCategory([poi('Apollo Pharmacy', 100), poi('Apollo Pharmacy', 900)], 'pharmacy')
     expect(kept).toHaveLength(2)
   })
 
@@ -173,8 +177,25 @@ describe('dedupeCategory', () => {
     const kept = dedupeCategory([
       poi(null, 100, { brand: 'ICICI' }),
       poi(null, 120, { brand: 'ICICI' }),
+    ], 'bank')
+    expect(kept).toHaveLength(1)
+  })
+
+  it('reads the category off the rows when none is passed', () => {
+    const kept = dedupeCategory([
+      poi('Apollo Pharmacy', 100, { category: 'pharmacy' }),
+      poi('Apollo Pharmacy', 180, { category: 'pharmacy' }),
     ])
     expect(kept).toHaveLength(1)
+  })
+
+  it('applies the category\'s own radius, not one global pair', () => {
+    // The same two rows, 80 m apart, under two footprints. A pharmacy that
+    // close is the node/way double of itself; two cafes that close are two
+    // cafes. One global threshold gets one of these wrong by construction.
+    const rows = () => [poi('Blue Tokai', 100), poi('Blue Tokai', 180)]
+    expect(dedupeCategory(rows(), 'pharmacy')).toHaveLength(1)
+    expect(dedupeCategory(rows(), 'cafe')).toHaveLength(2)
   })
 })
 

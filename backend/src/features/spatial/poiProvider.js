@@ -14,6 +14,7 @@ import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { haversineMeters } from '../../lib/geohash.js'
 import { intelError } from '../../lib/intelLog.js'
 import { coverageFactor, freshnessFactor } from './dataQuality.js'
+import { footprintFor } from './poiPolicy.js'
 
 const DEG_LAT_M = 111_320
 
@@ -37,11 +38,14 @@ export function sparseThreshold(radiusM) {
 // One real-world place is often mapped twice in OSM — a node AND the building
 // way, or two nodes for the same branch. Rows are distinct osmIds, so the
 // query layer collapses them:
-//   - same category + same normalised name/brand within this range → one place
-//   - an unnamed row this close to an already-kept same-category row is
-//     almost always the node/way double of it, not a second real place
-const DUP_NAMED_M = 150
-const DUP_UNNAMED_M = 30
+//   - same category + same normalised name/brand within range → one place
+//   - an unnamed row close to an already-kept same-category row is almost
+//     always the node/way double of it, not a second real place
+//
+// The ranges are per category since 2026-08-11 (poiPolicy.js's FOOTPRINTS).
+// The flat 30/150 m pair this replaced was one number doing two incompatible
+// jobs: 150 m merges two genuinely different cafes on an Indian high street,
+// and still splits a hospital campus mapped as six separate blocks.
 
 // Whether a city has been seeded at all changes only when someone re-runs the
 // ingestion script (which now busts these keys on completion — see
@@ -56,6 +60,18 @@ const COVERAGE_TTL_S = 60 * 60
 const PAGE_SIZE = 2000
 const MAX_ROWS = 20_000
 
+// Rows a re-seed found missing are marked ABSENT_FROM_SOURCE rather than
+// deleted (seedMaintenance.js's markAbsentPois, 2026-08-11). Every serving
+// query therefore carries this predicate, and the result is byte-identical to
+// what the old hard-delete produced — an absent row is exactly as invisible as
+// a deleted one, it is simply still there to count.
+//
+// One constant, spread into all five reads, because a query that forgets it
+// does not fail: it silently starts telling users about a chemist that closed,
+// which is the single most credibility-damaging thing this table can do.
+// tests/poi-lifecycle.test.js asserts every read carries it.
+export const SERVING = { status: 'ACTIVE' }
+
 /**
  * Has PoiIndex been seeded for this city?
  * @returns {Promise<number>} row count (0 = not seeded)
@@ -67,7 +83,7 @@ export async function poiCoverage(city) {
   if (cached !== null && typeof cached === 'number') return cached
 
   try {
-    const count = await prisma.poiIndex.count({ where: { city } })
+    const count = await prisma.poiIndex.count({ where: { ...SERVING, city } })
     await cacheSet(key, count, COVERAGE_TTL_S)
     return count
   } catch (err) {
@@ -87,7 +103,7 @@ export async function poiFreshness(city) {
   if (cached?.v !== undefined) return cached.v
 
   try {
-    const agg = await prisma.poiIndex.aggregate({ where: { city }, _max: { fetchedAt: true } })
+    const agg = await prisma.poiIndex.aggregate({ where: { ...SERVING, city }, _max: { fetchedAt: true } })
     const iso = agg._max.fetchedAt ? agg._max.fetchedAt.toISOString().slice(0, 10) : null
     // Wrapped in { v } — cacheGet collapses "miss" and "stored null" otherwise.
     await cacheSet(key, { v: iso }, COVERAGE_TTL_S)
@@ -143,7 +159,11 @@ function normalizedName(poi) {
  * necessarily farther apart than it and cannot be duplicates. Walking `kept`
  * backwards and breaking on that gap turns this into a narrow window scan.
  */
-export function dedupeCategory(sorted) {
+export function dedupeCategory(sorted, category = null) {
+  // One lookup for the whole list — every row here is the same category by
+  // construction (the caller groups first), so re-deriving it per row would be
+  // the same answer computed a thousand times.
+  const { unnamedM, namedM } = footprintFor(category ?? sorted[0]?.category)
   const kept = []
   for (const poi of sorted) {
     const name = normalizedName(poi)
@@ -151,9 +171,9 @@ export function dedupeCategory(sorted) {
 
     for (let i = kept.length - 1; i >= 0; i--) {
       const k = kept[i]
-      if (poi.distanceM - k.distanceM > DUP_NAMED_M) break // nothing earlier can match
+      if (poi.distanceM - k.distanceM > namedM) break // nothing earlier can match
       const d = haversineMeters(poi.lat, poi.lng, k.lat, k.lng)
-      if (name ? normalizedName(k) === name && d <= DUP_NAMED_M : d <= DUP_UNNAMED_M) {
+      if (name ? normalizedName(k) === name && d <= namedM : d <= unnamedM) {
         isDup = true
         break
       }
@@ -163,6 +183,17 @@ export function dedupeCategory(sorted) {
   }
   return kept
 }
+
+// How far past the absolute nearest hit a BETTER-LABELLED one may sit and still
+// be headlined instead.
+//
+// Its own constant since 2026-08-11. It used to borrow the dedupe radius, which
+// silently conflated two unrelated ideas — "these two rows are one place" and
+// "this one is a better answer than that one" — and when dedupe went
+// per-category this band would have started varying by category for no reason
+// anyone intended. A hospital is not a better answer than a clinic next door
+// because hospital campuses are large.
+const PREFERENCE_BAND_M = 150
 
 /**
  * The nearest result worth headlining, from a distance-sorted list.
@@ -186,7 +217,7 @@ export function dedupeCategory(sorted) {
 export function pickNearest(hits, { prefer } = {}) {
   if (!hits?.length) return null
   const nearest = hits[0]
-  const band = nearest.distanceM + DUP_NAMED_M
+  const band = nearest.distanceM + PREFERENCE_BAND_M
   const inBand = hits.filter((h) => h.distanceM <= band)
   if (inBand.length === 1) return nearest
 
@@ -240,6 +271,7 @@ export async function poisNear(lat, lng, radiusM, categories, city) {
   try {
     const { rows, truncated } = await bboxScan(
       {
+        ...SERVING,
         category: { in: categories },
         lat: { gte: lat - dLat, lte: lat + dLat },
         lng: { gte: lng - dLng, lte: lng + dLng },
@@ -266,7 +298,7 @@ export async function poisNear(lat, lng, radiusM, categories, city) {
     let total = 0
     for (const [cat, list] of Object.entries(byCategory)) {
       list.sort((a, b) => a.distanceM - b.distanceM)
-      byCategory[cat] = dedupeCategory(list)
+      byCategory[cat] = dedupeCategory(list, cat)
       total += byCategory[cat].length
     }
 
@@ -320,6 +352,7 @@ export async function listPoisNear(lat, lng, categories, radiusM, city) {
   try {
     const { rows, truncated } = await bboxScan(
       {
+        ...SERVING,
         category: { in: categories },
         lat: { gte: lat - dLat, lte: lat + dLat },
         lng: { gte: lng - dLng, lte: lng + dLng },
@@ -348,9 +381,12 @@ export async function listPoisNear(lat, lng, categories, radiusM, city) {
     }
 
     const pois = []
-    for (const list of Object.values(byCategory)) {
+    // entries, not values — dedupeCategory needs the category to pick the right
+    // footprint, and these rows carry it, but reading it from the KEY is what
+    // keeps this correct if a row ever arrives without the field.
+    for (const [cat, list] of Object.entries(byCategory)) {
       list.sort((a, b) => a.distanceM - b.distanceM)
-      pois.push(...dedupeCategory(list))
+      pois.push(...dedupeCategory(list, cat))
     }
     pois.sort((a, b) => a.distanceM - b.distanceM)
 
@@ -386,7 +422,7 @@ export async function cityCategoryCoverage(city) {
   try {
     const rows = await prisma.poiIndex.groupBy({
       by: ['category'],
-      where: { city },
+      where: { ...SERVING, city },
       _count: { _all: true },
     })
     const coverage = Object.fromEntries(rows.map((r) => [r.category, r._count._all]))

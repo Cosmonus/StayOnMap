@@ -1,5 +1,6 @@
 import * as service from './admin.service.js'
 import { latestReports } from '../spatial/dataQuality.js'
+import { getPoiQuality } from '../spatial/poiQuality.service.js'
 import * as productAnalytics from '../analytics/analytics.service.js'
 import { getUnmetDemand } from '../analytics/demand.service.js'
 import * as marketplaceMetrics from '../analytics/marketplace.service.js'
@@ -122,6 +123,15 @@ export async function getMonitorStatus(req, res, next) {
 }
 export async function getDataQuality(req, res, next) {
   try { ok(res, await latestReports()) } catch (err) { next(err) }
+}
+export async function getPoiQualityMetrics(req, res, next) {
+  try {
+    // `city` is a plain filter over an indexed column with no free text reaching
+    // Prisma beyond an equality — but it is still a query param, so an unknown
+    // city simply matches nothing rather than being rejected. There is no
+    // enumeration angle: the supported city list is public.
+    ok(res, await getPoiQuality({ city: req.query.city || null }))
+  } catch (err) { next(err) }
 }
 export async function getProfile(req, res, next) {
   try { ok(res, await service.getAdminProfile(req.admin.sub)) } catch (err) { next(err) }

@@ -2,7 +2,7 @@
 // and the legacy endpoint's owned-data adapter.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prismaMock } from './mocks/prisma.js'
-import { removeStalePois, invalidateCityCells } from '../src/features/spatial/seedMaintenance.js'
+import { markAbsentPois, invalidateCityCells } from '../src/features/spatial/seedMaintenance.js'
 import { isOpenAt, openState } from '../src/features/spatial/openingHours.js'
 import { pickNearest } from '../src/features/spatial/poiProvider.js'
 import {
@@ -27,16 +27,23 @@ beforeEach(() => {
 // but lived inline in a script, so nothing could exercise it.
 
 describe('re-seed maintenance', () => {
-  it('deletes only rows the run did not touch', async () => {
+  it('marks only rows the run did not touch, and never deletes them', async () => {
     const runStart = new Date('2026-07-19T00:00:00Z')
-    prismaMock.poiIndex.deleteMany.mockResolvedValue({ count: 12 })
+    prismaMock.poiIndex.findMany.mockResolvedValue([{ id: 'p1' }, { id: 'p2' }])
+    prismaMock.poiIndex.updateMany.mockResolvedValue({ count: 2 })
 
-    const removed = await removeStalePois('Bengaluru', runStart)
+    const marked = await markAbsentPois('Bengaluru', runStart)
 
-    expect(removed).toBe(12)
-    expect(prismaMock.poiIndex.deleteMany).toHaveBeenCalledWith({
-      where: { city: 'Bengaluru', fetchedAt: { lt: runStart } },
+    expect(marked).toBe(2)
+    // The selection rule is unchanged from the hard-delete this replaced: rows
+    // this run did not touch. Only the verb changed.
+    expect(prismaMock.poiIndex.findMany).toHaveBeenCalledWith({
+      where: { city: 'Bengaluru', status: 'ACTIVE', fetchedAt: { lt: runStart } },
+      select: { id: true },
     })
+    // The regression bar. Deletion is the one data loss nothing later can
+    // repair, and it is a two-character edit away from returning.
+    expect(prismaMock.poiIndex.deleteMany).not.toHaveBeenCalled()
   })
 
   it('marks the city\'s cells stale so corrected data does not wait out a 60-day TTL', async () => {
@@ -90,10 +97,10 @@ describe('re-seed maintenance', () => {
   })
 
   it('never throws into the seed script when the database is unhappy', async () => {
-    prismaMock.poiIndex.deleteMany.mockRejectedValue(new Error('connection lost'))
+    prismaMock.poiIndex.findMany.mockRejectedValue(new Error('connection lost'))
     prismaMock.spatialContext.findMany.mockRejectedValue(new Error('connection lost'))
 
-    await expect(removeStalePois('Bengaluru', new Date())).resolves.toBe(0)
+    await expect(markAbsentPois('Bengaluru', new Date())).resolves.toBe(0)
     await expect(invalidateCityCells('Bengaluru')).resolves.toBe(0)
   })
 })

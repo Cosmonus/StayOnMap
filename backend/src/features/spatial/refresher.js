@@ -22,6 +22,7 @@ import { redis } from '../../lib/redis.js'
 import { intelLog, intelError } from '../../lib/intelLog.js'
 import { materialize, MAX_FAILURES } from './spatial.service.js'
 import { startRefreshQueue, stopRefreshQueue, isQueueRunning } from './refreshQueue.js'
+import { runPoiScoringTick } from './poiScoring.service.js'
 
 const TICK_MS = 5 * 60 * 1000
 
@@ -118,14 +119,38 @@ export async function runRefreshTick() {
  *
  * @returns {Promise<'queue'|'interval'>} which path is running
  */
+/**
+ * One tick of ALL scheduled spatial background work.
+ *
+ * Two jobs sharing one schedule, deliberately — a second queue, a cron entry or
+ * a worker process for a bounded batch every five minutes would be more moving
+ * parts than the problem has, which is the argument this whole file opens with.
+ *
+ * Composed HERE rather than inside runRefreshTick so the two stay visibly
+ * separate: cell materialisation is billed, locked and budget-bounded; POI
+ * scoring is none of those things and is off by default. Folding the second into
+ * the first would put an unbudgeted job behind a budget guard and hide it from
+ * anyone reading either.
+ *
+ * Scoring runs even when the cell refresher skipped — it takes no lock and pays
+ * nobody, so "another instance is refreshing cells" is not a reason to leave it
+ * undone. Its own failures are swallowed by scorePoiBatch, so a scoring problem
+ * can never stop cells refreshing.
+ */
+async function runSpatialTick() {
+  const cells = await runRefreshTick()
+  const scoring = await runPoiScoringTick()
+  return { cells, scoring }
+}
+
 export async function startRefresher() {
   if (timer || isQueueRunning()) return isQueueRunning() ? 'queue' : 'interval'
 
-  if (await startRefreshQueue(process.env.DATABASE_URL, runRefreshTick)) return 'queue'
+  if (await startRefreshQueue(process.env.DATABASE_URL, runSpatialTick)) return 'queue'
 
   // unref() so the interval never holds the process open — a graceful shutdown
   // shouldn't wait up to five minutes for a timer that does background work.
-  timer = setInterval(() => { runRefreshTick().catch(() => {}) }, TICK_MS)
+  timer = setInterval(() => { runSpatialTick().catch(() => {}) }, TICK_MS)
   timer.unref?.()
   intelLog('spatial.refresher_started', {
     tickMs: TICK_MS,

@@ -29,6 +29,10 @@ const DATASET_LABELS = {
   water: 'Water bodies',
   places: 'Canonical places',
   pincode_directory: 'Pincode directory',
+  // Not a seeder — scripts/poi-shadow-report.mjs --record. It files here so a
+  // rollout comparison sits beside the ingestion runs it is a comparison OF,
+  // rather than in a terminal buffer someone has to still have open.
+  poi_shadow: 'POI rule comparison (shadow run)',
 }
 
 function ageOf(runAt) {

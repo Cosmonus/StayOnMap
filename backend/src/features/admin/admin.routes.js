@@ -49,6 +49,10 @@ router.get('/monitor', ctrl.getMonitorStatus)
 // design — a quality report is a record of what a seeder observed, and an
 // operator editing it would defeat the point of keeping it.
 router.get('/data-quality', ctrl.getDataQuality)
+// POI accuracy as counts rather than claims — coverage, confidence bands,
+// verification rate, conflict rate, churn, and the actual review queue.
+// Read-only for the same reason as the row above: these are measurements.
+router.get('/poi-quality', ctrl.getPoiQualityMetrics)
 router.get('/profile', ctrl.getProfile)
 router.patch('/profile', validate(adminUpdateProfileSchema), ctrl.updateProfile)
 router.patch('/profile/password', validate(adminChangePasswordSchema), ctrl.changePassword)

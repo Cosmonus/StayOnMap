@@ -47,6 +47,7 @@ export const adminService = {
   setReviewStatus: (id, status) => adminApi.patch(`/admin/reviews/${id}/status`, { status }),
   getMonitorStatus: ()          => adminApi.get('/admin/monitor'),
   getDataQuality: ()            => adminApi.get('/admin/data-quality'),
+  getPoiQuality: (city)         => adminApi.get('/admin/poi-quality', { params: city ? { city } : {} }),
   // Not under /admin, but admin-authed all the same (graph.routes.js gates it
   // with adminAuthMiddleware), so it belongs on the adminApi instance and here
   // rather than in graph.service.js — which uses the USER instance for the two

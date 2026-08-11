@@ -23,7 +23,8 @@ import 'dotenv/config'
 // The singleton, not a fresh PrismaClient — Prisma 7 needs an explicit driver
 // adapter and lib/prisma.js is where that's configured (see .claude/database.md).
 import { prisma } from '../src/lib/prisma.js'
-import { removeStalePois, invalidateCityCells } from '../src/features/spatial/seedMaintenance.js'
+import { markAbsentPois, reviveReturnedPois, invalidateCityCells } from '../src/features/spatial/seedMaintenance.js'
+import { detectConflicts, validateCoordinate } from '../src/features/spatial/poiConflicts.js'
 import { recordQualityReport, completeness } from '../src/features/spatial/dataQuality.js'
 import { CITY_CENTERS, resolveCity } from '../src/config/cityCenters.js'
 import { classify, overpassClauses, CATEGORY_KEYS } from '../src/features/spatial/poiCategories.js'
@@ -48,6 +49,14 @@ const TILE_GRID = 4
 // beyond its connection pool, while still pipelining enough to matter: one
 // round trip at a time would take hours for a city like Delhi.
 const WRITE_CONCURRENCY = 25
+// How many rows we look up at once to compare against what is already stored.
+// One indexed `IN` over osmId per chunk, which is what makes conflict detection
+// cost a handful of queries per city rather than one per row.
+const COMPARE_CHUNK = 1000
+// The source name recorded on every conflict this script raises. A literal
+// rather than a parameter: this file only ever ingests OpenStreetMap, and a
+// configurable value here would be a knob with one setting.
+const SOURCE = 'osm'
 
 const { confirm: CONFIRM, city: ONLY_CITY } = parseSeedArgs(process.argv.slice(2))
 
@@ -57,6 +66,26 @@ const overpass = (query) => overpassQuery(query, {
   userAgent: 'StayOnMap/1.0 (spatial intelligence POI seed; https://www.stayonmap.com)',
   timeoutMs: REQUEST_TIMEOUT_MS,
 })
+
+// Coordinates rejected by validation, per run. Reported in the quality report
+// rather than only counted: a spike here means an upstream parse changed, and a
+// number nobody records is a number nobody notices moving.
+const rejected = { total: 0, byReason: {} }
+
+/**
+ * "12, 100 Feet Road, Indiranagar" from OSM's addr:* tags.
+ *
+ * Composed at ingestion rather than stored as four columns because nothing
+ * queries the parts — the postcode, which IS queried, is kept separate. Returns
+ * null rather than an empty string when no part is present, so "we have no
+ * address" and "we have an address that is blank" cannot be confused.
+ */
+function composeAddress(tags) {
+  const parts = [tags['addr:housenumber'], tags['addr:street'], tags['addr:suburb']]
+    .map((p) => (p ?? '').trim())
+    .filter(Boolean)
+  return parts.length ? parts.join(', ') : null
+}
 
 function elementsToRows(elements) {
   const rows = []
@@ -70,6 +99,18 @@ function elementsToRows(elements) {
     const lat = el.lat ?? el.center?.lat
     const lng = el.lon ?? el.center?.lon
     if (lat == null || lng == null) continue
+
+    // Spatial validation before anything else touches this row. `resolveCity`
+    // below already drops most bad coordinates, but it reports them all the same
+    // way — as "outside every supported city" — so a NaN and a (0, 0) and a
+    // genuine POI in Nagpur were indistinguishable. They are different problems:
+    // the first two mean something upstream broke.
+    const check = validateCoordinate(lat, lng)
+    if (!check.valid) {
+      rejected.total++
+      rejected.byReason[check.reason] = (rejected.byReason[check.reason] ?? 0) + 1
+      continue
+    }
 
     // City from the actual coordinate, not the city being fetched: the fetch
     // bbox is a SQUARE around the city's circular radius, so its corners hold
@@ -93,10 +134,43 @@ function elementsToRows(elements) {
       // matches a branch whose name tag is bare.
       brand: el.tags?.brand ?? el.tags?.operator ?? null,
       openingHours: el.tags?.opening_hours ?? null,
+      // Sparse in India and shown only when present, never inferred — the same
+      // rule brand and opening_hours follow. `contact:*` is the older scheme
+      // and is still widely used; reading only the bare key would miss it.
+      phone: el.tags?.phone ?? el.tags?.['contact:phone'] ?? null,
+      website: el.tags?.website ?? el.tags?.['contact:website'] ?? null,
+      address: composeAddress(el.tags ?? {}),
+      // Its own field: the join key to PincodeDirectory, which is the only
+      // independent check we can run on a POI. Digits only — mappers write
+      // "560 095" and "560095", and a join on the literal string finds neither.
+      postcode: (el.tags?.['addr:postcode'] ?? '').replace(/\D/g, '') || null,
       lat, lng, city,
     })
   }
   return rows
+}
+
+/**
+ * Retire any still-OPEN conflict on the same (POI, attribute) pairs we are
+ * about to raise a new one for.
+ *
+ * Without this the review queue accumulates one row per re-seed for a place
+ * whose coordinate wobbles across the threshold every quarter, and the oldest —
+ * least relevant — entry looks exactly as actionable as today's. Grouped by
+ * attribute so it is one statement per attribute rather than one per POI.
+ */
+async function supersedeOpenConflicts(conflictRows) {
+  const byAttribute = new Map()
+  for (const c of conflictRows) {
+    if (!byAttribute.has(c.attribute)) byAttribute.set(c.attribute, [])
+    byAttribute.get(c.attribute).push(c.poiIndexId)
+  }
+  for (const [attribute, ids] of byAttribute) {
+    await prisma.poiConflict.updateMany({
+      where: { poiIndexId: { in: ids }, attribute, status: 'OPEN' },
+      data: { status: 'SUPERSEDED', resolvedAt: new Date(), resolution: 'a later fetch conflicted on the same attribute' },
+    })
+  }
 }
 
 async function writeRows(rows) {
@@ -109,27 +183,78 @@ async function writeRows(rows) {
   // connection take longer than that from a laptop (observed: 7.07s → P2028). The
   // transaction bought nothing anyway — every upsert is independent and keyed
   // on osmId, so a half-finished run converges on re-run, and the stale-row
-  // deletion is already gated on a fully-successful FETCH, so a partial write
+  // marking is already gated on a fully-successful FETCH, so a partial write
   // can never turn live rows into ghosts.
   const fetchedAt = new Date()
   let done = 0
+  const conflicts = { total: 0, withheld: 0, byAttribute: {} }
 
-  for (let i = 0; i < rows.length; i += WRITE_CONCURRENCY) {
-    const batch = rows.slice(i, i + WRITE_CONCURRENCY)
-    await Promise.all(batch.map((row) => prisma.poiIndex.upsert({
-      where: { osmId: row.osmId },
-      create: { ...row, fetchedAt },
-      update: {
-        category: row.category, sourceTag: row.sourceTag,
-        name: row.name, brand: row.brand,
-        openingHours: row.openingHours, lat: row.lat, lng: row.lng,
-        city: row.city, fetchedAt,
-      },
-    })))
-    done += batch.length
-    process.stdout.write(`    written ${done}/${rows.length}\r`)
+  for (let start = 0; start < rows.length; start += COMPARE_CHUNK) {
+    const chunk = rows.slice(start, start + COMPARE_CHUNK)
+
+    // What we already hold for these osmIds. One indexed IN per chunk — this is
+    // the read that turns a blind overwrite into a comparison. Rows with no
+    // match are genuinely new and cannot conflict with anything.
+    const stored = await prisma.poiIndex.findMany({
+      where: { osmId: { in: chunk.map((r) => r.osmId) } },
+      select: { id: true, osmId: true, category: true, name: true, lat: true, lng: true },
+    })
+    const byOsmId = new Map(stored.map((r) => [r.osmId, r]))
+
+    // Resolve BEFORE writing. detectConflicts returns both the findings and the
+    // row to write, because a withheld coordinate must not reach the database —
+    // deciding that in one place is what stops the write path and the audit
+    // trail describing different outcomes.
+    const prepared = chunk.map((row) => {
+      const prev = byOsmId.get(row.osmId) ?? null
+      const { conflicts: found, resolved } = detectConflicts(prev, row, { source: SOURCE })
+      return { row: resolved, prev, found }
+    })
+
+    for (let i = 0; i < prepared.length; i += WRITE_CONCURRENCY) {
+      const batch = prepared.slice(i, i + WRITE_CONCURRENCY)
+      await Promise.all(batch.map(({ row }) => prisma.poiIndex.upsert({
+        where: { osmId: row.osmId },
+        // firstSeenAt only on create — it is the one timestamp that must never
+        // move. Older rows keep NULL rather than being handed a guess.
+        create: { ...row, fetchedAt, firstSeenAt: fetchedAt },
+        update: {
+          category: row.category, sourceTag: row.sourceTag,
+          name: row.name, brand: row.brand,
+          openingHours: row.openingHours, lat: row.lat, lng: row.lng,
+          phone: row.phone, website: row.website,
+          address: row.address, postcode: row.postcode,
+          city: row.city, fetchedAt,
+          // The score describes data that has just changed, so it is now stale.
+          // Nulling it puts the row at the FRONT of the scoring job's queue
+          // (nulls first) rather than leaving a number that describes the
+          // previous fetch sitting on the new one.
+          scoredAt: null,
+          // `status` is deliberately NOT set here. A row returning from absence
+          // is revived by reviveReturnedPois after the write, so the transition
+          // gets a PoiStatusEvent — setting it inline would flip the column and
+          // lose the fact that it ever went away, which is the whole point.
+        },
+      })))
+      done += batch.length
+      process.stdout.write(`    written ${done}/${rows.length}\r`)
+    }
+
+    const conflictRows = prepared.flatMap(({ prev, found }) =>
+      found.map((c) => ({ ...c, poiIndexId: prev.id }))
+    )
+    if (conflictRows.length) {
+      await supersedeOpenConflicts(conflictRows)
+      await prisma.poiConflict.createMany({ data: conflictRows })
+      for (const c of conflictRows) {
+        conflicts.total++
+        if (!c.applied) conflicts.withheld++
+        conflicts.byAttribute[c.attribute] = (conflicts.byAttribute[c.attribute] ?? 0) + 1
+      }
+    }
   }
   process.stdout.write('\n')
+  return conflicts
 }
 
 async function fetchTile(tile, seen) {
@@ -150,6 +275,11 @@ async function fetchCity(city) {
   // this run can match its own deletion cutoff.
   const runStart = new Date()
   const failedTiles = []
+
+  // Per city, not per run — the quality report is city-scoped, and a counter
+  // that carried over would attribute Delhi's bad coordinates to Surat.
+  rejected.total = 0
+  rejected.byReason = {}
 
   console.log(`\n${city} — ${grid.length} tiles`)
 
@@ -188,6 +318,12 @@ async function fetchCity(city) {
   for (const r of rows) byCategory[r.category] = (byCategory[r.category] ?? 0) + 1
 
   console.log(`  → ${rows.length} POIs${failed ? `, ${failed} tile(s) failed` : ''}`)
+  // Printed on a DRY RUN too — a validation failure is worth seeing before
+  // deciding whether to write, which is what a dry run is for.
+  if (rejected.total) {
+    const why = Object.entries(rejected.byReason).map(([r, n]) => `${n} ${r}`).join('; ')
+    console.log(`      ${rejected.total} coordinate(s) rejected — ${why}`)
+  }
   for (const key of CATEGORY_KEYS) {
     if (byCategory[key]) console.log(`      ${key.padEnd(14)} ${byCategory[key]}`)
   }
@@ -195,16 +331,35 @@ async function fetchCity(city) {
   if (empty.length) console.log(`      (no data: ${empty.join(', ')})`)
 
   if (CONFIRM && rows.length) {
-    await writeRows(rows)
+    const conflicts = await writeRows(rows)
 
-    // Ghost removal — ONLY after a fully-successful fetch. With a failed tile
-    // the rows it would have refreshed are indistinguishable from ghosts, and
-    // deleting real coverage is worse than keeping a stale row for a cycle.
+    if (conflicts.total) {
+      const detail = Object.entries(conflicts.byAttribute)
+        .map(([k, v]) => `${k} ${v}`).join(', ')
+      console.log(`  ${conflicts.total} conflict(s) recorded (${detail})`)
+      if (conflicts.withheld) {
+        console.log(`    ${conflicts.withheld} implausible move(s) WITHHELD — stored coordinates kept`)
+      }
+    }
+
+    // A place that had gone missing and is back in this fetch. Written before
+    // the absence pass so the two cannot fight over the same row: revival looks
+    // at what this run touched, absence at what it did not.
+    const revived = await reviveReturnedPois(city, runStart)
+    if (revived) console.log(`  ${revived} POI(s) returned to OSM and are live again`)
+
+    // Ghosts — ONLY after a fully-successful fetch. With a failed tile the rows
+    // it would have refreshed are indistinguishable from genuinely-absent ones,
+    // and hiding real coverage is worse than keeping a stale row for a cycle.
+    //
+    // These are MARKED, not deleted (since 2026-08-11). The serving path filters
+    // on status so nothing user-facing changes; what changes is that a closure
+    // is now a fact we hold rather than one we destroy.
     if (failed === 0) {
-      const removed = await removeStalePois(city, runStart)
-      if (removed) console.log(`  removed ${removed} stale row(s) no longer present in OSM`)
+      const absent = await markAbsentPois(city, runStart)
+      if (absent) console.log(`  marked ${absent} POI(s) absent from OSM (kept, not deleted)`)
     } else {
-      console.log('  skipping stale-row removal — coverage incomplete, re-run to converge')
+      console.log('  skipping absence marking — coverage incomplete, re-run to converge')
     }
 
     // The data under every computed cell in this city just changed. Without
@@ -222,7 +377,18 @@ async function fetchCity(city) {
       recordCount: rows.length,
       completenessPct: namedPct,
       complete: failed === 0,
-      notes: { byCategory, failedTiles: failed, tilesPlanned: grid.length, emptyCategories: empty },
+      notes: {
+        byCategory, failedTiles: failed, tilesPlanned: grid.length, emptyCategories: empty,
+        // The three numbers that make this run auditable after the fact.
+        // `rejected` is a spatial-validation failure count; `conflicts` is how
+        // much the source disagreed with what we held; `withheld` is how often
+        // we declined to believe it. All three were previously invisible.
+        rejectedCoordinates: rejected.total,
+        rejectedByReason: rejected.byReason,
+        conflicts: conflicts.total,
+        conflictsByAttribute: conflicts.byAttribute,
+        conflictsWithheld: conflicts.withheld,
+      },
     })
     if (namedPct != null) console.log(`  ${namedPct}% carry a name`)
   }
