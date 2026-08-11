@@ -3,6 +3,7 @@ import { View, Text, Pressable, Modal, FlatList, StyleSheet } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Icon from './Icon'
 import { colors } from '@theme/colors'
+import { tapSlop } from '@theme/touchTargets'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -56,7 +57,7 @@ export default function Dropdown({ label, value, values, multiple = false, optio
               <Text style={styles.sheetTitle}>{label ?? placeholder}</Text>
               <Pressable
                 onPress={() => setOpen(false)}
-                hitSlop={14}
+                hitSlop={tapSlop(18)}
                 accessibilityRole="button"
                 accessibilityLabel={`Close ${label ?? placeholder} picker`}
               >

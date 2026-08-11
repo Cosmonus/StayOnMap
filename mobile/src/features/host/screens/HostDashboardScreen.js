@@ -19,6 +19,7 @@ import ErrorState from '@components/common/ErrorState'
 import NotificationBell from '@components/common/NotificationBell'
 import { VISIT_SLOTS, formatTime } from '@utils/time'
 import { colors } from '@theme/colors'
+import { tapSlop } from '@theme/touchTargets'
 import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -188,7 +189,7 @@ function Sheet({ visible, title, onClose, children }) {
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>{title}</Text>
-              <Pressable onPress={onClose} hitSlop={14} accessibilityRole="button" accessibilityLabel="Close">
+              <Pressable onPress={onClose} hitSlop={tapSlop(18)} accessibilityRole="button" accessibilityLabel="Close">
                 <Icon name="close" size={18} color={colors.slate500} />
               </Pressable>
             </View>

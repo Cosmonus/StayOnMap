@@ -8,6 +8,7 @@ import { imgUrl, formatCompact, priceUnit } from '@utils/format'
 import Icon from '@components/common/Icon'
 import { typeLabel } from '@config/propertyTypes'
 import { colors } from '@theme/colors'
+import { tapSlop } from '@theme/touchTargets'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -53,7 +54,7 @@ export default function MapHomeCard({ property, isSaved: initialSaved = false, o
         <Pressable
           style={styles.heartButton}
           onPress={handleHeartPress}
-          hitSlop={10}
+          hitSlop={tapSlop(24)}
           accessibilityRole="button"
           accessibilityLabel={saved ? 'Remove from saved' : 'Save property'}
           accessibilityState={{ selected: saved }}

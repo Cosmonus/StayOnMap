@@ -22,6 +22,7 @@ import ReadReceipt from '../components/ReadReceipt'
 import ChatPropertyCard from '../components/ChatPropertyCard'
 import { sendErrorMessage } from '../sendError'
 import { colors } from '@theme/colors'
+import { tapSlop } from '@theme/touchTargets'
 import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -718,7 +719,7 @@ export default function ConversationScreen({ route, navigation }) {
       {editingId && (
         <View style={styles.editingBanner}>
           <Text style={styles.editingBannerText}>Editing message</Text>
-          <Pressable onPress={cancelEdit} hitSlop={8} accessibilityRole="button" accessibilityLabel="Cancel edit">
+          <Pressable onPress={cancelEdit} hitSlop={tapSlop(16)} accessibilityRole="button" accessibilityLabel="Cancel edit">
             <Icon name="close" size={16} color={colors.slate500} />
           </Pressable>
         </View>

@@ -27,6 +27,7 @@ import ReportButton from '@features/reports/components/ReportButton'
 import Icon from '@components/common/Icon'
 import { imgUrl, formatCompact, priceUnit } from '@utils/format'
 import { colors } from '@theme/colors'
+import { tapSlop } from '@theme/touchTargets'
 import { useLayout, centered } from '@theme/breakpoints'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
@@ -329,7 +330,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
               onPress={() => copyDisplayId(property.displayId)}
               accessibilityRole="button"
               accessibilityLabel={`Copy listing id ${property.displayId}`}
-              hitSlop={12}
+              hitSlop={tapSlop(20)}
             >
               <Icon name={copiedId ? 'check' : 'copy'} size={11} color={colors.slate500} />
               <Text style={styles.idChipText}>{copiedId ? 'Copied' : property.displayId}</Text>
@@ -513,7 +514,9 @@ const styles = StyleSheet.create({
   deposit: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500 },
   benchmark: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, marginBottom: spacing.xs },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.lg, color: colors.slate800, marginTop: spacing.xs },
-  idChip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.slate100, borderRadius: radius.md, paddingHorizontal: 8, paddingVertical: 2, marginTop: 4 },
+  // minHeight pins the box the slop below is computed against; it grows with
+  // the OS font setting, so the target only ever gets bigger from here.
+  idChip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 20, backgroundColor: colors.slate100, borderRadius: radius.md, paddingHorizontal: 8, paddingVertical: 2, marginTop: 4 },
   idChipText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500, letterSpacing: 0.5 },
   location: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500, marginTop: 2, marginBottom: spacing.md },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },

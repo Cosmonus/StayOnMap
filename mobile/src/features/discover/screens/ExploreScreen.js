@@ -18,6 +18,7 @@ import { useMapStore } from '@store/mapStore'
 import { useFilterStore } from '@store/filterStore'
 import { countActiveFilters } from '@config/filters'
 import { colors } from '@theme/colors'
+import { tapSlop } from '@theme/touchTargets'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -79,7 +80,7 @@ export default function ExploreScreen({ navigation }) {
             <Pressable
               style={styles.iconButton}
               onPress={() => setSearchOpen((v) => !v)}
-              hitSlop={6}
+              hitSlop={tapSlop(40)}
               accessibilityLabel="Search places"
               accessibilityRole="button"
               accessibilityState={{ expanded: searchOpen }}
@@ -89,7 +90,7 @@ export default function ExploreScreen({ navigation }) {
             <Pressable
               style={styles.filterButton}
               onPress={() => setFiltersOpen(true)}
-              hitSlop={6}
+              hitSlop={tapSlop(40)}
               accessibilityLabel={activeFilterCount > 0 ? `Filters, ${activeFilterCount} active` : 'Filters'}
               accessibilityRole="button"
             >
@@ -148,13 +149,17 @@ const styles = StyleSheet.create({
     ...shadows.md,
   },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  // 40, not 32. These two sit `spacing.sm` apart, so slop alone cannot carry
+  // them to 48 — extending each by 8 would make their touch areas overlap, and
+  // RN gives an overlap to whichever view is later in the tree rather than to
+  // the nearer one. At 40 the remaining 4 a side fits inside the gap.
   iconButton: {
-    width: 32, height: 32, borderRadius: radius.full,
+    width: 40, height: 40, borderRadius: radius.full,
     borderWidth: 1, borderColor: colors.slate200,
     alignItems: 'center', justifyContent: 'center',
   },
   filterButton: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
+    flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40,
     borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.full,
     paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2,
   },
