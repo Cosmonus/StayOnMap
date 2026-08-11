@@ -8,9 +8,13 @@
 // pick between ("Villa — premium standalone home"), which is why the listing
 // wizard can use this instead of a row of pills. The FIELD's `hint` is the
 // help line under the control; see the clearance note on PANEL_GAP.
-import { useState, useEffect, useRef, useId } from 'react'
+import { useState, useEffect, useRef, useId, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
+
+// How long a type-ahead burst stays one word. Below ~400ms a slow typist starts
+// a new search mid-word; above ~1.2s an abandoned attempt poisons the next one.
+const TYPEAHEAD_MS = 700
 
 // How far below the trigger the floating panel opens. Anything the field
 // renders under the control must clear this, or the panel lands mid-line and
@@ -102,10 +106,101 @@ export default function Select({
   }, [])
 
   const selected = options.find((o) => o.value === value)
+  const selectedIndex = options.findIndex((o) => o.value === value)
 
   function handlePick(optionValue) {
     onChange(optionValue)
     setOpen(false)
+    // Focus goes back to the trigger, or it is left on a button that just
+    // unmounted and the next Tab starts from the top of the document.
+    triggerRef.current?.querySelector('button')?.focus()
+  }
+
+  // ── Keyboard ───────────────────────────────────────────────────────────────
+  // Added 2026-08-11. Until then the only way to choose was a mouse click on
+  // one of the option buttons: no arrows, no Enter, no type-ahead, and the
+  // panel always opened scrolled to the TOP.
+  //
+  // That is a usability problem everywhere and a real one on the long lists.
+  // The PG curfew field offers 48 half-hours, so picking 10:30 PM meant opening
+  // a list positioned at midnight and scrolling past 45 rows — every time,
+  // including when 10:30 PM was already the answer. A native <select>, which
+  // this component exists to replace, does all of this for free; replacing it
+  // meant owing it.
+  //
+  // `activeIndex` is the KEYBOARD cursor and is deliberately separate from the
+  // selected value: moving through a list must not change the answer until
+  // Enter, or arrowing past a field commits whatever it happened to land on.
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const optionRefs = useRef([])
+  const typeahead = useRef({ buffer: '', at: 0 })
+
+  // Opening starts the cursor on the CURRENT value, which is what makes the
+  // scroll below land somewhere useful rather than at midnight.
+  useEffect(() => {
+    if (open) setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0)
+  }, [open, selectedIndex])
+
+  useEffect(() => {
+    if (!open || activeIndex < 0) return
+    optionRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest' })
+  }, [open, activeIndex])
+
+  const moveTo = useCallback((next) => {
+    if (options.length === 0) return
+    // Clamped, not wrapped. Wrapping a 48-item list means one key too many
+    // silently teleports from 11:30 PM to midnight, and on a list this long the
+    // jump is off-screen — the user sees the value change and not why.
+    setActiveIndex(Math.max(0, Math.min(options.length - 1, next)))
+  }, [options.length])
+
+  function onTriggerKeyDown(e) {
+    if (disabled) return
+
+    // Closed: the keys that OPEN it. Enter/Space are the button's own default.
+    if (!open) {
+      if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) {
+        e.preventDefault()
+        setOpen(true)
+      }
+      return
+    }
+
+    switch (e.key) {
+      case 'ArrowDown': e.preventDefault(); moveTo(activeIndex + 1); return
+      case 'ArrowUp':   e.preventDefault(); moveTo(activeIndex - 1); return
+      case 'Home':      e.preventDefault(); moveTo(0); return
+      case 'End':       e.preventDefault(); moveTo(options.length - 1); return
+      case 'PageDown':  e.preventDefault(); moveTo(activeIndex + 5); return
+      case 'PageUp':    e.preventDefault(); moveTo(activeIndex - 5); return
+      case 'Enter':
+      case ' ':
+        e.preventDefault()
+        if (options[activeIndex]) handlePick(options[activeIndex].value)
+        return
+      case 'Tab':
+        // Tab commits and moves on, matching a native select. Closing without
+        // committing would silently discard a choice the user believes they
+        // made — they can see it highlighted.
+        if (options[activeIndex]) onChange(options[activeIndex].value)
+        setOpen(false)
+        return
+      default: break
+    }
+
+    // Type-ahead. Single printable characters only: modifier combinations are
+    // shortcuts, not text.
+    if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return
+    const now = Date.now()
+    const t = typeahead.current
+    t.buffer = now - t.at > TYPEAHEAD_MS ? e.key : t.buffer + e.key
+    t.at = now
+    const q = t.buffer.toLowerCase()
+    const hit = options.findIndex((o) => String(o.label).toLowerCase().startsWith(q))
+    if (hit >= 0) {
+      e.preventDefault()
+      moveTo(hit)
+    }
   }
 
   return (
@@ -117,6 +212,10 @@ export default function Select({
           id={baseId}
           disabled={disabled}
           onClick={() => setOpen((v) => !v)}
+          onKeyDown={onTriggerKeyDown}
+          // Focus never leaves the trigger while the panel is open, so this is
+          // how a screen reader is told which option the cursor is on.
+          aria-activedescendant={open && activeIndex >= 0 ? `${baseId}-opt-${activeIndex}` : undefined}
           // combobox, not a bare button: this opens a list and holds a value,
           // and `aria-expanded` is what tells a screen-reader user whether the
           // list is currently open. `aria-labelledby` carries the field name
@@ -162,18 +261,35 @@ export default function Select({
             style={{ position: 'fixed', ...pos, zIndex: 10000 }}
             className="bg-white rounded-xl shadow-float border border-slate-200 overflow-y-auto"
           >
-            {options.map((opt) => {
+            {options.map((opt, i) => {
               const isSelected = opt.value === value
+              const isActive = i === activeIndex
               return (
                 <button
                   key={opt.value}
+                  id={`${baseId}-opt-${i}`}
+                  ref={(el) => { optionRefs.current[i] = el }}
                   type="button"
                   role="option"
                   aria-selected={isSelected}
+                  // Out of the tab order: the trigger holds focus and the arrow
+                  // keys move the cursor. Leaving these tabbable meant Tab
+                  // walked all 48 curfew options one at a time before reaching
+                  // the next field.
+                  tabIndex={-1}
                   onClick={() => handlePick(opt.value)}
+                  // Pointer and keyboard share one cursor, so moving the mouse
+                  // does not leave a highlight stranded somewhere else in the
+                  // list — two highlights read as two selections.
+                  onMouseMove={() => setActiveIndex(i)}
                   className={[
                     'w-full flex items-center justify-between gap-3 px-4 py-3 text-sm text-left transition-colors',
-                    isSelected ? 'bg-brand-50 text-brand-700 font-semibold' : 'text-slate-700 hover:bg-slate-50 font-medium',
+                    isSelected ? 'bg-brand-50 text-brand-700 font-semibold' : 'text-slate-700 font-medium',
+                    // The keyboard cursor is its own state, distinct from
+                    // selected — you can be sitting on an option you have not
+                    // chosen, and that is the entire point of it.
+                    isActive && !isSelected ? 'bg-slate-100' : '',
+                    isActive && isSelected ? 'bg-brand-100' : '',
                   ].join(' ')}
                 >
                   <span className="min-w-0">

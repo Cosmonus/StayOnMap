@@ -155,9 +155,28 @@ export default function PriceStep({ categoryKey, draft, setDraft }) {
           ) : (
             <div>
               <FieldLabel>{isSale ? 'When can buyers visit?' : 'When can renters visit?'}</FieldLabel>
+              {/* The two ends constrain each other, so an inverted window is
+                  unpickable rather than rejected at Publish four steps later.
+                  Moving the start past the end CLEARS the end rather than
+                  silently nudging it — an owner who set 6 PM did mean 6 PM, and
+                  quietly rewriting it is worse than asking again. */}
               <div className="grid grid-cols-2 gap-4 max-w-md">
-                <TimeSelect label="Visits from" placeholder="From" slots={VISIT_SLOTS} value={draft.appointmentWindowStart} onChange={(v) => setDraft((d) => ({ ...d, appointmentWindowStart: v }))} />
-                <TimeSelect label="Visits until" placeholder="Until" slots={VISIT_SLOTS} value={draft.appointmentWindowEnd} onChange={(v) => setDraft((d) => ({ ...d, appointmentWindowEnd: v }))} />
+                <TimeSelect
+                  label="Visits from" placeholder="From" slots={VISIT_SLOTS}
+                  before={draft.appointmentWindowEnd || undefined}
+                  value={draft.appointmentWindowStart}
+                  onChange={(v) => setDraft((d) => ({
+                    ...d,
+                    appointmentWindowStart: v,
+                    appointmentWindowEnd: d.appointmentWindowEnd && v >= d.appointmentWindowEnd ? '' : d.appointmentWindowEnd,
+                  }))}
+                />
+                <TimeSelect
+                  label="Visits until" placeholder="Until" slots={VISIT_SLOTS}
+                  after={draft.appointmentWindowStart || undefined}
+                  value={draft.appointmentWindowEnd}
+                  onChange={(v) => setDraft((d) => ({ ...d, appointmentWindowEnd: v }))}
+                />
               </div>
               <p className="text-xs text-slate-500 mt-2">
                 We offer {isSale ? 'buyers' : 'renters'} slots inside this window.

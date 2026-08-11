@@ -19,10 +19,27 @@ export default function TimeSelect({
   allowNone = false,
   noneLabel = 'No curfew',
   disabled = false,
+  // Bounds, as "HH:MM". EXCLUSIVE, because both callers so far are the two ends
+  // of a window and a window that starts and finishes at the same minute is not
+  // one. String comparison is safe on zero-padded 24-hour times, which is why
+  // utils/time.js stores them that way.
+  after,
+  before,
 }) {
+  // Filtering the LIST rather than validating the answer, deliberately.
+  //
+  // The backend already rejects an inverted window ("Window start must be
+  // before end", properties.validation.js) and the wizard had no matching
+  // check — so an owner could pick "visits from 8 PM until 9 AM", finish four
+  // more steps, and meet a raw server error at Publish. The fix is not a better
+  // error: it is that the option was never offered. .claude/ui-ux.md says the
+  // same thing about the listing cap — disable the thing, do not hand someone a
+  // rejection.
+  const bounded = slots.filter((t) => (!after || t > after) && (!before || t < before))
+
   const options = allowNone
-    ? [{ value: '', label: noneLabel }, ...timeOptions(slots)]
-    : timeOptions(slots)
+    ? [{ value: '', label: noneLabel }, ...timeOptions(bounded)]
+    : timeOptions(bounded)
 
   return (
     <Select
