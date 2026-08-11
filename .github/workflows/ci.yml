@@ -116,7 +116,11 @@ jobs:
       # was rewritten away, but backend.md documents the P2025-instanceof idiom
       # as the pattern for update paths, so the NEXT person to follow the doc
       # hits the same wall unless the client exists here.
+      # DATABASE_URL is a placeholder: generate never connects, but the config
+      # loader refuses to start without the variable resolving at all.
       - run: npx prisma generate
+        env:
+          DATABASE_URL: postgresql://ci:ci-placeholder@localhost:5432/ci
       - run: npm run lint
       - run: npm test
       # --omit=dev: only fail CI on vulnerabilities that ship to production —
