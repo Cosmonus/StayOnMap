@@ -44,6 +44,10 @@ router.patch('/:id/publish',     authMiddleware, controller.publishProperty)
 router.post('/:id/tenant',       authMiddleware, validate(markTenantSchema), controller.markTenant)
 router.delete('/:id/tenant',     authMiddleware, controller.vacateProperty)
 router.get('/:id/contacts',      authMiddleware, controller.getPropertyContacts)
+// PUBLIC: revealed tenant-on-owner tenancy reviews for this listing's owner.
+// The owner id is resolved server-side and never returned — a public property
+// payload must not carry ownerId (.claude/security.md).
+router.get('/:id/owner-reviews', controller.getOwnerTenancyReviews)
 
 // Sub-resources (nested routers)
 router.use('/:propertyId/appointments',  propertyAppointmentRouter)

@@ -38,6 +38,10 @@ export const NOTIFICATION_TYPES = [
   // A saved search matched newly-published supply (2026-08-11). Pushed — the
   // entire point of the feature is reaching somebody who is NOT in the app.
   'SAVED_SEARCH_MATCH',
+  // Tenancy record events (2026-08-12): one delivery category, pushed —
+  // "confirm your tenancy" and "a review is waiting" both want a tap from
+  // somebody who is not in the app.
+  'TENANCY_UPDATE',
 ]
 
 const audience = z.enum(['TENANT', 'OWNER']).optional()

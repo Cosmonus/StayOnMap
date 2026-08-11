@@ -7,6 +7,7 @@ import { generatePropertyDisplayId } from '../../utils/idGenerator.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { intelError } from '../../lib/intelLog.js'
 import { recordStatusChange } from './statusEvents.js'
+import { startMarkedTenancyOp, endTenancyOp, notifyTenancyCreated } from '../tenancies/tenancy.service.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
 import { cityMismatch } from '../../config/cityCenters.js'
 import { buildFilterWhere, filterCacheKey } from './filters.registry.js'
@@ -807,11 +808,21 @@ export async function markTenant(propertyId, ownerId, tenantId) {
   }
 
   recordStatusChange({ propertyId, from: property.status, to: 'OCCUPIED', actor: 'owner' })
-  return prisma.property.update({
-    where: { id: propertyId },
-    data: { status: 'OCCUPIED', currentTenantId: tenantId, occupiedSince: new Date() },
-    include: { currentTenant: { select: { id: true, name: true, avatarUrl: true } } },
-  })
+  const [updated, tenancy] = await prisma.$transaction([
+    prisma.property.update({
+      where: { id: propertyId },
+      data: { status: 'OCCUPIED', currentTenantId: tenantId, occupiedSince: new Date() },
+      include: { currentTenant: { select: { id: true, name: true, avatarUrl: true } } },
+    }),
+    // The tenancy RECORD — UNCONFIRMED, because this is the owner's assertion
+    // about another person; it counts for nothing (no reviews, no résumé row)
+    // until the tenant confirms. In the transaction so the record cannot
+    // silently miss while the listing flips OCCUPIED.
+    startMarkedTenancyOp({ propertyId, ownerId, tenantId }),
+  ])
+  // Ask the tenant to confirm — fire-and-forget, never blocks the mark.
+  notifyTenancyCreated(tenancy).catch(() => {})
+  return updated
 }
 
 export async function getPropertyContacts(propertyId, ownerId) {
@@ -861,8 +872,14 @@ export async function vacateProperty(propertyId, ownerId) {
   // publishedAt: a tenant moving out makes this listing available again, not
   // new. firstPublishStamp() refuses an OCCUPIED origin for exactly this case —
   // see features/properties/publishedAt.js before adding a stamp here.
-  return prisma.property.update({
-    where: { id: propertyId },
-    data: { status: 'ACTIVE', currentTenantId: null, occupiedSince: null },
-  })
+  const [updated] = await prisma.$transaction([
+    prisma.property.update({
+      where: { id: propertyId },
+      data: { status: 'ACTIVE', currentTenantId: null, occupiedSince: null },
+    }),
+    // The nulls above destroy the live columns' memory of who lived here;
+    // the tenancy record is what keeps it. ENDS, never deletes.
+    endTenancyOp({ propertyId }),
+  ])
+  return updated
 }

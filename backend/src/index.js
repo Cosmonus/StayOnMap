@@ -40,6 +40,7 @@ import seoRoutes         from './features/seo/seo.routes.js'
 import uploadRoutes      from './features/uploads/uploads.routes.js'
 import savedRoutes       from './features/saved/saved.routes.js'
 import savedSearchRoutes from './features/savedSearches/savedSearch.routes.js'
+import tenancyRoutes     from './features/tenancies/tenancy.routes.js'
 import listingDraftRoutes from './features/listingDraft/listingDraft.routes.js'
 import appointmentRoutes from './features/appointments/appointments.routes.js'
 import notificationRoutes from './features/notifications/notifications.routes.js'
@@ -125,6 +126,7 @@ app.use('/',                     seoRoutes)
 app.use('/api/v1/uploads',       uploadLimiter, uploadRoutes)
 app.use('/api/v1/saved',         savedRoutes)
 app.use('/api/v1/saved-searches', savedSearchRoutes)
+app.use('/api/v1/tenancies',     tenancyRoutes)
 app.use('/api/v1/listing-draft', listingDraftRoutes)
 app.use('/api/v1/appointments',  appointmentRoutes)
 app.use('/api/v1/notifications', notificationRoutes)
