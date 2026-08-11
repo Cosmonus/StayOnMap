@@ -60,10 +60,11 @@ export default function BlogPostPage() {
   // served the plain shell and this is what fills it.
   if (isError && error?.response?.status === 404) return <NotFoundPage />
 
-  // The extra width exists to hold the contents sidebar. An article too short
-  // to have one (under four sections) keeps the original single-column page
-  // rather than stranding a 68ch text column against the left edge of a
-  // 1152px one.
+  // Whether the READING GROUP is one column or two. It no longer decides the
+  // page width — the shell is max-w-page either way, so the frame matches
+  // Guides whatever an article contains. An article too short for a contents
+  // list (under four sections) simply centres its prose at 68ch instead of
+  // reserving a 16rem column for something that will not be there.
   const showSidebar = isWide && !!post?.body && hasTableOfContents(post.body)
 
   // White, matching /blog and the other editorial pages. An article is prose,
@@ -79,10 +80,19 @@ export default function BlogPostPage() {
         />
       )}
 
-      {/* The page is wide; the TEXT is not. `ArticleBody` caps itself at 68ch
-          and the header matches, so the extra width goes to the contents
-          sidebar rather than stretching lines nobody can read. */}
-      <article className={`mx-auto px-4 md:px-8 py-8 md:py-12 ${showSidebar ? 'max-w-6xl' : 'max-w-3xl'}`}>
+      {/* `max-w-page`, the same shell as Guides (/blog) and Services — so
+          navigating from the listing to an article does not jump the page frame
+          inward. Widened from max-w-6xl/3xl on 2026-08-11.
+
+          The page is wide; the TEXT is not, and that split is the whole layout.
+          A reading measure is a typographic constant, not a fraction of the
+          viewport: 68ch is ~68 characters, and lines longer than that lose the
+          reader on the return sweep whatever the monitor. So the extra width
+          goes to the things that genuinely scale — the cover, the related-posts
+          grid (the SAME three-up as /blog, which is what makes the two pages
+          read as one place) and the CTA — while the prose and its contents
+          sidebar sit centred at their own measure. */}
+      <article className="mx-auto max-w-page px-4 md:px-8 py-8 md:py-12">
         <Link
           to="/blog"
           className="inline-flex min-h-[44px] items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-800"
@@ -91,10 +101,14 @@ export default function BlogPostPage() {
           All guides
         </Link>
 
-        {isLoading && <div className="mt-6"><ArticleSkeleton /></div>}
+        {/* Both states keep the reading measure rather than filling the shell.
+            A skeleton that is wider than the article it stands in for promises
+            the wrong shape, and a one-line error centred in 1560px of white
+            reads as a broken page rather than a handled one. */}
+        {isLoading && <div className="mt-6 mx-auto w-full max-w-[68ch]"><ArticleSkeleton /></div>}
 
         {isError && error?.response?.status !== 404 && (
-          <div className="mt-8 rounded-2xl bg-white ring-1 ring-slate-200 p-8 text-center">
+          <div className="mt-8 mx-auto w-full max-w-[68ch] rounded-2xl bg-white ring-1 ring-slate-200 p-8 text-center">
             <p className="text-base text-slate-600">We couldn&apos;t load this article.</p>
             <Link
               to="/blog"
@@ -115,84 +129,102 @@ export default function BlogPostPage() {
               <BlogCover post={post} priority />
             </div>
 
-            <header className="mt-8 max-w-[68ch] animate-slide-up">
-              <span className="text-badge font-semibold uppercase tracking-wide text-brand-700">
-                {post.clusterLabel}
-              </span>
-              <h1 className="mt-2 text-4xl font-bold text-slate-800 leading-tight">{post.title}</h1>
-              <p className="mt-4 text-lg text-slate-600 leading-relaxed">{post.description}</p>
-
-              <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
-                <span className="font-medium text-slate-600">{post.author.name}</span>
-                {post.author.role && <span className="text-slate-500">· {post.author.role}</span>}
-                <span aria-hidden="true">·</span>
-                <time dateTime={post.publishedAt}>{formatPostDate(post.publishedAt)}</time>
-                <span aria-hidden="true">·</span>
-                <span className="inline-flex items-center gap-1">
-                  <Clock size={16} aria-hidden="true" />
-                  {post.readingMinutes} min read
+            {/* The reading group: header, prose and contents, centred as one
+                unit at exactly the width of its own columns
+                (68ch + the gap + the sidebar). Sized to its CONTENT rather than
+                to the page, because the alternative — letting these stretch and
+                pushing the sidebar to the far edge with `justify-between` —
+                opens a ~500px void between the text and its own table of
+                contents at 1560. Centring the pair keeps them reading as one
+                thing, and keeps the header aligned with the prose beneath it. */}
+            <div className={`mx-auto w-full ${showSidebar ? 'max-w-[calc(68ch+3rem+16rem)]' : 'max-w-[68ch]'}`}>
+              <header className="mt-8 max-w-[68ch] animate-slide-up">
+                <span className="text-badge font-semibold uppercase tracking-wide text-brand-700">
+                  {post.clusterLabel}
                 </span>
-              </div>
+                <h1 className="mt-2 text-4xl font-bold text-slate-800 leading-tight">{post.title}</h1>
+                <p className="mt-4 text-lg text-slate-600 leading-relaxed">{post.description}</p>
 
-              {showsUpdated(post) && (
-                <p className="mt-2 text-xs text-slate-500">
-                  Updated <time dateTime={post.updatedAt}>{formatPostDate(post.updatedAt)}</time>
-                </p>
-              )}
-            </header>
+                <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
+                  <span className="font-medium text-slate-600">{post.author.name}</span>
+                  {post.author.role && <span className="text-slate-500">· {post.author.role}</span>}
+                  <span aria-hidden="true">·</span>
+                  <time dateTime={post.publishedAt}>{formatPostDate(post.publishedAt)}</time>
+                  <span aria-hidden="true">·</span>
+                  <span className="inline-flex items-center gap-1">
+                    <Clock size={16} aria-hidden="true" />
+                    {post.readingMinutes} min read
+                  </span>
+                </div>
 
-            <hr className="my-8 border-slate-200" />
-
-            {/* Columns are sized to their CONTENT, not to fractions of the
-                page: prose at its 68ch measure, contents at 16rem, and
-                `justify-between` puts the slack in the middle so the sidebar
-                sits on the right edge instead of floating mid-page. */}
-            <div className={showSidebar ? 'grid grid-cols-[minmax(0,68ch)_16rem] items-start justify-between gap-12' : ''}>
-              <div className="min-w-0 max-w-[68ch]">
-                {!showSidebar && <TableOfContents markdown={post.body} />}
-
-                <ArticleBody markdown={post.body} />
-
-                {post.sources?.length > 0 && (
-                  <section aria-labelledby="sources-heading" className="mt-12 rounded-2xl bg-white ring-1 ring-slate-200 p-5">
-                    <h2 id="sources-heading" className="text-sm font-semibold text-slate-800 mb-3">
-                      Sources
-                    </h2>
-                    <ol className="space-y-2">
-                      {post.sources.map((s, i) => (
-                        <li key={i} className="flex gap-3 text-sm leading-relaxed">
-                          <span aria-hidden="true" className="font-mono text-xs text-slate-500 min-w-[1.25rem]">
-                            {i + 1}.
-                          </span>
-                          <a
-                            href={s.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-brand-700 underline underline-offset-2 hover:text-brand-600"
-                          >
-                            {s.label}
-                          </a>
-                        </li>
-                      ))}
-                    </ol>
-                  </section>
+                {showsUpdated(post) && (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Updated <time dateTime={post.updatedAt}>{formatPostDate(post.updatedAt)}</time>
+                  </p>
                 )}
+              </header>
 
-                <FaqAccordion items={post.faq} />
+              <hr className="my-8 border-slate-200" />
+
+              {/* Columns are sized to their CONTENT, not to fractions of the
+                  page: prose at its 68ch measure, contents at 16rem, and
+                  `justify-between` puts the slack in the middle so the sidebar
+                  sits on the right edge instead of floating mid-page. */}
+              {/* No `justify-between`: the wrapper above is exactly the width of
+                  these two columns plus the gap, so there is no slack left to
+                  distribute — and asking for it back would reintroduce the void. */}
+              <div className={showSidebar ? 'grid grid-cols-[minmax(0,68ch)_16rem] items-start gap-12' : ''}>
+                <div className="min-w-0 max-w-[68ch]">
+                  {!showSidebar && <TableOfContents markdown={post.body} />}
+
+                  <ArticleBody markdown={post.body} />
+
+                  {post.sources?.length > 0 && (
+                    <section aria-labelledby="sources-heading" className="mt-12 rounded-2xl bg-white ring-1 ring-slate-200 p-5">
+                      <h2 id="sources-heading" className="text-sm font-semibold text-slate-800 mb-3">
+                        Sources
+                      </h2>
+                      <ol className="space-y-2">
+                        {post.sources.map((s, i) => (
+                          <li key={i} className="flex gap-3 text-sm leading-relaxed">
+                            <span aria-hidden="true" className="font-mono text-xs text-slate-500 min-w-[1.25rem]">
+                              {i + 1}.
+                            </span>
+                            <a
+                              href={s.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-brand-700 underline underline-offset-2 hover:text-brand-600"
+                            >
+                              {s.label}
+                            </a>
+                          </li>
+                        ))}
+                      </ol>
+                    </section>
+                  )}
+
+                  <FaqAccordion items={post.faq} />
+                </div>
+
+                {/* Sticky, but capped and scrollable — the property page's lesson
+                    is that a sticky column TALLER than the viewport pins on
+                    contact and strands what is below it. A contents list is short
+                    by construction (h2s only, hidden under four), so the cap is a
+                    backstop for a monster article, not the normal case. */}
+                {showSidebar && (
+                  <aside className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
+                    <TableOfContents markdown={post.body} />
+                  </aside>
+                )}
               </div>
-
-              {/* Sticky, but capped and scrollable — the property page's lesson
-                  is that a sticky column TALLER than the viewport pins on
-                  contact and strands what is below it. A contents list is short
-                  by construction (h2s only, hidden under four), so the cap is a
-                  backstop for a monster article, not the normal case. */}
-              {showSidebar && (
-                <aside className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
-                  <TableOfContents markdown={post.body} />
-                </aside>
-              )}
             </div>
 
+            {/* Outside the reading group, so these take the full page width.
+                RelatedPosts is the SAME `sm:grid-cols-2 lg:grid-cols-3` as
+                BlogPage's listing, which is the point: at max-w-page the two
+                render identically, and an article's footer looks like the page
+                you arrived from instead of a narrower echo of it. */}
             <RelatedPosts posts={post.related} />
 
             <section className="mt-14 rounded-2xl bg-[#111111] px-6 py-8 text-center">
