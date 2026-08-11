@@ -108,6 +108,15 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
+      # Generate the Prisma client so `import ... from '@prisma/client'` works.
+      # Nothing needed it for two years because tests mock lib/prisma.js
+      # wholesale — then the first src file to import the real package for its
+      # error class broke four unrelated suites on CI while passing on every
+      # machine that had ever run a migration (2026-08-11, PR #228). The import
+      # was rewritten away, but backend.md documents the P2025-instanceof idiom
+      # as the pattern for update paths, so the NEXT person to follow the doc
+      # hits the same wall unless the client exists here.
+      - run: npx prisma generate
       - run: npm run lint
       - run: npm test
       # --omit=dev: only fail CI on vulnerabilities that ship to production —
