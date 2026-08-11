@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
+import { Text, StyleSheet } from 'react-native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { useQuery } from '@tanstack/react-query'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
-import { fonts, fontSizes } from '@theme/typography'
+import { fonts, fontSizes, CHROME_MAX_FONT_SCALE } from '@theme/typography'
 import { useUiStore } from '@store/uiStore'
 import { flushPendingReference } from '@navigation/navigationRef'
 import { useAuth } from '@features/auth/hooks/useAuth'
@@ -364,7 +365,9 @@ export default function AppTabs() {
         headerShown: false,
         tabBarActiveTintColor: colors.brand600,
         tabBarInactiveTintColor: colors.slate500,
-        tabBarLabelStyle: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs },
+        // The label is rendered per-screen below so it can carry a scale cap;
+        // this stays for anything React Navigation still styles itself.
+        tabBarLabelStyle: styles.tabLabel,
         // Explicit white, not the platform default: the app's chrome is white
         // top (ScreenHeader, including the status-bar inset) and bottom, with
         // the slate50 canvas between — the shell every other phone app uses.
@@ -384,7 +387,24 @@ export default function AppTabs() {
           component={Component}
           listeners={tabListeners}
           options={{
-            tabBarLabel: label ?? name,
+            // A render function rather than a string, only so the label can
+            // carry maxFontSizeMultiplier — React Navigation exposes no option
+            // for it. At 200% OS text a 12dp label is 24dp inside a bar the OS
+            // sized for one line, so it clips or shoves the icon out.
+            //
+            // Capping is defensible HERE and nowhere near body text: the label
+            // sits directly under an icon that already names the destination,
+            // so it is the most redundant text in the app. See
+            // CHROME_MAX_FONT_SCALE.
+            tabBarLabel: ({ color }) => (
+              <Text
+                numberOfLines={1}
+                maxFontSizeMultiplier={CHROME_MAX_FONT_SCALE}
+                style={[styles.tabLabel, { color }]}
+              >
+                {label ?? name}
+              </Text>
+            ),
             tabBarBadge: badges[name],
             tabBarIcon: ({ color, size }) => <Icon name={iconName} color={color} size={size} />,
           }}
@@ -393,3 +413,7 @@ export default function AppTabs() {
     </Tab.Navigator>
   )
 }
+
+const styles = StyleSheet.create({
+  tabLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, textAlign: 'center' },
+})

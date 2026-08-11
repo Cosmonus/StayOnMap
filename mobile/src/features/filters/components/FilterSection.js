@@ -5,6 +5,7 @@
 import { useState } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import Icon from '@components/common/Icon'
+import CountBadge from '@components/common/CountBadge'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing } from '@theme/spacing'
@@ -19,11 +20,7 @@ export default function FilterSection({ label, activeCount, defaultOpen = false,
       <Pressable style={styles.header} onPress={() => setOpen((v) => !v)} accessibilityRole="button" accessibilityState={{ expanded: open }}>
         <View style={styles.titleWrap}>
           <Text style={[styles.title, open && styles.titleOpen]}>{label}</Text>
-          {activeCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{activeCount}</Text>
-            </View>
-          )}
+          <CountBadge count={activeCount} tone={colors.slate800} />
         </View>
         <View style={styles.headerRight}>
           {activeCount > 0 && (
@@ -51,11 +48,6 @@ const styles = StyleSheet.create({
   titleWrap: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm + 1, color: colors.slate600 },
   titleOpen: { color: colors.slate800 },
-  badge: {
-    minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.slate800,
-    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5,
-  },
-  badgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.white },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md - 4 },
   clear: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate500, textDecorationLine: 'underline' },
   chevron: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
