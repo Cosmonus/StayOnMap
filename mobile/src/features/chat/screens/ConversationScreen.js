@@ -22,6 +22,8 @@ import ReadReceipt from '../components/ReadReceipt'
 import ChatPropertyCard from '../components/ChatPropertyCard'
 import { sendErrorMessage } from '../sendError'
 import { colors } from '@theme/colors'
+import { tapSlop } from '@theme/touchTargets'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -128,6 +130,9 @@ function replyTimeLabel(minutes) {
 }
 
 export default function ConversationScreen({ route, navigation }) {
+  // Bubbles are 78% of the LIST width; without a cap that is ~1000dp on a
+  // tablet, which is a paragraph pretending to be a chat message.
+  const { contentMaxWidth } = useLayout()
   const { conversationId, other: otherParam, otherRole } = route.params
   const { user } = useAuth()
   const qc = useQueryClient()
@@ -623,7 +628,7 @@ export default function ConversationScreen({ route, navigation }) {
           // different job — it keeps a SHORT inverted thread pinned to the
           // bottom — and cannot substitute.
           style={styles.flex}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, centered(contentMaxWidth)]}
           renderItem={({ item }) => {
             const isOwn = item.senderId === user?.id
             return (
@@ -714,7 +719,7 @@ export default function ConversationScreen({ route, navigation }) {
       {editingId && (
         <View style={styles.editingBanner}>
           <Text style={styles.editingBannerText}>Editing message</Text>
-          <Pressable onPress={cancelEdit} hitSlop={8} accessibilityRole="button" accessibilityLabel="Cancel edit">
+          <Pressable onPress={cancelEdit} hitSlop={tapSlop(16)} accessibilityRole="button" accessibilityLabel="Cancel edit">
             <Icon name="close" size={16} color={colors.slate500} />
           </Pressable>
         </View>

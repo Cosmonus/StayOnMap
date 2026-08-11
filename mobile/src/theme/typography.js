@@ -21,3 +21,31 @@ export const fontSizes = {
   // two ladders stay one ladder.
   displayLarge: 40,
 }
+
+// How far CHROME may scale with the OS font setting, and nothing else.
+//
+// The rule this sits under, from `mobile/AGENTS.md` §6 and `.claude/ui-ux.md`:
+// never disable `allowFontScaling`. Somebody who has turned text up to 200% has
+// done so because they cannot read it otherwise, and switching that off for
+// them is not a layout fix, it is refusing the request.
+//
+// So this is NOT a global cap and must never become one. Content — titles,
+// prices, descriptions, form labels, body copy, empty states — scales all the
+// way, and if that breaks a container the container is what gets fixed
+// (`minHeight`, not `height`).
+//
+// What this is for is the narrow set of surfaces where BOTH of these hold:
+//
+//   1. the container is geometrically fixed — an 18dp circle is a circle, and a
+//      tab bar is as tall as the OS drew it; and
+//   2. the text is redundant — a "3" on a bell is also the three rows you see
+//      the moment you tap it, and a tab label sits under an icon that already
+//      names the destination.
+//
+// Where only the first holds, cap nothing and make the container grow. Where
+// only the second holds, there is no problem to solve.
+//
+// 1.3 is the number `.claude/ui-ux.md` already names as the density every
+// layout must survive, reused rather than invented so there is one figure to
+// argue with.
+export const CHROME_MAX_FONT_SCALE = 1.3

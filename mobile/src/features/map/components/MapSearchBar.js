@@ -7,6 +7,7 @@ import { usePlaceSuggestions } from '../hooks/usePlaceSuggestions'
 import { geocodeAddress } from '@lib/googleGeocoding'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
+import { tapSlop } from '@theme/touchTargets'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -154,7 +155,7 @@ const MapSearchBar = forwardRef(function MapSearchBar(_props, ref) {
           />
           {(resolving || loading) && <ActivityIndicator size="small" color={colors.brand600} />}
           {!!query && !resolving && !loading && (
-            <Pressable onPress={clear} hitSlop={16} accessibilityRole="button" accessibilityLabel="Clear search">
+            <Pressable onPress={clear} hitSlop={tapSlop(14)} accessibilityRole="button" accessibilityLabel="Clear search">
               <Icon name="close" size={14} color={colors.slate500} />
             </Pressable>
           )}

@@ -2,6 +2,7 @@ import { Text, ScrollView, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing } from '@theme/spacing'
 
@@ -17,6 +18,7 @@ import { spacing } from '@theme/spacing'
  * dependency and an escaping surface for content that needs neither.
  */
 export default function SupportArticleScreen({ navigation, route }) {
+  const { contentMaxWidth } = useLayout()
   const article = route.params?.article
 
   return (
@@ -25,7 +27,7 @@ export default function SupportArticleScreen({ navigation, route }) {
         title={article?.category?.title ?? 'Help'}
         onBack={() => navigation.goBack()}
       />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, centered(contentMaxWidth)]}>
         <Text style={styles.title}>{article?.title}</Text>
         <Text style={styles.body}>{article?.body}</Text>
       </ScrollView>

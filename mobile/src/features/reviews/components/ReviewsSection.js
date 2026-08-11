@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet, Alert } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { reviewService } from '@services/review.service'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
+import { MIN_TAP_SIZE, tapBox } from '@theme/touchTargets'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
 
@@ -29,11 +30,29 @@ function avgRating(review) {
   return keys.reduce((s, k) => s + (review[k] ?? 0), 0) / keys.length
 }
 
-function StarPicker({ value, onChange }) {
+// Real 48dp boxes, not hitSlop. Five stars 2dp apart cannot be slopped to size:
+// each one's touch area would swallow both its neighbours, and RN awards an
+// overlap to whichever view is later in the tree rather than the nearer one —
+// so every tap on the left of a star would set the star before it. An
+// under-sized control would have become a wrong-answer one. See
+// theme/touchTargets.js.
+//
+// They were also the only touchables in the app with NO accessible name:
+// TalkBack read five "button"s in a row, in a form of twelve identical rows,
+// with nothing to say which category or which score. `label` is threaded in
+// from the caller for exactly that.
+function StarPicker({ value, onChange, label }) {
   return (
-    <View style={{ flexDirection: 'row', gap: 2 }}>
+    <View style={styles.starRow} accessibilityRole="radiogroup">
       {[1, 2, 3, 4, 5].map((n) => (
-        <Pressable key={n} onPress={() => onChange(n)} hitSlop={4}>
+        <Pressable
+          key={n}
+          onPress={() => onChange(n)}
+          style={styles.star}
+          accessibilityRole="radio"
+          accessibilityLabel={`${label}: ${n} ${n === 1 ? 'star' : 'stars'}`}
+          accessibilityState={{ checked: n === value }}
+        >
           <Icon name={n <= value ? 'star' : 'starOutline'} size={20} color={n <= value ? colors.warning : colors.slate200} />
         </Pressable>
       ))}
@@ -41,10 +60,19 @@ function StarPicker({ value, onChange }) {
   )
 }
 
+// One label for the row, not five unlabelled glyphs. A screen reader announced
+// nothing at all here, so the rating — the entire point of the summary — was
+// readable only by sight. The icons are hidden from the tree beneath it so the
+// count is spoken once.
 function StarDisplay({ value, size = 14 }) {
   const rounded = Math.round(value)
   return (
-    <View style={{ flexDirection: 'row', gap: 1 }}>
+    <View
+      style={{ flexDirection: 'row', gap: 1 }}
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={`Rated ${value.toFixed(1)} out of 5`}
+    >
       {[0, 1, 2, 3, 4].map((i) => (
         <Icon key={i} name={i < rounded ? 'star' : 'starOutline'} size={size} color={i < rounded ? colors.warning : colors.slate200} />
       ))}
@@ -56,9 +84,17 @@ function WriteReviewForm({ propertyId, onCancel, onSuccess }) {
   const qc = useQueryClient()
   const defaultRatings = Object.fromEntries(Object.keys(RATING_LABELS).map((k) => [k, 3]))
   const [form, setForm] = useState({ reviewerType: 'TENANT', recommend: true, isAnonymous: false, body: '', ...defaultRatings })
-  // How long the form was open. A ref, not state — reading it must never
-  // re-render, and it must survive every keystroke between mount and submit.
-  const openedAt = useRef(Date.now())
+  // How long the form was open — an anti-farming signal, not a display value.
+  // A ref, not state: reading it must never re-render, and it must survive
+  // every keystroke between mount and submit.
+  //
+  // Stamped in a mount effect rather than in `useRef(Date.now())`, which
+  // react-hooks/purity rejects — calling an impure function during render can
+  // return a different value on a re-render React chose to do. The effect runs
+  // immediately after the first paint, so the measurement is a frame short of
+  // where it was, which is noise against a signal measured in seconds.
+  const openedAt = useRef(0)
+  useEffect(() => { openedAt.current = Date.now() }, [])
 
   const mutation = useMutation({
     mutationFn: (data) => reviewService.submit(propertyId, { ...data, composeMs: Date.now() - openedAt.current }),
@@ -85,7 +121,7 @@ function WriteReviewForm({ propertyId, onCancel, onSuccess }) {
     <View style={styles.formCard}>
       <View style={styles.formHeaderRow}>
         <Text style={styles.formTitle}>Write a review</Text>
-        <Pressable onPress={onCancel} hitSlop={8}><Text style={styles.cancelLink}>Cancel</Text></Pressable>
+        <Pressable onPress={onCancel} style={tapBox} accessibilityRole="button"><Text style={styles.cancelLink}>Cancel</Text></Pressable>
       </View>
 
       <Text style={styles.label}>You are a</Text>
@@ -119,7 +155,7 @@ function WriteReviewForm({ propertyId, onCancel, onSuccess }) {
         {Object.entries(RATING_LABELS).map(([key, label]) => (
           <View key={key} style={styles.ratingRow}>
             <Text style={styles.ratingLabel}>{label}</Text>
-            <StarPicker value={form[key]} onChange={(v) => setRating(key, v)} />
+            <StarPicker value={form[key]} onChange={(v) => setRating(key, v)} label={label} />
           </View>
         ))}
       </View>
@@ -334,7 +370,18 @@ const styles = StyleSheet.create({
   toggleActive: { backgroundColor: colors.brand50, borderColor: colors.brand200 },
   toggleText: { fontFamily: fonts.bodyMedium, fontSize: 11, color: colors.slate500 },
   toggleTextActive: { color: colors.brand600 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 },
+  // Label ABOVE the stars, not opposite them. Five 48dp targets are 240dp, and
+  // in the old `space-between` row that left ~100dp for the label on a 360dp
+  // phone — "Neighborhood" at 1.3x font scale does not fit in 100dp. The
+  // control could not be made accessible inside that layout, so the layout
+  // changed with it.
+  ratingRow: { paddingVertical: 2 },
+  starRow: { flexDirection: 'row' },
+  // A real box per star, because these five sit side by side — see the note on
+  // StarPicker above and theme/touchTargets.js. Five of these is 240dp, which
+  // fits the 360dp phone this app is designed against once the label moved off
+  // the same row.
+  star: { width: MIN_TAP_SIZE, height: MIN_TAP_SIZE, alignItems: 'center', justifyContent: 'center' },
   ratingLabel: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate600 },
   input: { borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate800, backgroundColor: colors.white },
   textarea: { minHeight: 80, textAlignVertical: 'top' },

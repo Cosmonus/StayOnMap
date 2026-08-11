@@ -4,6 +4,7 @@ import { useUiStore } from '@store/uiStore'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -45,6 +46,7 @@ const ROUTES = [
 ]
 
 export default function SupportScreen({ navigation }) {
+  const { contentMaxWidth } = useLayout()
   const hostMode = useUiStore((s) => s.hostMode)
   const routes = ROUTES.filter((r) => !r.renterOnly || !hostMode)
 
@@ -52,7 +54,7 @@ export default function SupportScreen({ navigation }) {
     <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader title="Support" onBack={() => navigation.goBack()} />
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, centered(contentMaxWidth)]}>
         <Text style={styles.intro}>
           A real person reads {SUPPORT_EMAIL} — usually the same day. Start with whichever of
           these fits.

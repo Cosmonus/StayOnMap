@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { LEGAL_DOCS, LAST_UPDATED } from '../content'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -52,6 +53,7 @@ function Block({ block }) {
 }
 
 export default function LegalScreen({ navigation, route }) {
+  const { contentMaxWidth } = useLayout()
   const doc = LEGAL_DOCS[route.params?.doc] ?? LEGAL_DOCS.privacy
 
   return (
@@ -61,7 +63,7 @@ export default function LegalScreen({ navigation, route }) {
         subtitle={`Last updated ${LAST_UPDATED}`}
         onBack={() => navigation.goBack()}
       />
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, centered(contentMaxWidth)]}>
         {doc.sections.map((section) => (
           <View key={section.title} style={styles.section}>
             <Text style={styles.sectionTitle}>{section.title}</Text>

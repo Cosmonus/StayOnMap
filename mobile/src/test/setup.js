@@ -37,6 +37,5 @@ jest.mock('socket.io-client', () => ({
 // process. A suite that shouts on success trains people to ignore it.
 jest.spyOn(console, 'warn').mockImplementation((msg, ...rest) => {
   if (typeof msg === 'string' && msg.includes('useNativeDriver')) return
-  // eslint-disable-next-line no-console
   console.info(msg, ...rest)
 })

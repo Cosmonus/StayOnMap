@@ -11,6 +11,7 @@ import ReportThreadSheet from '@features/reports/components/ReportThreadSheet'
 import { referenceDestination, navigateToReference } from '@navigation/navigationRef'
 import { useUiStore } from '@store/uiStore'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -50,6 +51,7 @@ function dateGroup(date) {
 // Owns its own socket subscription — a mobile screen can't assume another
 // mounted component (like web's NotificationBell) is already listening.
 export default function NotificationsScreen({ navigation, route }) {
+  const { contentMaxWidth } = useLayout()
   const qc = useQueryClient()
 
   // A report thread, opened by the notification that announced it —
@@ -158,7 +160,7 @@ export default function NotificationsScreen({ navigation, route }) {
         <SectionList
           sections={sections}
           keyExtractor={(n) => n.id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, centered(contentMaxWidth)]}
           stickySectionHeadersEnabled={false}
           refreshing={isRefetching}
           onRefresh={refetch}

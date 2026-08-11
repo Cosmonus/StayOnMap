@@ -11,6 +11,7 @@ import PropertyCard from '../components/PropertyCard'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ErrorState from '@components/common/ErrorState'
 import Icon from '@components/common/Icon'
+import { useCardGrid, GridItem } from '@components/common/CardGrid'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -40,6 +41,8 @@ export default function PropertyListScreen({ navigation, route }) {
   const bounds = scoped ? storeBounds : null
   const [filtersOpen, setFiltersOpen] = useState(false)
   const activeFilterCount = countActiveFilters(filters)
+  // One column on a phone (unchanged), two or three on a tablet.
+  const { listProps, itemStyle } = useCardGrid(styles.list)
 
   const params = useMemo(
     () => ({ limit: 50, ...toQueryParams(filters), ...(bounds ?? {}) }),
@@ -103,7 +106,6 @@ export default function PropertyListScreen({ navigation, route }) {
         <FlatList
           data={properties}
           keyExtractor={(p) => p.id}
-          contentContainerStyle={styles.list}
           ListHeaderComponent={
             <>
               {/* A viewport constrains the list invisibly — without this someone
@@ -155,11 +157,14 @@ export default function PropertyListScreen({ navigation, route }) {
             </View>
           }
           renderItem={({ item }) => (
-            <PropertyCard
-              property={item}
-              onPress={() => navigation.navigate('PropertyDetail', { propertyId: item.id })}
-            />
+            <GridItem style={itemStyle}>
+              <PropertyCard
+                property={item}
+                onPress={() => navigation.navigate('PropertyDetail', { propertyId: item.id })}
+              />
+            </GridItem>
           )}
+          {...listProps}
         />
       )}
 

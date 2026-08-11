@@ -17,6 +17,7 @@ import PropertyTypeSwitcher from '@features/filters/components/PropertyTypeSwitc
 import DynamicFilterRenderer from '@features/filters/components/DynamicFilterRenderer'
 import { useFilterCount } from '@features/filters/hooks/useFilterCount'
 import { colors } from '@theme/colors'
+import { tapBox } from '@theme/touchTargets'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -146,7 +147,7 @@ export default function MapFiltersSheet({ visible, onClose }) {
               <Pressable
                 onPress={handleReset}
                 disabled={activeCount === 0}
-                hitSlop={12}
+                style={tapBox}
                 accessibilityRole="button"
                 accessibilityLabel="Clear all filters"
                 accessibilityState={{ disabled: activeCount === 0 }}

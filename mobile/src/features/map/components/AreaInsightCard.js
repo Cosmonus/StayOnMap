@@ -5,6 +5,7 @@ import { areasService } from '@services/areas.service'
 import { formatCurrency } from '@utils/format'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
+import { tapSlop } from '@theme/touchTargets'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -63,7 +64,7 @@ export default function AreaInsightCard({ slug, onClose }) {
           </View>
           <Pressable
             onPress={onClose}
-            hitSlop={14}
+            hitSlop={tapSlop(18)}
             accessibilityLabel="Close area insights"
             accessibilityRole="button"
           >

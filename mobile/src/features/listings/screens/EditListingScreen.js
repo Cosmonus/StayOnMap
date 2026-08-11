@@ -19,6 +19,7 @@ import {
   missingRequirements, buildUpdatePayload,
 } from '../config/onboarding.js'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -59,6 +60,7 @@ const PANEL = {
 }
 
 function EditForm({ property, navigation }) {
+  const { contentMaxWidth } = useLayout()
   const qc = useQueryClient()
   const categoryKey = categoryFromType(property.type)
   const [activeTab, setActiveTab] = useState('basics')
@@ -152,7 +154,7 @@ function EditForm({ property, navigation }) {
         </ScrollView>
       </View>
 
-      <ScrollView ref={scrollRef} style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} style={styles.flex} contentContainerStyle={[styles.content, centered(contentMaxWidth)]} keyboardShouldPersistTaps="handled">
         {/* typeLocked is read by BasicsScreen only; the other four ignore it. */}
         <Panel categoryKey={categoryKey} draft={current} setDraft={updateDraft} typeLocked />
       </ScrollView>

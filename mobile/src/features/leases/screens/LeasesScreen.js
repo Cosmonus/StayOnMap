@@ -11,6 +11,7 @@ import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ErrorState from '@components/common/ErrorState'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
 
@@ -178,6 +179,7 @@ function LeaseCard({ lease, currentUserId }) {
 }
 
 export default function LeasesScreen({ navigation }) {
+  const { contentMaxWidth } = useLayout()
   const { user } = useAuth()
 
   const { data: profile } = useQuery({
@@ -209,7 +211,7 @@ export default function LeasesScreen({ navigation }) {
       ) : isError ? (
         <ErrorState title="Couldn't load leases" onRetry={refetch} />
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <ScrollView contentContainerStyle={[styles.scroll, centered(contentMaxWidth)]}>
           {isOwner && asOwner.length > 0 && (
             <View style={{ gap: spacing.sm, marginBottom: spacing.lg }}>
               <Text style={styles.sectionLabel}>Leases you&apos;ve offered</Text>

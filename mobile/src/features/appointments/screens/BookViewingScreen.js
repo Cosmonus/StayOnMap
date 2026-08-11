@@ -3,16 +3,18 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import AppointmentForm from '@features/appointments/components/AppointmentForm'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { spacing } from '@theme/spacing'
 
 export default function BookViewingScreen({ route, navigation }) {
+  const { contentMaxWidth } = useLayout()
   const { propertyId, windowStart, windowEnd } = route.params
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScreenHeader title="Request a visit" onBack={() => navigation.goBack()} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[styles.scroll, centered(contentMaxWidth)]} keyboardShouldPersistTaps="handled">
           <AppointmentForm
             propertyId={propertyId}
             windowStart={windowStart}

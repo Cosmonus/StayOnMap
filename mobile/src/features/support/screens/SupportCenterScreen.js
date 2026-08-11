@@ -10,6 +10,8 @@ import ErrorState from '@components/common/ErrorState'
 import NewCaseSheet from '../components/NewCaseSheet'
 import { STATUS_COPY, CATEGORY_LABEL, caseRef } from '../supportCopy'
 import { colors } from '@theme/colors'
+import { tapBox } from '@theme/touchTargets'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -52,6 +54,7 @@ function CaseRow({ item, onOpen }) {
 }
 
 export default function SupportCenterScreen({ navigation }) {
+  const { contentMaxWidth } = useLayout()
   const hostMode = useUiStore((s) => s.hostMode)
   const hat = hostMode ? 'OWNER' : 'TENANT'
   const [composing, setComposing] = useState(false)
@@ -123,7 +126,7 @@ export default function SupportCenterScreen({ navigation }) {
         title="Help & support"
         onBack={() => navigation.goBack()}
         right={(
-          <Pressable onPress={() => setComposing(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel="New support request">
+          <Pressable onPress={() => setComposing(true)} style={tapBox} accessibilityRole="button" accessibilityLabel="New support request">
             <Text style={styles.newText}>New</Text>
           </Pressable>
         )}
@@ -135,7 +138,7 @@ export default function SupportCenterScreen({ navigation }) {
         <FlatList
           data={cases ?? []}
           keyExtractor={(c) => c.id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, centered(contentMaxWidth)]}
           ListHeaderComponent={header}
           refreshing={isRefetching}
           onRefresh={refetch}

@@ -8,6 +8,7 @@ import { useFilterStore } from '@store/filterStore'
 import { useMapStore } from '@store/mapStore'
 import { toQueryParams } from '@config/filters'
 import MapHomeCard from './MapHomeCard'
+import CountBadge from '@components/common/CountBadge'
 import { colors } from '@theme/colors'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
@@ -60,11 +61,12 @@ export default function HomesInAreaList() {
       <View style={styles.panel}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Homes in this area</Text>
-          {properties.length > 0 && (
-            <View style={styles.countBadge}>
-              <Text style={styles.countText}>{properties.length}</Text>
-            </View>
-          )}
+          <CountBadge
+            count={properties.length}
+            size="sm"
+            tone={colors.slate100}
+            textColor={colors.slate500}
+          />
         </View>
 
         {isLoading ? (
@@ -114,8 +116,6 @@ const styles = StyleSheet.create({
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
   title: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
-  countBadge: { minWidth: 18, height: 18, borderRadius: 9, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  countText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.slate500 },
   row: { flexDirection: 'row', gap: spacing.sm },
   skeletonCard: { flex: 1 },
   skeletonImage: { aspectRatio: 4 / 3, borderRadius: radius.md, backgroundColor: colors.slate100 },

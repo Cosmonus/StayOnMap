@@ -10,6 +10,8 @@ import ScreenHeader from '@components/common/ScreenHeader'
 import ContactRow, { buildContactStats } from '../components/ContactRow'
 import ReportsSheet from '../components/ReportsSheet'
 import { colors } from '@theme/colors'
+import { tapBox } from '@theme/touchTargets'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -56,6 +58,7 @@ function ActionRow({ icon, label, sub, onPress, disabled, variant = 'default' })
 }
 
 export default function ManageListingScreen({ navigation, route }) {
+  const { contentMaxWidth } = useLayout()
   const { propertyId } = route.params
   const qc = useQueryClient()
   const [reportsOpen, setReportsOpen] = useState(false)
@@ -186,7 +189,7 @@ export default function ManageListingScreen({ navigation, route }) {
         <Pressable style={styles.retryButton} onPress={() => refetch()} accessibilityRole="button" accessibilityLabel="Retry loading listing">
           <Text style={styles.retryText}>Retry</Text>
         </Pressable>
-        <Pressable onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Go back" hitSlop={8}>
+        <Pressable onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Go back" style={tapBox}>
           <Text style={styles.backLink}>Go back</Text>
         </Pressable>
       </SafeAreaView>
@@ -349,7 +352,7 @@ export default function ManageListingScreen({ navigation, route }) {
         keyExtractor={(item) => item.id}
         ListHeaderComponent={header}
         ListEmptyComponent={contactsEmpty}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, centered(contentMaxWidth)]}
         renderItem={({ item }) => (
           <ContactRow
             contact={item}

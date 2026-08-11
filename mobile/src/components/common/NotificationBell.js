@@ -1,12 +1,12 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { Pressable, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import { notificationService } from '@services/notification.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
 import Icon from './Icon'
+import CountBadge from './CountBadge'
 import { colors } from '@theme/colors'
-import { fonts } from '@theme/typography'
 import { radius } from '@theme/spacing'
 
 // The bell, for the header of whichever screen is home in the current mode.
@@ -56,11 +56,7 @@ export default function NotificationBell({ style }) {
       accessibilityLabel={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
     >
       <Icon name="bell" size={18} color={colors.slate700} />
-      {unread > 0 && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{unread > 9 ? '9+' : unread}</Text>
-        </View>
-      )}
+      <CountBadge count={unread} size="sm" max={9} tone={colors.danger} style={styles.badge} />
     </Pressable>
   )
 }
@@ -72,12 +68,11 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   // Sits on the rim rather than inside: a count in the middle of a 40dp circle
-  // would crowd the glyph it is annotating.
+  // would crowd the glyph it is annotating. Size and shape belong to
+  // CountBadge — this only says where it sits and that it is cut out of the
+  // icon behind it.
   badge: {
     position: 'absolute', top: -3, right: -3,
-    minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4,
-    backgroundColor: colors.danger, borderWidth: 2, borderColor: colors.white,
-    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: colors.white,
   },
-  badgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.white },
 })

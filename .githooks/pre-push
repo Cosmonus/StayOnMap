@@ -12,7 +12,13 @@
 #
 #   backend    npm run lint  +  npm test
 #   frontend   npm run lint  +  npm test
-#   mobile     npm test
+#   mobile     npm run lint  +  npm test
+#
+# Mobile lint was missing from BOTH this list and ci.yml until 2026-08-11, which
+# is how a lint error reached master and stayed there. When adding a package or
+# a check here, add it to ci.yml in the same change: this file exists to mirror
+# that one, and a mirror that has drifted is worse than no mirror, because it
+# reports a pass over something it never ran.
 #
 # Left to CI on purpose:
 #   - `npx expo export` (~90s) and `npm run build` — slow, and they fail for
@@ -104,6 +110,6 @@ check() {
 
 check backend  "lint test"
 check frontend "lint test"
-check mobile   "test"
+check mobile   "lint test"
 
 printf '%s\n' "${GREEN}✓ pre-push: clean${OFF}"

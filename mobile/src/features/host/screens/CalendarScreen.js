@@ -8,6 +8,7 @@ import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -43,6 +44,9 @@ function dateKey(d) {
 }
 
 export default function CalendarScreen({ navigation }) {
+  // A month is seven `flex: 1` columns, so with no cap a day cell on a 1280dp
+  // tablet is 180dp of empty box around one numeral.
+  const { contentMaxWidth } = useLayout()
   const [cursor, setCursor] = useState(() => {
     const d = new Date()
     return { year: d.getFullYear(), month: d.getMonth() }
@@ -112,7 +116,7 @@ export default function CalendarScreen({ navigation }) {
         subtitle="Upcoming appointments and lease dates"
         onBack={() => navigation.goBack()}
       />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, centered(contentMaxWidth)]}>
 
         {/* A real failure branch (AGENTS.md §10). Both queries default to an
             empty list, so a dropped connection or an expired session used to

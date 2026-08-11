@@ -4,6 +4,7 @@ import { imgUrl } from '@utils/format'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
+import CountBadge from '@components/common/CountBadge'
 import { displayName, timeLabel } from './chatFormat'
 
 // One row in a thread list. `other` is resolved by the caller — that is the
@@ -48,11 +49,7 @@ export default function ConversationRow({ conversation: c, other, userId, isOnli
         )}
       </View>
 
-      {unread > 0 && (
-        <View style={styles.unreadBadge}>
-          <Text style={styles.unreadBadgeText}>{unread > 9 ? '9+' : unread}</Text>
-        </View>
-      )}
+      <CountBadge count={unread} max={9} />
     </Pressable>
   )
 }
@@ -71,6 +68,4 @@ const styles = StyleSheet.create({
   propertyTitle: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 1 },
   preview: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
   previewUnread: { color: colors.slate700, fontFamily: fonts.bodyMedium },
-  unreadBadge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.brand500, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
-  unreadBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.white },
 })

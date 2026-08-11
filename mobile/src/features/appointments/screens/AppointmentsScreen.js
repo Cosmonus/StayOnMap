@@ -12,6 +12,7 @@ import ScreenHeader from '@components/common/ScreenHeader'
 import ErrorState from '@components/common/ErrorState'
 import ProposeTimeSheet from '../components/ProposeTimeSheet'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -388,6 +389,7 @@ function EmptyState({ title, message }) {
 }
 
 export default function AppointmentsScreen({ navigation, route }) {
+  const { contentMaxWidth } = useLayout()
   const qc = useQueryClient()
 
   // Fixed by which nav stack registered this screen, not a user-facing
@@ -533,7 +535,7 @@ export default function AppointmentsScreen({ navigation, route }) {
         <SectionList
           sections={sections}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, centered(contentMaxWidth)]}
           stickySectionHeadersEnabled={false}
           renderSectionHeader={({ section }) => (
             <Text style={styles.sectionHeader}>{section.title}</Text>

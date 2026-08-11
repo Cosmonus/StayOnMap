@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query'
 import { reportService } from '@services/report.service'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
+import { tapSlop } from '@theme/touchTargets'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
@@ -45,7 +46,7 @@ export default function ReportButton({ propertyId }) {
 
   return (
     <>
-      <Pressable style={styles.trigger} onPress={() => setOpen(true)} hitSlop={14} accessibilityRole="button" accessibilityLabel="Report listing">
+      <Pressable style={styles.trigger} onPress={() => setOpen(true)} hitSlop={tapSlop(20)} accessibilityRole="button" accessibilityLabel="Report listing">
         <Icon name="alertTriangle" size={13} color={colors.danger} />
         <Text style={styles.triggerText}>Report listing</Text>
       </Pressable>
@@ -68,7 +69,7 @@ export default function ReportButton({ propertyId }) {
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.headerRow}>
                   <Text style={styles.title}>Report this listing</Text>
-                  <Pressable onPress={close} hitSlop={14} accessibilityRole="button" accessibilityLabel="Close report form"><Icon name="close" size={18} color={colors.slate500} /></Pressable>
+                  <Pressable onPress={close} hitSlop={tapSlop(18)} accessibilityRole="button" accessibilityLabel="Close report form"><Icon name="close" size={18} color={colors.slate500} /></Pressable>
                 </View>
 
                 <Text style={styles.label}>Category</Text>
@@ -166,7 +167,9 @@ export default function ReportButton({ propertyId }) {
 }
 
 const styles = StyleSheet.create({
-  trigger: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start' },
+  // minHeight, not height: the label scales with the OS font setting and this
+  // row has to grow with it rather than crop (see theme/typography.js).
+  trigger: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', minHeight: 20 },
   triggerText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.danger },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg, maxHeight: '85%', ...shadows.sheet },

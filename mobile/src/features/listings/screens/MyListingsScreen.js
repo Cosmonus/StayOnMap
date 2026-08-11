@@ -11,6 +11,7 @@ import { CATEGORIES, suggestTitle } from '@features/listings/config/onboarding.j
 import { WIZARD_STEPS as STEPS, savedStep } from '@features/listings/config/wizardSteps.js'
 import { formatPrice } from '@utils/format'
 import Icon from '@components/common/Icon'
+import { useCardGrid, GridItem } from '@components/common/CardGrid'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ListingCard from '@components/common/ListingCard'
 import { colors } from '@theme/colors'
@@ -124,6 +125,7 @@ function DraftCard({ saved, onResume, onDiscard }) {
 
 export default function MyListingsScreen({ navigation }) {
   const { user } = useAuth()
+  const { listProps, itemStyle } = useCardGrid(styles.list)
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['me'],
@@ -208,7 +210,6 @@ export default function MyListingsScreen({ navigation }) {
         <FlatList
           data={listings}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
           ListHeaderComponent={
             <>
               <VisibilityNotice
@@ -238,7 +239,8 @@ export default function MyListingsScreen({ navigation }) {
             </Pressable>
           )}
           renderItem={({ item }) => (
-            <ListingCard
+            <GridItem style={itemStyle}>
+              <ListingCard
               photoUrl={item.images?.[0]?.url}
               overlay={<View style={styles.statusPillWrap}><StatusPill status={item.status} /></View>}
               price={formatPrice(item)}
@@ -262,8 +264,10 @@ export default function MyListingsScreen({ navigation }) {
                 <Text style={styles.cardManageText}>Manage</Text>
                 <Icon name="chevronRight" size={14} color={colors.slate600} />
               </Pressable>
-            </ListingCard>
+              </ListingCard>
+            </GridItem>
           )}
+          {...listProps}
         />
       )}
     </SafeAreaView>

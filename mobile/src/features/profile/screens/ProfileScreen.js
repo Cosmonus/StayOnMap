@@ -9,6 +9,7 @@ import AccountIdentity from '@features/profile/components/AccountIdentity'
 import { useOtherHatWaiting } from '@features/profile/useOtherHatWaiting'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { spacing } from '@theme/spacing'
 import { useSupportWaiting } from '@features/support/useSupportWaiting'
 
@@ -26,6 +27,7 @@ import { useSupportWaiting } from '@features/support/useSupportWaiting'
 
 export default function ProfileScreen({ navigation }) {
   const { user, signOut } = useAuth()
+  const { contentMaxWidth } = useLayout()
   const hostMode = useUiStore((s) => s.hostMode)
   const setHostMode = useUiStore((s) => s.setHostMode)
   const waiting = useOtherHatWaiting()
@@ -67,7 +69,7 @@ export default function ProfileScreen({ navigation }) {
           />
         )}
       />
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, centered(contentMaxWidth)]}>
         <View style={styles.body}>
           <AccountIdentity
             account={account && { ...account, meta }}

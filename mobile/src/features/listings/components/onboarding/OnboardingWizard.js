@@ -16,6 +16,7 @@ import {
 } from '../../config/onboarding.js'
 import { WIZARD_STEPS as STEPS, savedStepIndex } from '../../config/wizardSteps.js'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -115,6 +116,7 @@ const FOOTER_NOTE = {
 }
 
 export default function OnboardingWizard({ onDone }) {
+  const { contentMaxWidth } = useLayout()
   const { user } = useAuth()
   const qc = useQueryClient()
   const [stage, setStage] = useState('flow')
@@ -312,7 +314,7 @@ export default function OnboardingWizard({ onDone }) {
       <WizardBar step={step} onBack={back} onExit={onDone} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-        <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={[styles.content, centered(contentMaxWidth)]} keyboardShouldPersistTaps="handled">
           {step.k === 'type' && <TypeScreen categoryKey={categoryKey} onPickCategory={pickCategory} />}
           {categoryKey && step.k === 'basics' && <BasicsScreen {...stepProps} />}
           {categoryKey && step.k === 'location' && <LocationScreen {...stepProps} />}
@@ -328,6 +330,10 @@ export default function OnboardingWizard({ onDone }) {
         {/* Full-width primary action — back lives in the top bar and on the
             hardware button, so the footer is one thumb-reachable target. */}
         <View style={styles.footer}>
+          {/* The bar keeps its full width — it is chrome, and its top border
+              has to reach both edges. Its CONTENTS cap with the questions
+              above them, or "Next — photos" is a 1200dp band. */}
+          <View style={[styles.footerInner, centered(contentMaxWidth)]}>
           <Pressable
             style={[styles.nextButton, isLast && styles.publishButton, (isPending || (isLast && missing.length > 0)) && styles.disabled]}
             onPress={next}
@@ -342,6 +348,7 @@ export default function OnboardingWizard({ onDone }) {
             )}
           </Pressable>
           <Text style={styles.footerNote}>{FOOTER_NOTE[step.k]}</Text>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </View>
@@ -364,9 +371,10 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
   blockError: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.danger, marginTop: spacing.md },
   footer: {
-    gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm,
+    paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm,
     borderTopWidth: 1, borderTopColor: colors.slate100, backgroundColor: colors.white,
   },
+  footerInner: { gap: spacing.sm },
   footerNote: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, textAlign: 'center' },
   nextButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand600, borderRadius: radius.md },
   publishButton: { backgroundColor: colors.slate900 },
