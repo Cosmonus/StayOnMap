@@ -888,6 +888,9 @@ export async function vacateProperty(propertyId, ownerId) {
   if (!property) throw Object.assign(new Error('Property not found or access denied'), { statusCode: 404 })
   if (property.status !== 'OCCUPIED') throw Object.assign(new Error('Property is not currently occupied'), { statusCode: 400 })
 
+  // Captured BEFORE the update nulls it — this is who has to be told.
+  const tenantId = property.currentTenantId
+
   recordStatusChange({ propertyId, from: property.status, to: 'ACTIVE', actor: 'owner' })
   // The third door into ACTIVE, and the one that deliberately does NOT stamp
   // publishedAt: a tenant moving out makes this listing available again, not
@@ -902,5 +905,23 @@ export async function vacateProperty(propertyId, ownerId) {
     // the tenancy record is what keeps it. ENDS, never deletes.
     endTenancyOp({ propertyId }),
   ])
+
+  // Tell the person it happened TO. This was the one tenancy action with no
+  // notification at all (found 2026-08-12): the owner marked somebody as
+  // moved out, their record gained an end date, reviews UNLOCKED — and they
+  // learned nothing. An action written into another person's history is
+  // always announced to them; the confirm/decline flow already lives by that
+  // rule and this is the same rule at the other end of the tenancy.
+  // Fire-and-forget — vacating must never fail on a notification.
+  if (tenantId) {
+    notifyUser(tenantId, {
+      type: 'TENANCY_UPDATE',
+      audience: 'TENANT',
+      title: 'Tenancy marked as ended',
+      body: `The owner marked your tenancy at ${property.title} as ended. You can now review each other — reviews stay hidden until both are in, or 14 days pass.`,
+      referenceId: propertyId,
+      referenceType: 'Tenancy',
+    }).catch(() => {})
+  }
   return updated
 }
