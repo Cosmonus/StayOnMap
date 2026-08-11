@@ -22,6 +22,7 @@ import ZeroBrokerageBanner from '../components/ZeroBrokerageBanner'
 import HouseRulesSection from '../components/HouseRulesSection'
 import OwnerCard from '../components/OwnerCard'
 import ReviewsSection from '@features/reviews/components/ReviewsSection'
+import PastTenantReviews from '@features/tenancies/components/PastTenantReviews'
 import SimilarHomesSection from '../components/SimilarHomesSection'
 import ReportButton from '@features/reports/components/ReportButton'
 import Icon from '@components/common/Icon'
@@ -416,6 +417,9 @@ export default function PropertyDetailScreen({ route, navigation }) {
 
           <View style={styles.section}>
             <ReviewsSection title="Community Reviews" propertyId={propertyId} isOwner={isOwner} ownerName={property.owner?.name} />
+            {/* Tenancy-backed reviews of the OWNER — renders nothing when
+                there are none, so no heading ever sits above an empty box. */}
+            <PastTenantReviews propertyId={propertyId} />
           </View>
 
           {/* "Homes like this one" sits after reviews and before the report

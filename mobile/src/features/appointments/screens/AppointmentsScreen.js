@@ -11,6 +11,7 @@ import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ErrorState from '@components/common/ErrorState'
 import ProposeTimeSheet from '../components/ProposeTimeSheet'
+import TenantResumeSheet from '@features/tenancies/components/TenantResumeSheet'
 import { colors } from '@theme/colors'
 import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
@@ -134,6 +135,7 @@ function PropertyLine({ property }) {
 function OwnerCard({ appt, onAction, onChat, chatting, busy }) {
   const [rejecting, setRejecting] = useState(false)
   const [note, setNote] = useState('')
+  const [resumeOpen, setResumeOpen] = useState(false)
   // A renter's counter-offer needs an answer exactly as much as a first request
   // does. Gating on PENDING alone left it in the queue with nothing to press.
   const proposed = appt.status === 'RESCHEDULE_REQUESTED'
@@ -152,8 +154,22 @@ function OwnerCard({ appt, onAction, onChat, chatting, busy }) {
 
         <View style={styles.cardTopBody}>
           {/* The person and the time, at the size they deserve — this is the
-              sentence a host reads: "Priya, 4:30 PM". */}
-          <Text style={styles.person} numberOfLines={1}>{personName(appt.tenant)}</Text>
+              sentence a host reads: "Priya, 4:30 PM". The name is also the
+              door to their rental résumé: this queue is where a host decides
+              about a stranger, so the history belongs at the decision. */}
+          <Pressable
+            onPress={() => setResumeOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`View ${personName(appt.tenant)}'s rental history`}
+          >
+            <Text style={[styles.person, styles.personLink]} numberOfLines={1}>{personName(appt.tenant)}</Text>
+          </Pressable>
+          <TenantResumeSheet
+            userId={appt.tenant?.id}
+            name={personName(appt.tenant)}
+            visible={resumeOpen}
+            onClose={() => setResumeOpen(false)}
+          />
           <Text style={styles.time}>{formatTime(appt.requestedTime)}</Text>
           {!!appt.contactNumber && <Text style={styles.phoneText}>{appt.contactNumber}</Text>}
         </View>
@@ -634,6 +650,9 @@ const styles = StyleSheet.create({
   dateMutedText: { color: colors.slate500 },
 
   person: { fontFamily: fonts.displayBold, fontSize: fontSizes.base, color: colors.slate900 },
+  // The underline is the affordance — a name that opens something must not
+  // look like the plain text names everywhere else.
+  personLink: { textDecorationLine: 'underline', textDecorationColor: colors.slate300 },
   time: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
 
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.full },

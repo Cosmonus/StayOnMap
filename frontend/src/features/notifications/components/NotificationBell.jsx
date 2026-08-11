@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Calendar, CircleCheck, Clipboard, CircleX, RefreshCw, Flag, SquarePen,
-  ShieldCheck, TriangleAlert, MessageCircle, Bell, BellRing, Check, ChevronRight,
+  ShieldCheck, TriangleAlert, MessageCircle, Bell, BellRing, KeyRound, Check, ChevronRight,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { notificationService } from '@services/notification.service'
@@ -78,6 +78,12 @@ const TYPE_CONFIG = {
     iconBg: 'bg-brand-100',
     iconColor: 'text-brand-600',
     icon: BellRing,
+  },
+  TENANCY_UPDATE: {
+    bg: 'bg-brand-50',
+    iconBg: 'bg-brand-100',
+    iconColor: 'text-brand-600',
+    icon: KeyRound,
   },
   SYSTEM: {
     bg: 'bg-slate-50',

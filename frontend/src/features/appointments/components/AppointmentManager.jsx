@@ -8,6 +8,7 @@ import { confirm } from '@components/common/ConfirmDialog'
 import { useUiStore } from '@store/uiStore'
 import { formatTime } from '@utils/time'
 import ProposeTimeModal from './ProposeTimeModal'
+import TenantResumeModal from '@features/tenancies/components/TenantResumeModal'
 
 // ── Helpers ─────────────────────────────────────────────────────────
 const STATUS = {
@@ -79,6 +80,7 @@ function EmptyState({ title = 'No appointments', message }) {
 function OwnerCard({ appt, onAction }) {
   const [rejecting, setRejecting] = useState(false)
   const [note, setNote] = useState('')
+  const [resumeOpen, setResumeOpen] = useState(false)
   // A renter's counter-offer needs an answer exactly as much as a first request
   // does, so it gets the same two buttons. Gating on PENDING alone would have
   // left it sitting in the queue with nothing to press.
@@ -98,7 +100,22 @@ function OwnerCard({ appt, onAction }) {
             </div>
           )}
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-800 truncate">{personName(appt.tenant)}</p>
+            {/* The name is the door to the rental résumé — this queue is where
+                an owner decides about a stranger, so the history belongs at
+                the decision, not in a menu. */}
+            <button
+              onClick={() => setResumeOpen(true)}
+              className="block max-w-full truncate text-left text-sm font-semibold text-slate-800 underline decoration-slate-300 underline-offset-2 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+            >
+              {personName(appt.tenant)}
+            </button>
+            {resumeOpen && appt.tenant?.id && (
+              <TenantResumeModal
+                userId={appt.tenant.id}
+                name={personName(appt.tenant)}
+                onClose={() => setResumeOpen(false)}
+              />
+            )}
             <p className="text-[11px] text-slate-500">{appt.contactNumber}</p>
           </div>
         </div>

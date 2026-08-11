@@ -25,6 +25,9 @@ export function referenceHref({ referenceType, referenceId }) {
     case 'Appointment': return '/user?tab=appointments'
     case 'Lease': return '/user?tab=leases'
     case 'Property': return `/property/${referenceId}`
+    // The tenancy record lives on the Rented/leases tab for both hats —
+    // confirm prompts and reviews are both answered there.
+    case 'Tenancy': return '/user?tab=leases'
     case 'PropertyReport': return `/user?tab=notifications&report=${referenceId}`
     default: return null
   }

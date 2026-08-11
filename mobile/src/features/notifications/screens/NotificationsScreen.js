@@ -22,6 +22,7 @@ const TYPE_ICON = {
   VERIFICATION_UPDATE: 'shieldCheck', TRUST_ALERT: 'shield',
   LEASE_OFFERED: 'document', LEASE_SIGNED: 'document', LEASE_REJECTED: 'document',
   SYSTEM: 'info', MESSAGE: 'messageCircle', SAVED_SEARCH_MATCH: 'bell',
+  TENANCY_UPDATE: 'key',
 }
 
 function timeAgo(date) {

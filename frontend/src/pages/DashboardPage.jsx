@@ -20,6 +20,7 @@ import MapRightPanel from '@features/map/components/MapRightPanel'
 
 import AppointmentManager from '@features/appointments/components/AppointmentManager'
 import LeaseManager from '@features/leases/components/LeaseManager'
+import TenancySection from '@features/tenancies/components/TenancySection'
 import SettingsPanel from '@features/settings/components/SettingsPanel'
 import SupportCenter from '@features/support/components/SupportCenter'
 
@@ -293,7 +294,10 @@ export default function DashboardPage() {
       case 'appointments':
         return <AppointmentManager />
       case 'leases':
-        return <LeaseManager />
+        // The tenancy record sits above the lease paperwork: the record is
+        // what both hats come back for (confirm prompts, reviews), the lease
+        // list is the documents underneath it.
+        return <><TenancySection /><LeaseManager /></>
       case 'calendar':
         return <CalendarSection />
       case 'wishlist':

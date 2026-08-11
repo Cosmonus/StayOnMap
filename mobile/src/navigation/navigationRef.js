@@ -51,6 +51,12 @@ export function referenceDestination({ referenceId, referenceType }, hostMode) {
       // list at all — only CreateLease — so a host's lease notification has
       // nowhere to land and stays unlinked instead of jumping somewhere wrong.
       return hostMode ? null : ['Profile', { screen: 'Leases', initial: false }]
+    case 'Tenancy':
+      // The tenancy record renders on the Leases screen for both hats — but
+      // that screen lives in the renter Profile stack, so in host mode the
+      // notification stays unlinked rather than jumping somewhere wrong (the
+      // Lease precedent above).
+      return hostMode ? null : ['Profile', { screen: 'Leases', initial: false }]
     case 'Property':
       return [hostMode ? 'MyListing' : 'Explore', { screen: 'PropertyDetail', initial: false, params: { propertyId: referenceId } }]
     case 'PropertyReport':
