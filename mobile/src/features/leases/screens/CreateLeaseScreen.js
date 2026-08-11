@@ -6,10 +6,12 @@ import { leaseService } from '@services/lease.service'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
 
 export default function CreateLeaseScreen({ route, navigation }) {
+  const { contentMaxWidth } = useLayout()
   const { propertyId, propertyTitle } = route.params
   const qc = useQueryClient()
   const today = new Date().toISOString().slice(0, 10)
@@ -58,7 +60,7 @@ export default function CreateLeaseScreen({ route, navigation }) {
         )}
       />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[styles.scroll, centered(contentMaxWidth)]} keyboardShouldPersistTaps="handled">
           <Text style={styles.propertyTitle}>{propertyTitle}</Text>
 
           {err ? <Text style={styles.errorText}>{err}</Text> : null}

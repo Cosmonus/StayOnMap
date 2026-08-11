@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, Dimensions, Share, Animated } from 'react-native'
+import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, useWindowDimensions, Share, Animated } from 'react-native'
 import { Image } from 'expo-image'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -27,6 +27,7 @@ import ReportButton from '@features/reports/components/ReportButton'
 import Icon from '@components/common/Icon'
 import { imgUrl, formatCompact, priceUnit } from '@utils/format'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -49,7 +50,6 @@ try {
 }
 
 const FURNISHED_LABEL = { FULLY: 'Fully furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
-const SCREEN_WIDTH = Dimensions.get('window').width
 
 // An existing visit request replaces the "Request a visit" button with a status
 // pill — mirrors web's AppointmentSection. Only PENDING/ACCEPTED show a pill; a
@@ -92,6 +92,14 @@ function rentBenchmarkLabel(rent, benchmark) {
 }
 
 export default function PropertyDetailScreen({ route, navigation }) {
+  // The gallery pages at exactly one window width, so `pagingEnabled` snaps to
+  // photo boundaries. That was a module-level `Dimensions.get('window').width`,
+  // read ONCE at import: after a rotation or a multi-window drag every page was
+  // the old width and the paging stopped landing on a photo. The hook re-renders.
+  const { width: windowWidth } = useWindowDimensions()
+  // The gallery and the map stay full-bleed — they are images, and a photo has
+  // no reading measure. Everything below them is prose and facts, so it caps.
+  const { contentMaxWidth } = useLayout()
   const { propertyId } = route.params
   const [chatLoading, setChatLoading] = useState(false)
   const [copiedId, setCopiedId] = useState(false)
@@ -252,7 +260,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
         <View>
           <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={styles.gallery}>
             {(property.images?.length ? property.images : [null]).map((img, i) => (
-              <View key={img?.id ?? i} style={styles.galleryImageWrap}>
+              <View key={img?.id ?? i} style={[styles.galleryImageWrap, { width: windowWidth }]}>
                 {img ? (
                   <Image source={{ uri: imgUrl(img.url, 'detail') }} style={styles.galleryImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
                 ) : (
@@ -286,7 +294,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
           </SafeAreaView>
         </View>
 
-        <View style={styles.body}>
+        <View style={[styles.body, centered(contentMaxWidth)]}>
           {property.riskScore && (
             <View style={{ marginBottom: spacing.md }}>
               <RiskAlert riskScore={property.riskScore} />
@@ -426,6 +434,11 @@ export default function PropertyDetailScreen({ route, navigation }) {
 
       {!isOwner && (
         <SafeAreaView edges={['bottom']} style={styles.footer}>
+          {/* The BAR spans the window — it is chrome, and a white strip that
+              stopped at 640 would leave the canvas showing either side of it.
+              The BUTTONS inside it cap, because "Request a visit" 900dp wide is
+              a banner, not a button. */}
+          <View style={[styles.footerRow, centered(contentMaxWidth)]}>
           <Pressable style={styles.messageButton} onPress={handleMessageOwner} disabled={chatLoading}>
             {chatLoading ? (
               <ActivityIndicator color={colors.brand700} size="small" />
@@ -466,6 +479,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
               <Text style={styles.bookButtonText}>Request a visit</Text>
             </Pressable>
           )}
+          </View>
         </SafeAreaView>
       )}
     </View>
@@ -479,7 +493,7 @@ const styles = StyleSheet.create({
   centerBack: { position: 'absolute', top: spacing.sm, left: spacing.md },
   emptyText: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate500 },
   gallery: { height: 260 },
-  galleryImageWrap: { width: SCREEN_WIDTH, height: 260 },
+  galleryImageWrap: { height: 260 },
   galleryImage: { width: '100%', height: '100%' },
   galleryFallback: { backgroundColor: colors.slate100 },
   galleryHeader: {
@@ -512,9 +526,10 @@ const styles = StyleSheet.create({
   description: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate600, lineHeight: 21 },
   footer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    flexDirection: 'row', gap: spacing.sm, padding: spacing.md,
+    padding: spacing.md,
     backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.slate200,
   },
+  footerRow: { flexDirection: 'row', gap: spacing.sm },
   messageButton: { flex: 1, minHeight: 44, flexDirection: 'row', gap: 6, borderWidth: 1, borderColor: colors.brand600, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.sm + 4 },
   messageButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.brand700 },
   bookButton: { flex: 2, minHeight: 44, flexDirection: 'row', gap: 6, backgroundColor: colors.brand600, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.sm + 4 },

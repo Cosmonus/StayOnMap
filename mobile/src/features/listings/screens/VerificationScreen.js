@@ -7,6 +7,7 @@ import Dropdown from '@components/common/Dropdown'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
 
@@ -42,6 +43,7 @@ function StatusPill({ status }) {
 }
 
 export default function VerificationScreen({ route }) {
+  const { contentMaxWidth } = useLayout()
   const { propertyId, propertyTitle } = route.params
   const qc = useQueryClient()
   const [docType, setDocType] = useState(DOC_TYPES[0].value)
@@ -93,7 +95,7 @@ export default function VerificationScreen({ route }) {
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader title="Get verified" onBack={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, centered(contentMaxWidth)]}>
         <View style={styles.propertyBox}>
           <Text style={styles.propertyBoxLabel}>Verifying ownership for</Text>
           <Text style={styles.propertyBoxTitle}>{propertyTitle}</Text>

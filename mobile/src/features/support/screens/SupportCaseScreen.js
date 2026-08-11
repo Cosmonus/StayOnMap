@@ -12,6 +12,7 @@ import ErrorState from '@components/common/ErrorState'
 import Icon from '@components/common/Icon'
 import { STATUS_COPY, CATEGORY_LABEL, caseRef, authorName } from '../supportCopy'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -25,6 +26,7 @@ import { spacing, radius } from '@theme/spacing'
 const TONE = { muted: colors.slate500, brand: colors.brand600, attention: '#b45309', good: '#15803D' }
 
 export default function SupportCaseScreen({ navigation, route }) {
+  const { contentMaxWidth } = useLayout()
   const { caseId } = route.params
   const qc = useQueryClient()
   const { user } = useAuth()
@@ -144,7 +146,7 @@ export default function SupportCaseScreen({ navigation, route }) {
       <FlatList
         data={c.messages ?? []}
         keyExtractor={(m) => m.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, centered(contentMaxWidth)]}
         ListHeaderComponent={(
           <View style={styles.head}>
             <Text style={styles.subject}>{c.subject}</Text>

@@ -10,6 +10,7 @@ import ScreenHeader from '@components/common/ScreenHeader'
 import ContactRow, { buildContactStats } from '../components/ContactRow'
 import ReportsSheet from '../components/ReportsSheet'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -56,6 +57,7 @@ function ActionRow({ icon, label, sub, onPress, disabled, variant = 'default' })
 }
 
 export default function ManageListingScreen({ navigation, route }) {
+  const { contentMaxWidth } = useLayout()
   const { propertyId } = route.params
   const qc = useQueryClient()
   const [reportsOpen, setReportsOpen] = useState(false)
@@ -349,7 +351,7 @@ export default function ManageListingScreen({ navigation, route }) {
         keyExtractor={(item) => item.id}
         ListHeaderComponent={header}
         ListEmptyComponent={contactsEmpty}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, centered(contentMaxWidth)]}
         renderItem={({ item }) => (
           <ContactRow
             contact={item}

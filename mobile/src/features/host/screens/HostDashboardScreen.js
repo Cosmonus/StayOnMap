@@ -19,6 +19,7 @@ import ErrorState from '@components/common/ErrorState'
 import NotificationBell from '@components/common/NotificationBell'
 import { VISIT_SLOTS, formatTime } from '@utils/time'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -200,6 +201,7 @@ function Sheet({ visible, title, onClose, children }) {
 }
 
 export default function HostDashboardScreen({ navigation }) {
+  const { contentMaxWidth } = useLayout()
   const { user } = useAuth()
   const qc = useQueryClient()
   const [openId, setOpenId] = useState(null)
@@ -294,7 +296,7 @@ export default function HostDashboardScreen({ navigation }) {
           </View>
         )}
       />
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, centered(contentMaxWidth)]}>
 
         {!isOwner ? (
           <View style={styles.body}>

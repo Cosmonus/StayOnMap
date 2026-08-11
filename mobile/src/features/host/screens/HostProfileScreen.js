@@ -9,6 +9,7 @@ import AccountIdentity from '@features/profile/components/AccountIdentity'
 import { useOtherHatWaiting } from '@features/profile/useOtherHatWaiting'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { spacing } from '@theme/spacing'
 import { useSupportWaiting } from '@features/support/useSupportWaiting'
 
@@ -23,6 +24,7 @@ import { useSupportWaiting } from '@features/support/useSupportWaiting'
 // and the settings destinations — nothing invented, nothing that dead-ends.
 
 export default function HostProfileScreen({ navigation }) {
+  const { contentMaxWidth } = useLayout()
   const { user, signOut } = useAuth()
   const setHostMode = useUiStore((s) => s.setHostMode)
   const waiting = useOtherHatWaiting()
@@ -52,7 +54,7 @@ export default function HostProfileScreen({ navigation }) {
         title="Account"
         below={<ModeSwitch hostMode onChange={setHostMode} waiting={waiting} />}
       />
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, centered(contentMaxWidth)]}>
         <View style={styles.body}>
           <AccountIdentity
             account={account && { ...account, meta }}

@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import Icon from '@components/common/Icon'
 import { CITY_NAMES } from '@config/cities'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -15,6 +16,10 @@ const SCATTER_PINS = [
 ]
 
 export default function GetStartedScreen({ navigation }) {
+  // The brand field behind it stays full-bleed; the words and the button cap.
+  // This is the first screen anybody sees, and a 1280dp-wide "Get started" pill
+  // is the version of it that says nobody looked at a tablet.
+  const { contentMaxWidth } = useLayout()
   return (
     <View style={styles.container}>
       <View style={styles.image}>
@@ -27,7 +32,7 @@ export default function GetStartedScreen({ navigation }) {
           <Icon name="mapPin" size={40} color={colors.white} />
         </View>
       </View>
-      <SafeAreaView edges={['bottom']} style={styles.sheet}>
+      <SafeAreaView edges={['bottom']} style={[styles.sheet, centered(contentMaxWidth)]}>
         <Text style={styles.title}>Find your home{'\n'}on the map.</Text>
         <Text style={styles.subtitle}>
           Discover verified rentals visually and connect with owners directly

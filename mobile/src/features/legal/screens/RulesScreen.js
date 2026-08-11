@@ -5,6 +5,7 @@ import ScreenHeader from '@components/common/ScreenHeader'
 import Icon from '@components/common/Icon'
 import { PERSONAS, RULES } from '../rules'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -32,6 +33,7 @@ function RuleList({ items, kind }) {
 }
 
 export default function RulesScreen({ navigation }) {
+  const { contentMaxWidth } = useLayout()
   const [personaId, setPersonaId] = useState(PERSONAS[0].id)
   const persona = PERSONAS.find((p) => p.id === personaId)
   const rules = RULES[personaId]
@@ -43,7 +45,7 @@ export default function RulesScreen({ navigation }) {
         subtitle="What the Terms mean in practice"
         onBack={() => navigation.goBack()}
       />
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, centered(contentMaxWidth)]}>
         <View style={styles.tabs}>
           {PERSONAS.map((p) => {
             const active = p.id === personaId

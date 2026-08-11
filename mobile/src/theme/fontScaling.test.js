@@ -12,22 +12,14 @@
  * failing test rather than as a quiet accessibility regression nobody notices
  * because nobody on the team runs their phone at 200%.
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { CHROME_MAX_FONT_SCALE } from './typography'
+import { readSource } from '../test/sourceScan'
 
-const SRC = join(__dirname, '..')
-
-function walk(dir) {
-  return readdirSync(dir).flatMap((entry) => {
-    const full = join(dir, entry)
-    if (statSync(full).isDirectory()) return walk(full)
-    return full.endsWith('.js') && !full.endsWith('.test.js') ? [full] : []
-  })
-}
-
-const files = walk(SRC).map((path) => ({ path, src: readFileSync(path, 'utf8') }))
-const rel = (p) => p.slice(SRC.length + 1).replace(/\\/g, '/')
+// Comments stripped: this file's own assertions are about patterns whose
+// explanations quote them, which is how a scan flags the doc for the thing it
+// documents. See src/test/sourceScan.js.
+const files = readSource(join(__dirname, '..'))
 
 describe('font scaling policy', () => {
   it('found the source tree', () => {
@@ -41,7 +33,7 @@ describe('font scaling policy', () => {
     // whole problem the OS setting exists to solve.
     const offenders = files
       .filter((f) => /allowFontScaling\s*=\s*\{?\s*false/.test(f.src))
-      .map((f) => rel(f.path))
+      .map((f) => f.path)
     // The array IS the message — jest prints its contents, which names every
     // offending file. (`expect(value, 'msg')` is vitest; jest rejects it.)
     expect(offenders).toEqual([])
@@ -53,7 +45,7 @@ describe('font scaling policy', () => {
     // the app has to come from typography.js so there is exactly one.
     const literals = files
       .filter((f) => /maxFontSizeMultiplier\s*=\s*\{\s*[\d.]/.test(f.src))
-      .map((f) => rel(f.path))
+      .map((f) => f.path)
     expect(literals).toEqual([])
   })
 
@@ -68,7 +60,7 @@ describe('font scaling policy', () => {
     ]
     const capped = files
       .filter((f) => f.src.includes('maxFontSizeMultiplier'))
-      .map((f) => rel(f.path))
+      .map((f) => f.path)
       .sort()
     expect(capped).toEqual(ALLOWED.sort())
   })

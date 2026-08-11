@@ -10,6 +10,7 @@ import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 import ConversationRow from './ConversationRow'
@@ -22,6 +23,7 @@ import ConversationRow from './ConversationRow'
 // what makes TenantMessagesScreen and OwnerInboxScreen two screens rather than
 // one screen with a flag.
 export default function ThreadListScreen({ navigation, side, title, counterpartRole, empty }) {
+  const { contentMaxWidth } = useLayout()
   const { user } = useAuth()
   const qc = useQueryClient()
   const [onlineUsers, setOnlineUsers] = useState(new Set())
@@ -114,6 +116,7 @@ export default function ThreadListScreen({ navigation, side, title, counterpartR
       <FlatList
         data={conversations}
         keyExtractor={(c) => c.id}
+        contentContainerStyle={centered(contentMaxWidth)}
         renderItem={({ item: c }) => {
           const other = side === 'owner' ? c.tenant : c.owner
           return (

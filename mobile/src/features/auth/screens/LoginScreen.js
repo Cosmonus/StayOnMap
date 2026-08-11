@@ -10,6 +10,7 @@ import OtpLoginForm from '@features/auth/components/OtpLoginForm'
 import SocialLoginButtons from '@features/auth/components/SocialLoginButtons'
 import { CITY_NAMES } from '@config/cities'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -63,6 +64,7 @@ function Field({ label, icon, style, secureTextEntry, autoCapitalize = 'none', .
 }
 
 export default function LoginScreen() {
+  const { contentMaxWidth } = useLayout()
   const { loginSuccess } = useAuth()
   const [tab, setTab] = useState('login') // 'login' | 'signup' | 'forgot' | 'otp'
   const [name, setName] = useState('')
@@ -143,7 +145,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[styles.scroll, centered(contentMaxWidth)]} keyboardShouldPersistTaps="handled">
           <Text style={styles.heading}>
             {tab === 'login' ? 'Welcome back' : tab === 'otp' ? 'Sign in with a code' : tab === 'forgot' ? 'Reset password' : waitlisted ? 'Almost there' : 'Create account'}
           </Text>
