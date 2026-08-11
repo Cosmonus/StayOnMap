@@ -17,6 +17,26 @@ export default {
         // width a 4-up grid on a 2560px monitor starts putting a metre between
         // the first card and the last.
         page: '1560px',
+
+        // The article reading measure, and the group built from it.
+        //
+        // TOKENS rather than literals for the same reason `page` is one: this
+        // number was written as `max-w-[68ch]` in five places across two files,
+        // so changing it meant finding all five, and a test ended up keyed to
+        // the literal because there was nothing else to key to.
+        //
+        // 90ch, widened from 68 on 2026-08-11 (operator decision: the content
+        // should use the width, not just the cover). It is at the generous end
+        // on purpose. The reason it is not simply the full 1496px shell is that
+        // a line of body text there runs ~160 characters, and the eye loses the
+        // start of the next line on the return sweep well before that — the
+        // failure is not that it looks bad, it is that people stop reading.
+        // 90ch is ~1050px here, a quarter wider than before and still trackable.
+        measure: '90ch',
+        // measure + the column gap (3rem) + the contents sidebar (16rem). Kept
+        // as arithmetic rather than a rounded px value so it cannot drift from
+        // the two things it is the sum of.
+        reading: 'calc(90ch + 3rem + 16rem)',
       },
       colors: {
         // ── Primary brand — Terrain Jade ───────────────────────────────────
