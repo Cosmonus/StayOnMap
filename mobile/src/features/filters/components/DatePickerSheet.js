@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useResetOnOpen } from '@/hooks/useResetOnOpen'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
+import { tapBox } from '@theme/touchTargets'
 import { shadows } from '@theme/shadows'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -115,7 +116,7 @@ export default function DatePickerSheet({ visible, title, value, onSelect, onClo
             <Pressable
               onPress={clear}
               disabled={!value}
-              hitSlop={12}
+              style={tapBox}
               accessibilityRole="button"
               accessibilityLabel="Clear date"
               accessibilityState={{ disabled: !value }}

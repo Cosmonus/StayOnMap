@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { View, Text, TextInput, Pressable, ScrollView, Linking, StyleSheet } from 'react-native'
 import { Search, Navigation, Clock } from 'lucide-react-native'
 import { colors } from '@theme/colors'
+import { tapBox } from '@theme/touchTargets'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 import usePoisNear from '../hooks/usePoisNear'
@@ -93,7 +94,7 @@ export default function PoiListView({ moduleKey, lat, lng }) {
           {isError && (
             <View style={styles.notice}>
               <Text style={styles.noticeText}>Couldn&apos;t load nearby places.</Text>
-              <Pressable onPress={() => refetch()} hitSlop={10} accessibilityRole="button">
+              <Pressable onPress={() => refetch()} style={tapBox} accessibilityRole="button">
                 <Text style={styles.retry}>Try again</Text>
               </Pressable>
             </View>

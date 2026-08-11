@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { colors } from '@theme/colors'
+import { tapBox } from '@theme/touchTargets'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -39,7 +40,7 @@ export default function AvailabilityCalendar({ blockedDates, onChange }) {
       <View style={styles.card}>
         <View style={styles.monthNav}>
           <Pressable
-            hitSlop={14}
+            style={tapBox}
             onPress={() => setCursor((c) => (c.month === 0 ? { year: c.year - 1, month: 11 } : { ...c, month: c.month - 1 }))}
             accessibilityRole="button"
             accessibilityLabel="Previous month"
@@ -48,7 +49,7 @@ export default function AvailabilityCalendar({ blockedDates, onChange }) {
           </Pressable>
           <Text style={styles.monthLabel}>{monthLabel}</Text>
           <Pressable
-            hitSlop={14}
+            style={tapBox}
             onPress={() => setCursor((c) => (c.month === 11 ? { year: c.year + 1, month: 0 } : { ...c, month: c.month + 1 }))}
             accessibilityRole="button"
             accessibilityLabel="Next month"

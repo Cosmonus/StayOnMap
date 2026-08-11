@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { reviewService } from '@services/review.service'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
-import { MIN_TAP_SIZE } from '@theme/touchTargets'
+import { MIN_TAP_SIZE, tapBox } from '@theme/touchTargets'
 import { fonts, fontSizes } from '@theme/typography'
 import { radius, spacing } from '@theme/spacing'
 
@@ -121,7 +121,7 @@ function WriteReviewForm({ propertyId, onCancel, onSuccess }) {
     <View style={styles.formCard}>
       <View style={styles.formHeaderRow}>
         <Text style={styles.formTitle}>Write a review</Text>
-        <Pressable onPress={onCancel} hitSlop={8}><Text style={styles.cancelLink}>Cancel</Text></Pressable>
+        <Pressable onPress={onCancel} style={tapBox} accessibilityRole="button"><Text style={styles.cancelLink}>Cancel</Text></Pressable>
       </View>
 
       <Text style={styles.label}>You are a</Text>

@@ -24,6 +24,7 @@ import {
 } from '../../config/onboarding.js'
 import { CITIES, CITY_NAMES, CITY_LIST_LABEL } from '@config/cities'
 import { colors } from '@theme/colors'
+import { tapBox } from '@theme/touchTargets'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -669,7 +670,7 @@ export function ReviewScreen({ categoryKey, draft, missing = [], onJump, profile
           <View key={label} style={[styles.factRow, i < rows.length - 1 && styles.factRowBorder]}>
             <Text style={styles.factLabel}>{label}</Text>
             <Text style={styles.factValue} numberOfLines={1}>{value}</Text>
-            <Pressable onPress={() => onJump?.(stepK)} hitSlop={12} accessibilityRole="button" accessibilityLabel={`Edit ${label}`}>
+            <Pressable onPress={() => onJump?.(stepK)} style={tapBox} accessibilityRole="button" accessibilityLabel={`Edit ${label}`}>
               <Text style={styles.editLink}>Edit</Text>
             </Pressable>
           </View>

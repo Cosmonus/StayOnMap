@@ -33,6 +33,29 @@ export function tapSlop(visualSize) {
   return Math.ceil(Math.max(0, MIN_TAP_SIZE - visualSize) / 2)
 }
 
+/**
+ * A whole tap target as a style, for a control with no box of its own.
+ *
+ *   <Pressable style={tapBox}><Text style={styles.link}>Cancel</Text></Pressable>
+ *
+ * This is the answer for a TEXT link — "Cancel", "Try again", "Go back", the
+ * ‹ › on a month picker. Those are Pressables wrapping a line of type and
+ * nothing else, and nine of them carried a hand-picked hitSlop that put them
+ * around 33-45dp. A number could not have fixed them: the box is a line of type
+ * whose height depends on the OS font setting, so there is no fixed visual size
+ * to compute a slop from. Giving them a real minimum box works at every font
+ * scale and grows past it rather than capping.
+ *
+ * minWidth as well as minHeight, because a "‹" is about ten points wide — a
+ * control can be tall enough and still be a sliver.
+ */
+export const tapBox = {
+  minWidth: MIN_TAP_SIZE,
+  minHeight: MIN_TAP_SIZE,
+  alignItems: 'center',
+  justifyContent: 'center',
+}
+
 // WHEN NOT TO USE THIS. hitSlop extends a touch area beyond the view's bounds,
 // and React Native does not arbitrate between two extended areas that overlap —
 // the hit goes to whichever view is later in the tree, regardless of which one

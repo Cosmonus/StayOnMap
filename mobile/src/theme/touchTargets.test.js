@@ -11,7 +11,7 @@
  */
 import { join } from 'node:path'
 import { readSource } from '../test/sourceScan'
-import { MIN_TAP_SIZE, tapSlop } from './touchTargets'
+import { MIN_TAP_SIZE, tapSlop, tapBox } from './touchTargets'
 
 describe('tapSlop', () => {
   it('lifts a control to exactly the minimum', () => {
@@ -37,6 +37,23 @@ describe('tapSlop', () => {
     // WCAG 2.5.8 asks 24, Android asks 48. Dropping to 24 would pass an audit
     // and still fail the person it is for.
     expect(MIN_TAP_SIZE).toBe(48)
+  })
+})
+
+describe('tapBox', () => {
+  it('is a full target in BOTH dimensions', () => {
+    // Height alone is the trap: a "‹" is about ten points wide, so a control
+    // can be tall enough and still be a sliver.
+    expect(tapBox.minHeight).toBe(MIN_TAP_SIZE)
+    expect(tapBox.minWidth).toBe(MIN_TAP_SIZE)
+  })
+
+  it('is a MINIMUM, so it still grows with the OS font setting', () => {
+    // `height` would crop a scaled-up label — the same rule theme/typography.js
+    // enforces. This is why text links get a box instead of a computed slop:
+    // their size is not knowable at author time.
+    expect(tapBox).not.toHaveProperty('height')
+    expect(tapBox).not.toHaveProperty('width')
   })
 })
 
@@ -103,10 +120,13 @@ function tapSites() {
       }
       const tag = src.slice(start, end + 1)
 
-      let visual = null
-      for (const name of [...tag.matchAll(/styles\.(\w+)/g)].map((s) => s[1])) {
-        const h = dim(bodies[name], 'height') ?? dim(bodies[name], 'minHeight')
-        if (h != null) { visual = h; break }
+      // `style={tapBox}` IS the box, by definition — no stylesheet to look up.
+      let visual = /\btapBox\b/.test(tag) ? MIN_TAP_SIZE : null
+      if (visual == null) {
+        for (const name of [...tag.matchAll(/styles\.(\w+)/g)].map((s) => s[1])) {
+          const h = dim(bodies[name], 'height') ?? dim(bodies[name], 'minHeight')
+          if (h != null) { visual = h; break }
+        }
       }
       if (visual == null) {
         const icon = src.slice(end, end + 400).match(/(?:<Icon|<X)[^>]*\bsize=\{(\d+)\}/)?.[1]
@@ -122,15 +142,22 @@ describe('the app measured against it', () => {
   const sites = tapSites()
   const resolved = sites.filter((s) => s.visual != null)
 
-  it('still resolves most of the tap sites', () => {
+  it('still finds the tap sites at all', () => {
     // The resolver reads source, so a refactor can quietly stop understanding a
     // call site — and an assertion that only checks what it resolved would then
-    // pass by checking nothing. This is the floor that makes that loud. The
-    // unresolved remainder are text buttons ("Cancel", "Try again"), whose box
-    // is a line of type that grows with the OS font setting and so has no fixed
-    // number to check.
-    expect(sites.length).toBeGreaterThan(40)
-    expect(resolved.length / sites.length).toBeGreaterThan(0.75)
+    // pass by checking nothing. This floor makes that loud.
+    expect(sites.length).toBeGreaterThan(35)
+  })
+
+  it('leaves nothing it cannot measure', () => {
+    // This was 9 sites until 2026-08-11 — text links ("Cancel", "Try again",
+    // "Go back", a month picker's ‹ ›) whose box is a line of type, so there
+    // was no fixed number to compute a slop from and every one of them had a
+    // hand-picked value putting it around 33-45dp. They take `tapBox` now,
+    // which is a real minimum in both dimensions and grows with the font
+    // setting. An unresolved site here means a control this cannot vouch for.
+    const unreadable = sites.filter((s) => s.visual == null).map((s) => `${s.path}:${s.line}`)
+    expect(unreadable).toEqual([])
   })
 
   it('gives every icon control a 48dp target', () => {
