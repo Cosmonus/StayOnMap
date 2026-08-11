@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { savedService } from '@services/saved.service'
 import Icon from '@components/common/Icon'
+import SavedSearchList from '../components/SavedSearchList'
 import ErrorState from '@components/common/ErrorState'
 import { useCardGrid, GridItem } from '@components/common/CardGrid'
 import ScreenHeader from '@components/common/ScreenHeader'
@@ -140,7 +141,12 @@ export default function SavedScreen({ navigation }) {
       ) : isError ? (
         <ErrorState title="Couldn't load saved homes" onRetry={refetch} />
       ) : !saved.length ? (
-        <View style={styles.center}>
+        <View style={styles.emptyWrap}>
+          {/* Saved SEARCHES can exist without saved homes — someone whose
+              filters came back empty is exactly who saves a search — so the
+              watch list renders on this branch too, above the empty state. */}
+          <SavedSearchList enabled={!!user} />
+          <View style={styles.center}>
           <View style={styles.emptyIcon}>
             <Icon name="heart" size={26} color={colors.brand600} />
           </View>
@@ -155,11 +161,13 @@ export default function SavedScreen({ navigation }) {
             <Icon name="explore" size={16} color={colors.white} />
             <Text style={styles.exploreButtonText}>Explore homes</Text>
           </Pressable>
+          </View>
         </View>
       ) : (
         <FlatList
           data={saved}
           keyExtractor={(item) => item.id}
+          ListHeaderComponent={<SavedSearchList enabled={!!user} />}
           ListFooterComponent={
             <>
               {summary?.newMatches ? (
@@ -194,6 +202,7 @@ export default function SavedScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
+  emptyWrap: { flex: 1, padding: spacing.md },
   emptyIcon: { width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
   emptyTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800, marginBottom: spacing.xs },
   emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate600, textAlign: 'center', maxWidth: 260, marginBottom: spacing.lg },

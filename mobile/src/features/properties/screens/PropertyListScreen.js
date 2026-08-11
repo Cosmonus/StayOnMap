@@ -9,6 +9,7 @@ import { toQueryParams, countActiveFilters } from '@config/filters'
 import MapFiltersSheet from '@features/map/components/MapFiltersSheet'
 import PropertyCard from '../components/PropertyCard'
 import ScreenHeader from '@components/common/ScreenHeader'
+import SaveSearchButton from '@features/filters/components/SaveSearchButton'
 import ErrorState from '@components/common/ErrorState'
 import Icon from '@components/common/Icon'
 import { useCardGrid, GridItem } from '@components/common/CardGrid'
@@ -108,6 +109,12 @@ export default function PropertyListScreen({ navigation, route }) {
           keyExtractor={(p) => p.id}
           ListHeaderComponent={
             <>
+              {/* The results list is where a search worth keeping just came
+                  back — especially thin. Bounds ride along in scoped mode so
+                  the alert means "here", the same semantics this list used. */}
+              <View style={styles.saveSearchRow}>
+                <SaveSearchButton filters={filters} bounds={bounds} />
+              </View>
               {/* A viewport constrains the list invisibly — without this someone
                   clears every filter, still sees a short list, and has no way to
                   know why. Same rule as the proximity note: an exclusion you
@@ -184,6 +191,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: spacing.md, paddingBottom: spacing.xxl, gap: spacing.md },
+  saveSearchRow: { marginBottom: spacing.sm },
   notice: {
     flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,
     backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate200,

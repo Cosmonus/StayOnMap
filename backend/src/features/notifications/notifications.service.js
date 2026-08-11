@@ -14,7 +14,7 @@ const EMAIL_TYPES = new Set(['APPOINTMENT_ACCEPTED', 'APPOINTMENT_REJECTED', 'VE
 // is actually waiting for — and deliberately not on SUPPORT_CASE_UPDATE, which
 // covers assignment and triage. A push saying "your case was assigned to an
 // agent" is a notification about our internal process, not about them.
-const PUSH_TYPES  = new Set(['APPOINTMENT_ACCEPTED', 'APPOINTMENT_REJECTED', 'LEASE_OFFERED', 'LEASE_SIGNED', 'LEASE_REJECTED', 'MESSAGE', 'SUPPORT_CASE_MESSAGE', 'SUPPORT_CASE_RESOLVED'])
+const PUSH_TYPES  = new Set(['APPOINTMENT_ACCEPTED', 'APPOINTMENT_REJECTED', 'LEASE_OFFERED', 'LEASE_SIGNED', 'LEASE_REJECTED', 'MESSAGE', 'SUPPORT_CASE_MESSAGE', 'SUPPORT_CASE_RESOLVED', 'SAVED_SEARCH_MATCH'])
 
 // `audience` says which hat the recipient is wearing — TENANT or OWNER. Every
 // caller passes it explicitly; it cannot be derived from `type` (see the

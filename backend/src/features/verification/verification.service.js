@@ -3,6 +3,7 @@ import { recalculateRiskScore } from '../trust/trust.service.js'
 import { notifyUser } from '../notifications/notifications.service.js'
 import { compareAddresses } from './addressMatch.js'
 import { firstPublishStamp } from '../properties/publishedAt.js'
+import { matchNewSupply } from '../savedSearches/savedSearch.service.js'
 import { recordStatusChange } from '../properties/statusEvents.js'
 
 export async function submitVerification(ownerId, propertyId, { documentAddress } = {}) {
@@ -76,11 +77,14 @@ export async function adminReviewVerification(verificationId, adminId, { status,
     if (property && property.status === 'PENDING') {
       // The second door into ACTIVE, and it must stamp the same way the admin
       // one does — see features/properties/publishedAt.js.
+      const stamp = firstPublishStamp(property, 'ACTIVE')
       await prisma.property.update({
         where: { id: verification.propertyId },
-        data: { status: 'ACTIVE', ...firstPublishStamp(property, 'ACTIVE') },
+        data: { status: 'ACTIVE', ...stamp },
       })
       recordStatusChange({ propertyId: verification.propertyId, from: property.status, to: 'ACTIVE', actor: 'admin' })
+      // New supply only, same test as admin.service.js — the stamp decides.
+      if (stamp.publishedAt) matchNewSupply(verification.propertyId).catch(() => {})
     }
   }
   const property = await prisma.property.findUnique({ where: { id: verification.propertyId }, select: { title: true } })
