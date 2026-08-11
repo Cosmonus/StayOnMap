@@ -210,6 +210,38 @@ describe('poiTrustScore', () => {
     expect(clean.reasons.filter((r) => r.sign === '-')).toEqual([])
   })
 
+  it('explains a MISSING core attribute — the commonest reason a score is low', () => {
+    // Found by running the scorer over real OSM rows: an unnamed marketplace
+    // scored 55 purely because identity was absent, with an EMPTY reasons
+    // array. An absence produces no factor (it is not a penalty), so nothing
+    // in the chain mentioned the single thing driving the number.
+    const unnamed = poiTrustScore(poi({ name: null, brand: null }), ctx())
+    expect(unnamed.score).toBeLessThan(70)
+    expect(unnamed.reasons.some((r) => r.sign === '-' && /what it is called/.test(r.text))).toBe(true)
+  })
+
+  it('stays quiet about a missing ENRICHMENT attribute', () => {
+    // It never affected the score, so saying "we don't have its phone number"
+    // about a metro station is noise dressed as an explanation.
+    const noPhone = poiTrustScore(poi({ phone: null, website: null }), ctx())
+    expect(noPhone.reasons.some((r) => /how to reach it/.test(r.text))).toBe(false)
+  })
+
+  it('never ships a low score with no explanation at all', () => {
+    // The contract the reasons array exists for: a bare number invites the
+    // reader to treat it as a measurement of the PLACE rather than of our
+    // knowledge of it.
+    for (const p of [
+      poi({ name: null, brand: null }),
+      poi({ category: null }),
+      poi({ fetchedAt: daysAgo(900) }),
+      poi({ status: 'ABSENT_FROM_SOURCE' }),
+    ]) {
+      const r = poiTrustScore(p, ctx())
+      if (r.score < 75) expect(r.reasons.filter((x) => x.sign === '-').length).toBeGreaterThan(0)
+    }
+  })
+
   it('explains a low score', () => {
     const bad = poiTrustScore(
       poi({ status: 'ABSENT_FROM_SOURCE', fetchedAt: daysAgo(900) }),

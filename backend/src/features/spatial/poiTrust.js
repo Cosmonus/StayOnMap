@@ -239,6 +239,25 @@ export function poiTrustScore(poi, ctx = {}) {
     reasons.push({ sign: '-', text: 'An independent source places this somewhere else' })
   }
 
+  // ── A MISSING core attribute is usually the largest single thing holding a
+  // score down, and it produces no factor to report — an absence is not a
+  // penalty, so the chain below has nothing to say about it.
+  //
+  // Without this the commonest low score in the table is unexplained: an
+  // unnamed marketplace scores 55 purely because identity is absent, and ships
+  // a bare number with an empty reasons array. That is the exact failure the
+  // reasons list exists to prevent, and it was invisible until the scorer was
+  // run over real OSM rows, where unnamed POIs are ordinary rather than an edge
+  // case.
+  //
+  // Only CORE attributes. Saying "we don't have its phone number" about a
+  // metro station would be noise about something that never affected the score.
+  for (const key of CORE_ATTRIBUTES) {
+    if (!attributes[key].present) {
+      reasons.push({ sign: '-', text: `We don't know ${ATTRIBUTES[key].label} — map data has no value for it` })
+    }
+  }
+
   // ── The reasons a person would actually want to read, drawn from the factor
   // chains rather than restated — so a reason can never claim a penalty that
   // was not applied.
