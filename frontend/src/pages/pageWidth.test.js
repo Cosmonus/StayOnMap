@@ -133,13 +133,50 @@ describe('the pages that start beneath the fixed header', () => {
   })
 })
 
-describe('what deliberately does NOT use it', () => {
-  it('an article keeps its reading measure', () => {
-    // BlogPostPage is prose. Line length has an optimum and it is nowhere near
-    // 1560px — widening it would be a regression dressed as consistency.
-    const post = read('src/pages/BlogPostPage.jsx')
-    expect(post).toMatch(/max-w-3xl/)
-    expect(post).not.toMatch(SHELL)
+describe('an article shares the shell but not the measure', () => {
+  // This test used to read: assert BlogPostPage contains `max-w-3xl` and NEVER
+  // `max-w-page`, on the grounds that "line length has an optimum and it is
+  // nowhere near 1560px — widening it would be a regression dressed as
+  // consistency."
+  //
+  // That reasoning is correct and is preserved below. What was wrong was the
+  // PROXY: it guarded the reading measure by forbidding a shell class, so the
+  // two could only ever move together. On 2026-08-11 the shell was widened to
+  // match Guides — the frame no longer jumps inward when you open an article —
+  // while the prose stayed at 68ch and the freed width went to the cover, the
+  // related-posts grid and the CTA, none of which are prose.
+  //
+  // So the invariant is now asserted directly. A future change that stretches
+  // the text still fails; one that widens the frame around it does not.
+  const post = () => read('src/pages/BlogPostPage.jsx')
+
+  it('uses the shared shell, so the page frame matches Guides', () => {
+    expect(post()).toMatch(SHELL)
+  })
+
+  it('still caps the PROSE at its reading measure', () => {
+    // The thing that actually matters. 68ch is ~68 characters; past that a
+    // reader loses the line on the return sweep, whatever the monitor.
+    const src = stripComments(post())
+    expect(src, 'the article body must stay at 68ch').toMatch(/max-w-\[68ch\]/)
+    expect(read('src/features/blog/components/ArticleBody.jsx')).toMatch(/max-w-\[68ch\]/)
+  })
+
+  it('never lets the prose column grow with the page', () => {
+    // The regression the original test was written to prevent, stated as
+    // itself: a prose container sized as a FRACTION of the shell rather than in
+    // characters. `w-full` on the centred reading group is fine — it is capped
+    // by the max-w beside it.
+    const src = stripComments(post())
+    expect(src, 'prose sized to the viewport instead of to characters')
+      .not.toMatch(/max-w-\[68ch\][^>]*\b(w-screen|max-w-full)\b/)
+  })
+
+  it('keeps the reading group narrower than the shell', () => {
+    // The centred wrapper is 68ch + gap + sidebar. If someone deletes the cap,
+    // the group inherits the full 1560 and the sidebar drifts ~500px from the
+    // text it belongs to — which is what `justify-between` used to do.
+    expect(stripComments(post())).toMatch(/max-w-\[calc\(68ch/)
   })
 
   it('the admin property view stays inside its own column', () => {
