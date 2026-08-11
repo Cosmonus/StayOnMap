@@ -325,11 +325,14 @@ export const prismaMock = {
     // exist in order to assert it was NOT called.
     updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    // The scoring job writes one row at a time.
+    update:     vi.fn().mockResolvedValue({}),
   },
   // Append-only POI existence history — openings, closures, returns.
   poiStatusEvent: {
     createMany: vi.fn().mockResolvedValue({ count: 0 }),
     findMany:   vi.fn().mockResolvedValue([]),
+    groupBy:    vi.fn().mockResolvedValue([]),
   },
   // Recorded disagreements between what we hold and what a source asserts.
   poiConflict: {
@@ -347,6 +350,12 @@ export const prismaMock = {
   // ETL run receipts. Default is "no report on file", which is both a fresh
   // checkout's real state and the case that must NOT be read as bad coverage —
   // see dataQuality.js's coverageFactor.
+  // India Post's directory — the ground truth a POI's postcode is checked
+  // against. Empty = not seeded, which must read as UNVERIFIED (not checked),
+  // never as CONTRADICTED.
+  pincodeDirectory: {
+    findMany: vi.fn().mockResolvedValue([]),
+  },
   dataQualityReport: {
     create:    vi.fn().mockResolvedValue({}),
     findFirst: vi.fn().mockResolvedValue(null),

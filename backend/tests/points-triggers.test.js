@@ -40,8 +40,19 @@ describe('updateUser → PROFILE_COMPLETED', () => {
   it('awards when the update makes the profile complete', async () => {
     prismaMock.user.update.mockResolvedValue({ id: 'u1', ...COMPLETE, passwordHash: 'x' })
     await updateUser('u1', { avatarUrl: COMPLETE.avatarUrl })
-    // fire-and-forget: give the microtask queue one turn
-    await new Promise((r) => setImmediate(r))
+    // Wait for the award to LAND, rather than for a fixed number of turns.
+    //
+    // This was `await new Promise((r) => setImmediate(r))` — one turn, on the
+    // assumption that the fire-and-forget chain is one link long. It is not, and
+    // under a loaded suite the award arrived a turn or two later: this test then
+    // failed with zero calls AND the next one failed with one, because the late
+    // call landed after its beforeEach had installed a fresh mock. Two failures,
+    // one cause, and neither reproducible in isolation.
+    //
+    // A guessed tick count is a race with a plausible-looking comment on it. If
+    // the chain ever grows a link, waitFor keeps working and a bigger number
+    // would just move the flake further away.
+    await vi.waitFor(() => expect(prismaMock.pointsLedger.create).toHaveBeenCalled())
     expect(prismaMock.pointsLedger.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ userId: 'u1', action: 'PROFILE_COMPLETED' }) })
     )
@@ -73,7 +84,9 @@ describe('moderateReview → REVIEW_APPROVED', () => {
     prismaMock.activityLog.create.mockResolvedValue({})
 
     await moderateReview('rev-1', 'APPROVED', 'admin-1')
-    await new Promise((r) => setImmediate(r))
+    // Same reason as PROFILE_COMPLETED above: wait for the award to land, not
+    // for a fixed number of turns.
+    await vi.waitFor(() => expect(prismaMock.pointsLedger.create).toHaveBeenCalled())
 
     expect(prismaMock.pointsLedger.create).toHaveBeenCalledWith(
       expect.objectContaining({

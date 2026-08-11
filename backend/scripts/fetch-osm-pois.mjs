@@ -72,6 +72,21 @@ const overpass = (query) => overpassQuery(query, {
 // number nobody records is a number nobody notices moving.
 const rejected = { total: 0, byReason: {} }
 
+/**
+ * "12, 100 Feet Road, Indiranagar" from OSM's addr:* tags.
+ *
+ * Composed at ingestion rather than stored as four columns because nothing
+ * queries the parts — the postcode, which IS queried, is kept separate. Returns
+ * null rather than an empty string when no part is present, so "we have no
+ * address" and "we have an address that is blank" cannot be confused.
+ */
+function composeAddress(tags) {
+  const parts = [tags['addr:housenumber'], tags['addr:street'], tags['addr:suburb']]
+    .map((p) => (p ?? '').trim())
+    .filter(Boolean)
+  return parts.length ? parts.join(', ') : null
+}
+
 function elementsToRows(elements) {
   const rows = []
   for (const el of elements) {
@@ -119,6 +134,16 @@ function elementsToRows(elements) {
       // matches a branch whose name tag is bare.
       brand: el.tags?.brand ?? el.tags?.operator ?? null,
       openingHours: el.tags?.opening_hours ?? null,
+      // Sparse in India and shown only when present, never inferred — the same
+      // rule brand and opening_hours follow. `contact:*` is the older scheme
+      // and is still widely used; reading only the bare key would miss it.
+      phone: el.tags?.phone ?? el.tags?.['contact:phone'] ?? null,
+      website: el.tags?.website ?? el.tags?.['contact:website'] ?? null,
+      address: composeAddress(el.tags ?? {}),
+      // Its own field: the join key to PincodeDirectory, which is the only
+      // independent check we can run on a POI. Digits only — mappers write
+      // "560 095" and "560095", and a join on the literal string finds neither.
+      postcode: (el.tags?.['addr:postcode'] ?? '').replace(/\D/g, '') || null,
       lat, lng, city,
     })
   }
@@ -197,7 +222,14 @@ async function writeRows(rows) {
           category: row.category, sourceTag: row.sourceTag,
           name: row.name, brand: row.brand,
           openingHours: row.openingHours, lat: row.lat, lng: row.lng,
+          phone: row.phone, website: row.website,
+          address: row.address, postcode: row.postcode,
           city: row.city, fetchedAt,
+          // The score describes data that has just changed, so it is now stale.
+          // Nulling it puts the row at the FRONT of the scoring job's queue
+          // (nulls first) rather than leaving a number that describes the
+          // previous fetch sitting on the new one.
+          scoredAt: null,
           // `status` is deliberately NOT set here. A row returning from absence
           // is revived by reviveReturnedPois after the write, so the transition
           // gets a PoiStatusEvent — setting it inline would flip the column and
