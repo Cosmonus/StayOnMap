@@ -10,6 +10,7 @@ import { disconnectUser } from '../../lib/socket.js'
 import { aiEnabled } from '../ai/ai.service.js'
 import { ADMIN_FILTERS, buildFilterWhere } from '../properties/filters.registry.js'
 import { firstPublishStamp } from '../properties/publishedAt.js'
+import { matchNewSupply } from '../savedSearches/savedSearch.service.js'
 import { averageRating } from '../reviews/rating.js'
 import { REVIEW_SIGNALS } from '../reviews/integrity.js'
 import { labelFraudSignal } from '../intelligence/signalLabels.js'
@@ -518,11 +519,18 @@ export async function setPropertyStatus(propertyId, status, note, adminId) {
 
   // Approval is the moment a renter can first see this — see publishedAt.js
   // for why that is not `createdAt` and why it is written only once.
+  const stamp = firstPublishStamp(current, status)
   const property = await prisma.property.update({
     where: { id: propertyId },
-    data: { status, ...firstPublishStamp(current, status) },
+    data: { status, ...stamp },
   })
   recordStatusChange({ propertyId, from: current.status, to: status, actor: 'admin' })
+
+  // NEW supply only — the stamp is the test. A reinstated or vacated listing
+  // has publishedAt already and stamps nothing, so nobody is alerted about a
+  // home they were already able to see. Fire-and-forget: an alert must never
+  // break the approval that triggered it.
+  if (stamp.publishedAt) matchNewSupply(propertyId).catch(() => {})
 
   // Becoming ACTIVE is the moment a listing enters the recommendable set, so it
   // is where the SIMILAR_TO edges have to be built — in BOTH directions, or the

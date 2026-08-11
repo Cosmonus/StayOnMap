@@ -238,6 +238,10 @@ enum NotificationType {
   SUPPORT_CASE_MESSAGE
   SUPPORT_CASE_UPDATE
   SUPPORT_CASE_RESOLVED
+  // A saved search matched NEW supply (2026-08-11). Fires only where
+  // firstPublishStamp() actually stamps — never on an edit, never on a
+  // vacancy. See features/savedSearches/.
+  SAVED_SEARCH_MATCH
 }
 
 enum LeaseStatus {
@@ -310,6 +314,7 @@ model User {
   properties         Property[]
   occupiedProperties Property[]            @relation("CurrentTenant")
   savedListings      SavedListing[]
+  savedSearches      SavedSearch[]
   appointments       Appointment[]         @relation("TenantAppointments")
   reviews            CommunityReview[]
   votes              RecommendationVote[]
@@ -1011,6 +1016,34 @@ model SavedListing {
   createdAt  DateTime @default(now())
 
   @@unique([userId, propertyId])
+  @@index([userId])
+}
+
+// A filter set worth telling somebody about later. `query` is the VALIDATED
+// output of the same Zod shape /pins takes (savedSearch.validation.js) — a
+// saved search IS a saved pins query, so the matcher can hand it straight to
+// buildFilterWhere() and boundsFilter() and cannot drift from what the map
+// showed when it was saved.
+//
+// Deliberately NOT stored: proximity filters ("within 800m of a metro"). They
+// live outside the registry, resolve against cell state that changes under the
+// search, and their exclude-and-disclose contract (.claude/spatial.md) has no
+// surface in a push notification.
+//
+// The matcher fires ONLY where firstPublishStamp() stamps — admin approval and
+// verification approval of a never-published listing. Never an edit, never a
+// vacancy: a tenant moving out is the same home again, and alerting on it
+// would be the feature's first lie.
+model SavedSearch {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  // What the person called it — "2 BHK under 30k, Koramangala". The clients
+  // suggest one from the active filters; the server only requires it non-empty.
+  name      String
+  query     Json
+  createdAt DateTime @default(now())
+
   @@index([userId])
 }
 

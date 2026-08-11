@@ -160,6 +160,15 @@ export const prismaMock = {
   savedListing: {
     count: vi.fn(),
   },
+  // Defaults to "nobody saved a search", which is what the matcher meets on a
+  // fresh database and the path every unrelated approval test goes down.
+  savedSearch: {
+    findMany:  vi.fn().mockResolvedValue([]),
+    findUnique: vi.fn(),
+    count:     vi.fn(),
+    create:    vi.fn(),
+    delete:    vi.fn(),
+  },
   listingDraft: {
     findUnique: vi.fn(),
     findMany:   vi.fn().mockResolvedValue([]),
