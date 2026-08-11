@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import { RefreshCw } from 'lucide-react'
 import { adminService } from '@services/admin.service'
 import DataQualityPanel from './DataQualityPanel'
+import PoiQualityCard from './PoiQualityCard'
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -619,6 +620,11 @@ export default function AdminMonitorSection() {
             <AppointmentsCard appointmentByStatus={data.appointmentByStatus} />
           </div>
           <DataQualityPanel />
+          {/* Below DataQualityPanel deliberately: that answers "did the fetch
+              run", this answers "and is what it fetched any good". Reading them
+              the other way round invites explaining a quality number with a
+              coverage problem nobody has looked at yet. */}
+          <PoiQualityCard />
           <RecentActivitySection activity={data.recentActivity} />
         </>
       )}

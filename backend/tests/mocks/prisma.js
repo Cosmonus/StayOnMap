@@ -311,9 +311,12 @@ export const prismaMock = {
   // a fresh checkout's real state and the path that must degrade gracefully —
   // individual tests override to exercise the seeded path.
   poiIndex: {
-    count:    vi.fn().mockResolvedValue(0),
-    findMany: vi.fn().mockResolvedValue([]),
-    upsert:   vi.fn(),
+    count:     vi.fn().mockResolvedValue(0),
+    findMany:  vi.fn().mockResolvedValue([]),
+    // Single-POI lookup — the trust tool. Null = no such POI, which must read
+    // as UNKNOWN rather than as a zero score.
+    findFirst: vi.fn().mockResolvedValue(null),
+    upsert:    vi.fn(),
     // Per-category city coverage (cityCategoryCoverage). Empty = nothing
     // seeded, matching count 0 above.
     groupBy:  vi.fn().mockResolvedValue([]),
