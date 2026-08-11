@@ -131,15 +131,13 @@ describe('the schema — what may be stored', () => {
     })).toThrow()
   })
 
-  it('refuses proximity params instead of accepting-and-ignoring them', () => {
-    // validate() strips unknown keys via the schema; what must be true is that
-    // the stored query never CONTAINS a proximity filter the matcher would
-    // then silently not apply — broader-than-saved is the quiet failure.
-    const parsed = createSavedSearchSchema.parse({
-      name: 'x', query: { type: 'PG', nearCategory: 'metro_station', nearM: 800 },
-    })
-    expect(parsed.query.nearCategory).toBeUndefined()
-    expect(parsed.query.nearM).toBeUndefined()
+  it('REJECTS proximity params instead of accepting-and-ignoring them', () => {
+    // Zod's default would STRIP an unknown key — storing the search without
+    // half its meaning, quietly broader than the screen it was saved from. A
+    // 400 forces the client to omit the filter and disclose the omission.
+    expect(() => createSavedSearchSchema.parse({
+      name: 'x', query: { type: 'PG', nearMetro: 800 },
+    })).toThrow()
   })
 
   it('requires a non-empty name', () => {

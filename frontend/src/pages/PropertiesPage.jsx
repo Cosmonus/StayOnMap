@@ -8,6 +8,7 @@ import { useFilterStore } from '@store/filterStore'
 import { useFilterUrlSync } from '@features/filters/hooks/useFilterUrlSync'
 import { toQueryParams } from '@/config/filters'
 import PropertyCard from '@features/properties/components/PropertyCard'
+import SaveSearchButton from '@features/filters/components/SaveSearchButton'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
 
@@ -159,16 +160,26 @@ export default function PropertiesPage() {
             80%/max-w cap read as dead space either side of the grid */}
         <div className="w-full px-4 md:px-6">
           <div className="mb-6">
-            <h1 className="font-display font-bold text-2xl sm:text-3xl text-slate-900 tracking-tight">
-              All properties{locationLabel ? ` in ${locationLabel}` : ''}
-            </h1>
-            <p className="text-sm text-slate-500 mt-1">
-              {isLoading
-                ? 'Loading listings…'
-                : properties.length === 0
-                ? 'No properties match your filters — try clearing the city or furnishing filter.'
-                : noun(properties.length)}
-            </p>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h1 className="font-display font-bold text-2xl sm:text-3xl text-slate-900 tracking-tight">
+                  All properties{locationLabel ? ` in ${locationLabel}` : ''}
+                </h1>
+                <p className="text-sm text-slate-500 mt-1">
+                  {isLoading
+                    ? 'Loading listings…'
+                    : properties.length === 0
+                    ? 'No properties match your filters — try clearing the city or furnishing filter.'
+                    : noun(properties.length)}
+                </p>
+              </div>
+              {/* The results header is where a search worth keeping just came
+                  back — especially thin. Bounds ride along so the alert means
+                  "here", the same semantics the grid itself just used. */}
+              <div className="shrink-0">
+                <SaveSearchButton filters={filters} bounds={bounds} locationLabel={locationLabel} />
+              </div>
+            </div>
 
             {/*
               A viewport constrains the grid invisibly — without this the

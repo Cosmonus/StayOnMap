@@ -7,6 +7,7 @@ import { formatTime } from '@utils/time'
 import Price from '@components/listing/Price'
 import SpecLine from '@components/listing/SpecLine'
 import HomesForYou from './HomesForYou'
+import SavedSearches from './SavedSearches'
 
 // Saved homes — the one page a renter comes BACK to, so every row says what
 // CHANGED since they saved it. Mirrors mobile's SavedScreen: same three
@@ -94,6 +95,11 @@ export default function SavedHomes() {
 
   if (!saved.length) {
     return (
+      <div className="max-w-3xl">
+      {/* Saved SEARCHES can exist without saved homes — someone whose filters
+          came back empty is exactly who saves a search — so the watch list
+          renders on this branch too, above the empty state. */}
+      <SavedSearches />
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <div className="w-14 h-14 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 mb-4">
           <Heart size={24} strokeWidth={1.8} />
@@ -108,6 +114,7 @@ export default function SavedHomes() {
         >
           Explore homes
         </Link>
+      </div>
       </div>
     )
   }
@@ -124,6 +131,7 @@ export default function SavedHomes() {
 
   return (
     <div className="space-y-4 max-w-3xl">
+      <SavedSearches />
       <div>
         <h1 className="font-display text-2xl font-bold text-slate-900 tracking-tight">Saved homes</h1>
         {subline && <p className="text-sm text-slate-600 mt-1">{subline}</p>}

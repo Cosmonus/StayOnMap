@@ -16,12 +16,14 @@ import { PRICING_MODELS, filterQueryShape } from '../properties/filters.registry
 //    rejected rather than half-applied, because silently ignoring two corners
 //    alerts someone about homes outside the box they drew.
 //
-//  - No proximity params. They live outside the registry, resolve against
-//    cell state that changes underneath a stored search, and their
-//    exclude-and-disclose contract (.claude/spatial.md) has no surface in a
-//    push notification. Refusing them here is honest; accepting-and-ignoring
-//    would make the saved search quietly broader than the screen it was saved
-//    from.
+//  - No proximity params — and the query object is STRICT, so they are
+//    REJECTED, not stripped. Zod's default strips unknown keys, which would be
+//    accept-and-ignore: the search stored without half its meaning, quietly
+//    broader than the screen it was saved from. A 400 makes the client's
+//    obligation explicit — omit the proximity filter and SAY it isn't part of
+//    the alert. (They live outside the registry, resolve against cell state
+//    that changes underneath a stored search, and their exclude-and-disclose
+//    contract in .claude/spatial.md has no surface in a push notification.)
 const bounds = {
   swLat: indiaLat(z.coerce.number()).optional(),
   swLng: indiaLng(z.coerce.number()).optional(),
@@ -38,7 +40,7 @@ export const createSavedSearchSchema = z.object({
     // monthly-rent search (properties.validation.js says why at length).
     pricingModel: z.enum(PRICING_MODELS).default('RENT'),
     ...bounds,
-  }).refine(
+  }).strict().refine(
     (q) => {
       const given = [q.swLat, q.swLng, q.neLat, q.neLng].filter((v) => v !== undefined).length
       return given === 0 || given === 4

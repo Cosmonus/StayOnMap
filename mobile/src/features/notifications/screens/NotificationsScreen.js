@@ -21,7 +21,7 @@ const TYPE_ICON = {
   REPORT_SUBMITTED: 'alertTriangle', REPORT_UPDATE: 'alertTriangle',
   VERIFICATION_UPDATE: 'shieldCheck', TRUST_ALERT: 'shield',
   LEASE_OFFERED: 'document', LEASE_SIGNED: 'document', LEASE_REJECTED: 'document',
-  SYSTEM: 'info', MESSAGE: 'messageCircle',
+  SYSTEM: 'info', MESSAGE: 'messageCircle', SAVED_SEARCH_MATCH: 'bell',
 }
 
 function timeAgo(date) {
