@@ -1,6 +1,6 @@
 import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { savedService } from '@services/saved.service'
 import Icon from '@components/common/Icon'
@@ -12,6 +12,7 @@ import ListingCard from '@components/common/ListingCard'
 import { formatCurrency, priceUnit } from '@utils/format'
 import { formatTime } from '@utils/time'
 import { colors } from '@theme/colors'
+import { tapSlop } from '@theme/touchTargets'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 import HomesForYou from '../components/HomesForYou'
@@ -60,10 +61,36 @@ function Chip({ children, tone = 'brand' }) {
 
 function SavedRow({ item, onPress }) {
   const p = item.property
+  const qc = useQueryClient()
+
+  // The heart every other property card has — user-reported missing from the
+  // one screen where everything IS saved, which left no way to unsave from
+  // the wishlist itself. Filled by definition here; tapping it unsaves and
+  // the row leaves the list. ListingCard's `overlay` slot exists for exactly
+  // this — its own comment names "save heart" as an intended occupant.
+  const unsave = useMutation({
+    mutationFn: () => savedService.unsave(p.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['saved'] })
+      qc.invalidateQueries({ queryKey: ['saved-summary'] })
+    },
+  })
 
   return (
     <ListingCard
       photoUrl={p.images?.[0]?.url}
+      overlay={(
+        <Pressable
+          style={[styles.heartButton, unsave.isPending && styles.heartBusy]}
+          onPress={() => unsave.mutate()}
+          disabled={unsave.isPending}
+          hitSlop={tapSlop(32)}
+          accessibilityRole="button"
+          accessibilityLabel={`Remove ${p.title} from saved`}
+        >
+          <Icon name="heartFilled" size={16} color={colors.danger} />
+        </Pressable>
+      )}
       price={formatCurrency(Number(p.rent))}
       priceUnit={priceUnit(p)}
       title={p.title}
@@ -202,6 +229,13 @@ export default function SavedScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
+  // Same scrim-circle as PropertyCard/MapHomeCard — one heart, three surfaces.
+  heartButton: {
+    position: 'absolute', top: spacing.sm, right: spacing.sm,
+    width: 32, height: 32, borderRadius: radius.full,
+    backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center',
+  },
+  heartBusy: { opacity: 0.6 },
   emptyWrap: { flex: 1, padding: spacing.md },
   emptyIcon: { width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
   emptyTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800, marginBottom: spacing.xs },
