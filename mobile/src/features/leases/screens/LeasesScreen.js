@@ -10,6 +10,7 @@ import { WEB_ORIGIN } from '@config/links'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ErrorState from '@components/common/ErrorState'
+import TenancyList from '@features/tenancies/components/TenancyList'
 import { colors } from '@theme/colors'
 import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
@@ -212,6 +213,12 @@ export default function LeasesScreen({ navigation }) {
         <ErrorState title="Couldn't load leases" onRetry={refetch} />
       ) : (
         <ScrollView contentContainerStyle={[styles.scroll, centered(contentMaxWidth)]}>
+          {/* The tenancy record sits above the lease paperwork: confirm
+              prompts and double-blind reviews live here for BOTH hats — this
+              screen already shows both sides of leasing, so it shows both
+              sides of the record too. */}
+          <TenancyList hat="tenant" enabled={!!user} />
+          {isOwner && <TenancyList hat="owner" enabled={!!user} />}
           {isOwner && asOwner.length > 0 && (
             <View style={{ gap: spacing.sm, marginBottom: spacing.lg }}>
               <Text style={styles.sectionLabel}>Leases you&apos;ve offered</Text>

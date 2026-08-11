@@ -1,6 +1,7 @@
 import { Check, Clock, Navigation, X } from 'lucide-react'
 import { AmenityIcon } from '@components/common/AmenityIcon'
 import ReviewsSection from '@features/reviews/components/ReviewsSection'
+import PastTenantReviews from '@features/tenancies/components/PastTenantReviews'
 import SimilarHomes from './SimilarHomes'
 import SpatialContextPanel from '@features/spatial/components/SpatialContextPanel'
 import CommuteCalculator from '@features/areas/components/CommuteCalculator'
@@ -192,6 +193,12 @@ export default function DetailSheet({ property, variant, isOwner, directionsUrl 
       <SheetSection id="reviews" title="Community reviews">
         <ReviewsSection propertyId={property.id} isOwner={isOwner} ownerInfo={property?.owner} />
       </SheetSection>
+
+      {/* Tenancy-backed reviews of the OWNER — every entry survived the
+          double-blind window and traces to a confirmed tenancy. The component
+          renders nothing when there are none, so no SheetSection wrapper: an
+          empty "past tenants" heading under every listing reads as a warning. */}
+      <PastTenantReviews propertyId={property.id} />
 
       {/* "Homes like this one" sits LAST on purpose: it is the next-step action
           for somebody who has finished reading this listing and decided against

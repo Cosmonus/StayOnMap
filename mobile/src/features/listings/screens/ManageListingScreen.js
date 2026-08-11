@@ -8,6 +8,7 @@ import { formatPrice, formatDate, imgUrl } from '@utils/format'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ContactRow, { buildContactStats } from '../components/ContactRow'
+import { chatService } from '@services/chat.service'
 import ReportsSheet from '../components/ReportsSheet'
 import { colors } from '@theme/colors'
 import { tapBox } from '@theme/touchTargets'
@@ -62,6 +63,28 @@ export default function ManageListingScreen({ navigation, route }) {
   const { propertyId } = route.params
   const qc = useQueryClient()
   const [reportsOpen, setReportsOpen] = useState(false)
+  const [chattingId, setChattingId] = useState(null)
+
+  // Same shape as AppointmentsScreen's openChat: get-or-create the thread,
+  // then push Conversation onto THIS stack (BOOKING_SCREENS registers it
+  // here), so back returns to this listing rather than the Inbox tab's list.
+  async function openChat(contact) {
+    if (!contact?.id) return
+    setChattingId(contact.id)
+    try {
+      const convo = await chatService.startWithTenant(propertyId, contact.id).then((r) => r.data)
+      qc.invalidateQueries({ queryKey: ['conversations'] })
+      navigation.navigate('Conversation', {
+        conversationId: convo.id,
+        other: contact,
+        otherRole: 'Renter',
+      })
+    } catch {
+      Alert.alert('Couldn’t open the chat', 'Please try again in a moment.')
+    } finally {
+      setChattingId(null)
+    }
+  }
 
   const { data: property, isLoading, isError, refetch } = useQuery({
     queryKey: ['manage-listing', propertyId],
@@ -358,6 +381,8 @@ export default function ManageListingScreen({ navigation, route }) {
             contact={item}
             canMarkTenant={status === 'ACTIVE'}
             onMarkTenant={() => confirmMarkTenant(item)}
+            onChat={() => openChat(item)}
+            chatting={chattingId === item.id}
             disabled={busy}
           />
         )}

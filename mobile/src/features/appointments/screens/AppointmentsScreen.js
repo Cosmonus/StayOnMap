@@ -11,6 +11,7 @@ import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ErrorState from '@components/common/ErrorState'
 import ProposeTimeSheet from '../components/ProposeTimeSheet'
+import TenantResumeSheet from '@features/tenancies/components/TenantResumeSheet'
 import { colors } from '@theme/colors'
 import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
@@ -131,9 +132,10 @@ function PropertyLine({ property }) {
   )
 }
 
-function OwnerCard({ appt, onAction, onChat, chatting, busy }) {
+function OwnerCard({ appt, onAction, onChat, onMove, chatting, busy }) {
   const [rejecting, setRejecting] = useState(false)
   const [note, setNote] = useState('')
+  const [resumeOpen, setResumeOpen] = useState(false)
   // A renter's counter-offer needs an answer exactly as much as a first request
   // does. Gating on PENDING alone left it in the queue with nothing to press.
   const proposed = appt.status === 'RESCHEDULE_REQUESTED'
@@ -152,8 +154,22 @@ function OwnerCard({ appt, onAction, onChat, chatting, busy }) {
 
         <View style={styles.cardTopBody}>
           {/* The person and the time, at the size they deserve — this is the
-              sentence a host reads: "Priya, 4:30 PM". */}
-          <Text style={styles.person} numberOfLines={1}>{personName(appt.tenant)}</Text>
+              sentence a host reads: "Priya, 4:30 PM". The name is also the
+              door to their rental résumé: this queue is where a host decides
+              about a stranger, so the history belongs at the decision. */}
+          <Pressable
+            onPress={() => setResumeOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`View ${personName(appt.tenant)}'s rental history`}
+          >
+            <Text style={[styles.person, styles.personLink]} numberOfLines={1}>{personName(appt.tenant)}</Text>
+          </Pressable>
+          <TenantResumeSheet
+            userId={appt.tenant?.id}
+            name={personName(appt.tenant)}
+            visible={resumeOpen}
+            onClose={() => setResumeOpen(false)}
+          />
           <Text style={styles.time}>{formatTime(appt.requestedTime)}</Text>
           {!!appt.contactNumber && <Text style={styles.phoneText}>{appt.contactNumber}</Text>}
         </View>
@@ -240,6 +256,35 @@ function OwnerCard({ appt, onAction, onChat, chatting, busy }) {
             <Text style={styles.rejectButtonText}>Decline</Text>
           </Pressable>
         </View>
+      )}
+
+      {/* The middle answer. Accept-or-decline forced a binary onto the
+          commonest real reply — "yes, but Sunday". Ghost weight under the
+          pair: it is the alternative, not a third equal. */}
+      {isPending && !rejecting && (
+        <Pressable
+          style={[styles.moveButton, busy && styles.busy]}
+          onPress={() => onMove(appt)}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel="Propose a different time"
+        >
+          <Text style={styles.moveButtonText}>Propose a different time</Text>
+        </Pressable>
+      )}
+
+      {/* Moving an ACCEPTED visit — plans changed after saying yes. The
+          renter is notified of the new time straight away. */}
+      {appt.status === 'ACCEPTED' && !past && (
+        <Pressable
+          style={[styles.moveButton, styles.moveButtonOutlined, busy && styles.busy]}
+          onPress={() => onMove(appt)}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel="Move this visit"
+        >
+          <Text style={styles.moveButtonText}>Move this visit</Text>
+        </Pressable>
       )}
 
       {isPending && rejecting && (
@@ -414,6 +459,7 @@ export default function AppointmentsScreen({ navigation, route }) {
   })
 
   const [proposing, setProposing] = useState(null)
+  const [ownerMoving, setOwnerMoving] = useState(null)
 
   const mutation = useMutation({
     mutationFn: ({ id, ...body }) => appointmentService.updateStatus(id, body),
@@ -562,6 +608,7 @@ export default function AppointmentsScreen({ navigation, route }) {
                 busy={mutation.isPending}
                 chatting={chattingId === item.id}
                 onChat={() => openChat(item)}
+                onMove={setOwnerMoving}
                 onAction={(id, status, ownerNote) => mutation.mutate({ id, status, ownerNote })}
               />
               : <TenantCard appt={item} busy={mutation.isPending} onCancel={confirmCancel} onPropose={setProposing} />
@@ -574,7 +621,20 @@ export default function AppointmentsScreen({ navigation, route }) {
         appt={proposing}
         onClose={() => setProposing(null)}
         saving={mutation.isPending}
-        onSubmit={(body) => mutation.mutate({ id: proposing.id, status: 'RESCHEDULE_REQUESTED', ...body })}
+        onSubmit={({ note, ...body }) => mutation.mutate({ id: proposing.id, status: 'RESCHEDULE_REQUESTED', tenantNote: note, ...body })}
+      />
+
+      {/* The owner's version of the same picker. RESCHEDULED, not
+          RESCHEDULE_REQUESTED: an owner does not ask permission to move a
+          visit on their own listing — the server rewrites the slot from this
+          pair and the renter is notified of the new time straight away. */}
+      <ProposeTimeSheet
+        role="owner"
+        visible={!!ownerMoving}
+        appt={ownerMoving}
+        onClose={() => setOwnerMoving(null)}
+        saving={mutation.isPending}
+        onSubmit={({ note, ...body }) => mutation.mutate({ id: ownerMoving.id, status: 'RESCHEDULED', ownerNote: note, ...body })}
       />
     </SafeAreaView>
   )
@@ -634,6 +694,12 @@ const styles = StyleSheet.create({
   dateMutedText: { color: colors.slate500 },
 
   person: { fontFamily: fonts.displayBold, fontSize: fontSizes.base, color: colors.slate900 },
+  // The underline is the affordance — a name that opens something must not
+  // look like the plain text names everywhere else.
+  personLink: { textDecorationLine: 'underline', textDecorationColor: colors.slate300 },
+  moveButton: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, marginTop: spacing.xs },
+  moveButtonOutlined: { borderWidth: 1, borderColor: colors.slate200 },
+  moveButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.slate600 },
   time: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
 
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.full },

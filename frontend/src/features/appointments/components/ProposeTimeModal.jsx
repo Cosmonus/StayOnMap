@@ -19,7 +19,12 @@ const LEAD_MINUTES = 30
 const pad = (n) => String(n).padStart(2, '0')
 const localISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 
-export default function ProposeTimeModal({ appt, open, onClose, onSubmit, pending }) {
+// `role` decides the words and the promise, not the picker: a renter PROPOSES
+// (the visit stays open until the owner confirms), an owner MOVES (their say
+// is final and the renter is told the new time). Same component because the
+// question — which day, which slot — is identical, and two pickers with their
+// own rules about which days are free is how the two would come apart.
+export default function ProposeTimeModal({ appt, open, onClose, onSubmit, pending, role = 'renter' }) {
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [note, setNote] = useState('')
@@ -73,11 +78,13 @@ export default function ProposeTimeModal({ appt, open, onClose, onSubmit, pendin
     ? `${new Date(appt.scheduledAt ?? appt.requestedDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}${appt.requestedTime ? `, ${formatTime(appt.requestedTime)}` : ''}`
     : null
 
+  const isOwner = role === 'owner'
+
   return (
     <Modal
       isOpen={open}
       onClose={close}
-      title="Propose a different time"
+      title={isOwner ? 'Move this visit' : 'Propose a different time'}
       sheet
       footer={
         <div className="flex gap-2">
@@ -86,9 +93,9 @@ export default function ProposeTimeModal({ appt, open, onClose, onSubmit, pendin
             fullWidth
             disabled={!date || !time}
             loading={pending}
-            onClick={() => onSubmit({ requestedDate: new Date(date).toISOString(), requestedTime: time, tenantNote: note.trim() || undefined })}
+            onClick={() => onSubmit({ requestedDate: new Date(date).toISOString(), requestedTime: time, note: note.trim() || undefined })}
           >
-            Send to owner
+            {isOwner ? 'Move visit' : 'Send to owner'}
           </Button>
         </div>
       }
@@ -96,8 +103,10 @@ export default function ProposeTimeModal({ appt, open, onClose, onSubmit, pendin
       <div className="space-y-5">
         {current && (
           <p className="text-sm text-slate-600">
-            Currently <strong className="font-semibold text-slate-800">{current}</strong>. The owner
-            will be asked to confirm whatever you pick here — the visit stays open until they do.
+            Currently <strong className="font-semibold text-slate-800">{current}</strong>.{' '}
+            {isOwner
+              ? 'The renter is notified of the new time straight away.'
+              : 'The owner will be asked to confirm whatever you pick here — the visit stays open until they do.'}
           </p>
         )}
 

@@ -7,6 +7,7 @@ import { generatePropertyDisplayId } from '../../utils/idGenerator.js'
 import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { intelError } from '../../lib/intelLog.js'
 import { recordStatusChange } from './statusEvents.js'
+import { startMarkedTenancyOp, endTenancyOp, notifyTenancyCreated } from '../tenancies/tenancy.service.js'
 import { SUPPORTED_CITIES } from '../../config/cities.js'
 import { cityMismatch } from '../../config/cityCenters.js'
 import { buildFilterWhere, filterCacheKey } from './filters.registry.js'
@@ -807,11 +808,21 @@ export async function markTenant(propertyId, ownerId, tenantId) {
   }
 
   recordStatusChange({ propertyId, from: property.status, to: 'OCCUPIED', actor: 'owner' })
-  return prisma.property.update({
-    where: { id: propertyId },
-    data: { status: 'OCCUPIED', currentTenantId: tenantId, occupiedSince: new Date() },
-    include: { currentTenant: { select: { id: true, name: true, avatarUrl: true } } },
-  })
+  const [updated, tenancy] = await prisma.$transaction([
+    prisma.property.update({
+      where: { id: propertyId },
+      data: { status: 'OCCUPIED', currentTenantId: tenantId, occupiedSince: new Date() },
+      include: { currentTenant: { select: { id: true, name: true, avatarUrl: true } } },
+    }),
+    // The tenancy RECORD — UNCONFIRMED, because this is the owner's assertion
+    // about another person; it counts for nothing (no reviews, no résumé row)
+    // until the tenant confirms. In the transaction so the record cannot
+    // silently miss while the listing flips OCCUPIED.
+    startMarkedTenancyOp({ propertyId, ownerId, tenantId }),
+  ])
+  // Ask the tenant to confirm — fire-and-forget, never blocks the mark.
+  notifyTenancyCreated(tenancy).catch(() => {})
+  return updated
 }
 
 export async function getPropertyContacts(propertyId, ownerId) {
@@ -824,14 +835,20 @@ export async function getPropertyContacts(propertyId, ownerId) {
         select: {
           id: true, status: true, requestedDate: true, requestedTime: true,
           message: true, ownerNote: true, contactNumber: true, tenantId: true, createdAt: true,
-          tenant: { select: { id: true, name: true, email: true, avatarUrl: true, phone: true } },
+          // contactVisibility is selected so the gate below can READ it —
+          // dropping it from this select is the dangerous edit: the gate then
+          // reads undefined, which is not 'NOBODY', and a withheld number
+          // ships (the chat-contact-visibility lesson, same file rule).
+          tenant: { select: { id: true, name: true, email: true, avatarUrl: true, phone: true, contactVisibility: true } },
         },
         orderBy: { createdAt: 'desc' },
       },
       conversations: {
         select: {
           id: true, tenantId: true, lastMessageAt: true,
-          tenant: { select: { id: true, name: true, email: true, avatarUrl: true } },
+          // phone + contactVisibility together, or the gate reads undefined —
+          // see the appointments select above.
+          tenant: { select: { id: true, name: true, email: true, avatarUrl: true, phone: true, contactVisibility: true } },
           messages: {
             select: { id: true, senderId: true, body: true, createdAt: true, sender: { select: { id: true, name: true } } },
             orderBy: { createdAt: 'desc' },
@@ -848,6 +865,21 @@ export async function getPropertyContacts(propertyId, ownerId) {
     },
   })
   if (!property) throw Object.assign(new Error('Property not found or access denied'), { statusCode: 404 })
+
+  // The per-PERSON phone gate, same rule as chat's gateParticipantPhones: a
+  // profile number is withheld when its owner set contactVisibility NOBODY,
+  // and the setting itself is never returned. This endpoint shipped 2026-07-27
+  // leaking the profile phone UNGATED — found 2026-08-12 while the contacts
+  // list grew a call button, which is exactly when the leak would have started
+  // to matter. (Appointment.contactNumber is untouched: that number was given
+  // BY the tenant TO this owner for a visit on this listing — an explicit
+  // share in context, already rendered on the visit card.)
+  for (const row of [...property.appointments, ...property.conversations]) {
+    if (row.tenant) {
+      if (row.tenant.contactVisibility === 'NOBODY') row.tenant.phone = null
+      delete row.tenant.contactVisibility
+    }
+  }
   return property
 }
 
@@ -861,8 +893,14 @@ export async function vacateProperty(propertyId, ownerId) {
   // publishedAt: a tenant moving out makes this listing available again, not
   // new. firstPublishStamp() refuses an OCCUPIED origin for exactly this case —
   // see features/properties/publishedAt.js before adding a stamp here.
-  return prisma.property.update({
-    where: { id: propertyId },
-    data: { status: 'ACTIVE', currentTenantId: null, occupiedSince: null },
-  })
+  const [updated] = await prisma.$transaction([
+    prisma.property.update({
+      where: { id: propertyId },
+      data: { status: 'ACTIVE', currentTenantId: null, occupiedSince: null },
+    }),
+    // The nulls above destroy the live columns' memory of who lived here;
+    // the tenancy record is what keeps it. ENDS, never deletes.
+    endTenancyOp({ propertyId }),
+  ])
+  return updated
 }

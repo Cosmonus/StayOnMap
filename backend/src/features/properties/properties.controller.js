@@ -4,6 +4,7 @@ import { ok, created, notFound } from '../../utils/response.js'
 import { getPaginationParams, buildPaginationMeta } from '../../utils/pagination.js'
 import { parseBounds } from '../../utils/geo.js'
 import { getSimilar } from '../graph/similarity.js'
+import { ownerReviewsForProperty } from '../tenancies/tenancy.service.js'
 
 export async function listProperties(req, res, next) {
   try {
@@ -130,6 +131,12 @@ export async function getPropertyContacts(req, res, next) {
   try {
     const data = await service.getPropertyContacts(req.params.id, req.user.id)
     ok(res, data)
+  } catch (err) { next(err) }
+}
+
+export async function getOwnerTenancyReviews(req, res, next) {
+  try {
+    ok(res, await ownerReviewsForProperty(req.params.id))
   } catch (err) { next(err) }
 }
 

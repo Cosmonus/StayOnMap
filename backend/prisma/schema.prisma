@@ -242,6 +242,10 @@ enum NotificationType {
   // firstPublishStamp() actually stamps — never on an edit, never on a
   // vacancy. See features/savedSearches/.
   SAVED_SEARCH_MATCH
+  // Tenancy record events (2026-08-12): confirm-this-tenancy, tenancy
+  // confirmed/declined, a review written/revealed. One DELIVERY category, not
+  // one per event — the support types set the precedent and the reason.
+  TENANCY_UPDATE
 }
 
 enum LeaseStatus {
@@ -315,6 +319,10 @@ model User {
   occupiedProperties Property[]            @relation("CurrentTenant")
   savedListings      SavedListing[]
   savedSearches      SavedSearch[]
+  tenanciesAsOwner       Tenancy[]       @relation("TenanciesAsOwner")
+  tenanciesAsTenant      Tenancy[]       @relation("TenanciesAsTenant")
+  tenancyReviewsWritten  TenancyReview[] @relation("TenancyReviewsWritten")
+  tenancyReviewsReceived TenancyReview[] @relation("TenancyReviewsReceived")
   appointments       Appointment[]         @relation("TenantAppointments")
   reviews            CommunityReview[]
   votes              RecommendationVote[]
@@ -831,6 +839,7 @@ model Property {
   fraudSignals       FraudSignal[]
   conversations      Conversation[]
   leases             Lease[]
+  tenancies          Tenancy[]
   availabilityBlocks AvailabilityBlock[]
   priceHistory       PropertyPriceHistory[]
   dailyViews         PropertyDailyView[]
@@ -1503,10 +1512,71 @@ model Lease {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   supportCases SupportCase[]
+  tenancy      Tenancy?
 
   @@index([tenantId])
   @@index([ownerId])
   @@index([propertyId])
+}
+
+enum TenancySource {
+  LEASE
+  MARKED
+}
+
+// Somebody LIVED here, from when to when — the record `Property.currentTenantId`
+// destroys. vacateProperty() nulls both live columns, so before this model the
+// moment a tenancy ended, the evidence it had happened was gone: the same
+// self-overwriting-column problem PropertyStatusEvent exists for, on the one
+// relationship credibility could ever be built from.
+//
+// `confirmedAt` is the honesty gate. A LEASE tenancy is born confirmed —
+// signing IS the tenant's agreement. A MARKED one is an owner's assertion
+// about another person's life, and it stays unconfirmed (counts for nothing:
+// no reviews, no résumé row) until the tenant taps confirm. An unconfirmed
+// assertion must never become somebody's history.
+model Tenancy {
+  id          String        @id @default(cuid())
+  property    Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId  String
+  owner       User          @relation("TenanciesAsOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId     String
+  tenant      User          @relation("TenanciesAsTenant", fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId    String
+  source      TenancySource
+  // SetNull, not Cascade: a lease row disappearing must not erase the fact
+  // somebody lived here — the tenancy is the record, the lease the paperwork.
+  lease       Lease?        @relation(fields: [leaseId], references: [id], onDelete: SetNull)
+  leaseId     String?       @unique
+  startedAt   DateTime
+  endedAt     DateTime?     // null = ongoing
+  confirmedAt DateTime?
+  createdAt   DateTime      @default(now())
+  reviews     TenancyReview[]
+
+  @@index([tenantId])
+  @@index([ownerId])
+  @@index([propertyId])
+}
+
+// One review per party per tenancy, double-blind: neither is readable by the
+// other side until BOTH exist or 14 days pass from its writing — computed at
+// read time (features/tenancies/reveal.js, PURE), never stored, so there is no
+// scheduler to run and no revealedAt column to drift.
+model TenancyReview {
+  id        String   @id @default(cuid())
+  tenancy   Tenancy  @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+  tenancyId String
+  author    User     @relation("TenancyReviewsWritten", fields: [authorId], references: [id], onDelete: Cascade)
+  authorId  String
+  target    User     @relation("TenancyReviewsReceived", fields: [targetId], references: [id], onDelete: Cascade)
+  targetId  String
+  rating    Int      // 1..5, validated in Zod — the DB stores what the API let in
+  content   String
+  createdAt DateTime @default(now())
+
+  @@unique([tenancyId, authorId]) // one review per side, idempotent by design
+  @@index([targetId])
 }
 
 // ─────────────────────────────────────────────────────────────────

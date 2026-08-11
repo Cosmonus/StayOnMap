@@ -160,6 +160,22 @@ export const prismaMock = {
   savedListing: {
     count: vi.fn(),
   },
+  // The tenancy record + double-blind reviews. Defaults are the empty-history
+  // state every unrelated lease/markTenant test flows through.
+  tenancy: {
+    findMany:   vi.fn().mockResolvedValue([]),
+    findUnique: vi.fn().mockResolvedValue(null),
+    findFirst:  vi.fn().mockResolvedValue(null),
+    create:     vi.fn().mockResolvedValue({ id: 'tn-1' }),
+    update:     vi.fn(),
+    updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    delete:     vi.fn(),
+  },
+  tenancyReview: {
+    findFirst: vi.fn().mockResolvedValue(null),
+    findMany:  vi.fn().mockResolvedValue([]),
+    create:    vi.fn(),
+  },
   // Defaults to "nobody saved a search", which is what the matcher meets on a
   // fresh database and the path every unrelated approval test goes down.
   savedSearch: {

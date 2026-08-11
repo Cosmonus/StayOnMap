@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma.js'
 import { recordStatusChange } from '../properties/statusEvents.js'
 import { notifyUser } from '../notifications/notifications.service.js'
 import { awardPoints } from '../points/points.service.js'
+import { startLeaseTenancyOp, endTenancyOp } from '../tenancies/tenancy.service.js'
 
 const LEASE_INCLUDE = {
   // landmark feeds the "I'm home" share card's area line — area + city is all
@@ -84,6 +85,10 @@ export async function signLease(leaseId, tenantId, { tenantNote }) {
       where: { id: lease.propertyId },
       data: { status: 'OCCUPIED', currentTenantId: tenantId, occupiedSince: new Date() },
     }),
+    // The tenancy RECORD — born confirmed, because signing is the tenant's
+    // agreement. In the transaction on purpose: a signed lease with no record
+    // would be the evidence-destroying behaviour this table exists to end.
+    startLeaseTenancyOp(lease),
   ])
 
   // The most important churn event in the product: a signed lease is how a
@@ -147,6 +152,9 @@ export async function terminateLease(leaseId, ownerId, { ownerNote }) {
       where: { id: lease.propertyId },
       data: { status: 'ACTIVE', currentTenantId: null, occupiedSince: null },
     }),
+    // The record survives what the live columns above just forgot: the
+    // tenancy ENDS, it does not disappear.
+    endTenancyOp({ leaseId }),
   ])
 
   // Back on the market. Not new supply — publishedAt.js refuses an OCCUPIED

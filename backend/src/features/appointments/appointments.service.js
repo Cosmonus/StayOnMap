@@ -272,6 +272,18 @@ export async function updateAppointmentStatus(
     }
   }
 
+  // The owner moving a visit gets the same future-slot check the renter's
+  // counter-offer gets — "propose a different time" must not be the hole
+  // through which a past slot walks back in, whoever opens it. Deliberately
+  // NOT the booked-day check: the renter is protected FROM the owner's
+  // calendar; the owner overriding their own calendar is their call.
+  if (!tenantOnly && status === 'RESCHEDULED') {
+    if (!requestedDate || !requestedTime) {
+      throw Object.assign(new Error('Pick the new date and time for the visit.'), { statusCode: 400 })
+    }
+    assertFutureSlot(requestedDate, requestedTime)
+  }
+
   // `ownerNote` renders on both clients labelled "Owner reply" / "Your reply",
   // and `scheduledAt` IS the owner's new time. Both are the owner's voice, and
   // the shared updateStatusSchema accepts them from whoever calls — so a
@@ -297,11 +309,25 @@ export async function updateAppointmentStatus(
   // features/trust/responsiveness.js turns this into the owner's response rate.
   const respondedAt = appt.respondedAt ?? new Date()
 
+  // An owner reschedule writes requestedDate/requestedTime TOO, because every
+  // card on both platforms renders those fields as "the slot on the table" —
+  // scheduledAt alone would leave the queue showing the old time while the
+  // notification announces the new one. scheduledAt is COMPOSED server-side
+  // from the same pair, so the two can never disagree.
+  const ownerData = status === 'RESCHEDULED'
+    ? {
+      status,
+      requestedDate: new Date(requestedDate),
+      requestedTime,
+      scheduledAt: istSlotInstant(requestedDate, requestedTime),
+      ownerNote,
+      respondedAt,
+    }
+    : { status, scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined, ownerNote, respondedAt }
+
   const updated = await prisma.appointment.update({
     where: { id: appointmentId },
-    data: tenantOnly
-      ? tenantData
-      : { status, scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined, ownerNote, respondedAt },
+    data: tenantOnly ? tenantData : ownerData,
   })
 
   // A tenant cancelling or counter-offering has to reach the OWNER — the
