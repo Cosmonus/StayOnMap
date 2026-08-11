@@ -1,13 +1,21 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { Calendar, Users, Loader2, MessageSquare, Phone, Mail } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Calendar, Users, Loader2, MessageCircle, Phone, ChevronDown, KeyRound } from 'lucide-react'
 import { appointmentService } from '@services/appointment.service'
+import { propertyService } from '@services/property.service'
 import { chatService } from '@services/chat.service'
 import { toast } from '@components/common/Toaster'
+import { confirm } from '@components/common/ConfirmDialog'
 import { formatTime } from '@utils/time'
 
-// ── Interested People (owner view) ───────────────────────────────────────────
+// ── Interested People (owner view, property page sidebar) ───────────────────
+//
+// Same row grammar as the mark-tenant picker (2026-08-12, operator request):
+// collapsed = person + status + a CHEVRON that says there is more; expanded =
+// when they asked, their note, then the actions — phone icon, chat icon,
+// Mark as renter. No email anywhere: an address in a list is a thing worth
+// not showing, and nothing here needs to send one.
 const STATUS_STYLE = {
   PENDING:     { label: 'Pending',     bg: 'bg-amber-50',   text: 'text-amber-700',   dot: 'bg-amber-400' },
   ACCEPTED:    { label: 'Accepted',    bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
@@ -17,15 +25,41 @@ const STATUS_STYLE = {
   CANCELLED:   { label: 'Cancelled',   bg: 'bg-slate-100',  text: 'text-slate-500',   dot: 'bg-slate-400' },
 }
 
-export default function InterestedPeoplePanel({ propertyId }) {
+export default function InterestedPeoplePanel({ propertyId, property }) {
   const [expandedId, setExpandedId] = useState(null)
   const [chattingId, setChattingId] = useState(null)
   const navigate = useNavigate()
+  const qc = useQueryClient()
 
   const { data: appointments = [], isLoading } = useQuery({
     queryKey: ['property-appointments', propertyId],
     queryFn: () => appointmentService.forProperty(propertyId).then(r => r.data),
   })
+
+  // Marking is only possible while the listing is ACTIVE — the server 400s
+  // otherwise, and a button that can only be refused should not render
+  // (the SMS sign-in rule).
+  const canMark = property?.status === 'ACTIVE'
+
+  const markTenant = useMutation({
+    mutationFn: (tenantId) => propertyService.markTenant(propertyId, tenantId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['property', propertyId] })
+      qc.invalidateQueries({ queryKey: ['my-listings'] })
+      toast.success('Marked as renter', 'The listing is now Occupied and off the public map. They’ll be asked to confirm the tenancy.')
+    },
+    onError: (err) => toast.error('Couldn’t mark as renter', err?.message),
+  })
+
+  async function handleMark(tenant) {
+    const ok = await confirm({
+      title: `Mark ${tenant.name ?? 'this person'} as the renter?`,
+      message: 'The listing is set to Occupied and comes off the public map. You can mark it vacant later to relist it.',
+      confirmLabel: 'Mark as renter',
+      variant: 'warning',
+    })
+    if (ok) markTenant.mutate(tenant.id)
+  }
 
   if (isLoading) {
     return (
@@ -59,96 +93,98 @@ export default function InterestedPeoplePanel({ propertyId }) {
     <div className="space-y-1">
       {appointments.map(apt => {
         const tenant = apt.tenant ?? {}
-        const initial = tenant.name?.[0]?.toUpperCase() ?? tenant.email?.[0]?.toUpperCase() ?? '?'
-        const displayName = tenant.name ?? tenant.email ?? 'Unknown'
+        const initial = tenant.name?.[0]?.toUpperCase() ?? '?'
+        const displayName = tenant.name ?? 'Member'
         const isOpen = expandedId === apt.id
         const st = STATUS_STYLE[apt.status] ?? STATUS_STYLE.PENDING
         const date = new Date(apt.requestedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 
         return (
           <div key={apt.id} className="rounded-xl border border-slate-100 overflow-hidden">
-            {/* Row: avatar + name + chat icon */}
-            <div className="flex items-center gap-3 px-4 py-3">
-              {/* Avatar — click to expand */}
-              <button onClick={() => setExpandedId(isOpen ? null : apt.id)} className="shrink-0">
-                {tenant.avatarUrl ? (
-                  <img src={tenant.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-sm font-bold">
-                    {initial}
-                  </div>
-                )}
-              </button>
-
-              {/* Name + status — click to expand */}
-              <button onClick={() => setExpandedId(isOpen ? null : apt.id)} className="flex-1 min-w-0 text-left">
+            {/* The whole collapsed row is the toggle. */}
+            <button
+              onClick={() => setExpandedId(isOpen ? null : apt.id)}
+              aria-expanded={isOpen}
+              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            >
+              {tenant.avatarUrl ? (
+                <img src={tenant.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-sm font-bold shrink-0">
+                  {initial}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-slate-800 truncate">{displayName}</p>
                 <div className={`inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.5 rounded-full ${st.bg}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
+                  <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} aria-hidden="true" />
                   <span className={`text-[11px] font-semibold ${st.text}`}>{st.label}</span>
                 </div>
-              </button>
+              </div>
+              <ChevronDown
+                size={16}
+                aria-hidden="true"
+                className={`shrink-0 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
 
-              {/* Chat icon — navigates to messages */}
-              <button
-                onClick={async () => {
-                  if (!tenant.id) return
-                  setChattingId(apt.id)
-                  try {
-                    await chatService.startWithTenant(propertyId, tenant.id)
-                    navigate('/user?tab=messages')
-                  } catch {
-                    toast.error('Error', 'Could not open chat')
-                  } finally {
-                    setChattingId(null)
-                  }
-                }}
-                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-brand-50 text-brand-600 hover:bg-brand-100 transition-colors disabled:opacity-50"
-                disabled={chattingId === apt.id}
-                title="Message this person"
-              >
-                {chattingId === apt.id ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <MessageSquare className="w-4 h-4" strokeWidth={1.8} />
-                )}
-              </button>
-            </div>
-
-            {/* Expanded detail */}
             {isOpen && (
               <div className="px-4 pb-4 pt-1 border-t border-slate-50 space-y-3">
-                {/* Interest info */}
                 <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <Calendar className="w-3.5 h-3.5" />
+                  <Calendar className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>Requested for {date} at {formatTime(apt.requestedTime)}</span>
                 </div>
 
-                {/* Mobile number */}
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                    <Phone className="w-3.5 h-3.5 text-emerald-600" strokeWidth={2} />
-                  </div>
-                  <a href={`tel:${apt.contactNumber}`} className="text-sm font-medium text-slate-800 hover:text-brand-600 transition-colors no-underline">
-                    +91 {apt.contactNumber}
-                  </a>
-                </div>
-
-                {/* Message */}
                 {apt.message && (
                   <div className="bg-slate-50 rounded-xl px-3 py-2.5">
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Message</p>
                     <p className="text-sm text-slate-600 leading-relaxed">{apt.message}</p>
                   </div>
                 )}
 
-                {/* Email */}
-                {tenant.email && (
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <Mail className="w-3.5 h-3.5" strokeWidth={1.8} />
-                    <span>{tenant.email}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  {/* The visit's own number — given by the renter for this
+                      visit. Absent → no button, never a disabled one. */}
+                  {apt.contactNumber && (
+                    <a
+                      href={`tel:${apt.contactNumber}`}
+                      aria-label={`Call ${displayName}`}
+                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-brand-500 hover:text-brand-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                    >
+                      <Phone size={16} aria-hidden="true" />
+                    </a>
+                  )}
+                  <button
+                    onClick={async () => {
+                      if (!tenant.id) return
+                      setChattingId(apt.id)
+                      try {
+                        await chatService.startWithTenant(propertyId, tenant.id)
+                        navigate('/user?tab=messages')
+                      } catch {
+                        toast.error('Couldn’t open the chat', 'Please try again in a moment.')
+                      } finally {
+                        setChattingId(null)
+                      }
+                    }}
+                    disabled={chattingId === apt.id}
+                    aria-label={`Chat with ${displayName}`}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-brand-500 hover:text-brand-700 transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                  >
+                    {chattingId === apt.id
+                      ? <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+                      : <MessageCircle size={16} aria-hidden="true" />}
+                  </button>
+                  {canMark && tenant.id && (
+                    <button
+                      onClick={() => handleMark(tenant)}
+                      disabled={markTenant.isPending}
+                      className="ml-auto inline-flex items-center gap-1.5 min-h-[40px] px-4 rounded-xl bg-[#111111] text-white text-sm font-semibold hover:bg-[#2a2a2a] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <KeyRound size={14} aria-hidden="true" />
+                      {markTenant.isPending ? 'Marking…' : 'Mark as renter'}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>

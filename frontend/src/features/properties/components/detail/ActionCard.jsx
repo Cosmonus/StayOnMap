@@ -57,7 +57,7 @@ export default function ActionCard({ formId, isOwner, property, avail, propertyI
       {isOwner ? (
         <div className="mt-4 border-t border-slate-100 pt-4">
           <h3 className="mb-3 text-sm font-bold text-slate-800">Interested people</h3>
-          <InterestedPeoplePanel propertyId={propertyId} />
+          <InterestedPeoplePanel propertyId={propertyId} property={property} />
         </div>
       ) : user ? (
         <>
