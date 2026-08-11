@@ -5,6 +5,7 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import { savedService } from '@services/saved.service'
 import Icon from '@components/common/Icon'
 import ErrorState from '@components/common/ErrorState'
+import { useCardGrid, GridItem } from '@components/common/CardGrid'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ListingCard from '@components/common/ListingCard'
 import { formatCurrency, priceUnit } from '@utils/format'
@@ -102,6 +103,9 @@ function NewMatchesCard({ matches, onPress }) {
 
 export default function SavedScreen({ navigation }) {
   const { user } = useAuth()
+  // The footer (HomesForYou) sits OUTSIDE the column wrapper, so it keeps the
+  // full grid width rather than becoming a third column.
+  const { listProps, itemStyle } = useCardGrid(styles.list)
 
   const { data: saved = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['saved'],
@@ -156,7 +160,6 @@ export default function SavedScreen({ navigation }) {
         <FlatList
           data={saved}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
           ListFooterComponent={
             <>
               {summary?.newMatches ? (
@@ -174,11 +177,14 @@ export default function SavedScreen({ navigation }) {
             </>
           }
           renderItem={({ item }) => (
-            <SavedRow
-              item={item}
-              onPress={() => navigation.navigate('PropertyDetail', { propertyId: item.property.id })}
-            />
+            <GridItem style={itemStyle}>
+              <SavedRow
+                item={item}
+                onPress={() => navigation.navigate('PropertyDetail', { propertyId: item.property.id })}
+              />
+            </GridItem>
           )}
+          {...listProps}
         />
       )}
     </SafeAreaView>

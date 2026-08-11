@@ -23,10 +23,14 @@ import PointsCard from '@features/points/components/PointsCard'
 import Icon from '@components/common/Icon'
 import ScreenHeader from '@components/common/ScreenHeader'
 import { colors } from '@theme/colors'
+import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
 export default function SettingsScreen({ navigation }) {
+  // A form stretched across a tablet puts each label at one edge and its
+  // control at the other.
+  const { contentMaxWidth } = useLayout()
   const qc = useQueryClient()
   const [activeSheet, setActiveSheet] = useState(null) // 'profile' | 'social' | 'privacy' | 'delete' | 'linked' | 'devices' | 'blocked' | 'phone'
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
@@ -127,7 +131,7 @@ export default function SettingsScreen({ navigation }) {
     <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader title="Settings" onBack={() => navigation.goBack()} />
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.scrollContent, centered(contentMaxWidth)]}>
         {/* Profile card */}
         <View style={styles.profileCard}>
           <Pressable
