@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { View, Text, Image, Pressable, FlatList, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { propertyService } from '@services/property.service'
+import SaveHeart from '@components/common/SaveHeart'
 import { formatPrice, imgUrl } from '@utils/format'
 import { colors } from '@theme/colors'
 import { fontSizes } from '@theme/typography'
@@ -73,6 +74,10 @@ export default function SimilarHomesSection({ propertyId }) {
                   resizeMode="cover"
                 />
               ) : null}
+              {/* Outside the card Pressable's text, but inside its bounds — RN
+                  nests touchables fine, and the heart's own press does not
+                  bubble to the card. */}
+              <SaveHeart propertyId={property.id} style={styles.heart} />
             </View>
             <View style={styles.body}>
               <Text style={styles.price}>{formatPrice(property)}</Text>
@@ -112,6 +117,7 @@ const styles = StyleSheet.create({
   },
   imageWell: { width: '100%', aspectRatio: 16 / 9, backgroundColor: colors.slate100 },
   image: { width: '100%', height: '100%' },
+  heart: { position: 'absolute', top: spacing.sm, right: spacing.sm },
   body: { padding: spacing.sm },
   price: { fontSize: fontSizes.base, fontWeight: '700', color: colors.brand700 },
   title: { fontSize: fontSizes.sm, fontWeight: '500', color: colors.slate800, marginTop: 2 },

@@ -93,6 +93,14 @@ const TABLES = [
   ['PropertyStatus', 'frontend/src/components/common/PropertyStatusPill.jsx', 'PROPERTY_STATUS_CONFIG',
     'the pill says "Unknown"'],
 
+  // One table per platform, not per component: web's two notification surfaces
+  // (bell and centre) held byte-identical copies until 2026-08-13, which is how
+  // a value reaches one surface with an icon and the other without.
+  ['NotificationType', 'frontend/src/features/notifications/notificationTypes.js', 'TYPE_CONFIG',
+    'the row shows the generic bell — a lease offer looks like a system notice'],
+  ['NotificationType', 'mobile/src/features/notifications/screens/NotificationsScreen.js', 'TYPE_ICON',
+    'the row shows the generic bell — a lease offer looks like a system notice'],
+
   ['SupportCaseStatus', 'frontend/src/features/support/components/supportCopy.js', 'STATUS_COPY',
     'a user is shown our queue\'s internal word for it'],
   ['SupportCaseStatus', 'mobile/src/features/support/supportCopy.js', 'STATUS_COPY',

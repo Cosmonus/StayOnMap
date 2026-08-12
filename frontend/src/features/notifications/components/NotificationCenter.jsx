@@ -1,32 +1,11 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  Calendar, CircleCheck, Clipboard, CircleX, RefreshCw, Flag, SquarePen,
-  ShieldCheck, TriangleAlert, MessageCircle, Bell, BellRing, KeyRound, Check, ChevronRight,
-} from 'lucide-react'
+import { Bell, Check, ChevronRight } from 'lucide-react'
 import { notificationService } from '@services/notification.service'
 import { useUiStore } from '@store/uiStore'
 import { referenceHref } from '../referenceHref'
+import { TYPE_CONFIG, FALLBACK } from '../notificationTypes'
 import ReportThreadModal from '@features/reports/components/ReportThreadModal'
-
-// ── Icon configs (same as NotificationBell) ─────────────────────────────────
-const TYPE_CONFIG = {
-  APPOINTMENT_REQUEST:     { bg: 'bg-brand-50',   iconBg: 'bg-brand-100',   iconColor: 'text-brand-600',   icon: Calendar },
-  APPOINTMENT_ACCEPTED:    { bg: 'bg-emerald-50',  iconBg: 'bg-emerald-100',  iconColor: 'text-emerald-600',  icon: CircleCheck },
-  APPOINTMENT_STATUS:      { bg: 'bg-slate-50',    iconBg: 'bg-slate-100',    iconColor: 'text-slate-600',    icon: Clipboard },
-  APPOINTMENT_REJECTED:    { bg: 'bg-red-50',      iconBg: 'bg-red-100',      iconColor: 'text-red-600',      icon: CircleX },
-  APPOINTMENT_RESCHEDULED: { bg: 'bg-amber-50',    iconBg: 'bg-amber-100',    iconColor: 'text-amber-600',    icon: RefreshCw },
-  REPORT_SUBMITTED:        { bg: 'bg-orange-50',   iconBg: 'bg-orange-100',   iconColor: 'text-orange-600',   icon: Flag },
-  REPORT_UPDATE:           { bg: 'bg-slate-50',    iconBg: 'bg-slate-100',    iconColor: 'text-slate-600',    icon: SquarePen },
-  VERIFICATION_UPDATE:     { bg: 'bg-brand-50',    iconBg: 'bg-brand-100',    iconColor: 'text-brand-600',    icon: ShieldCheck },
-  TRUST_ALERT:             { bg: 'bg-amber-50',    iconBg: 'bg-amber-100',    iconColor: 'text-amber-600',    icon: TriangleAlert },
-  MESSAGE:                 { bg: 'bg-brand-50',    iconBg: 'bg-brand-100',    iconColor: 'text-brand-600',    icon: MessageCircle },
-  SAVED_SEARCH_MATCH:      { bg: 'bg-brand-50',    iconBg: 'bg-brand-100',    iconColor: 'text-brand-600',    icon: BellRing },
-  TENANCY_UPDATE:          { bg: 'bg-brand-50',    iconBg: 'bg-brand-100',    iconColor: 'text-brand-600',    icon: KeyRound },
-  SYSTEM:                  { bg: 'bg-slate-50',    iconBg: 'bg-slate-100',    iconColor: 'text-slate-600',    icon: Bell },
-}
-
-const FALLBACK = TYPE_CONFIG.SYSTEM
 
 function timeAgo(date) {
   const seconds = Math.floor((Date.now() - new Date(date)) / 1000)

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { propertyService } from '@services/property.service'
 import Price from '@components/listing/Price'
+import SaveHeartButton from '@components/common/SaveHeartButton'
 import { imgUrl } from '@utils/format'
 import { SheetSection } from './SheetPrimitives'
 
@@ -39,12 +40,18 @@ export default function SimilarHomes({ propertyId }) {
     <SheetSection id="similar" title="Similar homes">
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
       {data.map((property) => (
-        <Link
+        <div
           key={property.id}
-          to={`/property/${property.id}`}
-          className="group rounded-2xl border border-slate-200 bg-white overflow-hidden hover:shadow-md transition-shadow duration-normal no-underline"
+          className="group relative rounded-2xl border border-slate-200 bg-white overflow-hidden hover:shadow-md transition-shadow duration-normal"
         >
-          <div className="aspect-[16/9] bg-slate-100 overflow-hidden">
+          {/* Stretched link rather than a wrapper, so the heart above it is a
+              real button — an <a> may not contain one. */}
+          <Link
+            to={`/property/${property.id}`}
+            aria-label={property.title}
+            className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+          />
+          <div className="relative aspect-[16/9] bg-slate-100 overflow-hidden">
             {property.images?.[0]?.url ? (
               <img
                 src={imgUrl(property.images[0].url)}
@@ -53,6 +60,7 @@ export default function SimilarHomes({ propertyId }) {
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-slow"
               />
             ) : null}
+            <SaveHeartButton propertyId={property.id} className="absolute top-3 right-3 z-20" />
           </div>
           <div className="p-4">
             <Price property={property} size="card" />
@@ -61,7 +69,7 @@ export default function SimilarHomes({ propertyId }) {
               {[property.landmark, property.city].filter(Boolean).join(', ')}
             </p>
           </div>
-          </Link>
+        </div>
         ))}
       </div>
     </SheetSection>

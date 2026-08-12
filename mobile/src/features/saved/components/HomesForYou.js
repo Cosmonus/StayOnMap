@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native'
 import { graphService } from '@services/graph.service'
+import SaveHeart from '@components/common/SaveHeart'
 import { formatPrice, imgUrl } from '@utils/format'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -60,6 +61,7 @@ export default function HomesForYou({ onOpen }) {
             {property.images?.[0]?.url ? (
               <Image source={{ uri: imgUrl(property.images[0].url, 'card') }} style={styles.image} resizeMode="cover" />
             ) : null}
+            <SaveHeart propertyId={property.id} style={styles.heart} />
           </View>
           <View style={styles.body}>
             <Text style={styles.price}>{formatPrice(property)}</Text>
@@ -95,6 +97,7 @@ const styles = StyleSheet.create({
   },
   imageWell: { width: 108, backgroundColor: colors.slate100 },
   image: { width: '100%', height: '100%' },
+  heart: { position: 'absolute', top: spacing.xs, right: spacing.xs },
   body: { flex: 1, padding: spacing.sm },
   price: { fontSize: fontSizes.base, fontWeight: '700', color: colors.brand700 },
   title: { fontSize: fontSizes.sm, fontWeight: '500', color: colors.slate800, marginTop: 2 },

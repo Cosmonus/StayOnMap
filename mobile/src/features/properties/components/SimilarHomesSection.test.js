@@ -15,7 +15,8 @@
  *     here: both components are designed to render nothing, and "nothing" is
  *     the state they will be in for most listings while inventory is thin
  */
-import { render, waitFor } from '@testing-library/react-native'
+import { render as rntlRender, waitFor } from '@testing-library/react-native'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const mockPush = jest.fn()
 const mockNavigate = jest.fn()
@@ -32,10 +33,30 @@ jest.mock('@services/graph.service', () => ({
   graphService: { recommendations: jest.fn() },
 }))
 
+// Both cards carry a save heart, which is signed-in-only and reads `['saved']`.
+jest.mock('@features/auth/hooks/useAuth', () => ({
+  useAuth: () => ({ user: { id: 'u1' } }),
+}))
+jest.mock('@services/saved.service', () => ({
+  savedService: {
+    getMySaved: jest.fn().mockResolvedValue({ data: [] }),
+    save: jest.fn(),
+    unsave: jest.fn(),
+  },
+}))
+
 const { propertyService } = require('@services/property.service')
 const { graphService } = require('@services/graph.service')
 const SimilarHomesSection = require('./SimilarHomesSection').default
 const HomesForYou = require('../../saved/components/HomesForYou').default
+
+// A fresh client per render — a shared one would carry one test's `['saved']`
+// into the next. `retry: false` so a rejection asserts on the first failure.
+const render = (ui) => rntlRender(
+  <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    {ui}
+  </QueryClientProvider>,
+)
 
 const listing = (over = {}) => ({
   id: 'p1', title: '2BHK in Koramangala', type: 'APARTMENT',

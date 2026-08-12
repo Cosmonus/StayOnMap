@@ -21,6 +21,8 @@ const TYPE_ICON = {
   REPORT_SUBMITTED: 'alertTriangle', REPORT_UPDATE: 'alertTriangle',
   VERIFICATION_UPDATE: 'shieldCheck', TRUST_ALERT: 'shield',
   LEASE_OFFERED: 'document', LEASE_SIGNED: 'document', LEASE_REJECTED: 'document',
+  SUPPORT_CASE_MESSAGE: 'lifeBuoy', SUPPORT_CASE_UPDATE: 'lifeBuoy',
+  SUPPORT_CASE_RESOLVED: 'checkCircle',
   SYSTEM: 'info', MESSAGE: 'messageCircle', SAVED_SEARCH_MATCH: 'bell',
   TENANCY_UPDATE: 'key',
 }
