@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { graphService } from '@services/graph.service'
 import Price from '@components/listing/Price'
+import SaveHeartButton from '@components/common/SaveHeartButton'
 import { imgUrl } from '@utils/format'
 
 // "Homes for you" — where preferences, the SIMILAR_TO graph and ranking meet.
@@ -46,12 +47,18 @@ export default function HomesForYou() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {items.map((property) => (
-          <Link
+          <div
             key={property.id}
-            to={`/property/${property.id}`}
-            className="group rounded-2xl border border-slate-200 bg-white overflow-hidden hover:shadow-md transition-shadow duration-normal no-underline"
+            className="group relative rounded-2xl border border-slate-200 bg-white overflow-hidden hover:shadow-md transition-shadow duration-normal"
           >
-            <div className="aspect-[16/9] bg-slate-100 overflow-hidden">
+            {/* Stretched link rather than a wrapper, so the heart above it is a
+                real button — an <a> may not contain one. */}
+            <Link
+              to={`/property/${property.id}`}
+              aria-label={property.title}
+              className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+            />
+            <div className="relative aspect-[16/9] bg-slate-100 overflow-hidden">
               {property.images?.[0]?.url ? (
                 <img
                   src={imgUrl(property.images[0].url, 'card')}
@@ -60,6 +67,7 @@ export default function HomesForYou() {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-slow"
                 />
               ) : null}
+              <SaveHeartButton propertyId={property.id} className="absolute top-3 right-3 z-20" />
             </div>
             <div className="p-4">
               <Price property={property} size="card" />
@@ -73,7 +81,7 @@ export default function HomesForYou() {
                 </p>
               )}
             </div>
-          </Link>
+          </div>
         ))}
       </div>
     </section>
