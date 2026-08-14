@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Alert } from 'react-native'
+import { Alert, Platform } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as Location from 'expo-location'
 import MapPill from './MapPill'
@@ -16,6 +16,12 @@ export default function LocateButton() {
   const [locating, setLocating] = useState(false)
   const enableUserLocation = useMapStore((s) => s.enableUserLocation)
 
+  // Read at call time, not at render: MapView registers flyTo once the
+  // native map mounts, which can be after this button has rendered.
+  function flyToCoords(coords) {
+    useMapStore.getState().flyTo?.({ latitude: coords.latitude, longitude: coords.longitude, zoom: LOCATE_ZOOM })
+  }
+
   async function locate() {
     setLocating(true)
     try {
@@ -27,11 +33,49 @@ export default function LocateButton() {
         )
         return
       }
+
+      // App permission granted is NOT the same as the device's location
+      // toggle being on — with services off, a position request fails or
+      // hangs with no error surfaced. On Android,
+      // enableNetworkProviderAsync shows the system "turn on location?"
+      // dialog, so the fix is one tap instead of a trip to Settings.
+      if (!(await Location.hasServicesEnabledAsync().catch(() => true))) {
+        if (Platform.OS === 'android') {
+          try {
+            await Location.enableNetworkProviderAsync()
+          } catch {
+            Alert.alert('Location is off', 'Turn on your device location to see homes near you.')
+            return
+          }
+        } else {
+          Alert.alert('Location is off', 'Turn on your device location to see homes near you.')
+          return
+        }
+      }
+
       enableUserLocation()
-      const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
-      // Read at call time, not at render: MapView registers this once the
-      // native map mounts, which can be after this button has rendered.
-      useMapStore.getState().flyTo?.({ latitude: coords.latitude, longitude: coords.longitude, zoom: LOCATE_ZOOM })
+
+      // Fly to the last known fix FIRST — it answers instantly from the OS
+      // cache. A fresh fix on a cold GPS indoors can take tens of seconds,
+      // and waiting on it alone made this button look like it did nothing
+      // (user-reported 2026-08-14): the pill spun and the map never moved.
+      const last = await Location.getLastKnownPositionAsync({ maxAge: 5 * 60 * 1000 }).catch(() => null)
+      if (last) flyToCoords(last.coords)
+
+      // Then refine with a real fix, bounded — getCurrentPositionAsync has no
+      // timeout option and can hang far past anyone's patience. If it wins
+      // the race, the map settles onto the exact spot; if the cached fix
+      // already moved the map, a timeout costs nothing visible.
+      const current = await Promise.race([
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+        new Promise((resolve) => setTimeout(() => resolve(null), 8000)),
+      ]).catch(() => null)
+
+      if (current) {
+        flyToCoords(current.coords)
+      } else if (!last) {
+        Alert.alert('Location unavailable', "We couldn't get your current position. Please try again.")
+      }
     } catch {
       Alert.alert('Location unavailable', "We couldn't get your current position. Please try again.")
     } finally {
