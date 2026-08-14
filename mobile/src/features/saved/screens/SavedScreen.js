@@ -129,7 +129,7 @@ function NewMatchesCard({ matches, onPress }) {
 
 export default function SavedScreen({ navigation }) {
   const { user } = useAuth()
-  const { listProps, itemStyle } = useCardGrid(styles.list)
+  const { listKey, listProps, itemStyle } = useCardGrid(styles.list)
 
   const { data: saved = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['saved'],
@@ -205,6 +205,7 @@ export default function SavedScreen({ navigation }) {
               />
             </GridItem>
           )}
+          key={listKey}
           {...listProps}
         />
       )}

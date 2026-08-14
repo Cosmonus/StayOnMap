@@ -42,7 +42,7 @@ export default function PropertyListScreen({ navigation, route }) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const activeFilterCount = countActiveFilters(filters)
   // One column on a phone (unchanged), two or three on a tablet.
-  const { listProps, itemStyle } = useCardGrid(styles.list)
+  const { listKey, listProps, itemStyle } = useCardGrid(styles.list)
 
   const params = useMemo(
     () => ({ limit: 50, ...toQueryParams(filters), ...(bounds ?? {}) }),
@@ -184,6 +184,7 @@ export default function PropertyListScreen({ navigation, route }) {
               />
             </GridItem>
           )}
+          key={listKey}
           {...listProps}
         />
       )}
