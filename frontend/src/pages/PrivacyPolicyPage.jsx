@@ -65,7 +65,8 @@ export default function PrivacyPolicyPage() {
             lease terms (dates, rent, deposit amounts).</p>
           <p><strong>Communications.</strong> Chat messages between tenants and owners about a
             specific property, and any messages sent to us directly (e.g. via the Contact
-            page).</p>
+            page). Messages between users are not end-to-end encrypted &mdash; our staff may
+            review them for safety, fraud prevention and dispute resolution.</p>
           <p><strong>Reviews &amp; reports.</strong> Content submitted when reviewing a property or
             reporting a listing &mdash; reports can optionally be submitted anonymously.</p>
           <p><strong>Location.</strong> Only if you tap the locate button and grant permission.
