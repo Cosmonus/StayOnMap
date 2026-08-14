@@ -7,13 +7,14 @@ import { useFilterStore } from '@store/filterStore'
 import { useMapStore } from '@store/mapStore'
 import { toQueryParams, countActiveFilters } from '@config/filters'
 import MapFiltersSheet from '@features/map/components/MapFiltersSheet'
+import AreaSearchBar from '../components/AreaSearchBar'
 import PropertyCard from '../components/PropertyCard'
 import ScreenHeader from '@components/common/ScreenHeader'
-import SaveSearchButton from '@features/filters/components/SaveSearchButton'
 import ErrorState from '@components/common/ErrorState'
 import Icon from '@components/common/Icon'
 import { useCardGrid, GridItem } from '@components/common/CardGrid'
 import { colors } from '@theme/colors'
+import { tapSlop } from '@theme/touchTargets'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
@@ -35,19 +36,40 @@ import { spacing, radius } from '@theme/spacing'
 //
 // One screen rather than two, so the card, the empty state and the proximity
 // disclosure cannot drift apart between the two ways in.
+// A searched place constrains the browse list to a box about this many degrees
+// out from its centre — ~5 km each way, a locality rather than a street. The
+// map's own search flies to street level instead; a LIST at street level would
+// be one or two rows at current inventory.
+const PLACE_BOX_DEG = 0.045
+
 export default function PropertyListScreen({ navigation, route }) {
   const scoped = route?.params?.scoped !== false
   const filters = useFilterStore((s) => s.filters)
   const storeBounds = useMapStore((s) => s.bounds)
-  const bounds = scoped ? storeBounds : null
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  // Browse mode's own place search: { label, lat, lng } or null. Scoped mode
+  // never sets it — the viewport it carries IS a place already.
+  const [place, setPlace] = useState(null)
   const activeFilterCount = countActiveFilters(filters)
   // One column on a phone (unchanged), two or three on a tablet.
-  const { listProps, itemStyle } = useCardGrid(styles.list)
+  const { listKey, listProps, itemStyle } = useCardGrid(styles.list)
+
+  const bounds = scoped
+    ? storeBounds
+    : place
+      ? {
+        swLat: place.lat - PLACE_BOX_DEG,
+        swLng: place.lng - PLACE_BOX_DEG,
+        neLat: place.lat + PLACE_BOX_DEG,
+        neLng: place.lng + PLACE_BOX_DEG,
+      }
+      : null
 
   const params = useMemo(
     () => ({ limit: 50, ...toQueryParams(filters), ...(bounds ?? {}) }),
-    [filters, bounds]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filters, scoped, storeBounds, place]
   )
 
   const { data, isPending, isError, refetch } = useQuery({
@@ -76,28 +98,51 @@ export default function PropertyListScreen({ navigation, route }) {
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader
-        title={forSale ? 'For sale' : 'Homes'}
+        title={forSale ? 'For sale' : 'Properties'}
         subtitle={countLabel}
         // A tab root has nowhere to go back to. Passing a no-op handler would
         // render a chevron that does nothing.
         onBack={scoped ? () => navigation.goBack() : undefined}
         right={scoped ? undefined : (
-          <Pressable
-            onPress={() => setFiltersOpen(true)}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel={activeFilterCount ? `Filters, ${activeFilterCount} active` : 'Filters'}
-            style={styles.filterButton}
-          >
-            <Icon name="filter" size={20} color={colors.slate800} />
-            {activeFilterCount > 0 && (
-              <View style={styles.filterDot}>
-                <Text style={styles.filterDotText}>{activeFilterCount}</Text>
-              </View>
-            )}
-          </Pressable>
+          <View style={styles.headerActions}>
+            {/* Opens the list's own search, in place — a first cut navigated
+                to the map's search, which yanked the reader off this list
+                (user-reported 2026-08-14). AreaSearchBar below shares the
+                map's suggestion engine; only the outcome differs. */}
+            <Pressable
+              onPress={() => setSearchOpen((v) => !v)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Search an area or landmark"
+              accessibilityState={{ expanded: searchOpen }}
+              style={styles.filterButton}
+            >
+              <Icon name="search" size={20} color={colors.slate800} />
+            </Pressable>
+            <Pressable
+              onPress={() => setFiltersOpen(true)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={activeFilterCount ? `Filters, ${activeFilterCount} active` : 'Filters'}
+              style={styles.filterButton}
+            >
+              <Icon name="filter" size={20} color={colors.slate800} />
+              {activeFilterCount > 0 && (
+                <View style={styles.filterDot}>
+                  <Text style={styles.filterDotText}>{activeFilterCount}</Text>
+                </View>
+              )}
+            </Pressable>
+          </View>
         )}
       />
+
+      {searchOpen && !scoped && (
+        <AreaSearchBar
+          onSelect={(p) => { setPlace(p); setSearchOpen(false) }}
+          onClose={() => setSearchOpen(false)}
+        />
+      )}
 
       {isError ? (
         <ErrorState title="Couldn't load listings" onRetry={refetch} />
@@ -109,17 +154,28 @@ export default function PropertyListScreen({ navigation, route }) {
           keyExtractor={(p) => p.id}
           ListHeaderComponent={
             <>
-              {/* The results list is where a search worth keeping just came
-                  back — especially thin. Bounds ride along in scoped mode so
-                  the alert means "here", the same semantics this list used. */}
-              <View style={styles.saveSearchRow}>
-                <SaveSearchButton filters={filters} bounds={bounds} />
-              </View>
+              {/* A searched place constrains the list as invisibly as a
+                  viewport would — so it gets the same treatment: stated, and
+                  clearable right where it is stated. */}
+              {!scoped && place && (
+                <View style={styles.notice}>
+                  <Icon name="mapPin" size={14} color={colors.slate600} />
+                  <Text style={styles.noticeText}>Homes near {place.label}.</Text>
+                  <Pressable
+                    onPress={() => setPlace(null)}
+                    hitSlop={tapSlop(14)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Stop searching near ${place.label}`}
+                  >
+                    <Icon name="close" size={14} color={colors.slate600} />
+                  </Pressable>
+                </View>
+              )}
               {/* A viewport constrains the list invisibly — without this someone
                   clears every filter, still sees a short list, and has no way to
                   know why. Same rule as the proximity note: an exclusion you
                   cannot see is one we have to state. */}
-              {!!bounds && (
+              {scoped && !!bounds && (
                 <View style={styles.notice}>
                   <Icon name="map" size={14} color={colors.slate600} />
                   <Text style={styles.noticeText}>Limited to the area the map is showing.</Text>
@@ -171,6 +227,7 @@ export default function PropertyListScreen({ navigation, route }) {
               />
             </GridItem>
           )}
+          key={listKey}
           {...listProps}
         />
       )}
@@ -191,7 +248,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: spacing.md, paddingBottom: spacing.xxl, gap: spacing.md },
-  saveSearchRow: { marginBottom: spacing.sm },
+  headerActions: { flexDirection: 'row', alignItems: 'center' },
   notice: {
     flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,
     backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate200,

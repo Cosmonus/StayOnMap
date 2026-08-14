@@ -3,7 +3,7 @@ import { View, Text, TextInput, Pressable, FlatList, Keyboard, ActivityIndicator
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useFilterStore } from '@store/filterStore'
 import { useMapStore } from '@store/mapStore'
-import { usePlaceSuggestions } from '../hooks/usePlaceSuggestions'
+import { usePlaceSuggestions } from '@/hooks/usePlaceSuggestions'
 import { geocodeAddress } from '@lib/googleGeocoding'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'

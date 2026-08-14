@@ -4,18 +4,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { savedService } from '@services/saved.service'
 import Icon from '@components/common/Icon'
-import SavedSearchList from '../components/SavedSearchList'
 import ErrorState from '@components/common/ErrorState'
 import { useCardGrid, GridItem } from '@components/common/CardGrid'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ListingCard from '@components/common/ListingCard'
 import { formatCurrency, priceUnit } from '@utils/format'
+import { propertySpec } from '@utils/propertySpec'
+import { typeLabel } from '@config/propertyTypes'
 import { formatTime } from '@utils/time'
 import { colors } from '@theme/colors'
 import { tapSlop } from '@theme/touchTargets'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
-import HomesForYou from '../components/HomesForYou'
 
 // Saved homes. The one screen a renter comes BACK to, so every row has to say
 // what CHANGED — otherwise it is a folder of links that looks identical every
@@ -40,9 +40,17 @@ import HomesForYou from '../components/HomesForYou'
 
 const FURNISHED = { FULLY: 'Furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
 
+// Same order as web's SpecLine: the type-specific number, furnishing, then the
+// category word — "2 BHK · Semi furnished · Apartment" reads as a sentence.
+// The old line here was `bhk || sharing` with no type word at all: a plot fell
+// through to its landmark and nothing on the card said WHAT was saved
+// (user-reported 2026-08-15) — the exact bug web's propertySpec was extracted
+// to end.
 function metaLine(p) {
-  const size = p.bhk ? `${p.bhk} BHK` : p.sharing ? `${p.sharing}-sharing` : null
-  return [size, FURNISHED[p.furnished]].filter(Boolean).join(' · ') || p.landmark || p.city
+  return (
+    [propertySpec(p), FURNISHED[p.furnished], typeLabel(p.type)].filter(Boolean).join(' · ') ||
+    p.landmark || p.city
+  )
 }
 
 function visitLabel(visit) {
@@ -131,9 +139,7 @@ function NewMatchesCard({ matches, onPress }) {
 
 export default function SavedScreen({ navigation }) {
   const { user } = useAuth()
-  // The footer (HomesForYou) sits OUTSIDE the column wrapper, so it keeps the
-  // full grid width rather than becoming a third column.
-  const { listProps, itemStyle } = useCardGrid(styles.list)
+  const { listKey, listProps, itemStyle } = useCardGrid(styles.list)
 
   const { data: saved = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['saved'],
@@ -150,7 +156,12 @@ export default function SavedScreen({ navigation }) {
   })
 
   // "2 still available" is only worth saying when some are NOT.
-  const subline = summary
+  //
+  // Gated on the LIST, not just the summary: unsaving the last home refetches
+  // the summary while it is still enabled (the DB is already at zero, so it
+  // caches "0 saved"), then the list empties and the summary query disables —
+  // which would leave "0 saved" stuck in the header over the empty state.
+  const subline = saved.length > 0 && summary
     ? [
       `${summary.savedCount} saved`,
       summary.availableCount < summary.savedCount ? `${summary.availableCount} still available` : null,
@@ -168,12 +179,7 @@ export default function SavedScreen({ navigation }) {
       ) : isError ? (
         <ErrorState title="Couldn't load saved homes" onRetry={refetch} />
       ) : !saved.length ? (
-        <View style={styles.emptyWrap}>
-          {/* Saved SEARCHES can exist without saved homes — someone whose
-              filters came back empty is exactly who saves a search — so the
-              watch list renders on this branch too, above the empty state. */}
-          <SavedSearchList enabled={!!user} />
-          <View style={styles.center}>
+        <View style={styles.center}>
           <View style={styles.emptyIcon}>
             <Icon name="heart" size={26} color={colors.brand600} />
           </View>
@@ -183,33 +189,23 @@ export default function SavedScreen({ navigation }) {
             style={styles.exploreButton}
             onPress={() => navigation.getParent()?.navigate('Explore')}
             accessibilityRole="button"
-            accessibilityLabel="Explore homes"
+            accessibilityLabel="Explore homes on the map"
           >
             <Icon name="explore" size={16} color={colors.white} />
             <Text style={styles.exploreButtonText}>Explore homes</Text>
           </Pressable>
-          </View>
         </View>
       ) : (
         <FlatList
           data={saved}
           keyExtractor={(item) => item.id}
-          ListHeaderComponent={<SavedSearchList enabled={!!user} />}
           ListFooterComponent={
-            <>
-              {summary?.newMatches ? (
-                <NewMatchesCard
-                  matches={summary.newMatches}
-                  onPress={() => navigation.getParent()?.navigate('Explore')}
-                />
-              ) : null}
-              {/* A FOOTER, not its own scroll view — two nested vertical
-                  scrollers is the classic RN layout bug, and this content
-                  belongs after the shortlist anyway. */}
-              <HomesForYou
-                onOpen={(propertyId) => navigation.navigate('PropertyDetail', { propertyId })}
+            summary?.newMatches ? (
+              <NewMatchesCard
+                matches={summary.newMatches}
+                onPress={() => navigation.getParent()?.navigate('Explore')}
               />
-            </>
+            ) : null
           }
           renderItem={({ item }) => (
             <GridItem style={itemStyle}>
@@ -219,6 +215,7 @@ export default function SavedScreen({ navigation }) {
               />
             </GridItem>
           )}
+          key={listKey}
           {...listProps}
         />
       )}
@@ -236,7 +233,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center',
   },
   heartBusy: { opacity: 0.6 },
-  emptyWrap: { flex: 1, padding: spacing.md },
   emptyIcon: { width: 56, height: 56, borderRadius: radius.full, backgroundColor: colors.brand50, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
   emptyTitle: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800, marginBottom: spacing.xs },
   emptyBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate600, textAlign: 'center', maxWidth: 260, marginBottom: spacing.lg },

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { View, Text, TextInput, Pressable, FlatList, ActivityIndicator, Alert, Linking, StyleSheet } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
-import * as DocumentPicker from 'expo-document-picker'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supportService } from '@services/support.service'
@@ -108,6 +107,23 @@ export default function SupportCaseScreen({ navigation, route }) {
   }
 
   async function pickFile() {
+    // Required LAZILY, not imported at module scope. expo-document-picker is a
+    // NATIVE module added 2026-08-10 — on any client built before that (an
+    // older dev client, a released APK) a top-level import throws at require
+    // time, which takes the ENTIRE app down as "Runtime not ready" with no
+    // stack, before a single screen renders (user-hit 2026-08-14). Requiring
+    // it here means the missing module costs exactly the feature that needs
+    // it, on the tap that needs it, with words — never the whole app.
+    let DocumentPicker
+    try {
+      DocumentPicker = require('expo-document-picker')
+    } catch {
+      Alert.alert(
+        'Update needed',
+        'Attaching files needs a newer version of the app. You can still attach photos.'
+      )
+      return
+    }
     // `type: '*/*'` on purpose: narrowing it here would grey out the very files
     // somebody needs to prove something, for a rule the server no longer has.
     // copyToCacheDirectory, or the content:// URI can be unreadable by the time

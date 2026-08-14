@@ -25,13 +25,17 @@ export function useCardGrid(contentContainerStyle, gap = spacing.md) {
   const { columns, gridMaxWidth } = useLayout()
 
   return {
+    // FlatList REFUSES to change numColumns on a live list — it throws
+    // "Changing numColumns on the fly is not supported". A key that includes
+    // the count forces the remount it asks for, which matters here more than
+    // usual: on Android 16 a tablet can be resized into a multi-window pane
+    // mid-session, so this changes while the user is looking at it.
+    //
+    // Returned SEPARATELY, not inside listProps: React 19 errors on a spread
+    // props object that contains `key`. Callers write
+    // `<FlatList key={listKey} {...listProps} />`.
+    listKey: `grid-${columns}`,
     listProps: {
-      // FlatList REFUSES to change numColumns on a live list — it throws
-      // "Changing numColumns on the fly is not supported". A key that includes
-      // the count forces the remount it asks for, which matters here more than
-      // usual: on Android 16 a tablet can be resized into a multi-window pane
-      // mid-session, so this changes while the user is looking at it.
-      key: `grid-${columns}`,
       numColumns: columns,
       // The cap centres the grid instead of letting three columns spread to the
       // edges of a 1280dp window. Null at phone width, so the existing style

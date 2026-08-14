@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { savedService } from '@services/saved.service'
 import { formatCompact, priceUnit, formatAge, isAvailableToday } from '@utils/format'
+import { propertySpec } from '@utils/propertySpec'
 import Icon from '@components/common/Icon'
 import ListingCard from '@components/common/ListingCard'
 import { typeLabel } from '@config/propertyTypes'
@@ -57,10 +58,12 @@ export default function PropertyCard({ property, isSaved: initialSaved = false, 
   const photoUrl = typeof first === 'string' ? first : first?.url
   const availableNow = isAvailableToday(property.availableFrom)
   const postedAge = formatAge(property.createdAt)
-  const bhkLabel = property.bhk === 0 ? 'Studio' : property.bhk ? `${property.bhk} BHK` : null
   const deposit = Number(property.deposit)
 
-  const meta = [bhkLabel, FURNISHED_LABEL[property.furnished], typeLabel(property.type)]
+  // propertySpec, not a local bhk branch — bhk-only meant a plot, a PG and a
+  // shop each showed only their type word, with the number that actually
+  // describes them (extent, sharing, carpet area) silently dropped.
+  const meta = [propertySpec(property), FURNISHED_LABEL[property.furnished], typeLabel(property.type)]
     .filter(Boolean)
     .join(' · ')
 

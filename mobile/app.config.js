@@ -23,6 +23,17 @@ export default {
     },
     android: {
       package: 'com.stayonmap.app',
+      // Auto Backup copies all of AsyncStorage to Google Drive and restores it
+      // onto a new device — including `user_token` and the 30-day rotating
+      // `refreshToken`. It could never yield a working login anyway
+      // (session.service.js treats a rotated-out refresh token as a
+      // stolen-token replay and revokes the session), so backup here is pure
+      // credential exposure with zero user benefit. This was set on 2026-07-25
+      // and verified in the generated manifest, but the config edit never
+      // reached the repo — the manifest read allowBackup="true" again on
+      // 2026-08-14. Verify `android:allowBackup="false"` in the generated
+      // manifest after any prebuild; app.config.js is the input, not the truth.
+      allowBackup: false,
       // "Display over other apps" — a sensitive permission Play surfaces on the
       // store listing, and one a rental app has no business requesting. It is
       // not ours: Expo's prebuild template puts it in the MAIN manifest, so it

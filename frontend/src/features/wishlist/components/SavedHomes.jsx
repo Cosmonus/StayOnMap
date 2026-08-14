@@ -6,7 +6,6 @@ import { formatCurrency, imgUrl } from '@utils/format'
 import { formatTime } from '@utils/time'
 import Price from '@components/listing/Price'
 import SpecLine from '@components/listing/SpecLine'
-import HomesForYou from './HomesForYou'
 import SavedSearches from './SavedSearches'
 
 // Saved homes — the one page a renter comes BACK to, so every row says what
@@ -141,9 +140,9 @@ export default function SavedHomes() {
         {saved.map((item) => <SavedRow key={item.id} item={item} />)}
       </div>
 
-      {/* Derived from these very saves, so it belongs beside them. Renders
-          nothing — heading included — when we do not yet know enough. */}
-      <HomesForYou />
+      {/* HomesForYou rendered here until 2026-08-14 — removed by operator
+          decision on both platforms: the saved list shows only what the
+          renter saved by heart. See .claude/graph.md. */}
 
       {/* Only when the backend actually counted some — there is no empty version
           of this card. */}

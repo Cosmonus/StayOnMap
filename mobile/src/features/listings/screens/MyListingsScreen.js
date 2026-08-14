@@ -125,7 +125,7 @@ function DraftCard({ saved, onResume, onDiscard }) {
 
 export default function MyListingsScreen({ navigation }) {
   const { user } = useAuth()
-  const { listProps, itemStyle } = useCardGrid(styles.list)
+  const { listKey, listProps, itemStyle } = useCardGrid(styles.list)
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['me'],
@@ -267,6 +267,7 @@ export default function MyListingsScreen({ navigation }) {
               </ListingCard>
             </GridItem>
           )}
+          key={listKey}
           {...listProps}
         />
       )}
