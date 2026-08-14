@@ -56,9 +56,13 @@ function metaLine(c) {
   return parts.join(' · ') || 'Showed interest'
 }
 
-export default function ContactRow({ contact, canMarkTenant, onMarkTenant, onChat, chatting, disabled }) {
+// `meta` overrides the derived interest line — the manage screen reuses this
+// row for the CURRENT TENANT, where "2 visit requests · Chatted" describes how
+// they arrived, not who they are now.
+export default function ContactRow({ contact, canMarkTenant, onMarkTenant, onChat, chatting, disabled, meta }) {
   const [open, setOpen] = useState(false)
   const displayName = contact.name || 'Member'
+  const metaText = meta ?? metaLine(contact)
 
   return (
     <View style={styles.wrap}>
@@ -67,7 +71,7 @@ export default function ContactRow({ contact, canMarkTenant, onMarkTenant, onCha
         style={styles.row}
         onPress={() => setOpen((v) => !v)}
         accessibilityRole="button"
-        accessibilityLabel={`${displayName}, ${metaLine(contact)}`}
+        accessibilityLabel={`${displayName}, ${metaText}`}
         accessibilityState={{ expanded: open }}
       >
         {contact.avatarUrl ? (
@@ -79,8 +83,8 @@ export default function ContactRow({ contact, canMarkTenant, onMarkTenant, onCha
         )}
         <View style={styles.info}>
           <Text style={styles.name} numberOfLines={1}>{displayName}</Text>
-          <Text style={styles.meta} numberOfLines={1}>{metaLine(contact)}</Text>
-          {contact.lastActivity && <Text style={styles.activity}>Last activity {formatDate(contact.lastActivity)}</Text>}
+          <Text style={styles.meta} numberOfLines={1}>{metaText}</Text>
+          {!meta && contact.lastActivity && <Text style={styles.activity}>Last activity {formatDate(contact.lastActivity)}</Text>}
         </View>
         <Icon name={open ? 'chevronUp' : 'chevronDown'} size={16} color={colors.slate500} />
       </Pressable>

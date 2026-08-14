@@ -148,6 +148,37 @@ describe('every read path asks the database for the flag', () => {
   })
 })
 
+// Who lives there is the owner's information, not the public's. FULL_INCLUDE
+// selects currentTenant for the owner's manage screens; until 2026-08-15
+// nothing stripped it downstream, so any stranger opening an OCCUPIED
+// listing's URL was handed the tenant's name and avatar.
+describe('tenant identity on an occupied listing', () => {
+  const occupied = () => property(true, {
+    status: 'OCCUPIED',
+    currentTenantId: 'tenant-9',
+    currentTenant: { id: 'tenant-9', name: 'A tenant', avatarUrl: 'x.webp' },
+    occupiedSince: new Date('2026-08-01'),
+  })
+
+  it('never reaches a stranger', () => {
+    const out = publicView(occupied(), STRANGER)
+    expect(out.currentTenant).toBeUndefined()
+    expect(out.currentTenantId).toBeUndefined()
+    expect(out.occupiedSince).toBeUndefined()
+  })
+
+  it('never reaches an anonymous viewer', () => {
+    const out = publicView(occupied(), null)
+    expect(out.currentTenant).toBeUndefined()
+  })
+
+  it('still reaches the owner — they manage the tenancy from this payload', () => {
+    const out = publicView({ ...occupied(), ownerId: OWNER }, OWNER)
+    expect(out.currentTenant?.id).toBe('tenant-9')
+    expect(out.occupiedSince).toBeTruthy()
+  })
+})
+
 // Local copy rather than an import: this asserts the DISTANCE the production
 // code produces, so borrowing production's own helper would let a broken one
 // agree with itself.

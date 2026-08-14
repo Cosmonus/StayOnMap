@@ -222,6 +222,19 @@ export default function ManageListingScreen({ navigation, route }) {
   const { status } = property
   const primaryImage = property.images?.find((i) => i.isPrimary) ?? property.images?.[0]
 
+  // Once somebody lives there, the queue has done its job: the list below the
+  // actions shows THE TENANT in place of everyone who once asked (operator
+  // decision 2026-08-15). Prefer the tenant's row from the contacts payload —
+  // it carries the gated phone and the chat affordance — and fall back to the
+  // identity on the property itself, so the tenant never vanishes just because
+  // the contacts fetch is slow or they arrived via a lease rather than a chat.
+  const tenant = status === 'OCCUPIED' && property.currentTenant
+    ? contactStats.find((c) => c.id === property.currentTenant.id) ?? property.currentTenant
+    : null
+  const tenantMeta = property.occupiedSince
+    ? `Your tenant · Since ${formatDate(property.occupiedSince)}`
+    : 'Your tenant'
+
   // Status-gated actions — mirrors the backend's real transition rules:
   // publish: DRAFT|REJECTED → PENDING; toggle: ACTIVE ↔ INACTIVE;
   // markTenant: ACTIVE → OCCUPIED (via contact rows); vacate: OCCUPIED → ACTIVE.
@@ -247,21 +260,6 @@ export default function ManageListingScreen({ navigation, route }) {
           {[property.address, property.city].filter(Boolean).join(', ')}
         </Text>
       </View>
-
-      {status === 'OCCUPIED' && property.currentTenant && (
-        <View style={styles.tenantBanner}>
-          <View style={styles.tenantBannerIcon}>
-            <Icon name="home" size={16} color="#4338CA" />
-          </View>
-          <View style={styles.tenantBannerInfo}>
-            <Text style={styles.tenantBannerLabel}>Current tenant</Text>
-            <Text style={styles.tenantBannerName} numberOfLines={1}>{property.currentTenant.name}</Text>
-            {property.occupiedSince && (
-              <Text style={styles.tenantBannerSince}>Since {formatDate(property.occupiedSince)}</Text>
-            )}
-          </View>
-        </View>
-      )}
 
       <Text style={styles.sectionTitle}>Manage</Text>
       <View style={styles.actionsCard}>
@@ -333,9 +331,13 @@ export default function ManageListingScreen({ navigation, route }) {
         <ActionRow icon="trash" label="Delete listing" sub="Permanent, cannot be undone" variant="danger" onPress={confirmDelete} disabled={busy} />
       </View>
 
-      <Text style={styles.sectionTitle}>
-        People who contacted{contactStats.length > 0 ? ` (${contactStats.length})` : ''}
-      </Text>
+      {tenant ? (
+        <Text style={styles.sectionTitle}>Your tenant</Text>
+      ) : (
+        <Text style={styles.sectionTitle}>
+          People who contacted{contactStats.length > 0 ? ` (${contactStats.length})` : ''}
+        </Text>
+      )}
       {status === 'ACTIVE' && contactStats.length > 0 && (
         <Text style={styles.sectionHint}>Rented to one of them? Tap “Make tenant” to mark the listing occupied.</Text>
       )}
@@ -371,14 +373,15 @@ export default function ManageListingScreen({ navigation, route }) {
         right={busy ? <ActivityIndicator size="small" color={colors.brand600} /> : null}
       />
       <FlatList
-        data={contactStats}
+        data={tenant ? [tenant] : contactStats}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={header}
-        ListEmptyComponent={contactsEmpty}
+        ListEmptyComponent={tenant ? null : contactsEmpty}
         contentContainerStyle={[styles.list, centered(contentMaxWidth)]}
         renderItem={({ item }) => (
           <ContactRow
             contact={item}
+            meta={tenant ? tenantMeta : undefined}
             canMarkTenant={status === 'ACTIVE'}
             onMarkTenant={() => confirmMarkTenant(item)}
             onChat={() => openChat(item)}
@@ -416,12 +419,6 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
   rent: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.brand600, marginTop: 2 },
   address: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
-  tenantBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginHorizontal: spacing.lg, marginTop: spacing.md, padding: spacing.md, backgroundColor: '#EEF2FF', borderRadius: radius.lg, borderWidth: 1, borderColor: '#E0E7FF' },
-  tenantBannerIcon: { width: 36, height: 36, borderRadius: radius.md, backgroundColor: '#E0E7FF', alignItems: 'center', justifyContent: 'center' },
-  tenantBannerInfo: { flex: 1, minWidth: 0 },
-  tenantBannerLabel: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: '#4338CA', textTransform: 'uppercase' },
-  tenantBannerName: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, marginTop: 1 },
-  tenantBannerSince: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 1 },
   sectionTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, paddingHorizontal: spacing.lg, marginTop: spacing.lg, marginBottom: spacing.sm },
   sectionHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, paddingHorizontal: spacing.lg, marginBottom: spacing.xs },
   actionsCard: { marginHorizontal: spacing.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate100, borderRadius: radius.lg, overflow: 'hidden' },
