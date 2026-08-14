@@ -25,7 +25,7 @@ import { spacing, radius } from '@theme/spacing'
 
 // Map-first (PDF direction 1a). Tapping a pin floats a preview card over
 // the map; tapping empty map area or the same pin again dismisses it.
-export default function ExploreScreen({ navigation, route }) {
+export default function ExploreScreen({ navigation }) {
   const { user } = useAuth()
   const selectedPinId = useMapStore((s) => s.selectedPinId)
   const selectedAreaSlug = useMapStore((s) => s.selectedAreaSlug)
@@ -62,19 +62,6 @@ export default function ExploreScreen({ navigation, route }) {
   useEffect(() => {
     if (searchOpen) searchBarRef.current?.focus()
   }, [searchOpen])
-
-  // The Properties tab's search icon lands here with `openSearch` set — a
-  // timestamp, not a boolean, so tapping it again re-opens the bar even when
-  // this screen never unmounted in between (tab navigators keep screens
-  // alive). Adjusted during render rather than in an effect — the guarded
-  // setState-on-prop-change pattern — because an effect doing this is a
-  // cascading re-render (react-hooks/set-state-in-effect).
-  const openSearchStamp = route?.params?.openSearch
-  const [seenSearchStamp, setSeenSearchStamp] = useState(openSearchStamp)
-  if (openSearchStamp !== seenSearchStamp) {
-    setSeenSearchStamp(openSearchStamp)
-    if (openSearchStamp) setSearchOpen(true)
-  }
 
   function goToDetail(propertyId) {
     navigation.navigate('PropertyDetail', { propertyId })

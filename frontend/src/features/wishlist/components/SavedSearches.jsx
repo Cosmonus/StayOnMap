@@ -5,8 +5,9 @@ import { savedSearchService } from '@services/savedSearch.service'
 import { toast } from '@components/common/Toaster'
 
 // The searches the platform is watching for this person. Lives on the saved
-// list beside the saved homes — the same argument that put HomesForYou here:
-// it is the one screen built from the renter's own choices.
+// list beside the saved homes — it is the one screen built from the renter's
+// own choices. (HomesForYou lived here on the same argument until 2026-08-14,
+// removed by operator decision.)
 //
 // Renders NOTHING when there are none. The affordance to create one lives on
 // the results page, where a thin result makes the offer make sense; an empty
