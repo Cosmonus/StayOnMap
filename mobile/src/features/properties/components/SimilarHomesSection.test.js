@@ -1,5 +1,8 @@
 /**
- * The two graph surfaces must MOUNT — 2026-08-07
+ * The graph surface must MOUNT — 2026-08-07
+ * (HomesForYou was the second surface here until 2026-08-14, when the operator
+ * removed it from the Saved screen — mobile's only consumer — and the
+ * component went with it.)
  *
  * Lint, jest and `expo export` all passed on these components while nothing had
  * ever rendered them. None of those catch the failure that actually shows up on
@@ -29,11 +32,7 @@ jest.mock('@services/property.service', () => ({
   propertyService: { getSimilar: jest.fn() },
 }))
 
-jest.mock('@services/graph.service', () => ({
-  graphService: { recommendations: jest.fn() },
-}))
-
-// Both cards carry a save heart, which is signed-in-only and reads `['saved']`.
+// The cards carry a save heart, which is signed-in-only and reads `['saved']`.
 jest.mock('@features/auth/hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'u1' } }),
 }))
@@ -46,9 +45,7 @@ jest.mock('@services/saved.service', () => ({
 }))
 
 const { propertyService } = require('@services/property.service')
-const { graphService } = require('@services/graph.service')
 const SimilarHomesSection = require('./SimilarHomesSection').default
-const HomesForYou = require('../../saved/components/HomesForYou').default
 
 // A fresh client per render — a shared one would carry one test's `['saved']`
 // into the next. `retry: false` so a rejection asserts on the first failure.
@@ -102,43 +99,5 @@ describe('SimilarHomesSection', () => {
   it('does not fetch without a propertyId', async () => {
     await render(<SimilarHomesSection propertyId={undefined} />)
     expect(propertyService.getSimilar).not.toHaveBeenCalled()
-  })
-})
-
-describe('HomesForYou', () => {
-  it('mounts and labels WHY each home is there', async () => {
-    graphService.recommendations.mockResolvedValue({
-      data: { items: [{ ...listing(), why: { source: 'similar_to_saved' } }] },
-    })
-
-    const { getByText } = await render(<HomesForYou onOpen={jest.fn()} />)
-    await waitFor(() => expect(getByText('Homes for you')).toBeTruthy())
-    // "like one you saved" and "in an area you browse" are different claims;
-    // merging them is how a recommendation becomes an ad.
-    expect(getByText('Like one you saved')).toBeTruthy()
-  })
-
-  it('renders nothing when the server knows nothing about this person yet', async () => {
-    graphService.recommendations.mockResolvedValue({ data: { items: [] } })
-
-    const { queryByText } = await render(<HomesForYou />)
-    await waitFor(() => expect(graphService.recommendations).toHaveBeenCalled())
-    expect(queryByText('Homes for you')).toBeNull()
-  })
-
-  it('renders nothing and does not crash when the fetch fails', async () => {
-    graphService.recommendations.mockRejectedValue(new Error('offline'))
-
-    const { queryByText } = await render(<HomesForYou />)
-    await waitFor(() => expect(graphService.recommendations).toHaveBeenCalled())
-    expect(queryByText('Homes for you')).toBeNull()
-  })
-
-  it('survives an item with no `why` block rather than crashing on the label', async () => {
-    graphService.recommendations.mockResolvedValue({ data: { items: [listing()] } })
-
-    const { getByText, queryByText } = await render(<HomesForYou />)
-    await waitFor(() => expect(getByText('Homes for you')).toBeTruthy())
-    expect(queryByText('Like one you saved')).toBeNull()
   })
 })

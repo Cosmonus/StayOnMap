@@ -9,7 +9,6 @@ import { toQueryParams, countActiveFilters } from '@config/filters'
 import MapFiltersSheet from '@features/map/components/MapFiltersSheet'
 import PropertyCard from '../components/PropertyCard'
 import ScreenHeader from '@components/common/ScreenHeader'
-import SaveSearchButton from '@features/filters/components/SaveSearchButton'
 import ErrorState from '@components/common/ErrorState'
 import Icon from '@components/common/Icon'
 import { useCardGrid, GridItem } from '@components/common/CardGrid'
@@ -76,26 +75,46 @@ export default function PropertyListScreen({ navigation, route }) {
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader
-        title={forSale ? 'For sale' : 'Homes'}
+        title={forSale ? 'For sale' : 'Properties'}
         subtitle={countLabel}
         // A tab root has nowhere to go back to. Passing a no-op handler would
         // render a chevron that does nothing.
         onBack={scoped ? () => navigation.goBack() : undefined}
         right={scoped ? undefined : (
-          <Pressable
-            onPress={() => setFiltersOpen(true)}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel={activeFilterCount ? `Filters, ${activeFilterCount} active` : 'Filters'}
-            style={styles.filterButton}
-          >
-            <Icon name="filter" size={20} color={colors.slate800} />
-            {activeFilterCount > 0 && (
-              <View style={styles.filterDot}>
-                <Text style={styles.filterDotText}>{activeFilterCount}</Text>
-              </View>
-            )}
-          </Pressable>
+          <View style={styles.headerActions}>
+            {/* Search is location search, and location search lives on the map
+                (MapSearchBar flies the viewport). This hands off to the Explore
+                tab with the search bar already open rather than growing a
+                second search implementation here — the timestamp param makes a
+                repeat tap re-open it. */}
+            <Pressable
+              onPress={() =>
+                navigation
+                  .getParent()
+                  ?.navigate('Explore', { screen: 'ExploreHome', params: { openSearch: Date.now() } })
+              }
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Search places on the map"
+              style={styles.filterButton}
+            >
+              <Icon name="search" size={20} color={colors.slate800} />
+            </Pressable>
+            <Pressable
+              onPress={() => setFiltersOpen(true)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={activeFilterCount ? `Filters, ${activeFilterCount} active` : 'Filters'}
+              style={styles.filterButton}
+            >
+              <Icon name="filter" size={20} color={colors.slate800} />
+              {activeFilterCount > 0 && (
+                <View style={styles.filterDot}>
+                  <Text style={styles.filterDotText}>{activeFilterCount}</Text>
+                </View>
+              )}
+            </Pressable>
+          </View>
         )}
       />
 
@@ -109,12 +128,6 @@ export default function PropertyListScreen({ navigation, route }) {
           keyExtractor={(p) => p.id}
           ListHeaderComponent={
             <>
-              {/* The results list is where a search worth keeping just came
-                  back — especially thin. Bounds ride along in scoped mode so
-                  the alert means "here", the same semantics this list used. */}
-              <View style={styles.saveSearchRow}>
-                <SaveSearchButton filters={filters} bounds={bounds} />
-              </View>
               {/* A viewport constrains the list invisibly — without this someone
                   clears every filter, still sees a short list, and has no way to
                   know why. Same rule as the proximity note: an exclusion you
@@ -191,7 +204,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.slate50 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: spacing.md, paddingBottom: spacing.xxl, gap: spacing.md },
-  saveSearchRow: { marginBottom: spacing.sm },
+  headerActions: { flexDirection: 'row', alignItems: 'center' },
   notice: {
     flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,
     backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate200,
