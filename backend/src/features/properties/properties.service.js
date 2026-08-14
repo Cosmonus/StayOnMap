@@ -40,10 +40,18 @@ import { recordSearchDemand } from '../analytics/demand.service.js'
 // side, never client side.
 const PRIVATE_RECORD_FIELDS = ['surveyNumber', 'subdivisionNumber', 'landRecordNumber']
 
+// Who lives there now is the OWNER's information, not the public's. FULL_INCLUDE
+// selects currentTenant for the owner's manage screens, and until 2026-08-15
+// nothing removed it downstream — so any stranger opening an OCCUPIED listing's
+// URL was handed the tenant's name and avatar. A tenant never chose to be
+// listed anywhere; same rule as the phone gate: withhold server side, never
+// client side.
+const TENANT_IDENTITY_FIELDS = ['currentTenant', 'currentTenantId', 'occupiedSince']
+
 export function stripPrivateRecords(property, userId = null) {
   if (!property) return property
   if (userId && property.ownerId === userId) return property
-  for (const field of PRIVATE_RECORD_FIELDS) {
+  for (const field of [...PRIVATE_RECORD_FIELDS, ...TENANT_IDENTITY_FIELDS]) {
     if (field in property) delete property[field]
   }
   return property
