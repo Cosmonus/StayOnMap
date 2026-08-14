@@ -9,6 +9,8 @@ import { useCardGrid, GridItem } from '@components/common/CardGrid'
 import ScreenHeader from '@components/common/ScreenHeader'
 import ListingCard from '@components/common/ListingCard'
 import { formatCurrency, priceUnit } from '@utils/format'
+import { propertySpec } from '@utils/propertySpec'
+import { typeLabel } from '@config/propertyTypes'
 import { formatTime } from '@utils/time'
 import { colors } from '@theme/colors'
 import { tapSlop } from '@theme/touchTargets'
@@ -38,9 +40,17 @@ import { spacing, radius } from '@theme/spacing'
 
 const FURNISHED = { FULLY: 'Furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
 
+// Same order as web's SpecLine: the type-specific number, furnishing, then the
+// category word — "2 BHK · Semi furnished · Apartment" reads as a sentence.
+// The old line here was `bhk || sharing` with no type word at all: a plot fell
+// through to its landmark and nothing on the card said WHAT was saved
+// (user-reported 2026-08-15) — the exact bug web's propertySpec was extracted
+// to end.
 function metaLine(p) {
-  const size = p.bhk ? `${p.bhk} BHK` : p.sharing ? `${p.sharing}-sharing` : null
-  return [size, FURNISHED[p.furnished]].filter(Boolean).join(' · ') || p.landmark || p.city
+  return (
+    [propertySpec(p), FURNISHED[p.furnished], typeLabel(p.type)].filter(Boolean).join(' · ') ||
+    p.landmark || p.city
+  )
 }
 
 function visitLabel(visit) {
