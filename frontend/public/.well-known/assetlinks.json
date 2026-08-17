@@ -1,11 +1,17 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.stayonmap.app",
       "sha256_cert_fingerprints": [
-        "1C:CA:6F:5C:4C:F9:C1:EC:EE:03:C5:54:BF:95:DB:5A:47:9B:07:47:E2:B2:AC:24:82:87:87:1E:8C:8D:86:96"
+        "1C:CA:6F:5C:4C:F9:C1:EC:EE:03:C5:54:BF:95:DB:5A:47:9B:07:47:E2:B2:AC:24:82:87:87:1E:8C:8D:86:96",
+        "4A:CA:1B:77:2A:6E:7D:7D:4D:A4:F6:9C:B6:C1:F6:74:40:A2:4E:E6:E5:B2:F6:0D:95:22:E3:F1:B0:38:4C:55",
+        "B2:C9:21:EF:4D:DA:C8:6F:F3:0C:0F:F1:E5:24:9F:AA:68:6A:8D:0F:B9:51:EA:3E:E3:8A:03:BE:32:B1:19:78",
+        "BA:68:43:BD:08:1B:BA:85:CF:91:89:8A:B0:1D:E4:81:78:E1:EA:B0:55:42:B0:47:B1:91:DF:11:8E:E7:15:96"
       ]
     }
   }
