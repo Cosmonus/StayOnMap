@@ -54,7 +54,8 @@
     "vitest": "^4.1.10"
   },
   "overrides": {
-    "find-my-way": "^9.7.0"
+    "find-my-way": "^9.7.0",
+    "deepmerge-ts": "^8.0.1"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
