@@ -33,9 +33,22 @@ const RECOMMENDED = 5
 // stuck tile could not be told from a slow one. Now it spins while loading and
 // shows a broken-image glyph when the remote fetch fails; tapping the tile
 // (the existing action sheet) is how you remove and re-add it.
+//
+// Two rules, both learned from a cover photo that uploaded fine and showed as
+// a grey square (2026-08-20):
+// - The loading overlay is TRANSPARENT. The tile beneath is already slate100,
+//   so while the bytes are genuinely in flight it looks the same — but if the
+//   spinner ever outlives the load it sits over the photo instead of hiding
+//   it. Only `failed` may paint over the image, because then there is none.
+// - No `onLoadStart` reset. The component is keyed on `uri`, so every new
+//   source is a fresh mount already in 'loading'; on Android expo-image can
+//   deliver onLoadStart AFTER onLoad for a local or cached image, and a reset
+//   there pinned the state on 'loading' forever. `onDisplay` is accepted as
+//   ready as well — it is the event that fires when pixels are on screen.
 function LocalOrRemote({ url, local, size, onLocalFailed, style }) {
   const [state, setState] = useState('loading')
   const uri = local ?? imgUrl(url, size)
+  const ready = () => setState('ready')
   return (
     <View style={style}>
       <Image
@@ -45,15 +58,15 @@ function LocalOrRemote({ url, local, size, onLocalFailed, style }) {
         contentFit="cover"
         cachePolicy="memory-disk"
         transition={200}
-        onLoadStart={() => setState('loading')}
-        onLoad={() => setState('ready')}
+        onLoad={ready}
+        onDisplay={ready}
         onError={() => {
           if (local) { onLocalFailed(); return }
           setState('failed')
         }}
       />
       {state === 'loading' && (
-        <View style={styles.tileOverlay} pointerEvents="none">
+        <View style={styles.tileSpinner} pointerEvents="none">
           <ActivityIndicator color={colors.brand600} size="small" />
         </View>
       )}
@@ -235,6 +248,7 @@ const styles = StyleSheet.create({
   },
   coverEmptyText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
   image: { width: '100%', height: '100%' },
+  tileSpinner: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   tileOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', gap: spacing.xs, backgroundColor: colors.slate100 },
   tileFailedText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate600 },
   coverBadge: { position: 'absolute', top: spacing.sm, left: spacing.sm, backgroundColor: colors.brand600, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 4 },

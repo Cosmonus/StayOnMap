@@ -123,3 +123,6 @@ GoogleService-Info.plist
 *.mobileprovision
 *.jks
 *.keystore
+
+# local APK/AAB downloads
+builds/
