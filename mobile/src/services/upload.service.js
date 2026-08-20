@@ -57,12 +57,18 @@ function toFormData(asset, field = 'image') {
 
 // asset: an expo-image-picker result asset { uri, width, height, mimeType, fileName }
 export const uploadService = {
+  // Resolves to the response WITH `localUri` added — the file that actually
+  // left the phone (the 1920px JPEG when the picker handed us a 12MP original).
+  // The photo board previews from it instead of the raw asset: decoding a
+  // full camera frame into a screen-wide cover tile took longer than the
+  // board's paint watchdog, which is how a perfectly good upload showed grey.
   uploadPropertyImage: async (asset) => {
     const prepared = await prepareForUpload(asset)
-    return api.post('/uploads/property-image', toFormData(prepared), {
+    const res = await api.post('/uploads/property-image', toFormData(prepared), {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 30000,
     })
+    return { ...res, localUri: prepared.uri }
   },
   uploadChatImage: async (asset) => {
     const prepared = await prepareForUpload(asset)

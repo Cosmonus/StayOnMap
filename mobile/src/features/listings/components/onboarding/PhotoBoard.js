@@ -26,13 +26,14 @@ const RECOMMENDED = 5
 // Keyed by remote url, session-only, deliberately not persisted — a picker uri
 // points at a cache file the OS may reclaim, so it is a display shortcut and
 // never a source of truth. `onError` drops the entry and the tile falls back to
-// the remote url, which by then is almost certainly cached anyway.
+// the remote url. The local file is the one that was UPLOADED (1920px), not the
+// raw camera original: decoding a 12MP frame into a screen-wide cover took
+// longer than the watchdog below, so the cover — and only the cover — was
+// dropped to the network every time (2026-08-20).
 //
-// A tile says what it is doing. Before this it had one look — slate100 — for
-// "still downloading", "the download failed" and "loaded a blank image", so a
-// stuck tile could not be told from a slow one. Now it spins while loading and
-// shows a broken-image glyph when the remote fetch fails; tapping the tile
-// (the existing action sheet) is how you remove and re-add it.
+// A tile says what it is doing: it spins while loading and shows a
+// broken-image glyph when the remote fetch fails; tapping the tile (the
+// existing action sheet) is how you remove and re-add it.
 //
 // Two rules, both learned from a cover photo that uploaded fine and showed as
 // a grey square (2026-08-20):
@@ -40,35 +41,44 @@ const RECOMMENDED = 5
 //   so while the bytes are genuinely in flight it looks the same — but if the
 //   spinner ever outlives the load it sits over the photo instead of hiding
 //   it. Only `failed` may paint over the image, because then there is none.
-// - No `onLoadStart` reset. The component is keyed on `uri`, so every new
-//   source is a fresh mount already in 'loading'; on Android expo-image can
-//   deliver onLoadStart AFTER onLoad for a local or cached image, and a reset
-//   there pinned the state on 'loading' forever. `onDisplay` is accepted as
-//   ready as well — it is the event that fires when pixels are on screen.
+// - No `onLoadStart` reset. On Android expo-image can deliver onLoadStart
+//   AFTER onLoad for a local or cached image, and a reset there pinned the
+//   state on 'loading' forever. `onDisplay` is accepted as ready as well — it
+//   is the event that fires when pixels are on screen.
 //
-// And a watchdog, because on a real device the local preview sometimes fired
-// NEITHER onLoad nor onError — spinner over grey until you left the step and
-// came back, which remounted the tile onto the remote url and it loaded at
-// once (2026-08-20). expo-image gives nothing to catch there, so time is the
-// signal: a local file that hasn't painted in 1.5s is dropped for the remote
-// url (already uploaded, a thumb is ~40KB), and a remote load that hasn't
-// reported in 4s is remounted. A tile may be slow; it may not be stuck.
+// The local preview keeps a watchdog, because on a real device it sometimes
+// fired NEITHER onLoad nor onError: a local file that hasn't painted in 1.5s
+// is dropped for the remote url, which is already uploaded.
 //
-// Measured on the emulator with logging (2026-08-20): the cover's first request
-// for a 1.3MB `_full.webp` fired loadStart and then NOTHING for the whole
-// watchdog window, while the remount painted at once from the disk cache. So
-// the cover also takes its own `_thumb` as expo-image's `placeholder` — ~90KB,
-// and usually already cached because the board just showed it — which paints
-// immediately and is replaced when the full variant lands. The thumb row
-// needs none: its tiles ARE the thumb.
+// The REMOTE side has no watchdog, and must not get one back. It used to
+// remount the <Image> every few seconds "so a tile may be slow, never stuck" —
+// and a remount CANCELS the in-flight download (nothing resumes a partial
+// fetch), so the cover's 1.3MB `_full.webp` on mobile data was killed at 4s,
+// restarted from zero, killed again, forever. The thumbs finished inside the
+// window, which is why only the first photo stayed grey (2026-08-20). Instead:
+// every remote tile's SOURCE is the ~40KB `_thumb`, which always lands, and the
+// cover upgrades to `_full` only once `Image.prefetch` has put it in the disk
+// cache — a slow cover looks soft for a moment rather than blank for good.
+//
+// THE ACTUAL BUG, found with logging on the emulator (2026-08-20): none of the
+// above. The cover tile's image reported `onLoad` with a real 1200x1600 source,
+// the spinner cleared, and the tile was STILL grey — and so was the "Cover"
+// badge beside it, which is not an image at all. `overflow: 'hidden'` on the
+// Pressable (there for the rounded corners) was clipping every child away on
+// Android, while the tile's own background painted fine. Removing that one
+// style painted the photo instantly. So neither tile clips: the corner radius
+// goes on the <Image> itself, which expo-image rounds natively, and on the
+// failed overlay. A tile that is grey AFTER onLoad is a painting problem, not a
+// loading one — look at what else in the tile is missing.
 const LOCAL_PAINT_MS = 1500
-const REMOTE_PAINT_MS = 4000
 
-function LocalOrRemote({ url, local, size, onLocalFailed, style }) {
+function LocalOrRemote({ url, local, size, onLocalFailed, style, radius: r }) {
   const [state, setState] = useState('loading')
-  const [attempt, setAttempt] = useState(0)
-  const uri = local ?? imgUrl(url, size)
-  const placeholder = !local && size === 'detail' ? imgUrl(url, 'card') : undefined
+  const [fullReady, setFullReady] = useState(false)
+  const thumbUrl = imgUrl(url, 'card')
+  const fullUrl = imgUrl(url, 'detail')
+  const wantFull = size === 'detail' && fullUrl !== thumbUrl
+  const uri = local ?? (wantFull && fullReady ? fullUrl : thumbUrl)
   const ready = () => setState('ready')
   // Ref, not dep: the parent passes an inline arrow, and a new identity every
   // render would restart the watchdog before it could ever fire.
@@ -76,22 +86,29 @@ function LocalOrRemote({ url, local, size, onLocalFailed, style }) {
   useEffect(() => { onLocalFailedRef.current = onLocalFailed })
 
   useEffect(() => {
-    if (state !== 'loading') return undefined
-    const t = setTimeout(() => {
-      if (local) onLocalFailedRef.current()
-      else setAttempt((n) => n + 1)
-    }, local ? LOCAL_PAINT_MS : REMOTE_PAINT_MS)
+    if (state !== 'loading' || !local) return undefined
+    const t = setTimeout(() => onLocalFailedRef.current(), LOCAL_PAINT_MS)
     return () => clearTimeout(t)
-  }, [state, uri, local])
+  }, [state, local])
+
+  useEffect(() => {
+    if (!wantFull || fullReady) return undefined
+    let cancelled = false
+    Image.prefetch(fullUrl, 'memory-disk')
+      .then((ok) => { if (!cancelled && ok) setFullReady(true) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [wantFull, fullReady, fullUrl])
 
   return (
     <View style={style}>
       <Image
-        key={`${uri}#${attempt}`}
         source={{ uri }}
-        placeholder={placeholder ? { uri: placeholder } : undefined}
+        // The thumb is already on screen when the full variant swaps in, so
+        // the upgrade cross-fades instead of flashing grey.
+        placeholder={uri === fullUrl ? { uri: thumbUrl } : undefined}
         placeholderContentFit="cover"
-        style={styles.image}
+        style={[styles.image, { borderRadius: r }]}
         contentFit="cover"
         cachePolicy="memory-disk"
         transition={200}
@@ -108,7 +125,7 @@ function LocalOrRemote({ url, local, size, onLocalFailed, style }) {
         </View>
       )}
       {state === 'failed' && (
-        <View style={styles.tileOverlay} pointerEvents="none">
+        <View style={[styles.tileOverlay, { borderRadius: r }]} pointerEvents="none">
           <Icon name="image-off" size={20} color={colors.slate500} />
           <Text style={styles.tileFailedText}>Couldn&apos;t load</Text>
         </View>
@@ -148,10 +165,10 @@ export default function PhotoBoard({ value = [], onChange }) {
     // data used to discard the four that had already landed on storage and
     // show nothing — which read as "the preview doesn't load". Keep what
     // worked, and name what didn't with the server's own reason.
-    const settled = await Promise.allSettled(result.assets.map(async (a) => ({
-      url: (await uploadService.uploadPropertyImage(a)).data.url,
-      local: a.uri,
-    })))
+    const settled = await Promise.allSettled(result.assets.map(async (a) => {
+      const res = await uploadService.uploadPropertyImage(a)
+      return { url: res.data.url, local: res.localUri }
+    }))
     const added = settled.filter((s) => s.status === 'fulfilled').map((s) => s.value)
     const failed = settled.filter((s) => s.status === 'rejected')
     if (added.length) {
@@ -204,6 +221,7 @@ export default function PhotoBoard({ value = [], onChange }) {
             size="detail"
             onLocalFailed={() => forgetLocal(cover)}
             style={styles.image}
+            radius={radius.lg}
           />
           <View style={styles.coverBadge}><Text style={styles.coverBadgeText}>Cover</Text></View>
         </Pressable>
@@ -238,6 +256,7 @@ export default function PhotoBoard({ value = [], onChange }) {
                 size="card"
                 onLocalFailed={() => forgetLocal(url)}
                 style={styles.image}
+                radius={radius.md}
               />
             </Pressable>
           ))}
@@ -278,7 +297,7 @@ export default function PhotoBoard({ value = [], onChange }) {
 }
 
 const styles = StyleSheet.create({
-  coverTile: { aspectRatio: 1.1, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.slate100 },
+  coverTile: { aspectRatio: 1.1, borderRadius: radius.lg, backgroundColor: colors.slate100 },
   coverEmpty: {
     aspectRatio: 1.1, borderRadius: radius.lg, borderWidth: 2, borderColor: colors.slate200, borderStyle: 'dashed',
     backgroundColor: colors.slate50, alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
@@ -291,7 +310,7 @@ const styles = StyleSheet.create({
   coverBadge: { position: 'absolute', top: spacing.sm, left: spacing.sm, backgroundColor: colors.brand600, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 4 },
   coverBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
   thumbRow: { flexDirection: 'row', gap: spacing.sm },
-  thumbTile: { flex: 1, aspectRatio: 1, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.slate100 },
+  thumbTile: { flex: 1, aspectRatio: 1, borderRadius: radius.md, backgroundColor: colors.slate100 },
   addButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
     minHeight: 56, borderRadius: radius.lg, borderWidth: 2, borderColor: colors.brand100,
