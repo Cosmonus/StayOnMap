@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   tabButtonText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate500 },
   tabButtonTextActive: { color: colors.white },
   label: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate600, marginBottom: spacing.xs },
-  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: -spacing.sm + 2, marginBottom: spacing.md },
+  hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: spacing.sm, marginBottom: spacing.md },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
