@@ -5,10 +5,14 @@
 // was extracted it existed as two byte-identical copies with no tests on
 // either. The failure it guards against is not theoretical: the primary
 // endpoint 406'd for an entire work session (roadmap Addenda 10-11).
-import { describe, it, expect, vi } from 'vitest'
-import { overpassQuery, OVERPASS_ENDPOINTS } from '../src/features/spatial/overpassClient.js'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { overpassQuery, OVERPASS_ENDPOINTS, _resetPreferredEndpoint } from '../src/features/spatial/overpassClient.js'
 
 const ENDPOINTS = ['https://a.test', 'https://b.test', 'https://c.test']
+
+// The sticky mirror is process-lifetime state by design; between tests it is
+// order-leak, so every case starts with it forgotten.
+beforeEach(() => _resetPreferredEndpoint())
 
 const ok = (body = { elements: [] }) => ({ ok: true, status: 200, json: async () => body })
 const httpError = (status) => ({ ok: false, status, json: async () => ({}) })
@@ -60,6 +64,50 @@ describe('overpassQuery — rotation', () => {
 
     const called = fetchImpl.mock.calls.map((c) => c[0])
     expect(new Set(called).size).toBe(called.length)
+  })
+})
+
+describe('overpassQuery — sticky mirror', () => {
+  it('tries the mirror that answered last FIRST on the next call', async () => {
+    // The 2026-08-20 prod POI seed: overpass-api.de ETIMEDOUT on every one of
+    // Delhi's 16 tiles before the same mirror answered each time. One dead
+    // primary must cost its timeout once per process, not once per tile.
+    const fetchImpl = vi.fn()
+      .mockRejectedValueOnce(Object.assign(new Error('fetch failed'), { code: 'ETIMEDOUT' }))
+      .mockResolvedValue(ok({ elements: [] }))
+
+    await overpassQuery('q', { endpoints: ENDPOINTS, fetchImpl }) // a fails → b answers
+    await overpassQuery('q', { endpoints: ENDPOINTS, fetchImpl }) // must start at b
+
+    const called = fetchImpl.mock.calls.map((c) => c[0])
+    expect(called).toEqual(['https://a.test', 'https://b.test', 'https://b.test'])
+  })
+
+  it('falls through normally when the preferred mirror dies too', async () => {
+    const fetchImpl = vi.fn()
+      .mockRejectedValueOnce(new Error('a down'))
+      .mockResolvedValueOnce(ok())          // b answers → preferred
+      .mockResolvedValueOnce(httpError(504)) // b busy next call
+      .mockResolvedValueOnce(ok({ elements: ['from-a'] }))
+
+    await overpassQuery('q', { endpoints: ENDPOINTS, fetchImpl })
+    const body = await overpassQuery('q', { endpoints: ENDPOINTS, fetchImpl })
+
+    expect(body.elements).toEqual(['from-a'])
+    // Second call: b (preferred, 504) then a (the rest in declared order).
+    expect(fetchImpl.mock.calls.map((c) => c[0]).slice(2)).toEqual(['https://b.test', 'https://a.test'])
+  })
+
+  it('ignores a preference that is not in the caller-supplied list', async () => {
+    const fetchImpl = vi.fn()
+      .mockRejectedValueOnce(new Error('a down'))
+      .mockResolvedValue(ok())
+
+    await overpassQuery('q', { endpoints: ENDPOINTS, fetchImpl }) // preferred = b.test
+    await overpassQuery('q', { endpoints: ['https://x.test', 'https://y.test'], fetchImpl })
+
+    // The second call's list has no b.test — declared order must hold.
+    expect(fetchImpl.mock.calls[2][0]).toBe('https://x.test')
   })
 })
 
