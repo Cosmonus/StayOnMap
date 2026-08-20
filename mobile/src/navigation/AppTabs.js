@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes, CHROME_MAX_FONT_SCALE } from '@theme/typography'
+import { spacing } from '@theme/spacing'
 import { useUiStore } from '@store/uiStore'
 import { flushPendingReference } from '@navigation/navigationRef'
 import { useAuth } from '@features/auth/hooks/useAuth'
@@ -371,7 +372,10 @@ export default function AppTabs() {
         // Explicit white, not the platform default: the app's chrome is white
         // top (ScreenHeader, including the status-bar inset) and bottom, with
         // the slate50 canvas between — the shell every other phone app uses.
-        tabBarStyle: { backgroundColor: colors.white, borderTopColor: colors.slate200 },
+        // 8px above the icons and 8px below the labels; height grows by the
+        // total so nothing is squeezed and the OS-sized safe-area inset, which
+        // React Navigation adds on top, is untouched.
+        tabBarStyle: { backgroundColor: colors.white, borderTopColor: colors.slate200, paddingTop: spacing.sm, paddingBottom: spacing.sm, height: 56 + spacing.sm * 2 },
         tabBarBadgeStyle: {
           backgroundColor: colors.danger,
           color: colors.white,
@@ -415,5 +419,6 @@ export default function AppTabs() {
 }
 
 const styles = StyleSheet.create({
-  tabLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.xs, textAlign: 'center' },
+  // 11 is the platform's hard floor (.claude/ui-ux.md) — don't go lower.
+  tabLabel: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.micro, textAlign: 'center' },
 })

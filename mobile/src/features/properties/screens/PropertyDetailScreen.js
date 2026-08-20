@@ -437,8 +437,12 @@ export default function PropertyDetailScreen({ route, navigation }) {
       {/* Solid status-bar backing, fades in once content scrolls under it. */}
       <Animated.View pointerEvents="none" style={[styles.statusScrim, { height: insets.top, opacity: scrimOpacity }]} />
 
+      {/* The footer is a plain View, not SafeAreaView: this screen lives
+          inside the tab stack, and the tab bar underneath already owns the
+          bottom inset. Claiming it here too stacked a second safe-area gap
+          under the buttons — the "two things claiming one inset" bug. */}
       {!isOwner && (
-        <SafeAreaView edges={['bottom']} style={styles.footer}>
+        <View style={styles.footer}>
           {/* The BAR spans the window — it is chrome, and a white strip that
               stopped at 640 would leave the canvas showing either side of it.
               The BUTTONS inside it cap, because "Request a visit" 900dp wide is
@@ -485,7 +489,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
             </Pressable>
           )}
           </View>
-        </SafeAreaView>
+        </View>
       )}
     </View>
   )

@@ -8,6 +8,8 @@ export const fonts = {
 }
 
 export const fontSizes = {
+  // "Micro" in .claude/ui-ux.md's ladder and the HARD FLOOR — nothing renders below 11.
+  micro: 11,
   xs: 12,
   sm: 14,
   base: 16,
