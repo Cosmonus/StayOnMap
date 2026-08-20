@@ -12,6 +12,9 @@
 //   - Rotates across mirrors on failure. Overpass is donated hardware; the main
 //     endpoint has 406'd for an entire work session before (roadmap Addenda
 //     10-11) while mirrors stayed up.
+//   - Remembers which mirror answered and tries it first next call. Without
+//     this, a dead primary's timeout is paid once per tile for a whole seed
+//     run (~144 tiles) instead of once per process.
 //   - Reports which endpoint answered, so a caller can log a degraded run
 //     rather than discover months later that the primary has been dead.
 //   - Does NOT retry the same endpoint. A tile that fails everywhere is
@@ -46,6 +49,20 @@ export const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
 ]
 
+// The mirror that answered last, tried FIRST on the next call. A primary that
+// is unreachable tends to stay unreachable for the whole run: the 2026-08-20
+// prod POI seed paid overpass-api.de's connection timeout on every tile —
+// ~144 of them across 9 cities — before falling back to the same working
+// mirror each time. Process-lifetime state, no expiry: a recovered primary is
+// picked up again on the next process (seeder runs are one process per run),
+// and a preferred mirror that dies falls through to the others as normal.
+let preferredEndpoint = null
+
+/** Test-only: forget the sticky mirror so test order cannot leak state. */
+export function _resetPreferredEndpoint() {
+  preferredEndpoint = null
+}
+
 /**
  * POST a query, falling through the mirrors until one answers.
  *
@@ -76,7 +93,14 @@ export async function overpassQuery(query, opts = {}) {
   // question — why the primary was skipped — went unrecorded.
   const attempts = []
 
-  for (const [index, endpoint] of endpoints.entries()) {
+  // Sticky preference reorders, never adds: it only applies when the caller's
+  // list contains the remembered mirror, so injected test lists and any future
+  // caller-specific list are unaffected by what another caller learned.
+  const order = preferredEndpoint && endpoints.includes(preferredEndpoint)
+    ? [preferredEndpoint, ...endpoints.filter((e) => e !== preferredEndpoint)]
+    : endpoints
+
+  for (const [index, endpoint] of order.entries()) {
     try {
       const res = await fetchImpl(endpoint, {
         method: 'POST',
@@ -112,6 +136,17 @@ export async function overpassQuery(query, opts = {}) {
           attempts,
           lastError: lastError?.message ?? null,
         })
+      }
+
+      // Remember who answered so the next call starts here instead of paying
+      // a dead primary's timeout again. Logged only on a CHANGE — the switch
+      // is the signal; repeating it per call would be the noise this exists
+      // to remove.
+      if (endpoint !== preferredEndpoint) {
+        if (preferredEndpoint) {
+          intelLog('spatial.overpass_preferred', { endpoint, previous: preferredEndpoint })
+        }
+        preferredEndpoint = endpoint
       }
 
       return await res.json()
