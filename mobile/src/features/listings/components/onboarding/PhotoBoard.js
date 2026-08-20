@@ -52,14 +52,23 @@ const RECOMMENDED = 5
 // once (2026-08-20). expo-image gives nothing to catch there, so time is the
 // signal: a local file that hasn't painted in 1.5s is dropped for the remote
 // url (already uploaded, a thumb is ~40KB), and a remote load that hasn't
-// reported in 8s is remounted. A tile may be slow; it may not be stuck.
+// reported in 4s is remounted. A tile may be slow; it may not be stuck.
+//
+// Measured on the emulator with logging (2026-08-20): the cover's first request
+// for a 1.3MB `_full.webp` fired loadStart and then NOTHING for the whole
+// watchdog window, while the remount painted at once from the disk cache. So
+// the cover also takes its own `_thumb` as expo-image's `placeholder` — ~90KB,
+// and usually already cached because the board just showed it — which paints
+// immediately and is replaced when the full variant lands. The thumb row
+// needs none: its tiles ARE the thumb.
 const LOCAL_PAINT_MS = 1500
-const REMOTE_PAINT_MS = 8000
+const REMOTE_PAINT_MS = 4000
 
 function LocalOrRemote({ url, local, size, onLocalFailed, style }) {
   const [state, setState] = useState('loading')
   const [attempt, setAttempt] = useState(0)
   const uri = local ?? imgUrl(url, size)
+  const placeholder = !local && size === 'detail' ? imgUrl(url, 'card') : undefined
   const ready = () => setState('ready')
   // Ref, not dep: the parent passes an inline arrow, and a new identity every
   // render would restart the watchdog before it could ever fire.
@@ -80,6 +89,8 @@ function LocalOrRemote({ url, local, size, onLocalFailed, style }) {
       <Image
         key={`${uri}#${attempt}`}
         source={{ uri }}
+        placeholder={placeholder ? { uri: placeholder } : undefined}
+        placeholderContentFit="cover"
         style={styles.image}
         contentFit="cover"
         cachePolicy="memory-disk"
