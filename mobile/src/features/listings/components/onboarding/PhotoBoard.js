@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { View, Text, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native'
 import { Image } from 'expo-image'
 import * as ImagePicker from 'expo-image-picker'
@@ -45,14 +45,40 @@ const RECOMMENDED = 5
 //   deliver onLoadStart AFTER onLoad for a local or cached image, and a reset
 //   there pinned the state on 'loading' forever. `onDisplay` is accepted as
 //   ready as well — it is the event that fires when pixels are on screen.
+//
+// And a watchdog, because on a real device the local preview sometimes fired
+// NEITHER onLoad nor onError — spinner over grey until you left the step and
+// came back, which remounted the tile onto the remote url and it loaded at
+// once (2026-08-20). expo-image gives nothing to catch there, so time is the
+// signal: a local file that hasn't painted in 1.5s is dropped for the remote
+// url (already uploaded, a thumb is ~40KB), and a remote load that hasn't
+// reported in 8s is remounted. A tile may be slow; it may not be stuck.
+const LOCAL_PAINT_MS = 1500
+const REMOTE_PAINT_MS = 8000
+
 function LocalOrRemote({ url, local, size, onLocalFailed, style }) {
   const [state, setState] = useState('loading')
+  const [attempt, setAttempt] = useState(0)
   const uri = local ?? imgUrl(url, size)
   const ready = () => setState('ready')
+  // Ref, not dep: the parent passes an inline arrow, and a new identity every
+  // render would restart the watchdog before it could ever fire.
+  const onLocalFailedRef = useRef(onLocalFailed)
+  useEffect(() => { onLocalFailedRef.current = onLocalFailed })
+
+  useEffect(() => {
+    if (state !== 'loading') return undefined
+    const t = setTimeout(() => {
+      if (local) onLocalFailedRef.current()
+      else setAttempt((n) => n + 1)
+    }, local ? LOCAL_PAINT_MS : REMOTE_PAINT_MS)
+    return () => clearTimeout(t)
+  }, [state, uri, local])
+
   return (
     <View style={style}>
       <Image
-        key={uri}
+        key={`${uri}#${attempt}`}
         source={{ uri }}
         style={styles.image}
         contentFit="cover"
