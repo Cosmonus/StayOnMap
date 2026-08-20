@@ -27,16 +27,43 @@ const RECOMMENDED = 5
 // points at a cache file the OS may reclaim, so it is a display shortcut and
 // never a source of truth. `onError` drops the entry and the tile falls back to
 // the remote url, which by then is almost certainly cached anyway.
+//
+// A tile says what it is doing. Before this it had one look — slate100 — for
+// "still downloading", "the download failed" and "loaded a blank image", so a
+// stuck tile could not be told from a slow one. Now it spins while loading and
+// shows a broken-image glyph when the remote fetch fails; tapping the tile
+// (the existing action sheet) is how you remove and re-add it.
 function LocalOrRemote({ url, local, size, onLocalFailed, style }) {
+  const [state, setState] = useState('loading')
+  const uri = local ?? imgUrl(url, size)
   return (
-    <Image
-      source={{ uri: local ?? imgUrl(url, size) }}
-      style={style}
-      contentFit="cover"
-      cachePolicy="memory-disk"
-      transition={200}
-      onError={local ? onLocalFailed : undefined}
-    />
+    <View style={style}>
+      <Image
+        key={uri}
+        source={{ uri }}
+        style={styles.image}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        transition={200}
+        onLoadStart={() => setState('loading')}
+        onLoad={() => setState('ready')}
+        onError={() => {
+          if (local) { onLocalFailed(); return }
+          setState('failed')
+        }}
+      />
+      {state === 'loading' && (
+        <View style={styles.tileOverlay} pointerEvents="none">
+          <ActivityIndicator color={colors.brand600} size="small" />
+        </View>
+      )}
+      {state === 'failed' && (
+        <View style={styles.tileOverlay} pointerEvents="none">
+          <Icon name="image-off" size={20} color={colors.slate500} />
+          <Text style={styles.tileFailedText}>Couldn&apos;t load</Text>
+        </View>
+      )}
+    </View>
   )
 }
 
@@ -67,18 +94,27 @@ export default function PhotoBoard({ value = [], onChange }) {
     if (result.canceled || !result.assets?.length) return
 
     setUploading(true)
-    try {
-      const added = await Promise.all(result.assets.map(async (a) => ({
-        url: (await uploadService.uploadPropertyImage(a)).data.url,
-        local: a.uri,
-      })))
+    // allSettled, not all: five photos picked and one timing out on mobile
+    // data used to discard the four that had already landed on storage and
+    // show nothing — which read as "the preview doesn't load". Keep what
+    // worked, and name what didn't with the server's own reason.
+    const settled = await Promise.allSettled(result.assets.map(async (a) => ({
+      url: (await uploadService.uploadPropertyImage(a)).data.url,
+      local: a.uri,
+    })))
+    const added = settled.filter((s) => s.status === 'fulfilled').map((s) => s.value)
+    const failed = settled.filter((s) => s.status === 'rejected')
+    if (added.length) {
       setLocalByUrl((prev) => ({ ...prev, ...Object.fromEntries(added.map((x) => [x.url, x.local])) }))
       onChange([...value, ...added.map((x) => x.url)])
-    } catch {
-      setError('Failed to upload one or more images. Please try again.')
-    } finally {
-      setUploading(false)
     }
+    if (failed.length) {
+      const reason = failed[0].reason?.message
+      const timedOut = failed[0].reason?.code === 'ECONNABORTED'
+      setError(`${failed.length} of ${result.assets.length} photo${result.assets.length === 1 ? '' : 's'} didn't upload — ${
+        timedOut ? 'the connection was too slow' : reason ?? 'please try again'}.`)
+    }
+    setUploading(false)
   }
 
   function makeCover(i) {
@@ -199,6 +235,8 @@ const styles = StyleSheet.create({
   },
   coverEmptyText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate600 },
   image: { width: '100%', height: '100%' },
+  tileOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', gap: spacing.xs, backgroundColor: colors.slate100 },
+  tileFailedText: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate600 },
   coverBadge: { position: 'absolute', top: spacing.sm, left: spacing.sm, backgroundColor: colors.brand600, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 4 },
   coverBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
   thumbRow: { flexDirection: 'row', gap: spacing.sm },
