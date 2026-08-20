@@ -59,9 +59,20 @@ const RECOMMENDED = 5
 // every remote tile's SOURCE is the ~40KB `_thumb`, which always lands, and the
 // cover upgrades to `_full` only once `Image.prefetch` has put it in the disk
 // cache — a slow cover looks soft for a moment rather than blank for good.
+//
+// THE ACTUAL BUG, found with logging on the emulator (2026-08-20): none of the
+// above. The cover tile's image reported `onLoad` with a real 1200x1600 source,
+// the spinner cleared, and the tile was STILL grey — and so was the "Cover"
+// badge beside it, which is not an image at all. `overflow: 'hidden'` on the
+// Pressable (there for the rounded corners) was clipping every child away on
+// Android, while the tile's own background painted fine. Removing that one
+// style painted the photo instantly. So neither tile clips: the corner radius
+// goes on the <Image> itself, which expo-image rounds natively, and on the
+// failed overlay. A tile that is grey AFTER onLoad is a painting problem, not a
+// loading one — look at what else in the tile is missing.
 const LOCAL_PAINT_MS = 1500
 
-function LocalOrRemote({ url, local, size, onLocalFailed, style }) {
+function LocalOrRemote({ url, local, size, onLocalFailed, style, radius: r }) {
   const [state, setState] = useState('loading')
   const [fullReady, setFullReady] = useState(false)
   const thumbUrl = imgUrl(url, 'card')
@@ -97,7 +108,7 @@ function LocalOrRemote({ url, local, size, onLocalFailed, style }) {
         // the upgrade cross-fades instead of flashing grey.
         placeholder={uri === fullUrl ? { uri: thumbUrl } : undefined}
         placeholderContentFit="cover"
-        style={styles.image}
+        style={[styles.image, { borderRadius: r }]}
         contentFit="cover"
         cachePolicy="memory-disk"
         transition={200}
@@ -114,7 +125,7 @@ function LocalOrRemote({ url, local, size, onLocalFailed, style }) {
         </View>
       )}
       {state === 'failed' && (
-        <View style={styles.tileOverlay} pointerEvents="none">
+        <View style={[styles.tileOverlay, { borderRadius: r }]} pointerEvents="none">
           <Icon name="image-off" size={20} color={colors.slate500} />
           <Text style={styles.tileFailedText}>Couldn&apos;t load</Text>
         </View>
@@ -210,6 +221,7 @@ export default function PhotoBoard({ value = [], onChange }) {
             size="detail"
             onLocalFailed={() => forgetLocal(cover)}
             style={styles.image}
+            radius={radius.lg}
           />
           <View style={styles.coverBadge}><Text style={styles.coverBadgeText}>Cover</Text></View>
         </Pressable>
@@ -244,6 +256,7 @@ export default function PhotoBoard({ value = [], onChange }) {
                 size="card"
                 onLocalFailed={() => forgetLocal(url)}
                 style={styles.image}
+                radius={radius.md}
               />
             </Pressable>
           ))}
@@ -284,7 +297,7 @@ export default function PhotoBoard({ value = [], onChange }) {
 }
 
 const styles = StyleSheet.create({
-  coverTile: { aspectRatio: 1.1, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.slate100 },
+  coverTile: { aspectRatio: 1.1, borderRadius: radius.lg, backgroundColor: colors.slate100 },
   coverEmpty: {
     aspectRatio: 1.1, borderRadius: radius.lg, borderWidth: 2, borderColor: colors.slate200, borderStyle: 'dashed',
     backgroundColor: colors.slate50, alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
@@ -297,7 +310,7 @@ const styles = StyleSheet.create({
   coverBadge: { position: 'absolute', top: spacing.sm, left: spacing.sm, backgroundColor: colors.brand600, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: 4 },
   coverBadgeText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.xs, color: colors.white },
   thumbRow: { flexDirection: 'row', gap: spacing.sm },
-  thumbTile: { flex: 1, aspectRatio: 1, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.slate100 },
+  thumbTile: { flex: 1, aspectRatio: 1, borderRadius: radius.md, backgroundColor: colors.slate100 },
   addButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
     minHeight: 56, borderRadius: radius.lg, borderWidth: 2, borderColor: colors.brand100,
