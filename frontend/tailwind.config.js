@@ -146,6 +146,12 @@ export default {
         'pin-drop':   'pinDrop 400ms cubic-bezier(0.34, 1.56, 0.64, 1)',  // map pin entrance
         'pin-pulse':  'pinPulse 2000ms ease-in-out infinite',             // selected pin
         'sheet-up':   'sheetUp 350ms cubic-bezier(0.32, 0.72, 0, 1)',     // bottom sheet
+        'live-glow':  'liveGlow 2400ms ease-in-out infinite',             // "Now live" pill
+        'wiggle':     'wiggle 2400ms ease-in-out infinite',               // party popper
+        'gradient-drift': 'gradientDrift 12s ease-in-out infinite',      // launch card bg
+        'float-slow':   'floatSlow 9s ease-in-out infinite',             // launch card blobs
+        'float-slower': 'floatSlower 14s ease-in-out infinite',
+        'twinkle':      'twinkle 3s ease-in-out infinite',
       },
 
       keyframes: {
@@ -167,6 +173,32 @@ export default {
         sheetUp: {
           from: { transform: 'translateY(100%)' },
           to:   { transform: 'translateY(0)' },
+        },
+        liveGlow: {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgb(255 255 255 / 0.35)' },
+          '50%':      { boxShadow: '0 0 18px 2px rgb(255 255 255 / 0.15)' },
+        },
+        gradientDrift: {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%':      { backgroundPosition: '100% 50%' },
+        },
+        floatSlow: {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+          '50%':      { transform: 'translate(24px, 18px) scale(1.12)' },
+        },
+        floatSlower: {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+          '50%':      { transform: 'translate(-28px, -20px) scale(1.08)' },
+        },
+        twinkle: {
+          '0%, 100%': { opacity: '0.5', transform: 'scale(0.9) rotate(0deg)' },
+          '50%':      { opacity: '1',   transform: 'scale(1.1) rotate(15deg)' },
+        },
+        wiggle: {
+          '0%, 80%, 100%': { transform: 'rotate(0deg)' },
+          '85%':           { transform: 'rotate(-12deg)' },
+          '90%':           { transform: 'rotate(12deg)' },
+          '95%':           { transform: 'rotate(-8deg)' },
         },
       },
 
