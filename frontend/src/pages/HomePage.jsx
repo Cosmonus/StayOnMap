@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, PartyPopper, Rocket, Sparkles } from 'lucide-react'
 import MapView from '@features/map/components/MapView'
 import MapLegend from '@features/map/components/MapLegend'
 import AreaInsightCard from '@features/map/components/AreaInsightCard'
@@ -13,7 +13,7 @@ import { useFilterStore } from '@store/filterStore'
 import { useMapStore } from '@store/mapStore'
 import { useUiStore } from '@store/uiStore'
 import { useAuth } from '@features/auth/hooks/useAuth'
-import { BRAND, canonical } from '@lib/seo'
+import { BRAND, canonical, PLAY_STORE_URL } from '@lib/seo'
 import { usePlatformStats } from '@hooks/usePlatformStats'
 import { toQueryParams } from '@/config/filters'
 import { useFilterUrlSync } from '@features/filters/hooks/useFilterUrlSync'
@@ -178,24 +178,64 @@ function Argument({ liveListings, activeOwners, citiesLive, isLoading }) {
           </ol>
         </div>
 
-        {/* ── Slim closing strip ── */}
-        <div className="mt-10 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-slate-800">Apps coming to iOS &amp; Android.</p>
-            <p className="mt-1 text-sm leading-relaxed text-slate-500">
-              Everything here already works in a mobile browser — nothing is waiting on the app.
-            </p>
+        {/* ── Launch card: the Android app is live, and we say so loudly.
+            Dark jade so it reads as the one celebratory moment on a page of
+            white cards; the blobs are decorative and aria-hidden. ── */}
+        <div className="relative mt-10 overflow-hidden rounded-3xl bg-gradient-to-br from-brand-900 via-brand-700 to-brand-500 bg-[length:200%_200%] px-6 py-8 text-white shadow-lg motion-safe:animate-gradient-drift sm:px-10 sm:py-10">
+          <div aria-hidden="true" className="pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full bg-brand-500/40 blur-3xl motion-safe:animate-float-slow" />
+          <div aria-hidden="true" className="pointer-events-none absolute -bottom-20 -right-10 h-64 w-64 rounded-full bg-brand-100/20 blur-3xl motion-safe:animate-float-slower" />
+          <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10 blur-3xl motion-safe:animate-float-slow" />
+          <div aria-hidden="true" className="pointer-events-none absolute right-8 top-6 hidden sm:block">
+            <Sparkles size={32} className="text-brand-100/70 motion-safe:animate-twinkle" />
           </div>
-          <Link
-            to="/intelligence"
-            className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 self-start text-sm font-semibold text-brand-700 no-underline underline-offset-4 hover:underline sm:self-auto"
-          >
-            See how the scoring works
-            <ArrowRight size={13} strokeWidth={2.5} />
-          </Link>
+
+          <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-xl">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-50 ring-1 ring-white/25 motion-safe:animate-live-glow">
+                <span aria-hidden="true" className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-brand-100 opacity-75 motion-safe:animate-ping" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                </span>
+                Now live
+                <PartyPopper size={16} aria-hidden="true" className="motion-safe:animate-wiggle" />
+              </span>
+              <h2 className="font-display mt-4 text-2xl font-bold leading-tight sm:text-3xl">
+                StayOnMap is on Google&nbsp;Play
+                <Rocket size={24} className="ml-2 inline-block align-[-3px] text-brand-100" aria-hidden="true" />
+              </h2>
+              <p className="mt-3 text-base leading-relaxed text-brand-50/90">
+                Every home on this map, now in your pocket — the same live pins,
+                the same scores, zero brokers. iOS is next.
+              </p>
+            </div>
+
+            <a
+              href={PLAY_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex min-h-[48px] shrink-0 items-center gap-3 self-start rounded-xl bg-white px-6 text-slate-900 no-underline shadow-md transition-all duration-normal hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-brand-700 md:self-auto"
+            >
+              <GooglePlayIcon />
+              <span className="text-base font-bold">Google Play</span>
+              <ArrowRight size={16} strokeWidth={2.5} className="transition-transform duration-normal group-hover:translate-x-1" aria-hidden="true" />
+            </a>
+          </div>
         </div>
       </div>
     </section>
+  )
+}
+
+/* The Google Play triangle — lucide has no brand glyphs, and the store's
+   own mark is what people recognise. Four official colours, inline. */
+function GooglePlayIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M3.6 1.8 13.9 12 3.6 22.2a1.7 1.7 0 0 1-.6-1.3V3.1c0-.5.2-1 .6-1.3Z" fill="#00D7FE" />
+      <path d="M17.3 15.4 13.9 12l3.4-3.4 4.1 2.3c1.1.7 1.1 1.6 0 2.2l-4.1 2.3Z" fill="#FFCE00" />
+      <path d="M3.6 1.8c.4-.4 1.1-.4 1.8 0l11.9 6.8L13.9 12 3.6 1.8Z" fill="#00F076" />
+      <path d="M3.6 22.2 13.9 12l3.4 3.4L5.4 22.2c-.7.4-1.4.4-1.8 0Z" fill="#F63448" />
+    </svg>
   )
 }
 

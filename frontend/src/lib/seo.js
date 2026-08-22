@@ -11,6 +11,9 @@ export const BRAND = {
   twitterHandle: '@StayOnMap',
 }
 
+// The Android app's Play Store listing — the one place the URL is written.
+export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.stayonmap.app'
+
 export const DEFAULT_SEO = {
   title: `${BRAND.name} — ${BRAND.tagline}`,
   description:
