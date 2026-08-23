@@ -6,7 +6,7 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
 import { toast } from '@components/common/Toaster'
 import Select from '@components/common/Select'
-import { CITY_LIST_LABEL, CITY_OPTIONS } from '@/config/cities'
+import { CITY_LIST_LABEL, STATE_OPTIONS } from '@/config/cities'
 
 // Where the OAuth callback lands the browser. The backend puts its result in
 // the URL FRAGMENT (never query — fragments stay out of server logs), as one of:
@@ -94,17 +94,17 @@ export default function OAuthCompletePage() {
               <h1 className="text-lg font-bold text-slate-800">
                 Almost there{result.name ? `, ${result.name.split(' ')[0]}` : ''}
               </h1>
-              <p className="text-sm text-slate-500 mt-1">One last thing — which city are you in?</p>
+              <p className="text-sm text-slate-500 mt-1">One last thing — which state are you in?</p>
             </div>
             <div>
               <Select
-                label="City"
+                label="State"
                 value={city}
                 onChange={setCity}
-                placeholder="Select your city"
+                placeholder="Select your state"
                 options={[
-                  ...CITY_OPTIONS,
-                  { value: '__other__', label: "My city isn't listed" },
+                  ...STATE_OPTIONS,
+                  { value: '__other__', label: "My state isn't listed" },
                 ]}
               />
               {city === '__other__' && (

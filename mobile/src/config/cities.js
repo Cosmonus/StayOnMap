@@ -375,6 +375,10 @@ export const SUPPORTED_STATES = ['Delhi', 'Maharashtra', 'West Bengal', 'Tamil N
 // not worth a pill at national zoom.
 export const CORE_CITIES = CITIES.filter((c) => c.core)
 
+// Signup asks for the STATE only (2026-08-24) — where you are is a state-sized
+// question; only a listing needs a city. The waitlist catch-all stays.
+export const STATE_OPTIONS = SUPPORTED_STATES.map((s) => ({ value: s, label: s }))
+
 // Dropdown options, grouped by state in table order, and labelled
 // "Coimbatore, Tamil Nadu" so type-ahead finds a city by either word.
 export const CITY_OPTIONS = CITIES.map((c) => ({ value: c.name, label: `${c.name}, ${c.state}` }))

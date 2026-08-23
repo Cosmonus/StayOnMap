@@ -21,7 +21,7 @@ import { env } from '../../config/env.js'
 import { cacheGet, cacheSet, cacheDel, redis } from '../../lib/redis.js'
 import { generateUserDisplayId } from '../../utils/idGenerator.js'
 import { sendEmail, accountLinkedEmail } from '../../services/email.service.js'
-import { SUPPORTED_CITIES } from '../../config/cities.js'
+import { SUPPORTED_CITIES, SUPPORTED_STATES } from '../../config/cities.js'
 import { getProvider, PROVIDERS } from './oauth.providers.js'
 import { signUserToken, stripPasswordHash } from './tokens.js'
 import { issueSession } from './session.service.js'
@@ -276,7 +276,10 @@ export async function completeOAuthSignup(pendingToken, city, ctx = {}) {
   if (payload.purpose !== 'oauth_signup') throw badRequest('This sign-up session expired — please sign in again')
 
   // Same gate as password signup: unsupported city → waitlist, no account.
-  if (!SUPPORTED_CITIES.includes(city)) {
+  // A supported STATE passes too (2026-08-24): the signup dropdown asks for the
+  // state only, while released mobile builds still send a city name. Both are
+  // an answer to "are you somewhere we operate"; only a listing needs a city.
+  if (!SUPPORTED_CITIES.includes(city) && !SUPPORTED_STATES.includes(city)) {
     await prisma.waitlistEntry.create({
       data: { name: payload.name ?? payload.email, email: payload.email, city },
     })

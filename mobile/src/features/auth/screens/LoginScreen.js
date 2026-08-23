@@ -7,15 +7,16 @@ import Icon from '@components/common/Icon'
 import Dropdown from '@components/common/Dropdown'
 import OtpLoginForm from '@features/auth/components/OtpLoginForm'
 import SocialLoginButtons from '@features/auth/components/SocialLoginButtons'
-import { CITY_OPTIONS, CITY_LIST_LABEL } from '@config/cities'
+import { STATE_OPTIONS, CITY_LIST_LABEL } from '@config/cities'
 import { colors } from '@theme/colors'
 import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
+// Signup asks for the STATE only (2026-08-24) — only a listing needs a city.
 const CITY_DROPDOWN_OPTIONS = [
-  ...CITY_OPTIONS,
-  { value: '__other__', label: "My city isn't listed" },
+  ...STATE_OPTIONS,
+  { value: '__other__', label: "My state isn't listed" },
 ]
 
 const ROLES = [
@@ -114,7 +115,7 @@ export default function LoginScreen() {
   async function handleSignup() {
     if (!name.trim()) { setError('Name is required'); return }
     const resolvedCity = city === '__other__' ? otherCity.trim() : city
-    if (!resolvedCity) { setError('Please select your city'); return }
+    if (!resolvedCity) { setError('Please select your state'); return }
     setLoading(true)
     setError('')
     try {
@@ -277,19 +278,19 @@ export default function LoginScreen() {
               />
 
               <View style={styles.cityBlock}>
-                <Text style={styles.label}>City</Text>
+                <Text style={styles.label}>State</Text>
                 <Dropdown
-                  label="City"
+                  label="State"
                   value={city}
                   options={CITY_DROPDOWN_OPTIONS}
                   onChange={setCity}
-                  placeholder="Select your city"
+                  placeholder="Select your state"
                 />
               </View>
               {city === '__other__' && (
                 <Field icon="building" label="Which city are you in?" value={otherCity} onChangeText={setOtherCity} placeholder="Type your city" />
               )}
-              <Text style={styles.hint}>We&apos;re only live in {CITY_LIST_LABEL} right now — other cities go on our waitlist.</Text>
+              <Text style={styles.hint}>We&apos;re only live in {CITY_LIST_LABEL} right now — other states go on our waitlist.</Text>
 
               <Field
                 icon="lock" label="Password" value={password} onChangeText={setPassword} placeholder="Min. 8 characters"
