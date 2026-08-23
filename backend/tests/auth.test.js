@@ -51,6 +51,28 @@ describe('registerUser', () => {
     expect(prismaMock.user.create).not.toHaveBeenCalled()
   })
 
+  // Since 2026-08-24 the signup dropdown sends a STATE ("Tamil Nadu"), while
+  // released mobile builds still send a city name — the gate takes either.
+  it('accepts a supported STATE as the signup place', async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null)
+    prismaMock.user.create.mockResolvedValue({ id: 'user-1', email: 'test@example.com', role: 'TENANT', city: 'Tamil Nadu' })
+
+    const result = await registerUser({ name: 'Test', email: 'test@example.com', password: 'pw', city: 'Tamil Nadu' })
+
+    expect(result.waitlisted).toBeUndefined()
+    expect(prismaMock.user.create).toHaveBeenCalled()
+    expect(prismaMock.waitlistEntry.create).not.toHaveBeenCalled()
+  })
+
+  it('still waitlists an unsupported STATE', async () => {
+    prismaMock.waitlistEntry.create.mockResolvedValue({ id: 'wait-1' })
+
+    const result = await registerUser({ name: 'Test', email: 'test@example.com', password: 'pw', city: 'Kerala' })
+
+    expect(result).toEqual({ waitlisted: true })
+    expect(prismaMock.user.create).not.toHaveBeenCalled()
+  })
+
   it('throws 409 when the email is already registered in a supported city', async () => {
     prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1', email: 'test@example.com' })
 

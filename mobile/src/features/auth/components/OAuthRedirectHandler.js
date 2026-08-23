@@ -6,7 +6,7 @@ import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import Dropdown from '@components/common/Dropdown'
 import Icon from '@components/common/Icon'
-import { CITY_OPTIONS, CITY_LIST_LABEL } from '@config/cities'
+import { STATE_OPTIONS, CITY_LIST_LABEL } from '@config/cities'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -115,13 +115,13 @@ export default function OAuthRedirectHandler() {
               <Text style={styles.title}>
                 Almost there{pending?.name ? `, ${pending.name.split(' ')[0]}` : ''}
               </Text>
-              <Text style={styles.hint}>One last thing — which city are you in?</Text>
+              <Text style={styles.hint}>One last thing — which state are you in?</Text>
               <Dropdown
                 label="City"
                 value={city}
                 onChange={setCity}
-                placeholder="Select your city"
-                options={CITY_OPTIONS}
+                placeholder="Select your state"
+                options={STATE_OPTIONS}
               />
               {error ? <Text style={styles.error}>{error}</Text> : null}
               <Pressable

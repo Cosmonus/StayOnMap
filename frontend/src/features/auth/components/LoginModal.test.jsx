@@ -88,7 +88,7 @@ describe('login', () => {
 })
 
 describe('signup — the city gate', () => {
-  async function fillSignup(user, { city = 'Chennai' } = {}) {
+  async function fillSignup(user, { city = 'Tamil Nadu' } = {}) {
     // The tab, not the marketing panel's "Sign up free" CTA beside it.
     await user.click(screen.getByRole('button', { name: /^sign up$/i }))
     await user.type(screen.getByLabelText(/full name/i), 'Asha')
@@ -96,8 +96,8 @@ describe('signup — the city gate', () => {
     await user.type(screen.getByLabelText(/^password$/i), 'Correct-horse-1')
     // The Select primitive, not a native <select>: a portal-rendered
     // combobox. Open it, then pick from the listbox.
-    await user.click(screen.getByRole('combobox', { name: /city/i }))
-    // Options read "Chennai, Tamil Nadu" since cities grew to 47 (2026-08-24).
+    await user.click(screen.getByRole('combobox', { name: /state/i }))
+    // Signup asks for the STATE only (2026-08-24); options read "Tamil Nadu".
     await user.click(await screen.findByRole('option', { name: new RegExp(`^${city}`) }))
   }
 

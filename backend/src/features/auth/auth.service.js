@@ -6,7 +6,7 @@ import { redis } from '../../lib/redis.js'
 import { env } from '../../config/env.js'
 import { generateUserDisplayId } from '../../utils/idGenerator.js'
 import { sendEmail, canSend, passwordResetEmail, emailVerificationEmail, loginOtpEmail, passwordChangedEmail } from '../../services/email.service.js'
-import { SUPPORTED_CITIES } from '../../config/cities.js'
+import { SUPPORTED_CITIES, SUPPORTED_STATES } from '../../config/cities.js'
 import { signUserToken, stripPasswordHash } from './tokens.js'
 import { issueSession, revokeAllSessions } from './session.service.js'
 import { awardPoints } from '../points/points.service.js'
@@ -57,7 +57,10 @@ async function padTiming(password) {
 export async function registerUser({ name, email, password, city, role }, ctx = {}) {
   // Cities outside SUPPORTED_CITIES never get a real account — captured on
   // the waitlist instead, so there's nothing for them to log into later.
-  if (!SUPPORTED_CITIES.includes(city)) {
+  // A supported STATE passes too (2026-08-24): the signup dropdown asks for the
+  // state only, while released mobile builds still send a city name. Both are
+  // an answer to "are you somewhere we operate"; only a listing needs a city.
+  if (!SUPPORTED_CITIES.includes(city) && !SUPPORTED_STATES.includes(city)) {
     await prisma.waitlistEntry.create({ data: { name, email, city } })
     return { waitlisted: true }
   }
