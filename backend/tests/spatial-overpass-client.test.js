@@ -50,8 +50,10 @@ describe('overpassQuery — rotation', () => {
   })
 
   it('tries every mirror before giving up', async () => {
+    // busyBackoffMs: [] — this asserts ROTATION; the busy sit-out has its own
+    // describe below and would otherwise turn 504 into three timed rounds.
     const fetchImpl = vi.fn().mockResolvedValue(httpError(504))
-    await expect(overpassQuery('q', { endpoints: ENDPOINTS, fetchImpl })).rejects.toThrow()
+    await expect(overpassQuery('q', { endpoints: ENDPOINTS, fetchImpl, busyBackoffMs: [] })).rejects.toThrow()
     expect(fetchImpl).toHaveBeenCalledTimes(ENDPOINTS.length)
   })
 
@@ -60,7 +62,7 @@ describe('overpassQuery — rotation', () => {
     // a coverage gap. Retrying here too would multiply into a burst of load on
     // a free service that was, by hypothesis, already struggling.
     const fetchImpl = vi.fn().mockResolvedValue(httpError(429))
-    await expect(overpassQuery('q', { endpoints: ENDPOINTS, fetchImpl })).rejects.toThrow()
+    await expect(overpassQuery('q', { endpoints: ENDPOINTS, fetchImpl, busyBackoffMs: [] })).rejects.toThrow()
 
     const called = fetchImpl.mock.calls.map((c) => c[0])
     expect(new Set(called).size).toBe(called.length)
@@ -173,5 +175,60 @@ describe('the shipped endpoint list', () => {
     expect(OVERPASS_ENDPOINTS.length).toBeGreaterThan(1)
     expect(new Set(OVERPASS_ENDPOINTS).size).toBe(OVERPASS_ENDPOINTS.length)
     for (const e of OVERPASS_ENDPOINTS) expect(e).toMatch(/^https:\/\//)
+  })
+})
+
+// ── Busy backoff (2026-08-24) ────────────────────────────────────────────────
+// From a real run: maps.mail.ru was the only reachable mirror from the VM, it
+// 504'd after one oversized central-Delhi tile, and every remaining tile of a
+// 47-city seed failed instantly. "Busy" is a request to wait, not an outage.
+describe('busy backoff', () => {
+  const busy = (status) => ({ ok: false, status, json: async () => ({}) })
+  const dead = () => Promise.reject(Object.assign(new TypeError('fetch failed'), { cause: { code: 'ETIMEDOUT' } }))
+
+  it('sits out and retries the rotation when a mirror said 504, then succeeds', async () => {
+    const sleeps = []
+    const fetchImpl = vi.fn()
+      // round 1: all three fail, one of them busy
+      .mockImplementationOnce(dead)
+      .mockResolvedValueOnce(busy(504))
+      .mockImplementationOnce(dead)
+      // round 2: the busy mirror recovered
+      .mockImplementationOnce(dead)
+      .mockResolvedValueOnce(ok({ elements: [1] }))
+
+    const out = await overpassQuery('q', {
+      endpoints: ENDPOINTS, fetchImpl,
+      busyBackoffMs: [10, 20], sleepImpl: (ms) => { sleeps.push(ms); return Promise.resolve() },
+    })
+
+    expect(out).toEqual({ elements: [1] })
+    expect(sleeps).toEqual([10])
+  })
+
+  it('waits at most busyBackoffMs.length times, then throws', async () => {
+    const sleeps = []
+    const fetchImpl = vi.fn().mockResolvedValue(busy(429))
+
+    await expect(overpassQuery('q', {
+      endpoints: ENDPOINTS, fetchImpl,
+      busyBackoffMs: [10, 20], sleepImpl: (ms) => { sleeps.push(ms); return Promise.resolve() },
+    })).rejects.toThrow(/HTTP 429/)
+
+    expect(sleeps).toEqual([10, 20])          // 3 rotations total
+    expect(fetchImpl).toHaveBeenCalledTimes(9) // 3 endpoints × 3 rounds
+  })
+
+  it('does NOT wait when every failure is a network error — nothing to wait for', async () => {
+    const sleeps = []
+    const fetchImpl = vi.fn().mockImplementation(dead)
+
+    await expect(overpassQuery('q', {
+      endpoints: ENDPOINTS, fetchImpl,
+      busyBackoffMs: [10], sleepImpl: (ms) => { sleeps.push(ms); return Promise.resolve() },
+    })).rejects.toThrow()
+
+    expect(sleeps).toEqual([])
+    expect(fetchImpl).toHaveBeenCalledTimes(3)
   })
 })
