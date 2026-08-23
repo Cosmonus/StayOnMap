@@ -39,6 +39,10 @@ export const prismaMock = {
     findUnique: vi.fn().mockResolvedValue(null),
     create:     vi.fn(),
   },
+  // OSM admin polygons (boundaryLookup.js). Defaults to "nothing seeded".
+  boundary: {
+    findMany: vi.fn().mockResolvedValue([]),
+  },
   // Aggregate search demand. No personal data in it by construction — see
   // features/analytics/demand.service.js.
   searchDemand: {

@@ -144,6 +144,41 @@ describe('recordSearchDemand', () => {
 })
 
 describe('getUnmetDemand — the readout', () => {
+  // "tggj0" is not an area anybody can go and find a listing in (2026-08-23).
+  // The cell's centre is named through the same boundary data the locality
+  // pages use; the geohash stays on the row for the tooltip.
+  it('names the cell from the ward that contains its centre, and fills a missing city', async () => {
+    // tf31c is the cell around Velachery, Chennai (12.97N, 80.22E). A square around it.
+    const square = (d) => ({
+      type: 'Polygon',
+      coordinates: [[[80.22 - d, 12.97 - d], [80.22 + d, 12.97 - d], [80.22 + d, 12.97 + d], [80.22 - d, 12.97 + d], [80.22 - d, 12.97 - d]]],
+    })
+    prismaMock.boundary.findMany.mockResolvedValue([
+      { osmId: 1, name: 'Velachery', nameLocal: null, adminLevel: 10, geometry: square(0.1) },
+      { osmId: 2, name: 'Chennai', nameLocal: null, adminLevel: 8, geometry: square(0.5) },
+    ])
+    prismaMock.searchDemand.groupBy.mockResolvedValue([
+      { cellGeohash: 'tf31c', city: null, type: null, pricingModel: null, bhk: null, rentBand: null, _sum: { searches: 3, zeroResults: 3 } },
+    ])
+    prismaMock.searchDemand.aggregate.mockResolvedValue({ _sum: { searches: 3, zeroResults: 3 } })
+
+    const out = await getUnmetDemand()
+
+    expect(out.unmet[0]).toMatchObject({ cellGeohash: 'tf31c', area: 'Velachery', city: 'Chennai' })
+  })
+
+  it('leaves area null, never throws, when nothing covers the cell', async () => {
+    prismaMock.boundary.findMany.mockResolvedValue([])
+    prismaMock.searchDemand.groupBy.mockResolvedValue([
+      { cellGeohash: 'zzzzz', city: 'Pune', type: null, pricingModel: null, bhk: null, rentBand: null, _sum: { searches: 1, zeroResults: 1 } },
+    ])
+    prismaMock.searchDemand.aggregate.mockResolvedValue({ _sum: { searches: 1, zeroResults: 1 } })
+
+    const out = await getUnmetDemand()
+
+    expect(out.unmet[0]).toMatchObject({ area: null, city: 'Pune' })
+  })
+
   it('quotes the zero-result rate against ALL searches, not against the rows shown', async () => {
     prismaMock.searchDemand.groupBy.mockResolvedValue([
       {
