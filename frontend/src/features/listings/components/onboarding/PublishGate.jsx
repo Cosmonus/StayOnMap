@@ -4,7 +4,7 @@ import Select from '@components/common/Select'
 import { toast } from '@components/common/Toaster'
 import { userService } from '@services/user.service'
 import { authService } from '@services/auth.service'
-import { CITY_NAMES } from '@/config/cities'
+import { CITY_OPTIONS } from '@/config/cities'
 import { normalizePhone, isValidPhone } from '@utils/validation'
 import { FieldLabel, Txt } from './FieldControl'
 
@@ -96,7 +96,7 @@ export default function PublishGate({ missing, profile }) {
               value={form.city}
               onChange={(v) => { set('city', v); save.mutate({ city: v }) }}
               placeholder="Select city"
-              options={CITY_NAMES.map((n) => ({ value: n, label: n }))}
+              options={CITY_OPTIONS}
             />
           </div>
         )}

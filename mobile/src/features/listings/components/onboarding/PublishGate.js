@@ -5,7 +5,7 @@ import Dropdown from '@components/common/Dropdown'
 import { userService } from '@services/user.service'
 import { authService } from '@services/auth.service'
 import { normalizePhone, isValidPhone } from '@utils/phone'
-import { CITY_NAMES } from '@config/cities'
+import { CITY_OPTIONS } from '@config/cities'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
@@ -108,7 +108,7 @@ export default function PublishGate({ missing, profile }) {
           <Text style={styles.label}>Your city</Text>
           <Dropdown
             value={form.city}
-            options={CITY_NAMES.map((n) => ({ value: n, label: n }))}
+            options={CITY_OPTIONS}
             placeholder="Select city"
             onChange={(v) => { set('city', v); save.mutate({ city: v }) }}
           />

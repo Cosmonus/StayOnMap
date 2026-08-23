@@ -6,7 +6,7 @@ import { userService } from '@services/user.service'
 import { subscribeToPush, unsubscribeFromPush, registerServiceWorker } from '@services/push.service'
 import { toast } from '@components/common/Toaster'
 import { authService } from '@services/auth.service'
-import { CITY_NAMES } from '@/config/cities'
+import { CITY_OPTIONS } from '@/config/cities'
 import Select from '@components/common/Select'
 import LinkedAccountsCard from './LinkedAccountsCard'
 import DevicesCard from './DevicesCard'
@@ -307,7 +307,7 @@ export default function SettingsPanel() {
                   value={form.city}
                   onChange={(v) => set('city', v)}
                   placeholder="Select your city"
-                  options={CITY_NAMES.map((c) => ({ value: c, label: c }))}
+                  options={CITY_OPTIONS}
                 />
               </Field>
               <Field label="Email">

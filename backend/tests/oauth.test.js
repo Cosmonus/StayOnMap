@@ -157,7 +157,7 @@ describe('completeOAuthSignup (the city gate)', () => {
 
   it('unsupported city → waitlist, NO account — same gate as password signup', async () => {
     const pending = await pendingTokenFor()
-    const result = await completeOAuthSignup(pending, 'Coimbatore')
+    const result = await completeOAuthSignup(pending, 'Jaipur')
     expect(result.waitlisted).toBe(true)
     expect(prismaMock.waitlistEntry.create).toHaveBeenCalled()
     expect(prismaMock.user.create).not.toHaveBeenCalled()

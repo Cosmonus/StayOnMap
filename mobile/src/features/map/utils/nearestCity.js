@@ -1,6 +1,6 @@
 import { CITIES } from '@config/cities'
 
-// Cheap squared-distance ranking to pick the nearest of our 9 supported
+// Cheap squared-distance ranking to pick the nearest of our supported
 // cities to a map viewport center — real haversine precision isn't needed
 // just to rank candidates at this scale.
 export function nearestCity(lat, lng) {

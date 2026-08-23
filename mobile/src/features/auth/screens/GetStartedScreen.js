@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Icon from '@components/common/Icon'
-import { CITY_NAMES } from '@config/cities'
+import { CITIES, SUPPORTED_STATES } from '@config/cities'
 import { colors } from '@theme/colors'
 import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
@@ -36,7 +36,7 @@ export default function GetStartedScreen({ navigation }) {
         <Text style={styles.title}>Find your home{'\n'}on the map.</Text>
         <Text style={styles.subtitle}>
           Discover verified rentals visually and connect with owners directly
-          across {CITY_NAMES.length} major Indian cities.
+          across {CITIES.length} cities in {SUPPORTED_STATES.length} Indian states.
         </Text>
         <Pressable
           style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}

@@ -5,7 +5,7 @@ import { X, Phone, MapPin, Eye, EyeOff, MailCheck, MessageSquareLock, KeyRound, 
 import { authService } from '@services/auth.service'
 import { useAuth } from '../hooks/useAuth'
 import { useUiStore } from '@store/uiStore'
-import { CITY_LIST_LABEL, CITY_NAMES } from '@/config/cities'
+import { CITY_LIST_LABEL, CITY_OPTIONS } from '@/config/cities'
 import { usePlatformStats } from '@hooks/usePlatformStats'
 import Select from '@components/common/Select'
 import OtpLoginForm from './OtpLoginForm'
@@ -437,7 +437,7 @@ export default function LoginModal() {
                     placeholder="Select your city"
                     hint={`We're only live in ${CITY_LIST_LABEL} right now — other cities go on our waitlist.`}
                     options={[
-                      ...CITY_NAMES.map((c) => ({ value: c, label: c })),
+                      ...CITY_OPTIONS,
                       { value: '__other__', label: "My city isn't listed" },
                     ]}
                   />

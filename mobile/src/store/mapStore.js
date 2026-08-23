@@ -4,7 +4,7 @@
 // array / LatLngBounds instances.
 import { create } from 'zustand'
 
-// Bounds all 9 supported cities (see config/cities.js) with padding — not an
+// Bounds all supported cities (see config/cities.js) with padding — not an
 // arbitrary whole-India delta. MapView's initial pins fetch reads this region
 // before onMapReady's fitToCoordinates() settles, so it must already cover
 // every city, otherwise pins load clustered at the wrong zoom (or missing

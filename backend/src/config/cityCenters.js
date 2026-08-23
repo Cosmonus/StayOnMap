@@ -1,26 +1,23 @@
-// Approximate city centres + generous metro-area radii for the 9
-// SUPPORTED_CITIES (config/cities.js).
+// City centres + metro-area radii, derived from config/cities.js's CITY_TABLE
+// — one table for every city StayOnMap is open in (45 as of 2026-08-24; count
+// the table, not this comment).
 //
 // Two consumers, which is why this moved out of intelligence.service.js:
 //   - coordinate-vs-city sanity checks on a listing (is this address plausibly
 //     in the city it claims?)
 //   - resolving a bare lat/lng to a city, so the spatial layer can look up
-//     that city's metro network and employment centres
+//     that city's metro network and employment centres, and so the seeders
+//     know which bbox to fetch
 //
 // These are centroids for a sanity check, not precise boundaries. A city
 // missing from this table degrades gracefully to "unknown city" everywhere —
-// never to a wrong answer.
-export const CITY_CENTERS = {
-  Delhi:     { lat: 28.6139, lng: 77.2090, radiusKm: 60 },
-  Mumbai:    { lat: 19.0760, lng: 72.8777, radiusKm: 55 },
-  Kolkata:   { lat: 22.5726, lng: 88.3639, radiusKm: 45 },
-  Chennai:   { lat: 13.0827, lng: 80.2707, radiusKm: 45 },
-  Bengaluru: { lat: 12.9716, lng: 77.5946, radiusKm: 45 },
-  Hyderabad: { lat: 17.3850, lng: 78.4867, radiusKm: 45 },
-  Ahmedabad: { lat: 23.0225, lng: 72.5714, radiusKm: 40 },
-  Pune:      { lat: 18.5204, lng: 73.8567, radiusKm: 45 },
-  Surat:     { lat: 21.1702, lng: 72.8311, radiusKm: 35 },
-}
+// never to a wrong answer. Where two radii overlap (Hosur inside Bengaluru's
+// 45 km, Tiruppur beside Coimbatore) resolveCity() picks the NEARER centre.
+import { CITY_TABLE } from './cities.js'
+
+export const CITY_CENTERS = Object.fromEntries(
+  CITY_TABLE.map(({ name, lat, lng, radiusKm }) => [name, { lat, lng, radiusKm }])
+)
 
 export function haversineKm(lat1, lng1, lat2, lng2) {
   const toRad = (d) => (d * Math.PI) / 180
@@ -38,7 +35,7 @@ export function haversineKm(lat1, lng1, lat2, lng2) {
 // it is not a tighter number for a reason: this threshold REJECTS an owner's
 // listing, so it may only ever fire on a mismatch no honest exurban address can
 // explain. At 100km the nearest pair of supported cities — Mumbai and Pune,
-// ~120km apart — is still caught, while a genuine outer-NCR or Navi-Mumbai
+// ~120km apart — is still caught (closer pairs added 2026-08-24, Coimbatore–Tiruppur at ~50km, are resolved by nearest centre, not by this check), while a genuine outer-NCR or Navi-Mumbai
 // address is nowhere near it.
 //
 // The radii above stay what they are: a softer "is this plausibly in the city"
