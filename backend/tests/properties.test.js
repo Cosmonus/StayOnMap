@@ -479,12 +479,63 @@ describe('publishProperty', () => {
     expect(result.status).toBe('PENDING')
   })
 
-  it('transitions a REJECTED property to PENDING (re-submission allowed)', async () => {
-    prismaMock.property.findUnique.mockResolvedValue(makeProperty({ status: 'REJECTED' }))
-    prismaMock.property.update.mockResolvedValue(makeProperty({ status: 'PENDING' }))
+  // A rejection is answered with a change, not a retry (2026-08-23). Rejected
+  // listings kept reappearing in the review queue because the owner's only
+  // affordance was "Submit again" and nothing required an edit first.
+  describe('a REJECTED listing', () => {
+    const rejectedAt = new Date('2026-08-20T10:00:00Z')
 
-    const result = await publishProperty('prop-1', 'owner-1')
+    it('cannot be resubmitted unchanged — 409 carrying the reason', async () => {
+      prismaMock.property.findUnique.mockResolvedValue(makeProperty({
+        status: 'REJECTED', moderationNote: 'Photos are of a different flat', moderatedAt: rejectedAt, ownerEditedAt: null,
+      }))
 
-    expect(result.status).toBe('PENDING')
+      await expect(publishProperty('prop-1', 'owner-1')).rejects.toMatchObject({
+        statusCode: 409, message: expect.stringContaining('Photos are of a different flat'),
+      })
+      expect(prismaMock.property.update).not.toHaveBeenCalled()
+    })
+
+    it('cannot be resubmitted on an edit that predates the rejection', async () => {
+      prismaMock.property.findUnique.mockResolvedValue(makeProperty({
+        status: 'REJECTED', moderatedAt: rejectedAt, ownerEditedAt: new Date('2026-08-19T10:00:00Z'),
+      }))
+
+      await expect(publishProperty('prop-1', 'owner-1')).rejects.toMatchObject({ statusCode: 409 })
+    })
+
+    it('goes to PENDING once edited after the rejection, and the reason is cleared', async () => {
+      prismaMock.property.findUnique.mockResolvedValue(makeProperty({
+        status: 'REJECTED', moderationNote: 'x', moderatedAt: rejectedAt, ownerEditedAt: new Date('2026-08-21T10:00:00Z'),
+      }))
+      prismaMock.property.update.mockResolvedValue(makeProperty({ status: 'PENDING' }))
+
+      const result = await publishProperty('prop-1', 'owner-1')
+
+      expect(result.status).toBe('PENDING')
+      expect(prismaMock.property.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ status: 'PENDING', moderationNote: null, moderatedAt: null }) })
+      )
+    })
+
+    it('rejected before this shipped (no moderatedAt) can still be resubmitted', async () => {
+      prismaMock.property.findUnique.mockResolvedValue(makeProperty({ status: 'REJECTED', moderatedAt: null }))
+      prismaMock.property.update.mockResolvedValue(makeProperty({ status: 'PENDING' }))
+
+      await expect(publishProperty('prop-1', 'owner-1')).resolves.toMatchObject({ status: 'PENDING' })
+    })
+  })
+
+  it('stamps ownerEditedAt on an owner edit — the thing that unlocks resubmission', async () => {
+    const { updateProperty } = await import('../src/features/properties/properties.service.js')
+    prismaMock.$transaction.mockImplementation((fn) => fn(prismaMock))
+    prismaMock.property.findUnique.mockResolvedValue(makeProperty({ status: 'REJECTED', ownerId: 'owner-1' }))
+    prismaMock.property.update.mockResolvedValue(makeProperty({ status: 'REJECTED' }))
+
+    await updateProperty('prop-1', 'owner-1', { title: 'Fixed title' })
+
+    expect(prismaMock.property.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ ownerEditedAt: expect.any(Date) }) })
+    )
   })
 })

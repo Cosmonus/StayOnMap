@@ -520,9 +520,15 @@ export async function setPropertyStatus(propertyId, status, note, adminId) {
   // Approval is the moment a renter can first see this — see publishedAt.js
   // for why that is not `createdAt` and why it is written only once.
   const stamp = firstPublishStamp(current, status)
+  // The reason lives ON THE ROW, not only in the notification — the owner's
+  // listing row shows it, and publishProperty holds a REJECTED listing until
+  // it has been edited after this stamp. Approval clears it.
+  const moderation = status === 'ACTIVE'
+    ? { moderationNote: null, moderatedAt: null }
+    : { moderationNote: note, moderatedAt: new Date() }
   const property = await prisma.property.update({
     where: { id: propertyId },
-    data: { status, ...stamp },
+    data: { status, ...stamp, ...moderation },
   })
   recordStatusChange({ propertyId, from: current.status, to: status, actor: 'admin' })
 
@@ -557,12 +563,17 @@ export async function setPropertyStatus(propertyId, status, note, adminId) {
   if (current.status !== status) {
     const message = MODERATION_MESSAGE[status]?.(current.title, note)
     if (message) {
+      // Pushed: a listing leaving (or returning to) the map is the one thing an
+      // owner is waiting to hear, and the in-app bell alone only reaches them
+      // once they happen to open host mode. Type stays SYSTEM so released
+      // mobile builds still render it.
       notifyUser(current.ownerId, {
         type: 'SYSTEM',
         ...message,
         referenceId: propertyId,
         referenceType: 'Property',
         audience: 'OWNER',
+        push: true,
       }).catch(() => {})
     }
   }

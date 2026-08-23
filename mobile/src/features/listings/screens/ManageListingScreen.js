@@ -10,6 +10,7 @@ import ScreenHeader from '@components/common/ScreenHeader'
 import ContactRow, { buildContactStats } from '../components/ContactRow'
 import { chatService } from '@services/chat.service'
 import ReportsSheet from '../components/ReportsSheet'
+import { editedSinceModeration } from '../config/moderation'
 import { colors } from '@theme/colors'
 import { tapBox } from '@theme/touchTargets'
 import { useLayout, centered } from '@theme/breakpoints'
@@ -220,6 +221,7 @@ export default function ManageListingScreen({ navigation, route }) {
   }
 
   const { status } = property
+  const edited = editedSinceModeration(property)
   const primaryImage = property.images?.find((i) => i.isPrimary) ?? property.images?.[0]
 
   // Once somebody lives there, the queue has done its job: the list below the
@@ -261,6 +263,13 @@ export default function ManageListingScreen({ navigation, route }) {
         </Text>
       </View>
 
+      {(status === 'REJECTED' || status === 'SUSPENDED') && property.moderationNote && (
+        <View style={styles.moderationCard}>
+          <Text style={styles.moderationTitle}>{status === 'REJECTED' ? 'Not approved' : 'Paused by StayOnMap'}</Text>
+          <Text style={styles.moderationBody}>{property.moderationNote}</Text>
+        </View>
+      )}
+
       <Text style={styles.sectionTitle}>Manage</Text>
       <View style={styles.actionsCard}>
         <ActionRow
@@ -271,13 +280,15 @@ export default function ManageListingScreen({ navigation, route }) {
           disabled={busy}
         />
         {(status === 'DRAFT' || status === 'REJECTED') && (
+          // A rejection is answered with a change: the server refuses an
+          // unchanged resubmission (409), so the row says so instead.
           <ActionRow
             icon="checkCircle"
-            label={status === 'REJECTED' ? 'Re-publish' : 'Submit for review'}
-            sub="Send this listing for approval"
+            label={status === 'REJECTED' ? 'Submit again' : 'Submit for review'}
+            sub={status === 'REJECTED' && !edited ? 'Edit the listing first, then submit again' : 'Send this listing for approval'}
             variant="primary"
             onPress={() => publishMutation.mutate()}
-            disabled={busy}
+            disabled={busy || (status === 'REJECTED' && !edited)}
           />
         )}
         {status === 'ACTIVE' && (
@@ -419,6 +430,9 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.displayBold, fontSize: fontSizes.lg, color: colors.slate800 },
   rent: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.base, color: colors.brand600, marginTop: 2 },
   address: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, marginTop: 2 },
+  moderationCard: { marginHorizontal: spacing.lg, marginTop: spacing.lg, padding: spacing.md, backgroundColor: colors.danger50, borderWidth: 1, borderColor: colors.danger, borderRadius: radius.lg, gap: spacing.xs },
+  moderationTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800 },
+  moderationBody: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate600, lineHeight: 20 },
   sectionTitle: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate800, paddingHorizontal: spacing.lg, marginTop: spacing.lg, marginBottom: spacing.sm },
   sectionHint: { fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.slate500, paddingHorizontal: spacing.lg, marginBottom: spacing.xs },
   actionsCard: { marginHorizontal: spacing.lg, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate100, borderRadius: radius.lg, overflow: 'hidden' },

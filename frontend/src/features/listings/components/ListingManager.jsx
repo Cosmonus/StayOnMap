@@ -5,6 +5,7 @@ import { formatPrice, formatAge } from '@utils/format'
 import PropertyStatusPill from '@components/common/PropertyStatusPill'
 import ActionMenu from '@components/common/ActionMenu'
 import Button from '@components/common/Button'
+import { editedSinceModeration } from '../config/moderation'
 
 // The owner's listing list. A ROW per listing, not a card in a grid: the four
 // things an owner comes here for — what state it's in, what it earns, who is
@@ -73,9 +74,9 @@ function Thumb({ property }) {
 // the 44px floor, the variants, the focus ring — is the shared Button now; this
 // file carried a private copy of it, including its own `dark`, which is why
 // `dark` is a variant of the real one.
-function RowButton({ children, onClick, variant = 'outline' }) {
+function RowButton({ children, onClick, variant = 'outline', disabled = false }) {
   return (
-    <Button variant={variant} onClick={onClick} className="w-full sm:w-auto shrink-0">
+    <Button variant={variant} onClick={onClick} disabled={disabled} className="w-full sm:w-auto shrink-0">
       {children}
     </Button>
   )
@@ -159,16 +160,26 @@ function rowActions({ property, onEdit, onPreview, onVisitRequests, onResume, on
   // enforces both — this just doesn't offer a button that would 409.
   if (property.status === 'SUSPENDED') {
     return {
-      note: 'Paused by StayOnMap — see your notifications for the reason.',
+      note: property.moderationNote
+        ? `Paused by StayOnMap: ${property.moderationNote}`
+        : 'Paused by StayOnMap — see your notifications for the reason.',
       primary: { label: 'Edit', onClick: () => onEdit(property.id) },
       secondary: null,
       menu: [],
     }
   }
 
+  // The reason is on the row, and "Submit again" stays disabled until the owner
+  // has edited something after the rejection — the server refuses an unchanged
+  // resubmission (409), and a rejected listing resubmitted untouched is exactly
+  // what kept landing back in the review queue.
   if (property.status === 'REJECTED') {
+    const edited = editedSinceModeration(property)
     return {
-      primary: { label: 'Submit again', variant: 'primary', onClick: () => onResume(property) },
+      note: property.moderationNote
+        ? `Not approved: ${property.moderationNote}${edited ? '' : ' — edit the listing, then submit again.'}`
+        : (edited ? null : 'Edit the listing, then submit again.'),
+      primary: { label: 'Submit again', variant: 'primary', disabled: !edited, onClick: () => onResume(property) },
       secondary: edit,
       menu: [del],
     }
@@ -272,7 +283,7 @@ function ListingRow({ property, ...handlers }) {
       )}
 
       <div className="flex items-center gap-2 shrink-0">
-        {primary && <RowButton variant={primary.variant} onClick={primary.onClick}>{primary.label}</RowButton>}
+        {primary && <RowButton variant={primary.variant} disabled={primary.disabled} onClick={primary.onClick}>{primary.label}</RowButton>}
         {secondary && <RowButton onClick={secondary.onClick}>{secondary.label}</RowButton>}
         {menu.length > 0 && (
           <ActionMenu
