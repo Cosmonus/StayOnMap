@@ -17,10 +17,20 @@
 //     run (~144 tiles) instead of once per process.
 //   - Reports which endpoint answered, so a caller can log a degraded run
 //     rather than discover months later that the primary has been dead.
-//   - Does NOT retry the same endpoint. A tile that fails everywhere is
-//     retried once by the caller, at the tile level, where the failure is
-//     recorded as a coverage gap. Two retry mechanisms stacked would multiply
-//     into a burst of load on a free service that was already struggling.
+//   - Does NOT retry the same endpoint within a rotation. A tile that fails
+//     everywhere is retried once by the caller, at the tile level, where the
+//     failure is recorded as a coverage gap. Two retry mechanisms stacked
+//     would multiply into a burst of load on a free service that was already
+//     struggling.
+//   - DOES sit out and retry the whole rotation when a mirror answered
+//     429/504 (added 2026-08-24, from a run where it was the missing piece:
+//     maps.mail.ru was the only reachable mirror from the VM, it 504'd after
+//     one oversized central-Delhi tile, and every subsequent tile of a
+//     47-city run failed instantly). "Busy" is a request to wait, and
+//     failing 40 cities in a row is not lighter on the service than waiting
+//     — the caller's retry pass and the next operator run repeat all of it.
+//     The sit-out only triggers when some mirror said busy; when every
+//     failure is a network error there is nothing to wait for.
 import { intelLog, intelError } from '../../lib/intelLog.js'
 
 /** Public mirrors, tried in order. */
@@ -84,6 +94,11 @@ export async function overpassQuery(query, opts = {}) {
     timeoutMs = 180_000,
     endpoints = OVERPASS_ENDPOINTS,
     fetchImpl = fetch,
+    // Sit-outs between full rotations when a mirror answered 429/504.
+    // Three waits ≈ 3.5 minutes worst case per tile — long for a human,
+    // nothing against a failed 47-city run. Injectable for tests.
+    busyBackoffMs = [30_000, 60_000, 120_000],
+    sleepImpl = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   } = opts
 
   let lastError = null
@@ -100,66 +115,82 @@ export async function overpassQuery(query, opts = {}) {
     ? [preferredEndpoint, ...endpoints.filter((e) => e !== preferredEndpoint)]
     : endpoints
 
-  for (const [index, endpoint] of order.entries()) {
-    try {
-      const res = await fetchImpl(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': userAgent,
-        },
-        body: new URLSearchParams({ data: query }),
-        signal: AbortSignal.timeout(timeoutMs),
-      })
+  for (let round = 0; ; round++) {
+    const roundStart = attempts.length
 
-      if (!res.ok) {
-        // `continue`, not `throw`: an HTTP error from one mirror is exactly the
-        // case rotation exists for. 429 and 504 are Overpass's normal way of
-        // saying "busy", and 406 is what the primary returned for a whole
-        // session.
-        lastError = new Error(`${endpoint} → HTTP ${res.status}`)
-        attempts.push({ endpoint, status: res.status })
-        continue
-      }
+    for (const [index, endpoint] of order.entries()) {
+      try {
+        const res = await fetchImpl(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': userAgent,
+          },
+          body: new URLSearchParams({ data: query }),
+          signal: AbortSignal.timeout(timeoutMs),
+        })
 
-      // Worth a line in the log: a run that quietly succeeded on the third
-      // mirror looks identical to a healthy one, and that is precisely the
-      // signal that would tell us Overpass is no longer good enough for bulk.
-      if (index > 0) {
-        intelLog('spatial.overpass_fallback', {
+        if (!res.ok) {
+          // `continue`, not `throw`: an HTTP error from one mirror is exactly the
+          // case rotation exists for. 429 and 504 are Overpass's normal way of
+          // saying "busy", and 406 is what the primary returned for a whole
+          // session.
+          lastError = new Error(`${endpoint} → HTTP ${res.status}`)
+          attempts.push({ endpoint, status: res.status })
+          continue
+        }
+
+        // Worth a line in the log: a run that quietly succeeded on the third
+        // mirror looks identical to a healthy one, and that is precisely the
+        // signal that would tell us Overpass is no longer good enough for bulk.
+        if (index > 0) {
+          intelLog('spatial.overpass_fallback', {
+            endpoint,
+            skipped: index,
+            // Why each skipped mirror was skipped. `code` separates a routing
+            // problem (ENETUNREACH) from a block (ETIMEDOUT) from an overloaded
+            // server (HTTP 504) — three different fixes that look identical as
+            // "fetch failed".
+            attempts,
+            lastError: lastError?.message ?? null,
+          })
+        }
+
+        // Remember who answered so the next call starts here instead of paying
+        // a dead primary's timeout again. Logged only on a CHANGE — the switch
+        // is the signal; repeating it per call would be the noise this exists
+        // to remove.
+        if (endpoint !== preferredEndpoint) {
+          if (preferredEndpoint) {
+            intelLog('spatial.overpass_preferred', { endpoint, previous: preferredEndpoint })
+          }
+          preferredEndpoint = endpoint
+        }
+
+        return await res.json()
+      } catch (err) {
+        lastError = err
+        attempts.push({
           endpoint,
-          skipped: index,
-          // Why each skipped mirror was skipped. `code` separates a routing
-          // problem (ENETUNREACH) from a block (ETIMEDOUT) from an overloaded
-          // server (HTTP 504) — three different fixes that look identical as
-          // "fetch failed".
-          attempts,
-          lastError: lastError?.message ?? null,
+          error: err.name,
+          // undici wraps the real reason here; without it every network failure
+          // is the useless string "fetch failed".
+          code: err.cause?.code ?? err.code ?? null,
         })
       }
-
-      // Remember who answered so the next call starts here instead of paying
-      // a dead primary's timeout again. Logged only on a CHANGE — the switch
-      // is the signal; repeating it per call would be the noise this exists
-      // to remove.
-      if (endpoint !== preferredEndpoint) {
-        if (preferredEndpoint) {
-          intelLog('spatial.overpass_preferred', { endpoint, previous: preferredEndpoint })
-        }
-        preferredEndpoint = endpoint
-      }
-
-      return await res.json()
-    } catch (err) {
-      lastError = err
-      attempts.push({
-        endpoint,
-        error: err.name,
-        // undici wraps the real reason here; without it every network failure
-        // is the useless string "fetch failed".
-        code: err.cause?.code ?? err.code ?? null,
-      })
     }
+
+    // Every mirror failed this rotation. If one of them answered 429/504 it is
+    // alive and asking for room — sit out and go around again. Pure network
+    // failures get no wait: there is nothing on the other end to recover.
+    const busy = attempts.slice(roundStart).some((a) => a.status === 429 || a.status === 504)
+    if (busy && round < busyBackoffMs.length) {
+      const waitMs = busyBackoffMs[round]
+      intelLog('spatial.overpass_busy_backoff', { waitMs, round: round + 1, attempts: attempts.slice(roundStart) })
+      await sleepImpl(waitMs)
+      continue
+    }
+    break
   }
 
   intelError('spatial.overpass_all_failed', lastError ?? new Error('all endpoints failed'), { attempts })
