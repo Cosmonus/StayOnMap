@@ -23,7 +23,8 @@
 //     would buy noise and cost privacy.
 import { prisma } from '../../lib/prisma.js'
 import { createHash } from 'crypto'
-import { encode } from '../../lib/geohash.js'
+import { encode, decode } from '../../lib/geohash.js'
+import { describePoint } from '../localities/resolve.js'
 
 // ~4.9km x 4.9km. Chosen to be about "a part of a city" — fine enough to say
 // Anna Nagar rather than Chennai, blunt enough that it locates nobody.
@@ -213,6 +214,18 @@ export async function getUnmetDemand({ days = 30, limit = 20 } = {}) {
     }))
     .filter((r) => r.zeroResults > 0)
 
+  // Name the cell. The row stores a geohash-5 because that is the honest
+  // resolution to RECORD at; it is not an honest thing to SHOW — "tggj0" told
+  // an operator nothing about where to go and find a listing. The cell's
+  // centre is resolved through the same suburb/ward data the locality pages
+  // use, and the geohash is kept on the row for the tooltip. At most `limit`
+  // lookups, each cached 24h by boundariesAt.
+  const named = await Promise.all(shaped.map(async (r) => {
+    const { lat, lng } = decode(r.cellGeohash)
+    const { name, city } = await describePoint(lat, lng, r.city)
+    return { ...r, area: name, city: r.city ?? city }
+  }))
+
   const totals = await prisma.searchDemand.aggregate({
     where: { day: { gte: since } },
     _sum: { searches: true, zeroResults: true },
@@ -229,6 +242,6 @@ export async function getUnmetDemand({ days = 30, limit = 20 } = {}) {
     // Quoted against ALL searches, not against the rows below, so the headline
     // cannot drift from the detail.
     zeroResultRate: searches > 0 ? Math.round((zeroResults / searches) * 1000) / 10 : null,
-    unmet: shaped,
+    unmet: named,
   }
 }

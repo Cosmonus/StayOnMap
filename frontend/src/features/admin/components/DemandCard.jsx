@@ -11,7 +11,9 @@ import { adminService } from '@services/admin.service'
 //
 // Two things it deliberately does NOT do:
 //   - It never shows an area more precisely than ~5km. The record itself is a
-//     geohash-5, so there is nothing finer to show even if we wanted to.
+//     geohash-5, so there is nothing finer to show even if we wanted to. The
+//     server names the cell's centre ("Velachery, Chennai") since 2026-08-23 —
+//     "tggj0" was an area nobody could act on — and the cell stays as a tooltip.
 //   - It never renders 0% where the answer is "nobody has searched yet" —
 //     the same distinction FunnelCard draws, and for the same reason.
 const TYPE_LABELS = {
@@ -118,9 +120,9 @@ export default function DemandCard() {
                   >
                     <span className="text-sm text-slate-800">
                       {describe(row)}
-                      <span className="text-slate-500">
-                        {' '}&middot; {row.city ?? 'area'}{' '}
-                        <span className="font-mono text-xs">{row.cellGeohash}</span>
+                      <span className="text-slate-500" title={`~5km cell ${row.cellGeohash}`}>
+                        {' '}&middot; {[row.area, row.city].filter(Boolean).join(', ')
+                          || <span className="font-mono text-xs">cell {row.cellGeohash}</span>}
                       </span>
                     </span>
                     <span className="text-xs text-slate-500 shrink-0">

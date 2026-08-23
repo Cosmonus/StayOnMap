@@ -302,3 +302,40 @@ export async function localityBySlug(citySlug, slug) {
   })
   return alias?.locality ?? null
 }
+
+/**
+ * A human name for a point — READ-ONLY, creates nothing.
+ *
+ * `resolveLocality` above answers "which Locality row does this LISTING belong
+ * to" and upserts one. This answers "what would a person call this place" for
+ * a point that has no listing — the admin's unmet-demand readout, where the
+ * only thing on record is a ~5km geohash cell and `tggj0` is not an area
+ * anybody can act on.
+ *
+ * Same order as resolveLocality — suburb name, then ward/zone, then the
+ * municipality or district — with one addition: the district/municipality is
+ * returned separately as `city`, because demand rows written from a viewport
+ * with no city filter have none, and "Velachery" without "Chennai" is still a
+ * guess for an operator covering nine cities.
+ *
+ * Never throws. Returns `{ name: null, city: null }` when nothing covers the
+ * point, which the caller renders as the bare cell — honest, not pretty.
+ *
+ * @returns {Promise<{ name: string|null, city: string|null }>}
+ */
+export async function describePoint(lat, lng, city = null) {
+  try {
+    const hits = (await boundariesAt(Number(lat), Number(lng))) ?? []
+    const named = (levels) => hits.find((b) => levels.includes(b.adminLevel) && b.name?.trim())?.name.trim() ?? null
+
+    const place = city ? await fromPlaces(lat, lng, slugify(city)) : null
+    const name = place?.name ?? named(LOCALITY_LEVELS)
+    // A municipality is the city; a district is the nearest honest stand-in
+    // where the municipality polygon is missing (Ahmedabad, Surat).
+    const cityName = city ?? named([8]) ?? named([6])
+    return { name, city: cityName }
+  } catch (err) {
+    intelError('locality.describe_point_failed', err, {})
+    return { name: null, city: null }
+  }
+}
