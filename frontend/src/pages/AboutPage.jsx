@@ -4,7 +4,7 @@ import {
   Eye, CircleDollarSign, Settings, Home, MessageSquare, Calendar, FileText,
   Zap, ShieldCheck, MapPin, Globe, ArrowRight,
 } from 'lucide-react'
-import { CITY_LIST_LABEL, CITIES } from '@/config/cities'
+import { CITY_LIST_LABEL, CITIES, CORE_CITIES, SUPPORTED_STATES } from '@/config/cities'
 import SEOMeta from '@components/common/SEOMeta'
 import { canonical } from '@lib/seo'
 import { usePlatformStats } from '@hooks/usePlatformStats'
@@ -49,7 +49,7 @@ function CountUp({ target, suffix = '', duration = 1800 }) {
 const TIMELINE = [
   { year: '2023', title: 'Two listings. Ten kilometres apart.', body: 'I was searching for a rental in Chennai. After hours on popular listing sites, I found just two properties — both 10km from where I actually needed to be. The rest? Hidden behind a paywall. Pay to see the address. Pay to get the phone number. Pay just to know if the house even exists.' },
   { year: '2024', title: 'The real problem isn\'t brokers. It\'s the practice.', body: 'Brokers aren\'t the villain. The practice is — demanding a month or two of hard-earned salary just to open a door or make a phone call. Meanwhile owners had no real way to communicate with tenants, track rent, or handle maintenance without going through someone else. Everyone was losing.' },
-  { year: '2025', title: 'A platform that works for both sides', body: 'StayOnMap is live across nine cities today. Owners list any of six property types — flats, houses, plots, PGs, shops, short stays — and handle everything in-app: chat with tenants, manage visit appointments, offer and sign leases. Tenants see every listing, for free, no paywalls. Nobody pays for access to a house.' },
+  { year: '2025', title: 'A platform that works for both sides', body: 'StayOnMap is live across seven states today. Owners list any of six property types — flats, houses, plots, PGs, shops, short stays — and handle everything in-app: chat with tenants, manage visit appointments, offer and sign leases. Tenants see every listing, for free, no paywalls. Nobody pays for access to a house.' },
 ]
 
 const VALUES = [
@@ -83,7 +83,7 @@ export default function AboutPage() {
     <div className="min-h-screen bg-white overflow-x-hidden">
       <SEOMeta
         title="About Us"
-        description="How StayOnMap works: a broker-free, map-first rental platform live in 9 Indian cities — six property types, direct owner chat, in-app visits and leases, zero commission."
+        description="How StayOnMap works: a broker-free, map-first rental platform live across 7 Indian states — six property types, direct owner chat, in-app visits and leases, zero commission."
         canonical={canonical('/about')}
       />
 
@@ -269,12 +269,17 @@ export default function AboutPage() {
             <h2 className="font-display font-bold text-3xl md:text-4xl text-slate-900 leading-tight mb-4">
               Currently live in {CITY_LIST_LABEL}
             </h2>
-            <p className="text-sm text-slate-500 max-w-xl mx-auto">More cities launching soon — sign up to get notified when we arrive in yours.</p>
+            <p className="text-sm text-slate-500 max-w-xl mx-auto">
+              {CITIES.length} cities across {SUPPORTED_STATES.length} states. More launching soon — sign up to get notified when we arrive in yours.
+            </p>
           </div>
         </Reveal>
 
+        {/* The nine metros as cards; the rest of each state as a line beneath.
+            47 identical cards is a wall, and the extra cities have no curated
+            areas to fill one with. */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {CITIES.map((city, i) => (
+          {CORE_CITIES.map((city, i) => (
             <Reveal key={city.name} delay={i * 0.08}>
               <Link to={`/properties?city=${city.name}`} className="no-underline block">
                 <div className="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-lg hover:border-slate-200 transition-all group text-center">
@@ -295,6 +300,26 @@ export default function AboutPage() {
             </Reveal>
           ))}
         </div>
+
+        <Reveal>
+          <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 max-w-5xl mx-auto">
+            {SUPPORTED_STATES.map((state) => {
+              const more = CITIES.filter((c) => c.state === state && !c.core)
+              if (!more.length) return null
+              return (
+                <p key={state} className="text-sm text-slate-600 leading-relaxed">
+                  <span className="font-semibold text-slate-900">Also in {state}: </span>
+                  {more.map((c, i) => (
+                    <span key={c.name}>
+                      <Link to={`/properties?city=${c.name}`} className="text-slate-600 hover:text-brand-700">{c.name}</Link>
+                      {i < more.length - 1 ? ', ' : ''}
+                    </span>
+                  ))}
+                </p>
+              )
+            })}
+          </div>
+        </Reveal>
       </section>
 
       {/* ── BUILDER ── */}

@@ -68,7 +68,7 @@ const PIPELINE = [
 ]
 
 const SPATIAL_MODULES = [
-  { icon: TrainFront, title: 'Mobility', desc: 'Real metro lines and stations, sourced from OpenStreetMap, for all 9 cities — how you actually get around from this address.' },
+  { icon: TrainFront, title: 'Mobility', desc: 'Real metro lines and stations, sourced from OpenStreetMap, for the nine metro cities — how you actually get around from this address.' },
   { icon: Store, title: 'Lifestyle', desc: 'Groceries, food, pharmacies, gyms — drawn from over a hundred thousand mapped places, counted around each listing.' },
   { icon: Building2, title: 'Infrastructure', desc: 'Hospitals, schools, banks and civic services near the listing — what daily life depends on.' },
   { icon: Wind, title: 'Environment', desc: 'Air quality for the cell the listing sits in — measured data, not a city-wide average dressed up as local.' },

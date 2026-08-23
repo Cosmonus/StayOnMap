@@ -6,12 +6,11 @@ import { authService } from '@services/auth.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import Dropdown from '@components/common/Dropdown'
 import Icon from '@components/common/Icon'
-import { CITY_NAMES } from '@config/cities'
+import { CITY_OPTIONS, CITY_LIST_LABEL } from '@config/cities'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
-const CITY_OPTIONS = CITY_NAMES.map((name) => ({ value: name, label: name }))
 
 // Manual fragment parse — Hermes' URLSearchParams has historically been
 // incomplete, and this is four keys.
@@ -105,7 +104,7 @@ export default function OAuthRedirectHandler() {
               </View>
               <Text style={styles.title}>You&apos;re on the waitlist</Text>
               <Text style={styles.hint}>
-                StayOnMap is currently live in {CITY_NAMES.join(', ')}. We&apos;ll email you as soon as we launch near you.
+                StayOnMap is currently live in {CITY_LIST_LABEL}. We&apos;ll email you as soon as we launch near you.
               </Text>
               <Pressable style={styles.primaryButton} onPress={() => setPending(null)} accessibilityRole="button">
                 <Text style={styles.primaryButtonText}>Done</Text>

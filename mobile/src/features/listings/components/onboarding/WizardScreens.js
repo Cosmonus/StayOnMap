@@ -22,7 +22,7 @@ import {
   pricingRows, termRows, pricingModes, resolveMode, MODE_COPY,
   TITLE_HINTS, DESC_PROMPTS, PHOTO_HINTS,
 } from '../../config/onboarding.js'
-import { CITIES, CITY_NAMES, CITY_LIST_LABEL } from '@config/cities'
+import { CITIES, CITY_OPTIONS, CITY_LIST_LABEL } from '@config/cities'
 import { colors } from '@theme/colors'
 import { tapBox } from '@theme/touchTargets'
 import { fonts, fontSizes } from '@theme/typography'
@@ -195,7 +195,7 @@ export function LocationScreen({ categoryKey, draft, setDraft }) {
           <Dropdown
             label="City"
             value={loc.city}
-            options={CITY_NAMES.map((n) => ({ value: n, label: n }))}
+            options={CITY_OPTIONS}
             placeholder="Select city"
             onChange={(city) => { set('city', city); set('state', CITIES.find((c) => c.name === city)?.state ?? '') }}
           />

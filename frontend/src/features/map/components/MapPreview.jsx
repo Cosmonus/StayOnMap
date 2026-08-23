@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { googleMapsReady, createHtmlMarker } from '@lib/googleMaps'
-import { CITIES } from '@/config/cities'
+import { CITIES, CORE_CITIES } from '@/config/cities'
 import { usePlatformStats } from '@hooks/usePlatformStats'
 
 export default function MapPreview() {
@@ -32,8 +32,9 @@ export default function MapPreview() {
       CITIES.forEach((c) => bounds.extend({ lat: c.lat, lng: c.lng }))
       map.fitBounds(bounds, 100)
 
-      // City label pills
-      CITIES.forEach(({ name, lat, lng }) => {
+      // City label pills — the nine metros only. 47 pills at national zoom is a
+      // pile of white circles; the other cities are reachable by search.
+      CORE_CITIES.forEach(({ name, lat, lng }) => {
         const count = byCity[name] ?? 0
         const pill = document.createElement('div')
         pill.style.cssText = `

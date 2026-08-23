@@ -2,9 +2,7 @@
 // and one generic "Patta number" field would be wrong in five of the six states
 // we operate in.
 //
-// Keyed by CITY, not by `state`: CITIES[].state carries display regions
-// ("Delhi NCR", "Mumbai Metropolitan Region"), which is the wrong key for a
-// legal lookup. Nine supported cities, six land-record systems.
+// Seven states, six land-record systems (Delhi has none — see below).
 //
 // What each option is, so nobody edits this list from memory:
 //   Patta / Chitta        Tamil Nadu. Patta = ownership record; Chitta adds the
@@ -26,6 +24,8 @@
 // "Not available yet" is a first-class option everywhere on purpose: an owner
 // mid-purchase who cannot produce a number should be able to say that instead
 // of abandoning the listing or inventing one.
+
+import { CITIES } from '@config/cities'
 
 const NOT_YET = { value: 'Not available yet', label: 'Not available yet', hint: 'You can add it before publishing later' }
 
@@ -117,16 +117,17 @@ const DELHI = {
   conversionHint: 'Land use is set by the DDA master plan, not by conversion',
 }
 
-const BY_CITY = {
-  Chennai:   TAMIL_NADU,
-  Bengaluru: KARNATAKA,
-  Mumbai:    MAHARASHTRA,
-  Pune:      MAHARASHTRA,
-  Ahmedabad: GUJARAT,
-  Surat:     GUJARAT,
-  Hyderabad: TELANGANA,
-  Kolkata:   WEST_BENGAL,
-  Delhi:     DELHI,
+// Keyed by STATE via CITIES[].state (2026-08-24 — it was a nine-entry BY_CITY
+// table until the city list grew to 47). The land-record system is a fact
+// about the state, so this is the honest key; the lookup still takes a city.
+const BY_STATE = {
+  'Tamil Nadu':  TAMIL_NADU,
+  'Karnataka':   KARNATAKA,
+  'Maharashtra': MAHARASHTRA,
+  'Gujarat':     GUJARAT,
+  'Telangana':   TELANGANA,
+  'West Bengal': WEST_BENGAL,
+  'Delhi':       DELHI,
 }
 
 // A city we don't have a record system written for. Never guessed at — the
@@ -145,7 +146,8 @@ const GENERIC = {
 }
 
 export function landRecordsFor(city) {
-  return BY_CITY[city] ?? GENERIC
+  const state = CITIES.find((c) => c.name === city)?.state
+  return BY_STATE[state] ?? GENERIC
 }
 
 // Whether the survey/record block can be shown at all. Before a city is chosen

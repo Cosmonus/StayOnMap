@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import Select from '@components/common/Select'
-import { CITIES, CITY_NAMES, CITY_LIST_LABEL } from '@/config/cities'
+import { CITIES, CITY_OPTIONS, CITY_LIST_LABEL } from '@/config/cities'
 import { placesService } from '@services/places.service'
 import LocationPicker from '../../LocationPicker'
 import AreaPeek from '../AreaPeek'
@@ -81,7 +81,7 @@ export default function LocationStep({ categoryKey, draft, setDraft }) {
                   set('state', CITIES.find((c) => c.name === city)?.state ?? '')
                 }}
                 placeholder="Select city"
-                options={CITY_NAMES.map((n) => ({ value: n, label: n }))}
+                options={CITY_OPTIONS}
                 // Through Select's own `hint`, not a sibling <p>. A sibling sits
                 // 6px below the trigger, which is exactly where the panel opens
                 // — flush here rather than slicing, but the same latent overlap

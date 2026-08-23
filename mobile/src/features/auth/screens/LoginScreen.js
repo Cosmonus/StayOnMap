@@ -7,14 +7,14 @@ import Icon from '@components/common/Icon'
 import Dropdown from '@components/common/Dropdown'
 import OtpLoginForm from '@features/auth/components/OtpLoginForm'
 import SocialLoginButtons from '@features/auth/components/SocialLoginButtons'
-import { CITY_NAMES } from '@config/cities'
+import { CITY_OPTIONS, CITY_LIST_LABEL } from '@config/cities'
 import { colors } from '@theme/colors'
 import { useLayout, centered } from '@theme/breakpoints'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 
 const CITY_DROPDOWN_OPTIONS = [
-  ...CITY_NAMES.map((name) => ({ value: name, label: name })),
+  ...CITY_OPTIONS,
   { value: '__other__', label: "My city isn't listed" },
 ]
 
@@ -259,7 +259,7 @@ export default function LoginScreen() {
             <View style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
               <Text style={styles.confirmTitle}>You&apos;re on the waitlist</Text>
               <Text style={styles.confirmBody}>
-                StayOnMap is currently live in {CITY_NAMES.join(', ')}. We&apos;ll email {email} as soon as we launch near you.
+                StayOnMap is currently live in {CITY_LIST_LABEL}. We&apos;ll email {email} as soon as we launch near you.
               </Text>
               <Pressable style={[styles.primaryButton, { marginTop: spacing.lg, alignSelf: 'stretch' }]} onPress={() => switchTab('login')} accessibilityRole="button">
                 <Text style={styles.primaryButtonText}>Back to log in</Text>
@@ -289,7 +289,7 @@ export default function LoginScreen() {
               {city === '__other__' && (
                 <Field icon="building" label="Which city are you in?" value={otherCity} onChangeText={setOtherCity} placeholder="Type your city" />
               )}
-              <Text style={styles.hint}>We&apos;re only live in {CITY_NAMES.join(', ')} right now — other cities go on our waitlist.</Text>
+              <Text style={styles.hint}>We&apos;re only live in {CITY_LIST_LABEL} right now — other cities go on our waitlist.</Text>
 
               <Field
                 icon="lock" label="Password" value={password} onChangeText={setPassword} placeholder="Min. 8 characters"

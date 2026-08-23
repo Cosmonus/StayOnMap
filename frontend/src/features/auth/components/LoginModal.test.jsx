@@ -97,7 +97,8 @@ describe('signup — the city gate', () => {
     // The Select primitive, not a native <select>: a portal-rendered
     // combobox. Open it, then pick from the listbox.
     await user.click(screen.getByRole('combobox', { name: /city/i }))
-    await user.click(await screen.findByRole('option', { name: city }))
+    // Options read "Chennai, Tamil Nadu" since cities grew to 47 (2026-08-24).
+    await user.click(await screen.findByRole('option', { name: new RegExp(`^${city}`) }))
   }
 
   it('the name field is a NAME field', async () => {

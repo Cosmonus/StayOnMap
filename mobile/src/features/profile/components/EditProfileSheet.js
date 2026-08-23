@@ -1,15 +1,16 @@
 import { useState } from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { Text, StyleSheet } from 'react-native'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { userService } from '@services/user.service'
 import { useResetOnOpen } from '@/hooks/useResetOnOpen'
-import { CITY_NAMES } from '@config/cities'
+import { CITY_OPTIONS } from '@config/cities'
 import { PHONE_RE, normalizePhone } from '@utils/phone'
 import FormSheet from '@components/common/FormSheet'
+import Dropdown from '@components/common/Dropdown'
 import LabeledInput from './LabeledInput'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
-import { spacing, radius } from '@theme/spacing'
+import { spacing } from '@theme/spacing'
 
 // PHONE_RE / normalizePhone moved to @utils/phone (2026-08-01) so the listing
 // wizard's PublishGate could share them — it had no normalisation at all, and
@@ -77,23 +78,9 @@ export default function EditProfileSheet({ visible, onClose, settings }) {
         </Text>
       )}
       <Text style={styles.cityLabel}>City</Text>
-      <View style={styles.cityRow}>
-        {CITY_NAMES.map((c) => {
-          const selected = city === c
-          return (
-            <Pressable
-              key={c}
-              style={[styles.cityChip, selected && styles.cityChipSelected]}
-              onPress={() => setCity(c)}
-              accessibilityRole="radio"
-              accessibilityLabel={c}
-              accessibilityState={{ selected }}
-            >
-              <Text style={[styles.cityChipText, selected && styles.cityChipTextSelected]}>{c}</Text>
-            </Pressable>
-          )
-        })}
-      </View>
+      {/* A dropdown, not chips — 47 cities since 2026-08-24, and a wall of chips
+          is not a choice. Labelled "Coimbatore, Tamil Nadu" so either word finds it. */}
+      <Dropdown value={city} options={CITY_OPTIONS} placeholder="Select city" onChange={setCity} />
 
       <LabeledInput
         label="Bio"
@@ -114,14 +101,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', letterSpacing: 0.5,
     marginTop: spacing.md, marginBottom: spacing.sm,
   },
-  cityRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  cityChip: {
-    minHeight: 40, justifyContent: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.full, backgroundColor: colors.white,
-  },
-  cityChipSelected: { borderColor: colors.brand600, backgroundColor: colors.brand50 },
-  cityChipText: { fontFamily: fonts.bodyMedium, fontSize: fontSizes.sm, color: colors.slate600 },
-  cityChipTextSelected: { fontFamily: fonts.bodySemiBold, color: colors.brand700 },
   submitError: { fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.danger, marginTop: spacing.sm },
   phoneWarning: {
     fontFamily: fonts.body, fontSize: fontSizes.xs, color: colors.warning700,
