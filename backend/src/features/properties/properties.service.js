@@ -507,6 +507,10 @@ export async function updateProperty(id, ownerId, data) {
       where: { id },
       data: {
         ...propertyData,
+        // The owner touched it — the only thing that lets a REJECTED listing be
+        // resubmitted (see publishProperty). Deliberately not updatedAt, which
+        // every status flip and backfill also moves.
+        ownerEditedAt: new Date(),
         availableFrom: availableFrom ? new Date(availableFrom) : undefined,
         // Recomputed whenever EITHER coordinate moves, using the existing value
         // for the one that didn't. `updatePropertySchema` marks lat and lng
@@ -626,13 +630,33 @@ export async function deleteProperty(id, ownerId) {
   return deleted
 }
 
+// Has the owner edited this listing since moderation last stamped it? Both
+// clients apply the same comparison to the payload so the button can say why
+// it is disabled rather than handing the owner a 409.
+export function editedSinceModeration(property) {
+  if (!property.moderatedAt) return true
+  if (!property.ownerEditedAt) return false
+  return new Date(property.ownerEditedAt) > new Date(property.moderatedAt)
+}
+
 export async function publishProperty(id, ownerId) {
   const property = await prisma.property.findUnique({ where: { id, ownerId } })
   if (!property) throw Object.assign(new Error('Property not found or access denied'), { statusCode: 404 })
   if (property.status !== 'DRAFT' && property.status !== 'REJECTED') {
     throw Object.assign(new Error('Only draft or rejected properties can be submitted for review'), { statusCode: 400 })
   }
-  const updated = await prisma.property.update({ where: { id }, data: { status: 'PENDING', submittedAt: new Date() } })
+  // A rejection is answered with a change, not a retry. This is the ONLY path
+  // into PENDING and it belongs to the owner — nothing on the server resubmits
+  // a listing by itself — but an unchanged resubmission is a retry by hand, and
+  // it was landing the same listing straight back in the review queue.
+  if (property.status === 'REJECTED' && !editedSinceModeration(property)) {
+    const why = property.moderationNote ? ` It was rejected for: ${property.moderationNote}` : ''
+    throw Object.assign(new Error(`Edit the listing before submitting it again.${why}`), { statusCode: 409 })
+  }
+  const updated = await prisma.property.update({
+    where: { id },
+    data: { status: 'PENDING', submittedAt: new Date(), moderationNote: null, moderatedAt: null },
+  })
   recordStatusChange({ propertyId: id, from: property.status, to: 'PENDING', actor: 'owner' })
 
   // Fire-and-forget: re-evaluate at submission so the admin moderation queue

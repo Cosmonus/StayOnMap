@@ -21,7 +21,10 @@ const PUSH_TYPES  = new Set(['APPOINTMENT_ACCEPTED', 'APPOINTMENT_REJECTED', 'LE
 // Notification.audience comment in schema.prisma). Omitting it is allowed and
 // means "unclassified", which shows in both modes — a fallback for safety, not
 // a default to lean on: a new notification that skips it lands in both inboxes.
-export async function notifyUser(userId, { type, title, body, referenceId, referenceType, audience, emailMeta }) {
+// `push` forces delivery for a type that is not normally pushed — SYSTEM is a
+// broad bucket, and only its moderation outcomes (a listing rejected, paused or
+// reinstated) are worth waking a phone for. The caller says so per call.
+export async function notifyUser(userId, { type, title, body, referenceId, referenceType, audience, emailMeta, push = false }) {
   const notification = await prisma.notification.create({ data: { userId, type, title, body, referenceId, referenceType, audience } })
   emitToUser(userId, 'notification:new', notification)
 
@@ -32,7 +35,7 @@ export async function notifyUser(userId, { type, title, body, referenceId, refer
   // — so without it, tapping an owner notification while the app sits in renter
   // mode lands on the renter's list, which by design does not contain it. Both
   // clients switch to the notification's own hat before they navigate.
-  if (PUSH_TYPES.has(type)) {
+  if (push || PUSH_TYPES.has(type)) {
     const mode = audience === 'OWNER' ? 'host' : audience === 'TENANT' ? 'tenant' : null
     sendPushToUser(userId, {
       title,

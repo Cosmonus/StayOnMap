@@ -877,6 +877,20 @@ model Property {
   // submitted, not touched.
   submittedAt DateTime?
 
+  // Why moderation last took this listing off the map, and when (added
+  // 2026-08-23). Written on REJECTED / SUSPENDED, cleared the moment the owner
+  // resubmits. Before this the reason lived ONLY in a bell notification, so an
+  // owner who cleared the bell pressed "Submit again" unchanged — which is
+  // exactly what kept coming back into the review queue.
+  moderationNote String?
+  moderatedAt    DateTime?
+  // The last time the OWNER edited the listing (updateProperty only — never a
+  // status flip, a score recalculation or a backfill, all of which move
+  // updatedAt). publishProperty refuses to resubmit a REJECTED listing unless
+  // this is later than moderatedAt: a rejection has to be answered with a
+  // change, not a retry.
+  ownerEditedAt  DateTime?
+
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   supportCases SupportCase[]
