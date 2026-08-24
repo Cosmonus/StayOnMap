@@ -83,6 +83,8 @@ export const prismaMock = {
     update:     vi.fn(),
     updateMany: vi.fn(),
     create:     vi.fn(),
+    count:      vi.fn().mockResolvedValue(0),
+    groupBy:    vi.fn().mockResolvedValue([]),
   },
   appointment: {
     findUnique:   vi.fn(),
@@ -119,7 +121,8 @@ export const prismaMock = {
     update:     vi.fn(),
   },
   activityLog: {
-    create: vi.fn().mockResolvedValue({}),
+    create:   vi.fn().mockResolvedValue({}),
+    findMany: vi.fn().mockResolvedValue([]),
   },
   moderationAction: {
     create: vi.fn().mockResolvedValue({}),
@@ -404,6 +407,26 @@ export const prismaMock = {
   // the marketplace metrics read owner reply times and the weekly supply
   // series this way, and an unmocked call would reject rather than come back
   // empty, failing every unrelated suite that touches the admin controller.
+  // Delivery-channel counters the admin System Monitor reads.
+  pushSubscription: {
+    count:      vi.fn().mockResolvedValue(0),
+    create:     vi.fn(),
+    deleteMany: vi.fn(),
+    findMany:   vi.fn().mockResolvedValue([]),
+  },
+  expoPushToken: {
+    count:      vi.fn().mockResolvedValue(0),
+    upsert:     vi.fn(),
+    deleteMany: vi.fn(),
+    findMany:   vi.fn().mockResolvedValue([]),
+  },
+  ownershipVerification: {
+    count:      vi.fn().mockResolvedValue(0),
+    findUnique: vi.fn(),
+    findMany:   vi.fn().mockResolvedValue([]),
+    upsert:     vi.fn(),
+    update:     vi.fn(),
+  },
   $queryRaw: vi.fn().mockResolvedValue([]),
   // Supports both Prisma $transaction forms: array-of-promises (lease.service.js)
   // and callback (properties.service.js) — real Prisma treats them differently,
