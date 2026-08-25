@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { MessageCircle, AlertTriangle, MapPin, Image as ImageIcon, RefreshCw } from 'lucide-react'
 import { adminService } from '@services/admin.service'
@@ -182,8 +183,15 @@ function ConversationDetail({ id, onClose }) {
               ))}
             </dl>
             {data.draft.photos.length > 0 && (
-              <div className="flex gap-2 flex-wrap pt-2">
-                {data.draft.photos.map((p) => <img key={p.url} src={p.url.replace('_full.webp', '_thumb.webp')} alt="" className="w-16 h-16 object-cover rounded-lg ring-1 ring-slate-200" />)}
+              <div className="pt-2">
+                <p className="text-xs font-semibold text-slate-500 mb-2">Photos sent ({data.draft.photos.length}) — click to open full size</p>
+                <div className="flex gap-2 flex-wrap">
+                  {data.draft.photos.map((p, i) => (
+                    <a key={p.url} href={p.url} target="_blank" rel="noreferrer" className="block rounded-lg overflow-hidden ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-500">
+                      <img src={p.url.replace('_full.webp', '_thumb.webp')} alt={`Photo ${i + 1} sent by the owner`} className="w-24 h-24 object-cover" loading="lazy" />
+                    </a>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -234,10 +242,21 @@ function ConversationDetail({ id, onClose }) {
 }
 
 export default function WhatsAppSection() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [filter, setFilter] = useState('open')
   const [search, setSearch] = useState('')
   const [days, setDays] = useState(30)
   const [openId, setOpenId] = useState(null)
+
+  // Review Listings links here with ?conversationId= — open it, then drop the
+  // param so a refresh does not keep re-opening it.
+  const deepLinkId = searchParams.get('conversationId')
+  useEffect(() => {
+    if (deepLinkId) {
+      setOpenId(deepLinkId)
+      setSearchParams({ tab: 'whatsapp' }, { replace: true })
+    }
+  }, [deepLinkId, setSearchParams])
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-whatsapp', filter, search],
@@ -249,7 +268,7 @@ export default function WhatsAppSection() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2"><MessageCircle size={20} className="text-brand-700" />WhatsApp listings</h1>
-        <p className="text-sm text-slate-500 mt-1">Owners listing by chat. A listing created here is an ordinary listing — approve it under Review Listings; the bot tells the owner.</p>
+        <p className="text-sm text-slate-500 mt-1">Owners listing by chat. Nothing here is auto-approved: a submitted listing waits in Review Listings like any other, and the bot tells the owner when you approve or reject it.</p>
       </div>
 
       <FunnelPanel days={days} setDays={setDays} />

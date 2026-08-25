@@ -11,6 +11,7 @@ import {
 import {
   X, ChevronLeft, ChevronRight, Home, MapPin, Users, CircleCheck, ArrowLeft, Copy,
   Star, Building2, Eye, EyeOff, User, MoreHorizontal, ShieldAlert,
+  MessageCircle,
 } from 'lucide-react'
 import { adminService } from '@services/admin.service'
 import { formatPrice, formatCurrency, formatCompact, formatCompactPrice } from '@utils/format'
@@ -1231,6 +1232,13 @@ function ReviewCard({ property, onSelect }) {
           {property.pricingModel === 'LEASE' && (
             <span className="px-2 py-0.5 rounded-full bg-amber-50 text-[11px] font-bold text-amber-700">Lease</span>
           )}
+          {/* Where it came from. A WhatsApp intake is a chat, not a form — the
+              reviewer wants to know that before opening it. */}
+          {property.whatsapp && (
+            <span className="px-2 py-0.5 rounded-full bg-brand-50 text-[11px] font-bold text-brand-700 inline-flex items-center gap-1">
+              <MessageCircle size={12} aria-hidden="true" />WhatsApp
+            </span>
+          )}
         </div>
 
         {/* Owner line */}
@@ -1371,6 +1379,69 @@ const POPUP_ACTION_STYLE = {
   reject:    'text-red-700 bg-red-50 hover:bg-red-100 border-red-200',
 }
 
+// What the owner actually sent over WhatsApp, beside the listing it became.
+// The listing's title, description and columns are DERIVED from these answers
+// (features/whatsapp/questionnaire/normalize.js), so the honest thing to show a
+// reviewer is the raw intake — and the photos as they arrived, in order. The
+// decision stays exactly where it is: the Approve / Reject buttons above.
+function WhatsAppIntakeCard({ source, images }) {
+  const [, setSearchParams] = useSearchParams()
+  const fmt = (d) => d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
+  const answers = Object.entries(source.answers ?? {}).filter(([, v]) => v !== null && v !== undefined && v !== '')
+  const LOCATION_SOURCE = { pin: 'WhatsApp location pin', link: 'Google Maps link', text: 'Typed place, geocoded' }
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
+      <AdminCard title="Listed via WhatsApp">
+        <div className="space-y-4 text-sm">
+          <div className="rounded-xl bg-brand-50 ring-1 ring-brand-100 p-4 text-brand-900">
+            Submitted by chat from <span className="font-mono">{source.phoneMasked}</span> · started {fmt(source.startedAt)} · submitted {fmt(source.submittedAt)}.
+            {' '}Manual review still applies — nothing from WhatsApp goes live until it is approved here.
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">What the owner answered</p>
+            {answers.length ? (
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                {answers.map(([k, v]) => (
+                  <div key={k} className="flex gap-2 min-w-0">
+                    <dt className="w-32 shrink-0 font-mono text-xs text-slate-500 pt-0.5">{k}</dt>
+                    <dd className="text-slate-700 min-w-0 break-words">{Array.isArray(v) ? v.join(', ') : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v)}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : <p className="text-slate-500">No answers recorded.</p>}
+          </div>
+          {source.location && (
+            <p className="text-slate-600">
+              <span className="font-semibold text-slate-700">Location:</span> {LOCATION_SOURCE[source.location.source] ?? source.location.source ?? '—'}
+              {source.location.precision ? ` (${source.location.precision})` : ''}
+              {source.location.typedName ? ` — owner typed “${source.location.typedName}”` : ''}, confirmed by the owner.
+            </p>
+          )}
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Photos as sent ({images.length})</p>
+            {images.length ? (
+              <div className="flex gap-2 flex-wrap">
+                {images.map((img, i) => (
+                  <a key={img.url} href={img.url} target="_blank" rel="noreferrer" className="block rounded-lg overflow-hidden ring-1 ring-slate-200 focus:ring-2 focus:ring-brand-500" title={`Photo ${i + 1} — open full size`}>
+                    <img src={img.url.replace('_full.webp', '_thumb.webp')} alt={`Photo ${i + 1} sent by the owner`} className="w-24 h-24 object-cover" loading="lazy" />
+                  </a>
+                ))}
+              </div>
+            ) : <p className="text-slate-500">No photos.</p>}
+          </div>
+          <button
+            type="button"
+            onClick={() => setSearchParams({ tab: 'whatsapp', conversationId: source.conversationId })}
+            className="min-h-[40px] px-3 rounded-lg text-xs font-semibold bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-50"
+          >
+            Open the full WhatsApp transcript
+          </button>
+        </div>
+      </AdminCard>
+    </div>
+  )
+}
+
 function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend, onRefresh }) {
   const [selectedUserId, setSelectedUserId] = useState(null)
 
@@ -1487,6 +1558,8 @@ function PropertyDetailView({ property, onBack, onApprove, onReject, onSuspend, 
               `actor` is coarse by design (owner / admin / system) and never a
               user id: WHO acted is ActivityLog's job, and an id here would make
               a counting table into a weaker second audit trail. */}
+          {property.whatsapp && <WhatsAppIntakeCard source={property.whatsapp} images={property.images ?? []} />}
+
           {(property.statusEvents?.length ?? 0) > 0 && (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
               <AdminCard title="Status history">

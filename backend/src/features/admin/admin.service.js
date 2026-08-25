@@ -6,6 +6,7 @@ import { sendEmail, adminPasswordChangedEmail } from '../../services/email.servi
 import { mailStatus } from '../../lib/mailer.js'
 import { smsStatus } from '../../lib/smsSender.js'
 import { whatsappStatus } from '../whatsapp/client.js'
+import { toMasked } from '../whatsapp/phone.js'
 import { errorStatus } from '../../lib/errorLog.js'
 import { disconnectUser } from '../../lib/socket.js'
 import { aiEnabled } from '../ai/ai.service.js'
@@ -318,6 +319,49 @@ export async function getAdminPins(query = {}) {
   })
 }
 
+// Did this listing come in over WhatsApp? A reviewer needs to know from the
+// queue itself, not only from the WhatsApp tab: the intake was a chat, the
+// "description" was assembled from answers, and the photos arrived as media
+// messages — so what the owner actually SAID is the evidence, and it lives on
+// the conversation row. One query for a whole page of rows; `full` adds the
+// raw answers for the detail view. Never the phone in the clear.
+//
+// `?? []` on the read: the mock and a fresh database both return nothing, and
+// nothing must read as "not from WhatsApp", never as an error.
+async function attachWhatsAppSource(properties, { full = false } = {}) {
+  const ids = properties.map((p) => p?.id).filter(Boolean)
+  if (!ids.length) return properties
+  const rows = await prisma.whatsAppConversation.findMany({
+    where: { propertyId: { in: ids } },
+    select: { id: true, propertyId: true, phone: true, status: true, createdAt: true, updatedAt: true, completedAt: true, ...(full && { draft: true }) },
+  }).catch(() => []) ?? []
+  const byProperty = new Map(rows.map((r) => [r.propertyId, r]))
+  for (const p of properties) {
+    const c = byProperty.get(p.id)
+    if (!c) { p.whatsapp = null; continue }
+    const draft = full ? (c.draft ?? {}) : null
+    p.whatsapp = {
+      conversationId: c.id,
+      phoneMasked: toMasked(c.phone),
+      status: c.status,
+      startedAt: c.createdAt,
+      submittedAt: c.updatedAt,
+      ...(full && {
+        // The owner's own answers, by question id — the listing's columns are
+        // DERIVED from these (normalize.js), and a reviewer comparing the two
+        // is checking that derivation, not re-reading the listing.
+        answers: draft.fields ?? {},
+        location: draft.location ? {
+          source: draft.location.source ?? null, precision: draft.location.precision ?? null,
+          typedName: draft.location.typedName ?? null, locality: draft.location.locality ?? null, city: draft.location.city ?? null,
+        } : null,
+        photoCount: Array.isArray(draft.photos) ? draft.photos.length : 0,
+      }),
+    }
+  }
+  return properties
+}
+
 export async function getAdminPropertyById(id) {
   const property = await prisma.property.findUnique({
     where: { id },
@@ -425,6 +469,8 @@ export async function getAdminPropertyById(id) {
   // which is why admin-detail-depth.test.js asserts the join itself.
   property.fraudSignals = (property.fraudSignals ?? []).map((s) => ({ ...s, label: labelFraudSignal(s.type) }))
 
+  await attachWhatsAppSource([property], { full: true })
+
   return property
 }
 
@@ -477,6 +523,7 @@ export async function listAdminProperties({ page = 1, limit = 20, ...query } = {
     }),
     prisma.property.count({ where }),
   ])
+  await attachWhatsAppSource(properties)
   return { properties, total, page: pageNum, limit: limitNum }
 }
 

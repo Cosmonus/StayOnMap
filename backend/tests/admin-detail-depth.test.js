@@ -117,3 +117,29 @@ describe('admin property detail', () => {
     expect(signals.where).toEqual({ resolved: false })
   })
 })
+
+// ── Where a listing came from (2026-08-25) ──────────────────────────────────
+// A WhatsApp intake is a chat, and what the owner SAID lives on the
+// conversation row, not the listing. The admin reads must carry it — masked
+// number, the raw answers, never the phone in the clear — and a listing with
+// no conversation must read as `null`, not as an error.
+describe('getAdminPropertyById → whatsapp source', () => {
+  it('is null for a listing that did not come in over WhatsApp', async () => {
+    prismaMock.whatsAppConversation.findMany.mockResolvedValue([])
+    const p = await getAdminPropertyById('p1')
+    expect(p.whatsapp).toBeNull()
+  })
+
+  it('carries the masked number and the raw answers, and never the full number', async () => {
+    prismaMock.whatsAppConversation.findMany.mockResolvedValue([{
+      id: 'c9', propertyId: 'p1', phone: '919876543210', status: 'VERIFICATION',
+      createdAt: new Date('2026-08-25T09:00:00Z'), updatedAt: new Date('2026-08-25T09:20:00Z'), completedAt: null,
+      draft: { fields: { bhk: 2, rent: 28000 }, location: { source: 'pin', precision: 'exact', locality: 'Velachery', city: 'Chennai', lat: 12.98, lng: 80.22, confirmed: true }, photos: [{ url: 'a' }, { url: 'b' }] },
+    }])
+    const p = await getAdminPropertyById('p1')
+    expect(p.whatsapp).toMatchObject({ conversationId: 'c9', phoneMasked: '+91 •••••43210', answers: { bhk: 2, rent: 28000 }, photoCount: 2 })
+    expect(p.whatsapp.location).toEqual({ source: 'pin', precision: 'exact', typedName: null, locality: 'Velachery', city: 'Chennai' })
+    expect(JSON.stringify(p.whatsapp)).not.toContain('919876543210')
+    expect(p.whatsapp.location.lat).toBeUndefined()
+  })
+})
