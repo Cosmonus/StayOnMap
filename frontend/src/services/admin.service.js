@@ -79,6 +79,13 @@ export const adminService = {
   },
   supportEscalate: (id, reason) => adminApi.post(`/admin/support/cases/${id}/escalate`, { reason }),
 
+  // WhatsApp listings — conversations, the funnel, and interventions that go
+  // through the bot's own engine paths (features/whatsapp/admin.*).
+  whatsappFunnel:        (days)       => adminApi.get('/admin/whatsapp/funnel', { params: { days } }),
+  whatsappConversations: (params)     => adminApi.get('/admin/whatsapp/conversations', { params }),
+  whatsappConversation:  (id)         => adminApi.get(`/admin/whatsapp/conversations/${id}`),
+  whatsappIntervene:     (id, body)   => adminApi.post(`/admin/whatsapp/conversations/${id}/intervene`, body),
+
   getProfile:       ()          => adminApi.get('/admin/profile'),
   updateProfile:    (data)      => adminApi.patch('/admin/profile', data),
   changePassword:   (data)      => adminApi.patch('/admin/profile/password', data),

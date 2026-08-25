@@ -5,6 +5,7 @@ import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { sendEmail, adminPasswordChangedEmail } from '../../services/email.service.js'
 import { mailStatus } from '../../lib/mailer.js'
 import { smsStatus } from '../../lib/smsSender.js'
+import { whatsappStatus } from '../whatsapp/client.js'
 import { errorStatus } from '../../lib/errorLog.js'
 import { disconnectUser } from '../../lib/socket.js'
 import { aiEnabled } from '../ai/ai.service.js'
@@ -558,6 +559,19 @@ export async function setPropertyStatus(propertyId, status, note, adminId) {
     },
   })
 
+  // A listing that came in over WhatsApp is told there, too — the bot sends
+  // the listing URL and a sign-in link. No-op for every other listing and
+  // when WhatsApp is not configured. Fire-and-forget, like the bell below.
+  // Imported lazily, like trust/points in moderateReview: this module is the
+  // admin panel's whole backend and every static import here is paid by every
+  // test that touches it — a static import of the WhatsApp feature pushed
+  // `await import(admin.service)` past a 5s test timeout under a full run.
+  if (current.status !== status && (status === 'ACTIVE' || status === 'REJECTED')) {
+    import('../whatsapp/listingEvents.js')
+      .then((m) => (status === 'ACTIVE' ? m.onListingWentLive(propertyId) : m.onListingRejected(propertyId, note)))
+      .catch(() => {})
+  }
+
   // Fire-and-forget, and only when the state actually changed — re-saving the
   // same status shouldn't tell an owner their listing moved.
   if (current.status !== status) {
@@ -727,6 +741,8 @@ export async function getMonitorStatus() {
   const [pendingProperties, pendingReports, pendingReviews, pendingVerifications] = pendingModerationRaw
 
   return {
+    // Is the WhatsApp listing bot on? Env-only, no send — same shape as sms.
+    whatsapp: whatsappStatus(),
     propertyByStatus: propertyByStatus.map(r => ({ status: r.status, count: r._count._all })),
     userByRole:       userByRole.map(r => ({ role: r.role, count: r._count._all })),
     blockedUsers,

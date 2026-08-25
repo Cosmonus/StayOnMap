@@ -65,6 +65,8 @@ import adminRoutes       from './features/admin/admin.routes.js'
 import { adminReportRouter, reportThreadRouter } from './features/reports/reports.routes.js'
 import { supportRouter, adminSupportRouter } from './features/support/support.routes.js'
 import { adminVerificationRouter } from './features/verification/verification.routes.js'
+import { webhookRouter as whatsappWebhookRouter, publicRouter as whatsappPublicRouter } from './features/whatsapp/whatsapp.routes.js'
+import { adminWhatsAppRouter } from './features/whatsapp/admin.whatsapp.routes.js'
 
 const app  = express()
 const PORT = process.env.PORT ?? 4000
@@ -80,6 +82,16 @@ app.use(helmet())
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
 
 app.use(cors({ origin: corsOriginHandler, credentials: true }))
+
+// The WhatsApp webhook is mounted BEFORE the global JSON parser and the
+// default limiter, and that is deliberate on both counts. Meta signs each
+// POST over the raw request bytes, which express.json() discards — so the
+// router parses its own body and keeps them (features/whatsapp/whatsapp.routes.js).
+// And a rate limiter in front of a webhook is a way to make Meta drop our
+// messages: the signature check is the gate, not a per-IP bucket. GET is the
+// one-time subscription handshake.
+app.use('/api/v1/webhooks/whatsapp', whatsappWebhookRouter)
+
 app.use(express.json({ limit: '2mb' }))
 app.use(defaultLimiter)
 
@@ -149,6 +161,8 @@ app.use('/api/v1/support',       supportRouter)
 app.use('/api/v1/localities',    localityRoutes)
 app.use('/api/v1/metro',         metroRoutes)
 app.use('/api/v1/it-corridors',  itCorridorRoutes)
+// The sign-in link an owner receives on WhatsApp — public, strictLimiter'd.
+app.use('/api/v1/whatsapp',      whatsappPublicRouter)
 
 // Admin routes — high limit so moderation actions are never throttled
 app.use('/api/v1/admin',               adminLimiter, adminRoutes)
@@ -157,6 +171,7 @@ app.use('/api/v1/admin/support',       adminLimiter, adminSupportRouter)
 app.use('/api/v1/admin/verifications', adminLimiter, adminVerificationRouter)
 app.use('/api/v1/admin/trust-scores',  adminLimiter, trustRoutes)
 app.use('/api/v1/admin/ai',            adminLimiter, aiRoutes)
+app.use('/api/v1/admin/whatsapp',      adminLimiter, adminWhatsAppRouter)
 
 // NOTE: the API does NOT serve the React build. nginx serves frontend/dist
 // directly (infra/server/nginx/stayonmap.conf) and owns the SPA fallback, so a

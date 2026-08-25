@@ -49,6 +49,7 @@ const AdminPage         = lazyRetry(() => import('@pages/AdminPage'))
 const ResetPasswordPage = lazyRetry(() => import('@pages/ResetPasswordPage'))
 const VerifyEmailPage   = lazyRetry(() => import('@pages/VerifyEmailPage'))
 const OAuthCompletePage = lazyRetry(() => import('@pages/OAuthCompletePage'))
+const WhatsAppLoginPage = lazyRetry(() => import('@pages/WhatsAppLoginPage'))
 
 function PageFallback() {
   return (
@@ -100,6 +101,9 @@ export default function AppRoutes() {
           <Route path="/verify-email"   element={<VerifyEmailPage />} />
           {/* Social-login landing — public, result arrives in the URL fragment */}
           <Route path="/oauth-complete" element={<OAuthCompletePage />} />
+          {/* The single-use "manage your property" link an owner receives on
+              WhatsApp — exchanges its token for an ordinary session. */}
+          <Route path="/wa/login"       element={<WhatsAppLoginPage />} />
 
           {/* Admin — login is public, everything else guarded */}
           <Route path="/admin/login"  element={<AdminLoginPage />} />

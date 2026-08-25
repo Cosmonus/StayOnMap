@@ -49,6 +49,7 @@ import GraphHealthCard from '@features/admin/components/GraphHealthCard'
 import SupplySection from '@features/admin/components/SupplySection'
 import ActivityLogSection from '@features/admin/components/ActivityLogSection'
 import WaitlistByCity from '@features/admin/components/WaitlistByCity'
+import WhatsAppSection from '@features/admin/components/WhatsAppSection'
 import { formatTime } from '@utils/time'
 
 /**
@@ -2973,6 +2974,7 @@ export default function AdminPage() {
       case 'reports':         return <ReportsSection />
       case 'reviews':         return <AdminReviewsSection />
       case 'verifications':   return <VerificationsSection />
+      case 'whatsapp':        return <WhatsAppSection />
       case 'monitor':         return <AdminMonitorSection />
       case 'settings':        return <AdminSettingsSection />
       default:                return <OverviewSection />

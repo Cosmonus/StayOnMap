@@ -26,6 +26,7 @@ const ICONS = {
   reports: TriangleAlert,
   reviews: Star,
   monitor: BarChart3,
+  whatsapp: MessageCircle,
   supply: TrendingUp,
   activity: ScrollText,
 }
@@ -52,6 +53,7 @@ const ADMIN_NAV = [
   { id: 'reports',         label: 'Reports',          icon: 'reports' },
   { id: 'reviews',         label: 'Reviews',          icon: 'reviews' },
   { id: 'verifications',   label: 'Verifications',    icon: 'queue' },
+  { id: 'whatsapp',        label: 'WhatsApp',         icon: 'whatsapp' },
   { id: 'monitor',         label: 'System Monitor',   icon: 'monitor' },
   { id: 'activity',        label: 'Activity Log',     icon: 'activity' },
 ]

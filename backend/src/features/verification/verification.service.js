@@ -85,6 +85,10 @@ export async function adminReviewVerification(verificationId, adminId, { status,
       recordStatusChange({ propertyId: verification.propertyId, from: property.status, to: 'ACTIVE', actor: 'admin' })
       // New supply only, same test as admin.service.js — the stamp decides.
       if (stamp.publishedAt) matchNewSupply(verification.propertyId).catch(() => {})
+      // The second door into ACTIVE tells a WhatsApp owner the same way the
+      // first one does. No-op unless the listing came in over WhatsApp. Lazy
+      // import for the same reason admin.service.js gives.
+      import('../whatsapp/listingEvents.js').then((m) => m.onListingWentLive(verification.propertyId)).catch(() => {})
     }
   }
   const property = await prisma.property.findUnique({ where: { id: verification.propertyId }, select: { title: true } })

@@ -290,7 +290,12 @@ model User {
   id              String    @id @default(cuid())
   passwordHash    String? // null = social-login-only account (no password set yet)
   displayId       String?   @unique // Human-readable ID: SRI-1234567890123456
-  email           String    @unique
+  // Nullable since 2026-08-25: an owner who lists over WhatsApp has proven a
+  // PHONE, not an inbox, and inventing a placeholder address would mean sending
+  // mail to it. Postgres treats NULLs as distinct under a unique index, so any
+  // number of email-less accounts coexist. Every email path already skips a
+  // missing address (notifications.service.js: `if (!user?.email) return`).
+  email           String?   @unique
   name            String
   phone           String?
   // Set only by the SMS code flow (features/auth/phone.service.js). NULL is the
@@ -348,6 +353,8 @@ model User {
   socialAccounts      SocialAccount[]
   authSessions        AuthSession[]
   listingDraft        ListingDraft?
+  whatsAppConversations WhatsAppConversation[]
+  whatsAppLoginLinks    WhatsAppLoginLink[]
 
   // Blocks and reports the user MADE, and the ones aimed AT them. Both sides
   // are needed: "who have I blocked" powers the settings list, "who has blocked
@@ -2766,4 +2773,138 @@ model KnowledgeArticle {
   updatedAt DateTime @updatedAt
 
   @@index([categoryId, published])
+}
+
+// ── WhatsApp listing automation (2026-08-25) — see .claude/whatsapp.md ────────
+//
+// An owner lists a property by chatting with the StayOnMap WhatsApp number.
+// The CONVERSATION is the durable state machine; the answers live in `draft`
+// (Json) until the owner confirms, at which point one Property row is created
+// through the ordinary createProperty()/publishProperty() path. Nothing here
+// duplicates Property, PropertyImage, User or the verification tables — the
+// conversation points at the Property it produced and at the User it belongs to.
+
+enum WhatsAppConversationStatus {
+  START
+  PROPERTY_TYPE
+  QUESTIONNAIRE
+  LOCATION
+  PHOTOS
+  REVIEW
+  CONFIRMATION
+  VERIFICATION
+  COMPLETED
+  CANCELLED
+}
+
+enum WhatsAppMessageDirection {
+  IN
+  OUT
+}
+
+enum WhatsAppMessageStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+  SENT
+  SEND_FAILED
+}
+
+model WhatsAppConversation {
+  id String @id @default(cuid())
+
+  /// E.164 digits with no plus sign, as Meta sends `wa_id` ("919876543210").
+  /// One canonical form everywhere — features/whatsapp/phone.js.
+  phone String
+
+  /// Set once identity is resolved (identity.service.js). Null while the very
+  /// first messages are being answered, before we know who this is.
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String?
+
+  status WhatsAppConversationStatus @default(START)
+
+  /// Wizard category key — apartment | house | land | pg | shop | stay — the same
+  /// vocabulary as frontend/.../config/onboarding.js. `type` on the Property is
+  /// derived from it at publish time.
+  propertyType String?
+
+  /// The question id the engine is waiting on. Null between phases.
+  currentQuestion String?
+
+  /// Everything gathered so far: { fields, location, photos, name, confirmed…}.
+  /// Json because it is read whole and written on every answer; the shape is
+  /// owned by conversation.service.js.
+  draft Json @default("{}")
+
+  /// 0–100, recomputed on every write from the questionnaire's required set.
+  completionPct Int @default(0)
+
+  /// The listing this conversation produced, once it did.
+  propertyId String?
+
+  /// The newest failure the engine hit while handling this conversation, for
+  /// the admin view. Cleared on the next successful turn.
+  lastError  String?
+  errorCount Int     @default(0)
+
+  lastMessageAt DateTime  @default(now())
+  completedAt   DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  messages WhatsAppMessage[]
+
+  // "The open conversation for this number" — the read on every inbound.
+  @@index([phone, status])
+  @@index([status, lastMessageAt])
+  @@index([userId])
+  @@index([propertyId])
+}
+
+model WhatsAppMessage {
+  id String @id @default(cuid())
+
+  conversation   WhatsAppConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  conversationId String?
+
+  /// Meta's message id (`wamid.…`). UNIQUE is the idempotency guarantee: Meta
+  /// retries webhooks, and a duplicate delivery hits this constraint instead of
+  /// the engine. Outbound rows store the id Meta returned on send.
+  waMessageId String @unique
+
+  phone     String
+  direction WhatsAppMessageDirection
+  /// Meta's `type` (text, image, location, interactive, …) or our outbound kind.
+  type      String
+  /// The raw message object as received, or the payload as sent. Media BYTES are
+  /// never stored here — only ids and the storage URL they became.
+  payload   Json
+  status    WhatsAppMessageStatus @default(RECEIVED)
+  error     String?
+
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([conversationId, createdAt])
+  @@index([phone, createdAt])
+}
+
+/// A single-use sign-in link sent over WhatsApp — the "manage your property"
+/// URL. Same shape and rules as PasswordResetToken: sha256 stored, 24h TTL,
+/// consumed once. It mints a session for the account the number is verified
+/// on, which is why it is only ever sent to the WhatsApp number that account
+/// was created from.
+model WhatsAppLoginLink {
+  id        String    @id @default(cuid())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }

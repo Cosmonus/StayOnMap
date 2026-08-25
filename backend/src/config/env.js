@@ -95,6 +95,11 @@ export const env = {
   // Unset in development → codes print to the server console (dev-echo), so the
   // flow works on a fresh checkout. Unset in production → phone verification is
   // unavailable and the UI hides it rather than offering a button that 503s.
+  //   SMS_PROVIDER=whatsapp        → the code goes out as a WhatsApp
+  //     AUTHENTICATION template through the same Cloud API the listing bot
+  //     uses (features/whatsapp/client.js). Needs WHATSAPP_OTP_TEMPLATE, an
+  //     approved authentication-category template. Cheaper than SMS in India
+  //     and no DLT registration, but NOT free — Meta bills per conversation.
   smsProvider:     process.env.SMS_PROVIDER      || 'msg91',
   msg91AuthKey:    process.env.MSG91_AUTH_KEY    || null,
   msg91TemplateId: process.env.MSG91_TEMPLATE_ID || null,
@@ -103,6 +108,32 @@ export const env = {
   // ~₹40. The per-user and per-destination limits in phone.service.js are what
   // actually stop abuse; this is the backstop behind them.
   smsDailyCap:     Number(process.env.SMS_DAILY_CAP) || 200,
+  // WhatsApp Cloud API (features/whatsapp/) — an owner lists a property by
+  // chatting with the StayOnMap number. All five are set together or the
+  // feature is inert: the webhook answers 503 on POST, whatsappConfigured() is
+  // false, and nothing else in the app changes. Absent is a supported state,
+  // like mail and SMS. Created in Meta Business → WhatsApp → API setup; see
+  // docs/operator-actions.md §1.6k for the walk-through.
+  whatsapp: {
+    accessToken:       process.env.WHATSAPP_ACCESS_TOKEN        || null,
+    phoneNumberId:     process.env.WHATSAPP_PHONE_NUMBER_ID     || null,
+    businessAccountId: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || null,
+    // What Meta sends back on the GET verification handshake. Any long random
+    // string; it is compared, never used to sign anything.
+    verifyToken:       process.env.WHATSAPP_VERIFY_TOKEN        || null,
+    // The App Secret from Meta → App settings → Basic. Signs every webhook POST
+    // (X-Hub-Signature-256); a POST that does not verify is dropped unread.
+    appSecret:         process.env.WHATSAPP_APP_SECRET          || null,
+    apiVersion:        process.env.WHATSAPP_API_VERSION         || 'v21.0',
+    // Message templates (approved in Meta's console). Outside the 24-hour
+    // customer-service window Meta only delivers templates, and "your listing
+    // is live" arrives days after the last message — so it MUST be one.
+    // Unset = the go-live message is attempted as plain text and may be
+    // refused by Meta; the attempt is logged either way.
+    listingLiveTemplate: process.env.WHATSAPP_LISTING_LIVE_TEMPLATE || null,
+    otpTemplate:         process.env.WHATSAPP_OTP_TEMPLATE          || null,
+    templateLanguage:    process.env.WHATSAPP_TEMPLATE_LANGUAGE     || 'en',
+  },
   vapidPublicKey:  process.env.VAPID_PUBLIC_KEY  || null,
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || null,
   vapidSubject:    process.env.VAPID_SUBJECT     || 'mailto:hello@stayonmap.com',

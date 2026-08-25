@@ -25,6 +25,7 @@
 // nothing here assumes a provider exists.
 import { redis } from './redis.js'
 import { env } from '../config/env.js'
+import { sendTemplate, whatsappConfigured } from '../features/whatsapp/client.js'
 
 const HTTP_TIMEOUT_MS = 10_000
 
@@ -102,9 +103,22 @@ async function deliverViaFast2sms({ phone, code }) {
   }
 }
 
+// ── Delivery: WhatsApp ──────────────────────────────────────────────────────
+// The code goes out as an AUTHENTICATION-category template through the same
+// Cloud API the listing bot uses. Meta's authentication templates carry the
+// code as the body's {{1}} and, optionally, a copy-code button whose payload is
+// the same value — both are filled here. No DLT registration; cheaper than
+// SMS in India; still metered per conversation, which is why the daily cap
+// applies to this path exactly as it does to the others.
+async function deliverViaWhatsApp({ phone, code }) {
+  const id = await sendTemplate(`91${phone}`, { name: env.whatsapp.otpTemplate, params: [code], buttonUrlParam: code })
+  if (!id) throw new Error('whatsapp: template send refused')
+}
+
 // ── Provider selection ──────────────────────────────────────────────────────
 function provider() {
   if (env.smsProvider === 'fast2sms') return 'fast2sms'
+  if (env.smsProvider === 'whatsapp') return 'whatsapp'
   return 'msg91'
 }
 
@@ -112,13 +126,14 @@ function provider() {
 function senderReady() {
   switch (provider()) {
     case 'fast2sms': return !!env.fast2smsApiKey
+    case 'whatsapp': return whatsappConfigured() && !!env.whatsapp.otpTemplate
     // MSG91 needs both halves: an auth key with no approved template id sends
     // nothing, and fails at their end rather than ours.
     default: return !!(env.msg91AuthKey && env.msg91TemplateId)
   }
 }
 
-const DELIVER = { msg91: deliverViaMsg91, fast2sms: deliverViaFast2sms }
+const DELIVER = { msg91: deliverViaMsg91, fast2sms: deliverViaFast2sms, whatsapp: deliverViaWhatsApp }
 
 function devEcho() {
   return env.nodeEnv === 'development' && !senderReady()
