@@ -479,6 +479,37 @@ describe('publishProperty', () => {
     expect(result.status).toBe('PENDING')
   })
 
+  // Admins learn a listing is waiting by EMAIL, not only by opening the queue
+  // (2026-08-25). One mail per admin row, deep-linked to the review card.
+  describe('emailing admins', () => {
+    it('sends every admin a review link when a DRAFT is submitted', async () => {
+      const { sendEmail, listingSubmittedEmail } = await import('../src/services/email.service.js')
+      sendEmail.mockClear(); listingSubmittedEmail.mockClear()
+      prismaMock.property.findUnique.mockResolvedValue(makeProperty({ status: 'DRAFT' }))
+      prismaMock.property.update.mockResolvedValue(makeProperty({ id: 'prop-1', status: 'PENDING', title: 'Sea-facing 2BHK', type: 'APARTMENT', city: 'Chennai', ownerId: 'owner-1' }))
+      prismaMock.admin.findMany.mockResolvedValue([{ email: 'a@x.test' }, { email: 'b@x.test' }])
+      prismaMock.user.findUnique.mockResolvedValue({ name: 'Asha' })
+
+      await publishProperty('prop-1', 'owner-1')
+      await new Promise((r) => setImmediate(r))
+
+      expect(listingSubmittedEmail).toHaveBeenCalledWith(expect.objectContaining({
+        propertyTitle: 'Sea-facing 2BHK', propertyType: 'APARTMENT', city: 'Chennai', ownerName: 'Asha', resubmitted: false,
+        reviewLink: 'http://localhost:5173/admin?tab=review-listings&propertyId=prop-1',
+      }))
+      expect(sendEmail).toHaveBeenCalledTimes(2)
+      expect(sendEmail.mock.calls.map(([m]) => m.to).sort()).toEqual(['a@x.test', 'b@x.test'])
+    })
+
+    it('never fails the publish when the mail path throws', async () => {
+      prismaMock.property.findUnique.mockResolvedValue(makeProperty({ status: 'DRAFT' }))
+      prismaMock.property.update.mockResolvedValue(makeProperty({ status: 'PENDING' }))
+      prismaMock.admin.findMany.mockRejectedValue(new Error('db down'))
+
+      await expect(publishProperty('prop-1', 'owner-1')).resolves.toMatchObject({ status: 'PENDING' })
+    })
+  })
+
   // A rejection is answered with a change, not a retry (2026-08-23). Rejected
   // listings kept reappearing in the review queue because the owner's only
   // affordance was "Submit again" and nothing required an edit first.

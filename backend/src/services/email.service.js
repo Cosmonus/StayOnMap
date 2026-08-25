@@ -85,6 +85,11 @@ function panel(inner) {
 /** A plain paragraph inside the layout, so callers never hand-write margins. */
 const p = (html, extra = '') => `<p style="margin:0 0 14px;${extra}">${html}</p>`
 
+/** HTML-escape anything a user typed before it lands in a template. */
+const esc = (s) => String(s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+
 export function appointmentAcceptedEmail({ tenantName, propertyTitle, ownerNote }) {
   return {
     subject: `Your visit to "${propertyTitle}" is confirmed`,
@@ -258,10 +263,6 @@ export function accountLinkedEmail({ name, providerLabel }) {
  * replying actually needs.
  */
 export function contactMessageEmail({ name, email, topic, message }) {
-  const esc = (s) => String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
-
   const TOPIC_LABELS = {
     question:    'A question',
     report:      'Report a listing',
@@ -281,6 +282,30 @@ export function contactMessageEmail({ name, email, topic, message }) {
       <p style="margin:0;white-space:pre-wrap;">${esc(message)}</p>
       `),
       footNote: `Reply directly to ${esc(email)}.`,
+    }),
+  }
+}
+
+/**
+ * To every admin when an owner submits a listing for review. The queue only
+ * tells staff what is waiting once they are already looking at it; a listing
+ * sitting in PENDING for days because nobody opened the panel is a host who
+ * concludes the platform is dead. Title and owner name are owner-typed, so
+ * they are escaped like the contact form's fields.
+ */
+export function listingSubmittedEmail({ propertyTitle, propertyType, city, ownerName, reviewLink, resubmitted }) {
+  const verb = resubmitted ? 'resubmitted' : 'submitted'
+  return {
+    subject: `[Review] ${resubmitted ? 'Resubmitted' : 'New'} listing — ${propertyTitle}`,
+    html: layout({
+      heading: `A listing was ${verb} for review`,
+      body: panel(`
+      ${p(`<strong>${esc(propertyTitle)}</strong>`)}
+      ${p(`${esc(propertyType)} · ${esc(city)}`)}
+      ${p(`<strong>Owner:</strong> ${esc(ownerName)}`)}
+      ${p(`<a href="${esc(reviewLink)}" style="color:${JADE};font-weight:600;">Open it in the review queue</a>`, 'margin-top:20px;')}
+      `),
+      footNote: 'Sent to every StayOnMap admin. It waits in the queue until someone approves or rejects it.',
     }),
   }
 }
