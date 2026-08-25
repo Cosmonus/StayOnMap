@@ -27,6 +27,7 @@ const RENDERED = [
   ['passwordChanged', mod.passwordChangedEmail({ name: 'Asha' })],
   ['accountLinked', mod.accountLinkedEmail({ name: 'Asha', providerLabel: 'Google' })],
   ['verificationUpdate', mod.verificationUpdateEmail({ ownerName: 'Asha', propertyTitle: 'A flat', status: 'VERIFIED', adminNote: null })],
+  ['listingSubmitted', mod.listingSubmittedEmail({ propertyTitle: 'A flat', propertyType: 'APARTMENT', city: 'Chennai', ownerName: 'Asha', reviewLink: 'https://www.stayonmap.com/admin?tab=review-listings&propertyId=p1', resubmitted: false })],
 ]
 
 describe('every email uses the shared layout', () => {

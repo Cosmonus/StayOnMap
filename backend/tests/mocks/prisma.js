@@ -215,6 +215,9 @@ export const prismaMock = {
   // address case-insensitively.
   admin: {
     findFirst:  vi.fn().mockResolvedValue(null),
+    // Defaults to no admins: publishProperty emails each one, and a suite that
+    // never set this up should not see an undefined `.map`.
+    findMany:   vi.fn().mockResolvedValue([]),
     findUnique: vi.fn(),
     update:     vi.fn(),
     upsert:     vi.fn(),

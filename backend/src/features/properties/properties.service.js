@@ -15,6 +15,8 @@ import { encode, decode } from '../../lib/geohash.js'
 import { resolveProximityFilter, proximityCacheKey } from './proximityFilter.js'
 import { notifyUser } from '../notifications/notifications.service.js'
 import { record } from '../analytics/analytics.service.js'
+import { sendEmail, listingSubmittedEmail } from '../../services/email.service.js'
+import { env } from '../../config/env.js'
 import { syncPropertyLocality } from '../localities/resolve.js'
 import { refreshSimilarity } from '../graph/similarity.js'
 
@@ -664,8 +666,37 @@ export async function publishProperty(id, ownerId) {
   evaluateListing(id, 'publish')
   ensureContextForProperty(property.lat, property.lng, property.type).catch(() => {})
   recordPublishDuration(id, ownerId, property.city).catch(() => {})
+  notifyAdminsOfSubmission(updated, property.status === 'REJECTED')
 
   return updated
+}
+
+// Every admin gets an email when a listing enters the review queue. The queue
+// itself only says what is waiting to someone already looking at it, and a
+// listing that sits in PENDING for days is a host who concludes the platform
+// is dead. Best-effort like every other notification email — the submission
+// already happened and a mail failure must not undo it — and `async` +
+// try/catch for the same reason recordPublishDuration is: a lookup can throw
+// before any promise exists.
+async function notifyAdminsOfSubmission(property, resubmitted) {
+  try {
+    const [admins, owner] = await Promise.all([
+      prisma.admin.findMany({ select: { email: true } }),
+      prisma.user.findUnique({ where: { id: property.ownerId }, select: { name: true } }),
+    ])
+    if (!admins?.length) return
+    const mail = listingSubmittedEmail({
+      propertyTitle: property.title,
+      propertyType: property.type,
+      city: property.city,
+      ownerName: owner?.name ?? 'Unknown owner',
+      reviewLink: `${env.frontendUrl}/admin?tab=review-listings&propertyId=${property.id}`,
+      resubmitted,
+    })
+    await Promise.all(admins.map((a) => sendEmail({ to: a.email, ...mail })))
+  } catch (err) {
+    intelError('property.admin_submission_email_failed', err, { propertyId: property.id })
+  }
 }
 
 // Time-to-publish: the number that says whether the wizard is the reason there
