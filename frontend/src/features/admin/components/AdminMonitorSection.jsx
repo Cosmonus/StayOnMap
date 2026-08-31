@@ -146,6 +146,25 @@ const HEALTH_CONFIG = [
       return `Expo · ${devices} ${devices === 1 ? 'device' : 'devices'} registered`
     },
   },
+  {
+    // The backend has returned this since the WhatsApp bot shipped; the card
+    // was never added, and operator-actions §1.6k told the operator to look
+    // here for it — same story as the SMS card above. The template flags get
+    // their own words because a configured API with no approved template
+    // still cannot announce a listing going live.
+    key: 'whatsapp',
+    label: 'WhatsApp Bot',
+    purpose: 'Owners list a property by chatting with the StayOnMap number. Needs the Meta app credentials (operator-actions §1.6k) — unconfigured means the webhook answers 503.',
+    getOk:  d => d.system?.whatsapp?.configured ?? false,
+    getLabel: d => {
+      const w = d.system?.whatsapp
+      if (!w) return 'Unknown'
+      if (w.mode === 'dev-echo') return 'Dev echo — prints to the server console'
+      if (!w.configured) return 'Not configured — the webhook answers 503'
+      const missing = [!w.listingLiveTemplate && 'listing-live', !w.otpTemplate && 'OTP'].filter(Boolean)
+      return missing.length ? `Active (Cloud API) · ${missing.join(' + ')} template not set` : 'Active (Cloud API) · both templates set'
+    },
+  },
 ]
 
 function SystemHealthSection({ data }) {
