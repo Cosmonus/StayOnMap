@@ -52,7 +52,8 @@ beforeEach(() => {
 describe('WhatsAppSection', () => {
   it('renders the funnel with its rates and where people are stuck', async () => {
     whatsappConversations.mockResolvedValue({ data: { conversations: [], total: 0 } })
-    renderWithProviders(<WhatsAppSection />)
+    const { user } = renderWithProviders(<WhatsAppSection />)
+    await user.click(screen.getByRole('tab', { name: /Funnel/ }))
     expect(await screen.findByText('Location confirmed')).toBeInTheDocument()
     expect(screen.getByText('25% of started')).toBeInTheDocument()
     expect(screen.getByText('18 min')).toBeInTheDocument()
