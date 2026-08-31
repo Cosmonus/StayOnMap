@@ -116,6 +116,15 @@ export const locationChange = () => `Sure — share the location again with 📎
 
 export const askPincode = () => `What is the property's 6-digit pincode?`
 
+// ── Email (optional — asked once, at review) ─────────────────────────────
+
+export const askEmail = () =>
+  `Almost done! Would you like to add an *email address* to your account?\n\n` +
+  `It lets you sign in on the website and get updates about your listing. Reply with your email, or tap Skip.`
+export const emailSaved = (email) => `✉️ Saved ${email} to your account.`
+export const emailInvalid = () => `That doesn't look like an email address — try again (like name@example.com), or tap Skip.`
+export const emailTaken = () => `That email is already in use on another account, so I'll leave it off — you can sort it out later from Settings on the website.`
+
 // ── Photos ───────────────────────────────────────────────────────────────
 
 export const askPhotos = (category) =>

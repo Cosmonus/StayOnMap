@@ -121,6 +121,24 @@ export async function fillCityIfEmpty(user, city) {
   return prisma.user.update({ where: { id: user.id }, data: { city }, select: USER_SELECT })
 }
 
+/**
+ * Save an email volunteered over WhatsApp — only onto an account that has
+ * NONE. An existing address was proven (or at least set) some other way;
+ * a chat message never overwrites it. Returns 'saved' | 'taken' | 'exists'.
+ * `taken`: User.email is unique, and telling the sender *whose* it is would
+ * be an enumeration oracle — the copy says only that it's in use.
+ */
+export async function setEmailIfEmpty(userId, email) {
+  const clean = String(email ?? '').trim().toLowerCase()
+  try {
+    const res = await prisma.user.updateMany({ where: { id: userId, email: null }, data: { email: clean } })
+    return res.count === 1 ? 'saved' : 'exists'
+  } catch (err) {
+    if (err?.code === 'P2002') return 'taken'
+    throw err
+  }
+}
+
 /** The owner's map-privacy choice, made in the review step. */
 export async function setShowExactLocation(userId, showExact) {
   return prisma.user.update({ where: { id: userId }, data: { showExactLocation: !!showExact }, select: USER_SELECT })

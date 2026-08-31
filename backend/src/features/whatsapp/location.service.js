@@ -54,6 +54,23 @@ export function coordsFromMapsUrl(url) {
 
 function safeDecode(s) { try { return decodeURIComponent(s) } catch { return s } }
 
+/**
+ * Newer share links (maps.app.goo.gl → /maps/place/…) carry NO coordinates in
+ * any format — the place rides in the URL as text: a plus code and address,
+ * "43FR+7JW SRI VARI APPARTMENTS, …, Avadi". That text geocodes. `+` in the
+ * path is a space and %2B is a real plus (the plus code's own), so the spaces
+ * are replaced BEFORE decoding or the two become indistinguishable.
+ */
+export function placeTextFromMapsUrl(url) {
+  if (typeof url !== 'string') return null
+  const m = url.match(/\/maps\/place\/([^/?#]+)/i)
+  if (!m) return null
+  const text = safeDecode(m[1].replace(/\+/g, ' ')).trim()
+  // A coordinate pair in the place slot is handled by coordsFromMapsUrl;
+  // anything shorter than a plausible place name is noise.
+  return text.length >= 3 && !/^-?\d+\.\d+,/.test(text) ? text.slice(0, 300) : null
+}
+
 /** "12.9716, 77.5946" typed by hand. */
 export function coordsFromText(text) {
   const m = String(text ?? '').match(/(-?\d{1,2}\.\d{3,}),\s*(-?\d{1,3}\.\d{3,})/)
@@ -112,17 +129,33 @@ export async function resolveLocationInput(input) {
   let precision = 'exact'
   let source = input.kind
 
+  let linkPlaceName = null
+
   if (input.kind === 'pin') {
     coords = { lat: Number(input.lat), lng: Number(input.lng) }
   } else if (input.kind === 'link') {
     coords = coordsFromMapsUrl(input.text)
+    let expanded = null
     if (!coords) {
       const urlMatch = String(input.text).match(/https?:\/\/\S+/i)
-      const expanded = urlMatch ? await expandShortLink(urlMatch[0]) : null
+      expanded = urlMatch ? await expandShortLink(urlMatch[0]) : null
       coords = expanded ? coordsFromMapsUrl(expanded) : null
     }
     if (!coords) coords = coordsFromText(input.text)
-    if (!coords) return { status: 'unresolved' }
+    if (!coords) {
+      // No coordinates anywhere in the URL — the newer share format. The
+      // place text in the path is the location, so it goes through the same
+      // geocode-and-judge-the-viewport path a typed place does.
+      const placeText = placeTextFromMapsUrl(expanded ?? input.text)
+      if (!placeText) return { status: 'unresolved' }
+      let hit = null
+      try { hit = await geocode(placeText) } catch (err) { intelError('whatsapp.geocode_failed', err, {}) }
+      if (!hit) return { status: 'unresolved' }
+      coords = { lat: hit.lat, lng: hit.lng }
+      const diag = hit.viewport ? viewportDiagonalM(hit.viewport) : Infinity
+      precision = diag <= PRECISE_VIEWPORT_M ? 'approximate' : 'area'
+      linkPlaceName = placeText
+    }
   } else {
     coords = coordsFromText(input.text)
     if (!coords) {
@@ -154,8 +187,9 @@ export async function resolveLocationInput(input) {
       precision,
       source,
       // The place name the owner typed, kept so "near Phoenix Mall" survives as
-      // the landmark even after the pin is confirmed.
-      typedName: input.kind === 'text' ? String(input.text).slice(0, 200) : input.name ?? null,
+      // the landmark even after the pin is confirmed. A link's place text
+      // serves the same way — it names what the owner actually shared.
+      typedName: input.kind === 'text' ? String(input.text).slice(0, 200) : input.name ?? (linkPlaceName ? linkPlaceName.slice(0, 200) : null),
       confirmed: false,
     },
   }

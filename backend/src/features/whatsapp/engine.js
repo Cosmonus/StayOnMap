@@ -254,6 +254,7 @@ async function continueConversation(conv, msg, contactName) {
   if (pending?.kind === 'pincode') return resolvePincode(ctx, msg)
   if (pending?.kind === 'business') return resolveBusinessGate(ctx, msg)
   if (pending?.kind === 'edit') return resolveEditChoice(ctx, msg)
+  if (pending?.kind === 'email') return resolveEmail(ctx, msg)
 
   switch (conv.status) {
     case 'START':
@@ -603,6 +604,30 @@ async function resolveLocationConfirm(ctx, msg) {
   return conv
 }
 
+// ── Email (optional) ───────────────────────────────────────────────────────
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+async function resolveEmail(ctx, msg) {
+  const { conv } = ctx
+  if (isReply(msg, 'act:skip') || isCmd(msg, 'skip', 'no', 'n', 'later', 'no thanks')) {
+    conv.draft.pending = null
+    await ctx.persist()
+    return showReview(ctx)
+  }
+  const text = msg.kind === 'text' ? msg.text.trim() : ''
+  if (!EMAIL_RE.test(text)) {
+    await ctx.buttons(copy.emailInvalid(), [{ id: 'act:skip', title: 'Skip' }])
+    return conv
+  }
+  const outcome = await identity.setEmailIfEmpty(conv.userId, text)
+  conv.draft.pending = null
+  await ctx.persist()
+  if (outcome === 'saved') await ctx.say(copy.emailSaved(text.toLowerCase()))
+  else if (outcome === 'taken') await ctx.say(copy.emailTaken())
+  return showReview(ctx)
+}
+
 async function resolvePincode(ctx, msg) {
   const { conv } = ctx
   const digits = msg.kind === 'text' ? msg.text.replace(/\D/g, '') : ''
@@ -665,6 +690,19 @@ async function showReview(ctx) {
     track(conv, 'wa_draft_completed')
   }
   const user = await identity.getUser(conv.userId)
+
+  // One optional email ask, at the natural pause: the draft is complete, the
+  // owner is invested, and the account has no address. Asked once per
+  // conversation whatever the outcome — a review revisited after an edit
+  // must not nag. The phone needs no question: the WhatsApp number IS the
+  // verified phone (identity.service.js).
+  if (!conv.draft.flags.emailAsked && user && !user.email) {
+    conv.draft.flags.emailAsked = true
+    conv.draft.pending = { kind: 'email' }
+    await ctx.persist()
+    await ctx.buttons(copy.askEmail(), [{ id: 'act:skip', title: 'Skip' }])
+    return conv
+  }
   const showExact = user?.showExactLocation !== false
   await ctx.persist({ status: 'REVIEW', currentQuestion: null })
   track(conv, 'wa_review_shown')

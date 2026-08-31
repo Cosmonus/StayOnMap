@@ -10,7 +10,7 @@ vi.mock('../src/features/places/places.service.js', () => ({
   autocomplete: vi.fn(),
 }))
 
-const { coordsFromMapsUrl, coordsFromText, looksLikeMapsLink, resolveLocationInput } = await import('../src/features/whatsapp/location.service.js')
+const { coordsFromMapsUrl, coordsFromText, looksLikeMapsLink, resolveLocationInput, placeTextFromMapsUrl } = await import('../src/features/whatsapp/location.service.js')
 
 const BLR = { lat: 12.9352, lng: 77.6245 } // Koramangala
 const geo = (over = {}) => ({ formattedAddress: '12, 5th Block, Koramangala, Bengaluru 560095', locality: 'Koramangala', city: 'Bengaluru', state: 'Karnataka', pincode: '560095', locationType: 'ROOFTOP', ...over })
@@ -96,5 +96,39 @@ describe('resolveLocationInput', () => {
     expect(r.candidate.city).toBe('Bengaluru') // from our own city table
     expect(r.candidate.pincode).toBeNull()
     expect(r.candidate.address).toBeNull()
+  })
+})
+
+// The 2026-09-01 share-link format: maps.app.goo.gl redirects to a /maps/place/
+// URL that carries NO coordinates in any form — the place is TEXT in the path
+// (a plus code + address). Found live: an owner's real link resolved to nothing.
+describe('coordinate-less share links', () => {
+  const PLACE_URL = 'https://www.google.com/maps/place/43FR%2B7JW+SRI+VARI+APPARTMENTS,+Periyar+Street,+Avadi,+Tamil+Nadu+600054/data=!4m2!3m1!1s0x3a52:0x1e58?utm_source=mstt_1'
+
+  it('reads the place text out of the path — %2B stays a plus, + becomes a space', () => {
+    expect(placeTextFromMapsUrl(PLACE_URL)).toBe('43FR+7JW SRI VARI APPARTMENTS, Periyar Street, Avadi, Tamil Nadu 600054')
+    expect(placeTextFromMapsUrl('https://maps.app.goo.gl/AbC123')).toBeNull()
+    expect(placeTextFromMapsUrl('https://www.google.com/maps/place/12.93,77.62/@12.93,77.62,17z')).toBeNull()
+  })
+
+  it('a short link expanding to a place-text URL geocodes the text and becomes a candidate', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ headers: new Headers({ location: PLACE_URL }), url: '' }))
+    geocode.mockResolvedValue({ lat: 13.115, lng: 80.099, viewport: { swLat: 13.1145, swLng: 80.0985, neLat: 13.1155, neLng: 80.0995 } })
+    reverseGeocode.mockResolvedValue(geo({ locality: 'Avadi', city: 'Chennai', pincode: '600054' }))
+    const r = await resolveLocationInput({ kind: 'link', text: 'https://maps.app.goo.gl/fmC2toJ2qxB4K2tj6?g_st=ac' })
+    vi.unstubAllGlobals()
+    expect(geocode).toHaveBeenCalledWith(expect.stringContaining('SRI VARI APPARTMENTS'))
+    expect(r.status).toBe('candidate')
+    expect(r.candidate.precision).toBe('approximate')
+    expect(r.candidate.typedName).toContain('SRI VARI')
+  })
+
+  it('a short link whose place text geocodes to an AREA is refused, not published', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ headers: new Headers({ location: 'https://www.google.com/maps/place/Velachery,+Chennai' }), url: '' }))
+    geocode.mockResolvedValue({ lat: 12.98, lng: 80.22, viewport: { swLat: 12.96, swLng: 80.20, neLat: 13.00, neLng: 80.24 } })
+    reverseGeocode.mockResolvedValue(geo({ locality: 'Velachery', city: 'Chennai' }))
+    const r = await resolveLocationInput({ kind: 'link', text: 'https://maps.app.goo.gl/short' })
+    vi.unstubAllGlobals()
+    expect(r.status).toBe('imprecise')
   })
 })
