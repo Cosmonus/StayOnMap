@@ -241,12 +241,24 @@ function ConversationDetail({ id, onClose }) {
   )
 }
 
+const PAGE_SIZE = 30
+
 export default function WhatsAppSection() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const [filter, setFilter] = useState('open')
+  const [filter, setFilterRaw] = useState('open')
+  const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const [days, setDays] = useState(30)
   const [openId, setOpenId] = useState(null)
+
+  const setFilter = (v) => { setFilterRaw(v); setPage(1) }
+
+  // Debounced search — one query per pause, not per keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => { setSearch(searchInput.trim()); setPage(1) }, 300)
+    return () => clearTimeout(t)
+  }, [searchInput])
 
   // Review Listings links here with ?conversationId= — open it, then drop the
   // param so a refresh does not keep re-opening it.
@@ -259,10 +271,18 @@ export default function WhatsAppSection() {
   }, [deepLinkId, setSearchParams])
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['admin-whatsapp', filter, search],
-    queryFn: () => adminService.whatsappConversations({ status: filter || undefined, search: search || undefined, limit: 50 }).then((r) => r.data),
+    queryKey: ['admin-whatsapp', filter, search, page],
+    queryFn: () => adminService.whatsappConversations({ status: filter || undefined, search: search || undefined, page, limit: PAGE_SIZE }).then((r) => r.data),
+    placeholderData: (prev) => prev,
   })
   const rows = data?.conversations ?? []
+  const counts = data?.counts
+  const totalPages = data?.total ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1
+  const chipCount = (value) => {
+    if (!counts) return null
+    if (value === '') return counts.all
+    return counts[value] ?? null
+  }
 
   return (
     <div className="space-y-5">
@@ -277,11 +297,16 @@ export default function WhatsAppSection() {
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="flex gap-2 flex-wrap">
-          {FILTERS.map((f) => (
-            <button key={f.value} onClick={() => setFilter(f.value)} className={`min-h-[40px] px-3 rounded-lg text-xs font-semibold ${filter === f.value ? 'bg-slate-900 text-white' : 'bg-white ring-1 ring-slate-200 text-slate-600 hover:bg-slate-50'}`}>{f.label}</button>
-          ))}
+          {FILTERS.map((f) => {
+            const n = chipCount(f.value)
+            return (
+              <button key={f.value} onClick={() => setFilter(f.value)} className={`min-h-[40px] px-3 rounded-lg text-xs font-semibold ${filter === f.value ? 'bg-slate-900 text-white' : 'bg-white ring-1 ring-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                {f.label}{n != null && <span className={`ml-1.5 font-mono ${filter === f.value ? 'text-slate-200' : 'text-slate-500'}`}>{n}</span>}
+              </button>
+            )
+          })}
         </div>
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or number" aria-label="Search conversations" className="sm:ml-auto min-h-[40px] px-3 rounded-lg ring-1 ring-slate-200 text-sm focus:ring-2 focus:ring-brand-500 outline-none" />
+        <input value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder="Search name or number" aria-label="Search conversations" className="sm:ml-auto min-h-[40px] px-3 rounded-lg ring-1 ring-slate-200 text-sm focus:ring-2 focus:ring-brand-500 outline-none" />
       </div>
 
       {isLoading ? (
@@ -297,7 +322,13 @@ export default function WhatsAppSection() {
       ) : (
         <div className="space-y-2">
           {rows.map((c) => <ConversationRow key={c.id} c={c} onOpen={setOpenId} />)}
-          {data.total > rows.length && <p className="text-xs text-slate-500 text-center">Showing {rows.length} of {data.total}</p>}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 pt-2">
+              <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="min-h-[40px] px-3 rounded-lg text-xs font-semibold bg-white ring-1 ring-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+              <span className="text-xs text-slate-500">Page {page} of {totalPages} · {data.total} conversations</span>
+              <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="min-h-[40px] px-3 rounded-lg text-xs font-semibold bg-white ring-1 ring-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+            </div>
+          )}
         </div>
       )}
     </div>

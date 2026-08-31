@@ -164,6 +164,35 @@ export const privacySet = (exact) => `Map will show the *${exact ? 'exact pin' :
 
 // ── Publish / verification ───────────────────────────────────────────────
 
+export const resubmitted = (category) =>
+  `✅ Changes saved — your ${CATEGORIES[category]?.label ?? 'property'} is updated and back with our team for verification. I'll message you when it's live.`
+
+export const editReopened = (status) =>
+  status === 'REJECTED'
+    ? `Let's fix it up. Here's your listing — change what was flagged, then hit Publish to resubmit.`
+    : `Sure — your listing hasn't been approved yet, so we can still change it. Here's what it says now:`
+
+export const editLive = (manageUrl) =>
+  `That listing is already live, so edits happen on the website where you can see exactly what renters see.` +
+  (manageUrl ? `
+
+Tap to sign in and manage it (link works once, for 24 hours):
+${manageUrl}` : `
+
+Sign in at stayonmap.com to manage it.`)
+
+export const editNotPossible = () =>
+  `I couldn't find that listing any more — it may have been removed. Say *hi* to start a new one.`
+
+export const multiSelectBody = (label, chosen) =>
+  `${label}
+
+` +
+  (chosen.length ? `Selected: ${chosen.join(', ')}
+
+` : '') +
+  `Tap an option to add it — tap again to remove. You can also type names ("wifi, ac"). Tap *Done* when finished.`
+
 export const submitted = (category) =>
   `Thanks! 🙏 Your ${CATEGORIES[category]?.label ?? 'property'} has been submitted for verification.\n\n` +
   `Our team checks every listing before it goes on the map — usually within a day. I'll message you here the moment it's live.`
@@ -188,8 +217,8 @@ export const listingRejected = ({ note, manageUrl }) =>
 
 export const afterCompletion = (state) =>
   state === 'live'
-    ? `Your listing is live. Want to list another property?`
-    : `Your listing is with our team for verification — I'll message you when it's live. Want to list another property meanwhile?`
+    ? `Your listing is live. Want to list another property? (Say *edit* for a link to manage the live one.)`
+    : `Your listing is with our team for verification — I'll message you when it's live. While it waits you can still *edit* it, or list another property.`
 
 export const rateLimited = () => `You're sending messages faster than I can read them — give me a moment.`
 

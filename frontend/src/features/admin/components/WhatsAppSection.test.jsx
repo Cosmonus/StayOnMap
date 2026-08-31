@@ -100,3 +100,22 @@ describe('WhatsAppSection', () => {
     expect(screen.queryByRole('button', { name: /Retry publish/ })).not.toBeInTheDocument()
   })
 })
+
+describe('scale: counts and pages', () => {
+  it('filter chips carry global counts and a long list paginates', async () => {
+    const rows = Array.from({ length: 30 }, (_, i) => ({ ...ROW, id: `c${i}`, user: { id: `u${i}`, name: `Owner ${i}` } }))
+    whatsappConversations.mockResolvedValue({ data: {
+      conversations: rows, total: 74, page: 1, limit: 30,
+      counts: { open: 41, VERIFICATION: 9, COMPLETED: 20, CANCELLED: 4, errors: 2, all: 74 },
+    } })
+    renderWithProviders(<WhatsAppSection />)
+    expect(await screen.findByText('Owner 0')).toBeInTheDocument()
+    // Chip counts are visible words, not tooltips.
+    expect(screen.getByText('41')).toBeInTheDocument()  // In progress
+    expect(screen.getByText('74')).toBeInTheDocument()  // All
+    // 74 across pages of 30 → pager present and honest.
+    expect(screen.getByText(/Page 1 of 3/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Next' })).not.toBeDisabled()
+  })
+})

@@ -12,7 +12,7 @@
 // asks again instead of showing the owner a schema error.
 import { prisma } from '../../lib/prisma.js'
 import { createPropertySchema } from '../properties/properties.validation.js'
-import { createProperty, publishProperty } from '../properties/properties.service.js'
+import { createProperty, publishProperty, updateProperty } from '../properties/properties.service.js'
 import { buildPropertyPayload } from './questionnaire/normalize.js'
 import { findQuestion } from './questionnaire/engine.js'
 import { ensureOwnerRole, ensureBusiness, fillCityIfEmpty, getUser } from './identity.service.js'
@@ -28,8 +28,26 @@ const PATH_TO_FIELD = {
   floor: 'floor', totalFloors: 'totalFloors', carpetArea: 'carpetArea',
 }
 
+// A listing the owner can still change from chat. ACTIVE is deliberately NOT
+// here: a live listing is managed on the website (the manage link), because
+// editing what renters are already looking at deserves the full wizard, and
+// re-running publishProperty on it would knock it out of ACTIVE.
+export const EDITABLE_STATUSES = ['DRAFT', 'PENDING', 'REJECTED']
+
 /**
- * @returns {Promise<{ ok: true, property } | { ok: false, kind: 'validation', problems: string[], reask: string[] } | { ok: false, kind: 'error', error }>}
+ * May the listing this conversation created still be changed over WhatsApp?
+ * Scoped by owner — a conversation row pointing at somebody else's property
+ * (it cannot happen, but this is the cheap place to make sure) reads as gone.
+ */
+export async function propertyEditability(propertyId, userId) {
+  if (!propertyId || !userId) return { exists: false, editable: false, status: null }
+  const p = await prisma.property.findUnique({ where: { id: propertyId }, select: { status: true, ownerId: true } })
+  if (!p || p.ownerId !== userId) return { exists: false, editable: false, status: null }
+  return { exists: true, editable: EDITABLE_STATUSES.includes(p.status), status: p.status }
+}
+
+/**
+ * @returns {Promise<{ ok: true, property, updated?: boolean } | { ok: false, kind: 'validation', problems: string[], reask: string[] } | { ok: false, kind: 'error', error }>}
  */
 export async function publishFromConversation(conversation) {
   const category = conversation.propertyType
@@ -64,6 +82,22 @@ export async function publishFromConversation(conversation) {
   }
 
   try {
+    // A conversation that already made a Property is EDITING it, not making a
+    // second one — the same row is updated through the same updateProperty()
+    // the web wizard uses (which sets ownerEditedAt, the thing that lets a
+    // REJECTED listing be resubmitted at all). PENDING stays PENDING — it is
+    // already in the queue; DRAFT and REJECTED go back through the front door.
+    if (conversation.propertyId) {
+      const check = await propertyEditability(conversation.propertyId, user.id)
+      if (check.editable) {
+        let property = await updateProperty(conversation.propertyId, user.id, parsed.data)
+        if (check.status !== 'PENDING') property = await publishProperty(conversation.propertyId, user.id)
+        intelLog('whatsapp.republished', { conversationId: conversation.id, propertyId: conversation.propertyId, from: check.status, status: property.status })
+        return { ok: true, property, updated: true }
+      }
+      if (check.exists) return { ok: false, kind: 'error', error: `listing is ${check.status}, not editable from chat` }
+      // Deleted underneath us — fall through and create afresh.
+    }
     const property = await createProperty(user.id, parsed.data)
     const published = await publishProperty(property.id, user.id)
     intelLog('whatsapp.published', { conversationId: conversation.id, propertyId: property.id, status: published.status })
