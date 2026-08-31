@@ -88,7 +88,9 @@ beforeEach(() => {
   prismaMock.user.findFirst.mockReset().mockResolvedValue(null)
   prismaMock.user.findMany.mockReset().mockResolvedValue([])
   prismaMock.user.create.mockReset().mockImplementation(async ({ data }) => ({ id: 'u-new', isBusiness: false, showExactLocation: true, ...data }))
-  prismaMock.user.findUnique.mockReset().mockResolvedValue({ id: 'u-new', name: 'Asha Rao', isBusiness: false, showExactLocation: true, role: 'OWNER' })
+  // email set: the default owner has one, so the review-step email ask stays
+  // out of every test that isn't about it (the ask fires only on email: null).
+  prismaMock.user.findUnique.mockReset().mockResolvedValue({ id: 'u-new', name: 'Asha Rao', email: 'asha@example.com', isBusiness: false, showExactLocation: true, role: 'OWNER' })
   prismaMock.user.update.mockReset().mockImplementation(async ({ where, data }) => ({ id: where.id, ...data }))
 })
 
@@ -372,5 +374,73 @@ describe('commands', () => {
     await say(text('hi'))
     expect(sent.at(-2).body).toMatch(/Welcome back/)
     expect(last().body).toMatch(/exact location/)
+  })
+})
+
+// ── The optional email ask (added 2026-09-01) ──────────────────────────────
+// The phone needs no question — the WhatsApp number IS the verified phone.
+// Email is asked ONCE, at review, only when the account has none, and a chat
+// message never overwrites an existing address (identity.setEmailIfEmpty).
+describe('the email ask', () => {
+  const noEmailUser = { id: 'u-new', name: 'Asha Rao', email: null, isBusiness: false, showExactLocation: true, role: 'OWNER' }
+
+  async function toReviewNoEmail() {
+    prismaMock.user.findUnique.mockResolvedValue({ ...noEmailUser })
+    await say(text('2bhk apartment, fully furnished, 28k rent, 1 lakh deposit'))
+    await say(pin(12.98, 80.22)); await say(reply('act:loc:confirm'))
+    for (let i = 0; i < 8; i++) await say(text('skip'))
+    ingestPhoto.mockResolvedValue({ status: 'added', photo: { url: 'https://s/1_full.webp', waMediaId: 'p1', order: 0 } })
+    await say(image('p1'))
+    await say(reply('act:photos_done', 'Done'))
+  }
+
+  it('an account without an email is asked once at review; a valid reply saves it and the review follows', async () => {
+    prismaMock.user.updateMany = vi.fn().mockResolvedValue({ count: 1 })
+    await toReviewNoEmail()
+    expect(last().kind).toBe('buttons')
+    expect(last().body).toMatch(/email/i)
+    expect(last().buttons.map((b) => b.id)).toEqual(['act:skip'])
+    expect(conv().draft.flags.emailAsked).toBe(true)
+    await say(text('Asha.Rao@Example.com'))
+    expect(prismaMock.user.updateMany).toHaveBeenCalledWith({ where: { id: 'u-new', email: null }, data: { email: 'asha.rao@example.com' } })
+    expect(sent.some((s) => s.kind === 'text' && /Saved asha\.rao@example\.com/.test(s.body))).toBe(true)
+    expect(conv().status).toBe('REVIEW')
+    expect(last().buttons.map((b) => b.id)).toEqual(['act:publish', 'act:edit', 'act:cancel'])
+  })
+
+  it('Skip declines it, the review shows, and a revisited review never asks again', async () => {
+    await toReviewNoEmail()
+    await say(reply('act:skip', 'Skip'))
+    expect(conv().status).toBe('REVIEW')
+    const asks = () => sent.filter((s) => s.kind === 'buttons' && /email/i.test(s.body)).length
+    const before = asks()
+    await say(reply('act:edit', 'Edit'))
+    await say({ id: `wamid.${++seq}`, type: 'interactive', interactive: { type: 'list_reply', list_reply: { id: 'edit:price', title: 'Price' } } })
+    await say(text('30k')); await say(text('60k')); await say(text('skip'))
+    expect(conv().status).toBe('REVIEW')
+    expect(asks()).toBe(before)
+  })
+
+  it('gibberish re-asks with Skip still offered; an email already on another account is told and dropped', async () => {
+    const { Prisma } = await import('@prisma/client')
+    prismaMock.user.updateMany = vi.fn().mockRejectedValue(new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: 't' }))
+    await toReviewNoEmail()
+    await say(text('not an email'))
+    expect(last().kind).toBe('buttons')
+    expect(last().body).toMatch(/doesn't look like an email/)
+    await say(text('taken@example.com'))
+    expect(sent.some((s) => s.kind === 'text' && /already in use/.test(s.body))).toBe(true)
+    expect(conv().status).toBe('REVIEW')
+  })
+
+  it('an owner who already has an email is never asked', async () => {
+    ingestPhoto.mockResolvedValue({ status: 'added', photo: { url: 'https://s/1_full.webp', waMediaId: 'p1', order: 0 } })
+    await say(text('2bhk apartment, fully furnished, 28k rent, 1 lakh deposit'))
+    await say(pin(12.98, 80.22)); await say(reply('act:loc:confirm'))
+    for (let i = 0; i < 8; i++) await say(text('skip'))
+    await say(image('p1'))
+    await say(reply('act:photos_done', 'Done'))
+    expect(conv().status).toBe('REVIEW')
+    expect(sent.filter((s) => s.kind === 'buttons' && /add an \*email/.test(s.body)).length).toBe(0)
   })
 })
