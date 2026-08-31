@@ -80,6 +80,9 @@ export const prismaMock = {
     // "is this number already verified on another account", and undefined
     // there would read as a claim rather than the absence of one.
     findFirst:  vi.fn().mockResolvedValue(null),
+    // Empty by default: identity.service.js asks "who TYPED this number" and
+    // no candidate is the ordinary first-time case.
+    findMany:   vi.fn().mockResolvedValue([]),
     update:     vi.fn(),
     updateMany: vi.fn(),
     create:     vi.fn(),
@@ -429,6 +432,29 @@ export const prismaMock = {
     findMany:   vi.fn().mockResolvedValue([]),
     upsert:     vi.fn(),
     update:     vi.fn(),
+  },
+  // ── WhatsApp listing automation ───────────────────────────────────────────
+  // Defaults are "no conversation for this number, no message seen before" —
+  // a fresh install, and the state that must start a conversation rather
+  // than resume one.
+  whatsAppConversation: {
+    findFirst:  vi.fn().mockResolvedValue(null),
+    findUnique: vi.fn().mockResolvedValue(null),
+    findMany:   vi.fn().mockResolvedValue([]),
+    create:     vi.fn(),
+    update:     vi.fn(),
+    count:      vi.fn().mockResolvedValue(0),
+    groupBy:    vi.fn().mockResolvedValue([]),
+  },
+  whatsAppMessage: {
+    create:   vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: `wm_${data.waMessageId}`, ...data })),
+    update:   vi.fn().mockResolvedValue({}),
+    findMany: vi.fn().mockResolvedValue([]),
+  },
+  whatsAppLoginLink: {
+    create:     vi.fn().mockResolvedValue({}),
+    findUnique: vi.fn().mockResolvedValue(null),
+    update:     vi.fn().mockResolvedValue({}),
   },
   $queryRaw: vi.fn().mockResolvedValue([]),
   // Supports both Prisma $transaction forms: array-of-promises (lease.service.js)

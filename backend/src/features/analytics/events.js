@@ -55,7 +55,43 @@ export const STANDALONE = ['listing_publish_completed']
  */
 export const ENTRY = ['seo_landing_view']
 
-export const EVENT_NAMES = [...FUNNEL, ...STANDALONE, ...ENTRY]
+/**
+ * The WhatsApp listing funnel (features/whatsapp/). SERVER-ONLY, like
+ * STANDALONE: every one of these is witnessed by the webhook handler, never by
+ * a browser, so a client sending one is fabricating it. A SEPARATE funnel from
+ * FUNNEL above rather than more steps on it — that one counts renters looking
+ * for a home, this one counts owners offering one, and quoting an owner's
+ * "publish confirmed" against a renter's "map view" is a rate that means
+ * nothing. The session id is the conversation id, so "sessions" here are
+ * conversations. Read out by features/whatsapp/admin.whatsapp.service.js.
+ */
+export const WHATSAPP_FUNNEL = [
+  'wa_conversation_started',
+  'wa_type_selected',
+  'wa_questionnaire_started',
+  'wa_location_submitted',
+  'wa_photos_submitted',
+  'wa_draft_completed',
+  'wa_review_shown',
+  'wa_publish_confirmed',
+  'wa_verification_passed',
+  'wa_listing_published',
+]
+
+/**
+ * Where the WhatsApp flow broke, so the admin readout can say WHICH question
+ * loses people. Not steps — a failure is not progress — and never client-sent.
+ */
+export const WHATSAPP_FAILURES = [
+  'wa_extraction_failed',
+  'wa_location_failed',
+  'wa_photo_failed',
+  'wa_verification_failed',
+  'wa_publish_failed',
+  'wa_conversation_cancelled',
+]
+
+export const EVENT_NAMES = [...FUNNEL, ...STANDALONE, ...ENTRY, ...WHATSAPP_FUNNEL, ...WHATSAPP_FAILURES]
 
 /**
  * What a browser or app may send: the funnel plus the entry marker. All of them

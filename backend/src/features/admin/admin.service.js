@@ -5,6 +5,8 @@ import { cacheGet, cacheSet } from '../../lib/redis.js'
 import { sendEmail, adminPasswordChangedEmail } from '../../services/email.service.js'
 import { mailStatus } from '../../lib/mailer.js'
 import { smsStatus } from '../../lib/smsSender.js'
+import { whatsappStatus } from '../whatsapp/client.js'
+import { toMasked } from '../whatsapp/phone.js'
 import { errorStatus } from '../../lib/errorLog.js'
 import { disconnectUser } from '../../lib/socket.js'
 import { aiEnabled } from '../ai/ai.service.js'
@@ -317,6 +319,49 @@ export async function getAdminPins(query = {}) {
   })
 }
 
+// Did this listing come in over WhatsApp? A reviewer needs to know from the
+// queue itself, not only from the WhatsApp tab: the intake was a chat, the
+// "description" was assembled from answers, and the photos arrived as media
+// messages — so what the owner actually SAID is the evidence, and it lives on
+// the conversation row. One query for a whole page of rows; `full` adds the
+// raw answers for the detail view. Never the phone in the clear.
+//
+// `?? []` on the read: the mock and a fresh database both return nothing, and
+// nothing must read as "not from WhatsApp", never as an error.
+async function attachWhatsAppSource(properties, { full = false } = {}) {
+  const ids = properties.map((p) => p?.id).filter(Boolean)
+  if (!ids.length) return properties
+  const rows = await prisma.whatsAppConversation.findMany({
+    where: { propertyId: { in: ids } },
+    select: { id: true, propertyId: true, phone: true, status: true, createdAt: true, updatedAt: true, completedAt: true, ...(full && { draft: true }) },
+  }).catch(() => []) ?? []
+  const byProperty = new Map(rows.map((r) => [r.propertyId, r]))
+  for (const p of properties) {
+    const c = byProperty.get(p.id)
+    if (!c) { p.whatsapp = null; continue }
+    const draft = full ? (c.draft ?? {}) : null
+    p.whatsapp = {
+      conversationId: c.id,
+      phoneMasked: toMasked(c.phone),
+      status: c.status,
+      startedAt: c.createdAt,
+      submittedAt: c.updatedAt,
+      ...(full && {
+        // The owner's own answers, by question id — the listing's columns are
+        // DERIVED from these (normalize.js), and a reviewer comparing the two
+        // is checking that derivation, not re-reading the listing.
+        answers: draft.fields ?? {},
+        location: draft.location ? {
+          source: draft.location.source ?? null, precision: draft.location.precision ?? null,
+          typedName: draft.location.typedName ?? null, locality: draft.location.locality ?? null, city: draft.location.city ?? null,
+        } : null,
+        photoCount: Array.isArray(draft.photos) ? draft.photos.length : 0,
+      }),
+    }
+  }
+  return properties
+}
+
 export async function getAdminPropertyById(id) {
   const property = await prisma.property.findUnique({
     where: { id },
@@ -424,6 +469,8 @@ export async function getAdminPropertyById(id) {
   // which is why admin-detail-depth.test.js asserts the join itself.
   property.fraudSignals = (property.fraudSignals ?? []).map((s) => ({ ...s, label: labelFraudSignal(s.type) }))
 
+  await attachWhatsAppSource([property], { full: true })
+
   return property
 }
 
@@ -476,6 +523,7 @@ export async function listAdminProperties({ page = 1, limit = 20, ...query } = {
     }),
     prisma.property.count({ where }),
   ])
+  await attachWhatsAppSource(properties)
   return { properties, total, page: pageNum, limit: limitNum }
 }
 
@@ -557,6 +605,19 @@ export async function setPropertyStatus(propertyId, status, note, adminId) {
       meta: { from: current.status, status, note: note ?? null },
     },
   })
+
+  // A listing that came in over WhatsApp is told there, too — the bot sends
+  // the listing URL and a sign-in link. No-op for every other listing and
+  // when WhatsApp is not configured. Fire-and-forget, like the bell below.
+  // Imported lazily, like trust/points in moderateReview: this module is the
+  // admin panel's whole backend and every static import here is paid by every
+  // test that touches it — a static import of the WhatsApp feature pushed
+  // `await import(admin.service)` past a 5s test timeout under a full run.
+  if (current.status !== status && (status === 'ACTIVE' || status === 'REJECTED')) {
+    import('../whatsapp/listingEvents.js')
+      .then((m) => (status === 'ACTIVE' ? m.onListingWentLive(propertyId) : m.onListingRejected(propertyId, note)))
+      .catch(() => {})
+  }
 
   // Fire-and-forget, and only when the state actually changed — re-saving the
   // same status shouldn't tell an owner their listing moved.
@@ -727,6 +788,8 @@ export async function getMonitorStatus() {
   const [pendingProperties, pendingReports, pendingReviews, pendingVerifications] = pendingModerationRaw
 
   return {
+    // Is the WhatsApp listing bot on? Env-only, no send — same shape as sms.
+    whatsapp: whatsappStatus(),
     propertyByStatus: propertyByStatus.map(r => ({ status: r.status, count: r._count._all })),
     userByRole:       userByRole.map(r => ({ role: r.role, count: r._count._all })),
     blockedUsers,

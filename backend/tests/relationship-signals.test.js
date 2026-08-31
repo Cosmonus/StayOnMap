@@ -138,8 +138,11 @@ describe('normalisePhone', () => {
 
 describe('findSharedContactOwners', () => {
   it('reports nothing for an owner with no usable number', async () => {
+    // The shared mock defines user.findMany now (features/whatsapp reads it),
+    // so "no query ran" is asserted directly rather than via its absence.
+    prismaMock.user.findMany.mockClear()
     await expect(findSharedContactOwners('u1', null)).resolves.toBeNull()
-    expect(prismaMock.user.findMany).not.toBeDefined()
+    expect(prismaMock.user.findMany).not.toHaveBeenCalled()
   })
 
   it('reports other listing accounts on the same number, and whether they verified it', async () => {

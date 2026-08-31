@@ -60,3 +60,39 @@ export async function geocode(address) {
     }),
   }
 }
+
+/**
+ * Coordinates → the address components a listing needs. Used by the WhatsApp
+ * listing flow, where the owner drops a pin and never types an address.
+ *
+ * Returns null when nothing is configured or Google has nothing for the point
+ * — the caller then asks the owner for the missing pieces rather than
+ * inventing them. Never throws on a soft miss; a real API failure (bad key,
+ * quota) still surfaces as a 502 so it cannot be mistaken for "no address".
+ *
+ * `city` here is Google's locality, which is NOT the same thing as our
+ * SUPPORTED_CITIES name — resolveCity() in config/cityCenters.js decides that
+ * from the coordinates, and the caller must use it for `Property.city`.
+ */
+export async function reverseGeocode(lat, lng) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !env.googleMapsKey) return null
+  const params = new URLSearchParams({ latlng: `${lat},${lng}`, region: 'in', key: env.googleMapsKey })
+  const data = await fetch(`${GEOCODE_URL}?${params.toString()}`, { signal: AbortSignal.timeout(GOOGLE_TIMEOUT_MS) }).then((r) => r.json())
+  if (data.status === 'ZERO_RESULTS') return null
+  if (data.status !== 'OK') {
+    throw Object.assign(new Error(data.error_message || data.status || 'Reverse geocoding request failed'), { statusCode: 502 })
+  }
+  const result = data.results?.[0]
+  if (!result) return null
+  const comp = (type) => result.address_components?.find((c) => c.types?.includes(type))?.long_name ?? null
+  return {
+    formattedAddress: result.formatted_address ?? null,
+    locality: comp('sublocality_level_1') ?? comp('sublocality') ?? comp('neighborhood') ?? comp('locality'),
+    city:     comp('locality') ?? comp('administrative_area_level_2'),
+    state:    comp('administrative_area_level_1'),
+    pincode:  comp('postal_code'),
+    // Google's own precision claim: ROOFTOP is a building, APPROXIMATE is an
+    // area. The listing flow refuses to publish anything but a precise pin.
+    locationType: result.geometry?.location_type ?? null,
+  }
+}
