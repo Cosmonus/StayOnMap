@@ -30,7 +30,8 @@ import { sendText, sendButtons, sendList, markRead } from './client.js'
 import { extractFields } from './extract/index.js'
 import { resolveLocationInput, looksLikeMapsLink, coordsFromText } from './location.service.js'
 import { ingestPhoto, MAX_PHOTOS } from './media.service.js'
-import { publishFromConversation } from './publish.service.js'
+import { publishFromConversation, propertyEditability } from './publish.service.js'
+import { createLoginLink } from './loginLink.service.js'
 import { CATEGORIES, CATEGORY_KEYS, SECTIONS, getQuestionnaire } from './questionnaire/schemas.js'
 import {
   nextQuestion, findQuestion, missingRequired, completion, parseAnswer,
@@ -140,14 +141,24 @@ async function startConversation(phone, msg, contactName) {
   const latest = await conversations.findLatest(phone)
 
   // After a submission the number has no OPEN conversation, but a reply still
-  // deserves an answer — and "want to list another?" is that answer, unless
-  // the message itself already describes a new property.
+  // deserves an answer. "Edit" reopens the SAME conversation while the listing
+  // is still DRAFT / PENDING / REJECTED; a live listing is edited on the
+  // website, so that ask is answered with a fresh manage link. Everything else
+  // gets "want to list another?" — unless the message itself already describes
+  // a new property.
   if (latest && ['VERIFICATION', 'COMPLETED'].includes(latest.status) && !isReply(msg, 'act:another')) {
+    const wantsEdit = isReply(msg, 'act:edit:sub') || isCmd(msg, 'edit', 'edit listing', 'change', 'update', 'update listing')
+    if (wantsEdit) return reopenForEdit(latest)
     const looksNew = msg.kind === 'text' && (await extractFields(msg.text)).hadSignal
     if (!looksNew) {
+      const pendingButtons = [
+        { id: 'act:another', title: 'Yes, list another' },
+        { id: 'act:edit:sub', title: 'Edit that listing' },
+        { id: 'act:no', title: 'Not now' },
+      ]
       await sendButtons(phone, {
         body: copy.afterCompletion(latest.status === 'COMPLETED' ? 'live' : 'pending'),
-        buttons: [{ id: 'act:another', title: 'Yes, list another' }, { id: 'act:no', title: 'Not now' }],
+        buttons: latest.status === 'COMPLETED' ? [pendingButtons[0], pendingButtons[2]] : pendingButtons,
       }, { conversationId: latest.id })
       return latest
     }
@@ -189,6 +200,32 @@ async function startConversation(phone, msg, contactName) {
 }
 
 const firstName = (name) => (name ? String(name).trim().split(/\s+/)[0] : '')
+
+/**
+ * "Edit" after submission: reopen the SAME conversation at its review — the
+ * draft still holds every answer, so the ordinary Edit flow works unchanged
+ * and Publish becomes an UPDATE of the same Property (publish.service.js).
+ * Only while the listing is DRAFT / PENDING / REJECTED; a live one gets a
+ * manage link instead, because the full wizard owns edits renters can see.
+ */
+async function reopenForEdit(conv) {
+  conv.draft ??= conversations.emptyDraft()
+  conv.draft.fields ??= {}; conv.draft.photos ??= []; conv.draft.flags ??= {}
+  const ctx = ctxFor(conv)
+  const check = await propertyEditability(conv.propertyId, conv.userId)
+  if (!check.editable) {
+    if (check.status === 'ACTIVE' || conv.status === 'COMPLETED') {
+      const manageUrl = conv.userId ? await createLoginLink(conv.userId, { next: '/list' }).catch(() => null) : null
+      await ctx.say(copy.editLive(manageUrl))
+    } else {
+      await ctx.say(copy.editNotPossible())
+    }
+    return conv
+  }
+  await ctx.persist({ status: 'REVIEW', currentQuestion: null })
+  await ctx.say(copy.editReopened(check.status))
+  return showReview(ctx)
+}
 
 // ── Continuing ─────────────────────────────────────────────────────────────
 
@@ -440,13 +477,63 @@ async function askQuestion(ctx, q) {
     }
     return conv
   }
-  if (q.type === 'multi_select') {
-    const lines = (q.options ?? []).map((o, i) => `${i + 1}. ${o.label}`)
-    await ctx.say(`${label}\n\n${lines.join('\n')}\n\nReply with the numbers (e.g. 1, 3, 5) or the names — or *skip*.`)
-    return conv
-  }
+  if (q.type === 'multi_select') return sendMultiSelect(ctx, q, 0)
   await ctx.say(q.help ? `${label}\n_${q.help}_` : label)
   return conv
+}
+
+// ── Multi-select: a tap-to-toggle list ─────────────────────────────────────
+//
+// WhatsApp has no multi-select control, so the pattern is a list where each
+// tap TOGGLES one option (the list is re-sent with ✓ marks) and a Done row
+// finishes. Lists carry at most 10 rows, so options page 8 at a time with a
+// More row that cycles. The page is derived from the tapped index — no page
+// state survives in the draft, which keeps a stale tap harmless.
+// Typing still works exactly as before ("wifi, ac" / "1, 3") and MERGES with
+// whatever is already ticked; "none" clears.
+
+const MSEL_PAGE = 8
+
+async function sendMultiSelect(ctx, q, page = 0) {
+  const { conv } = ctx
+  const opts = q.options ?? []
+  const current = fields(conv)[q.field]
+  const selected = new Set(Array.isArray(current) ? current : [])
+  const pages = Math.max(1, Math.ceil(opts.length / MSEL_PAGE))
+  const p = ((page % pages) + pages) % pages
+  const rows = opts.slice(p * MSEL_PAGE, (p + 1) * MSEL_PAGE).map((o, i) => ({
+    id: `ms:${q.id}:${p * MSEL_PAGE + i}`,
+    title: `${selected.has(o.value) ? '✓ ' : ''}${o.label}`.slice(0, 24),
+  }))
+  rows.push({ id: `ms:${q.id}:done`, title: '✅ Done' })
+  if (pages > 1) rows.push({ id: `ms:${q.id}:more:${(p + 1) % pages}`, title: '➡ More options', description: `Page ${p + 1} of ${pages}` })
+  const chosen = opts.filter((o) => selected.has(o.value)).map((o) => o.label)
+  await ctx.list(copy.multiSelectBody(questionLabel(q, conv.draft), chosen), rows, { buttonText: 'Select', sectionTitle: 'Tap to add or remove' })
+  return conv
+}
+
+async function onMultiSelectReply(ctx, msg) {
+  const { conv } = ctx
+  const m = msg.id.match(/^ms:([^:]+):(done|more:\d+|\d+)$/)
+  if (!m) return null
+  const q = findQuestion(conv.propertyType, m[1])
+  if (!q || q.type !== 'multi_select') return askCurrent(ctx)
+  if (m[2] === 'done') {
+    // Done with nothing ticked is an answer too — "none of these".
+    if (!(q.field in fields(conv))) fields(conv)[q.field] = []
+    await ctx.persist()
+    return askNext(ctx, { after: q.id })
+  }
+  if (m[2].startsWith('more:')) return sendMultiSelect(ctx, q, parseInt(m[2].slice(5), 10))
+  const idx = parseInt(m[2], 10)
+  const opt = q.options?.[idx]
+  if (!opt) return askCurrent(ctx)
+  const set = new Set(Array.isArray(fields(conv)[q.field]) ? fields(conv)[q.field] : [])
+  if (set.has(opt.value)) set.delete(opt.value)
+  else set.add(opt.value)
+  fields(conv)[q.field] = (q.options ?? []).map((o) => o.value).filter((v) => set.has(v))
+  await ctx.persist()
+  return sendMultiSelect(ctx, q, Math.floor(idx / MSEL_PAGE))
 }
 
 // ── Answering ──────────────────────────────────────────────────────────────
@@ -458,6 +545,10 @@ async function handleAnswer(ctx, msg) {
 
   if (msg.kind === 'reply') {
     if (msg.id === 'act:photos_done') return onPhotosDone(ctx)
+    if (msg.id.startsWith('ms:')) {
+      const handled = await onMultiSelectReply(ctx, msg)
+      if (handled) return handled
+    }
     if (msg.id === 'act:skip' && current && !current.required) {
       fields(conv)[current.field] = null
       await ctx.persist()
@@ -493,8 +584,16 @@ async function handleAnswer(ctx, msg) {
   const direct = current ? parseAnswer(current, text) : { ok: false }
   const isShort = text.length <= 24 && !/\d.*\D.*\d/.test(text)
   if (current && direct.ok && (isShort || ['single_select', 'multi_select', 'boolean', 'date'].includes(current.type))) {
-    fields(conv)[current.field] = direct.value
-    applied[current.field] = direct.value
+    let value = direct.value
+    // A typed multi-select ADDS to what is already ticked on the tap list —
+    // "gym" after tapping WiFi must not drop WiFi. "none"/"skip" still clears.
+    if (current.type === 'multi_select' && Array.isArray(value) && value.length) {
+      const prev = Array.isArray(fields(conv)[current.field]) ? fields(conv)[current.field] : []
+      const set = new Set([...prev, ...value])
+      value = (current.options ?? []).map((o) => o.value).filter((v) => set.has(v))
+    }
+    fields(conv)[current.field] = value
+    applied[current.field] = value
   }
 
   // 2. Whatever else the sentence carries.
@@ -771,8 +870,8 @@ async function doPublish(ctx) {
   if (result.ok) {
     conv.propertyId = result.property.id
     await ctx.persist({ status: 'VERIFICATION', propertyId: result.property.id, lastError: null })
-    await ctx.say(copy.submitted(conv.propertyType))
-    intelLog('whatsapp.submitted', { conversationId: conv.id, propertyId: result.property.id })
+    await ctx.say(result.updated ? copy.resubmitted(conv.propertyType) : copy.submitted(conv.propertyType))
+    intelLog('whatsapp.submitted', { conversationId: conv.id, propertyId: result.property.id, updated: !!result.updated })
     return conv
   }
   if (result.kind === 'validation') {

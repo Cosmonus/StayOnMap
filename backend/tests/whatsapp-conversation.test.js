@@ -26,7 +26,12 @@ vi.mock('../src/features/whatsapp/location.service.js', async (importOriginal) =
 const ingestPhoto = vi.fn()
 vi.mock('../src/features/whatsapp/media.service.js', () => ({ ingestPhoto: (...a) => ingestPhoto(...a), MAX_PHOTOS: 10 }))
 const publishFromConversation = vi.fn()
-vi.mock('../src/features/whatsapp/publish.service.js', () => ({ publishFromConversation: (...a) => publishFromConversation(...a) }))
+const propertyEditability = vi.fn()
+vi.mock('../src/features/whatsapp/publish.service.js', () => ({
+  publishFromConversation: (...a) => publishFromConversation(...a),
+  propertyEditability: (...a) => propertyEditability(...a),
+}))
+vi.mock('../src/features/whatsapp/loginLink.service.js', () => ({ createLoginLink: vi.fn(async () => 'https://www.stayonmap.com/wa/login?token=t') }))
 
 // ── In-memory conversation store on top of the Prisma mock ─────────────────
 const store = { rows: new Map(), seq: 0, messages: new Set() }
@@ -84,6 +89,7 @@ beforeEach(() => {
   resolveLocationInput.mockReset().mockResolvedValue({ status: 'candidate', candidate: CANDIDATE })
   ingestPhoto.mockReset()
   publishFromConversation.mockReset()
+  propertyEditability.mockReset().mockResolvedValue({ exists: true, editable: true, status: 'PENDING' })
   // Identity: no verified owner, no typed candidate → a fresh account.
   prismaMock.user.findFirst.mockReset().mockResolvedValue(null)
   prismaMock.user.findMany.mockReset().mockResolvedValue([])
@@ -333,7 +339,7 @@ describe('photos, review, publish', () => {
     await toReview()
     await say(reply('act:publish'))
     await say(text('thanks'))
-    expect(last().buttons.map((b) => b.id)).toEqual(['act:another', 'act:no'])
+    expect(last().buttons.map((b) => b.id)).toEqual(['act:another', 'act:edit:sub', 'act:no'])
     expect(store.rows.size).toBe(1)
     await say(reply('act:another'))
     expect(store.rows.size).toBe(2)
@@ -442,5 +448,133 @@ describe('the email ask', () => {
     await say(reply('act:photos_done', 'Done'))
     expect(conv().status).toBe('REVIEW')
     expect(sent.filter((s) => s.kind === 'buttons' && /add an \*email/.test(s.body)).length).toBe(0)
+  })
+})
+
+// ── Tap-to-toggle multi-select (added 2026-09-01) ──────────────────────────
+// WhatsApp has no multi-select control; the pattern is a list where each tap
+// toggles an option (re-sent with ✓), pages of 8 with a More row, and a Done
+// row that finishes. Typing still works and MERGES with what is ticked.
+describe('multi-select by tapping', () => {
+  async function toAmenities() {
+    await say(text('2bhk apartment, fully furnished, 28k rent, 1 lakh deposit'))
+    await say(pin(12.98, 80.22)); await say(reply('act:loc:confirm'))
+    for (let i = 0; i < 5; i++) await say(text('skip')) // bathrooms..availableFrom
+    expect(conv().currentQuestion).toBe('amenities')
+  }
+
+  it('the question arrives as a list: 8 options, Done, and More (15 options = 2 pages)', async () => {
+    await toAmenities()
+    expect(last().kind).toBe('list')
+    const ids = last().rows.map((r) => r.id)
+    expect(ids).toHaveLength(10)
+    expect(ids.slice(0, 8).every((id) => /^ms:amenities:\d+$/.test(id))).toBe(true)
+    expect(ids[8]).toBe('ms:amenities:done')
+    expect(ids[9]).toBe('ms:amenities:more:1')
+  })
+
+  it('a tap toggles and re-shows with a ✓; a second tap removes; Done moves on', async () => {
+    await toAmenities()
+    await say(reply('ms:amenities:0', 'WiFi'))
+    expect(conv().draft.fields.amenities).toEqual(['WiFi'])
+    expect(last().kind).toBe('list')
+    expect(last().rows[0].title).toBe('✓ WiFi')
+    expect(last().body).toMatch(/Selected: WiFi/)
+    await say(reply('ms:amenities:1', 'AC'))
+    expect(conv().draft.fields.amenities).toEqual(['WiFi', 'AC'])
+    await say(reply('ms:amenities:0', 'WiFi'))
+    expect(conv().draft.fields.amenities).toEqual(['AC'])
+    await say(reply('ms:amenities:done', 'Done'))
+    expect(conv().currentQuestion).toBe('rules')
+    expect(last().kind).toBe('list') // rules is multi-select too
+    expect(last().rows.map((r) => r.id)).toContain('ms:rules:done')
+  })
+
+  it('More pages to the second page, where global indexes keep working', async () => {
+    await toAmenities()
+    await say(reply('ms:amenities:more:1', 'More options'))
+    expect(last().rows[0].id).toBe('ms:amenities:8')
+    await say(reply('ms:amenities:8', 'Security Guard'))
+    expect(conv().draft.fields.amenities).toEqual(['Security Guard'])
+    // Re-shown on the SAME page the tap came from.
+    expect(last().rows[0].id).toBe('ms:amenities:8')
+    expect(last().rows[0].title).toMatch(/^✓ /)
+  })
+
+  it('typing adds to what is ticked instead of replacing it; Done with nothing means none', async () => {
+    await toAmenities()
+    await say(reply('ms:amenities:0', 'WiFi'))
+    await say(text('gym and lift'))
+    expect(conv().draft.fields.amenities).toEqual(expect.arrayContaining(['WiFi', 'Lift', 'Gym']))
+    // Typed answers advance (they always did); now at rules — Done with none.
+    expect(conv().currentQuestion).toBe('rules')
+    await say(reply('ms:rules:done', 'Done'))
+    expect(conv().draft.fields.rules).toEqual([])
+    expect(conv().currentQuestion).toBe('details')
+  })
+})
+
+// ── Editing after submission (added 2026-09-01) ────────────────────────────
+// While the listing is DRAFT / PENDING / REJECTED, "edit" reopens the SAME
+// conversation at its review, and Publish becomes an UPDATE of the same
+// Property. A live listing is edited on the website — the ask is answered
+// with a manage link, never a second listing.
+describe('editing a submitted listing', () => {
+  async function submit() {
+    publishFromConversation.mockResolvedValue({ ok: true, property: { id: 'prop-1', status: 'PENDING' } })
+    await toReviewGlobal()
+    await say(reply('act:publish'))
+    expect(conv().status).toBe('VERIFICATION')
+  }
+  async function toReviewGlobal() {
+    await say(text('2bhk apartment, fully furnished, 28k rent, 1 lakh deposit'))
+    await say(pin(12.98, 80.22)); await say(reply('act:loc:confirm'))
+    for (let i = 0; i < 5; i++) await say(text('skip'))
+    await say(reply('ms:amenities:done')); await say(reply('ms:rules:done')); await say(text('skip'))
+    ingestPhoto.mockResolvedValue({ status: 'added', photo: { url: 'https://s/1_full.webp', waMediaId: 'p1', order: 0 } })
+    await say(image('p1'))
+    await say(reply('act:photos_done', 'Done'))
+    expect(conv().status).toBe('REVIEW')
+  }
+
+  it('"edit" while pending reopens the same conversation at review; Publish updates, not creates', async () => {
+    await submit()
+    await say(text('edit'))
+    expect(propertyEditability).toHaveBeenCalledWith('prop-1', 'u-new')
+    expect(conv().status).toBe('REVIEW')
+    expect(store.rows.size).toBe(1) // the SAME conversation, not a new one
+    expect(sent.some((s) => s.kind === 'text' && /hasn't been approved yet/.test(s.body))).toBe(true)
+    // Change the rent at the review, then publish again.
+    await say(text('rent is 30k'))
+    expect(conv().draft.fields.rent).toBe(30000)
+    publishFromConversation.mockResolvedValue({ ok: true, updated: true, property: { id: 'prop-1', status: 'PENDING' } })
+    await say(reply('act:publish'))
+    expect(conv().status).toBe('VERIFICATION')
+    expect(sent.some((s) => s.kind === 'text' && /Changes saved/.test(s.body))).toBe(true)
+  })
+
+  it('the post-submission prompt offers Edit, and the button reopens too', async () => {
+    await submit()
+    await say(text('thanks'))
+    expect(last().buttons.map((b) => b.id)).toContain('act:edit:sub')
+    await say(reply('act:edit:sub', 'Edit that listing'))
+    expect(conv().status).toBe('REVIEW')
+  })
+
+  it('a live listing is not reopened — the ask is answered with a manage link', async () => {
+    await submit()
+    store.rows.get(conv().id).status = 'COMPLETED'
+    propertyEditability.mockResolvedValue({ exists: true, editable: false, status: 'ACTIVE' })
+    await say(text('edit'))
+    expect(conv().status).toBe('COMPLETED')
+    expect(sent.some((s) => s.kind === 'text' && /already live/.test(s.body) && /wa\/login/.test(s.body))).toBe(true)
+  })
+
+  it('a listing deleted underneath the conversation is reported, not resurrected', async () => {
+    await submit()
+    propertyEditability.mockResolvedValue({ exists: false, editable: false, status: null })
+    await say(text('edit'))
+    expect(conv().status).toBe('VERIFICATION')
+    expect(sent.some((s) => s.kind === 'text' && /couldn't find that listing/.test(s.body))).toBe(true)
   })
 })

@@ -62,15 +62,28 @@ export async function listConversations({ status, page = 1, limit = 30, search }
       { propertyId: search },
     ]
   }
-  const [rows, total] = await Promise.all([
+  const [rows, total, statusRows, errorsTotal] = await Promise.all([
     prisma.whatsAppConversation.findMany({
       where, orderBy: { lastMessageAt: 'desc' }, skip: (pageNum - 1) * take, take,
       select: { ...CONVERSATION_SELECT, draft: true },
     }),
     prisma.whatsAppConversation.count({ where }),
+    // Counts are GLOBAL (unfiltered) on purpose: they label the filter chips,
+    // and a chip that counts only what the current filter shows says nothing.
+    prisma.whatsAppConversation.groupBy({ by: ['status'], _count: { _all: true } }).catch(() => []),
+    prisma.whatsAppConversation.count({ where: { errorCount: { gt: 0 } } }).catch(() => 0),
   ])
+  const byStatus = Object.fromEntries(statusRows.map((r) => [r.status, r._count._all]))
+  const counts = {
+    open: OPEN_STATUSES.reduce((n, s) => n + (byStatus[s] ?? 0), 0),
+    VERIFICATION: byStatus.VERIFICATION ?? 0,
+    COMPLETED: byStatus.COMPLETED ?? 0,
+    CANCELLED: byStatus.CANCELLED ?? 0,
+    errors: errorsTotal,
+    all: statusRows.reduce((n, r) => n + r._count._all, 0),
+  }
   const withProps = await attachProperties(rows)
-  return { conversations: withProps.map(shape).map(({ draft: _d, ...r }) => r), total, page: pageNum, limit: take }
+  return { conversations: withProps.map(shape).map(({ draft: _d, ...r }) => r), total, page: pageNum, limit: take, counts }
 }
 
 export async function getConversation(id) {
