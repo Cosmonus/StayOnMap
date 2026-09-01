@@ -49,6 +49,7 @@ const HOW_IT_WORKS_STEPS = [
     description:
       'Message the owner, pick a visit slot that suits you both, and sign the agreement between the two of you. Nobody stands in the middle taking a cut.',
     proof: 'Owners verify ownership documents before a listing goes live, and every listing carries a TrustScore you can see.',
+    proofLink: { to: '/rules', label: 'How we verify owners' },
   },
 ]
 
@@ -86,7 +87,7 @@ function Metric({ value, label, note }) {
   )
 }
 
-function Step({ num, title, description, proof }) {
+function Step({ num, title, description, proof, proofLink }) {
   return (
     <li className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6">
       <div className="flex items-center gap-3">
@@ -98,6 +99,18 @@ function Step({ num, title, description, proof }) {
       <p className="mt-3.5 text-sm leading-relaxed text-slate-600">{description}</p>
       <p className="mt-auto border-t border-slate-100 pt-3.5 text-xs leading-relaxed text-slate-500">
         {proof}
+        {proofLink && (
+          <>
+            {' '}
+            <Link
+              to={proofLink.to}
+              className="inline-flex items-center gap-1 font-semibold text-brand-700 underline-offset-4 hover:underline"
+            >
+              {proofLink.label}
+              <ArrowRight size={11} strokeWidth={2.5} aria-hidden="true" />
+            </Link>
+          </>
+        )}
       </p>
     </li>
   )
@@ -120,45 +133,38 @@ function Argument({ liveListings, activeOwners, citiesLive, isLoading }) {
           <h1 className="font-display text-3xl font-bold leading-tight tracking-tight text-slate-900 md:text-4xl">
             Rent with <span className="text-brand-600">intelligence</span>.
           </h1>
-          <p className="mt-4 text-lg leading-relaxed text-slate-600">
+          <p className="mt-4 text-base leading-relaxed text-slate-600">
             Every home on the map carries a live TrustScore, and we tell you what&apos;s around the
             address — metro, groceries, drainage, air — with the confidence to say when we
             don&apos;t know. No brokers, no brokerage.
           </p>
-          <p className="mt-4 text-lg leading-relaxed text-slate-600">
-            And we kept everything simple — you can now list your property on{' '}
-            <span className="font-semibold text-slate-800">WhatsApp</span> too. No app to
-            install, no forms to fight: just chat with us, answer a few questions about your
-            place in your own words, drop a location pin and send your photos. Hosting a
-            property takes as little as{' '}
+          <p className="mt-3 text-base leading-relaxed text-slate-600">
+            Listing is just as simple — a flat, a house, a PG, a shop, a plot or a short
+            stay, you can list any of them on{' '}
+            <span className="font-semibold text-slate-800">WhatsApp</span>. No app to
+            install, no forms to fight: chat with us, answer a few questions in your own
+            words, drop a location pin and send your photos. It takes as little as{' '}
             <span className="font-semibold text-slate-800">5 minutes</span>, and your phone
             number is all the sign-up you need.
           </p>
 
-          <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
-            <button
-              onClick={openLoginModal}
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-            >
-              List your property free
-              <ArrowRight size={14} strokeWidth={2.5} />
-            </button>
+          <div className="mt-7 flex w-full max-w-xl flex-col gap-3">
             <a
               href={WHATSAPP_LIST_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-900 no-underline transition-colors hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="inline-flex min-h-[48px] w-full items-center justify-center gap-2.5 rounded-xl bg-[#111111] px-5 py-3 text-sm font-bold text-white no-underline transition-colors hover:bg-[#2a2a2a] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               <WhatsAppIcon />
               List your property on WhatsApp
             </a>
-            <Link
-              to="/rules"
-              className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-semibold text-brand-700 underline-offset-4 hover:underline"
+            <button
+              onClick={openLoginModal}
+              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-900 transition-colors hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
-              How we verify owners
-              <ArrowRight size={13} strokeWidth={2.5} />
-            </Link>
+              List your property for free
+              <ArrowRight size={14} strokeWidth={2.5} />
+            </button>
           </div>
         </div>
 
