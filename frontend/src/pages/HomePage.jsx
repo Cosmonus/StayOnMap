@@ -139,8 +139,11 @@ function Argument({ liveListings, activeOwners, citiesLive, isLoading }) {
             don&apos;t know. No brokers, no brokerage.
           </p>
           <p className="mt-3 text-base leading-relaxed text-slate-600">
-            Listing is just as simple — a flat, a house, a PG, a shop, a plot or a short
-            stay, you can list any of them on{' '}
+            Listing is just as simple —{' '}
+            <span className="rounded bg-brand-50 px-1 font-semibold text-brand-700">
+              a flat, a house, a PG, a shop, a plot or a short stay
+            </span>
+            , you can list any of them on{' '}
             <span className="font-semibold text-slate-800">WhatsApp</span>. No app to
             install, no forms to fight: chat with us, answer a few questions in your own
             words, drop a location pin and send your photos. It takes as little as{' '}
@@ -148,19 +151,19 @@ function Argument({ liveListings, activeOwners, citiesLive, isLoading }) {
             number is all the sign-up you need.
           </p>
 
-          <div className="mt-7 flex w-full max-w-xl flex-col gap-3">
+          <div className="mt-7 flex flex-wrap items-center gap-3">
             <a
               href={WHATSAPP_LIST_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-[48px] w-full items-center justify-center gap-2.5 rounded-xl bg-[#111111] px-5 py-3 text-sm font-bold text-white no-underline transition-colors hover:bg-[#2a2a2a] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white no-underline transition-colors hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               <WhatsAppIcon />
               List your property on WhatsApp
             </a>
             <button
               onClick={openLoginModal}
-              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-900 transition-colors hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-900 transition-colors hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               List your property for free
               <ArrowRight size={14} strokeWidth={2.5} />
