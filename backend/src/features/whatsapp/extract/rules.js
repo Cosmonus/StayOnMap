@@ -67,6 +67,7 @@ const CUES = [
   ['deposit', /\b(deposit|advance|security)\b/g],
   ['night',   /\b(night|nightly)\b/g],
   ['food',    /\b(food|mess|meals?)\b/g],
+  ['maintenance', /\b(maintenance|maint)\b/g],
   ['price',   /\b(price|asking|selling|sale|expecting|expected|worth|quote|cost|budget)\b/g],
   ['rent',    /\b(rent|rental|rented|bed|for)\b/g],
   ['period',  /\b(month|monthly|mo|pm|p\.m\.|year|yearly|annum|pa)\b/g],
@@ -232,6 +233,7 @@ function extractMoney(s, cat, out) {
     const uncertain = () => out.uncertain.push(`₹${t.amount.toLocaleString('en-IN')}`)
     switch (cue) {
       case 'deposit': set(out, 'deposit', t.amount); break
+      case 'maintenance': set(out, 'maintenance', t.amount, 0.85); break
       case 'night':   cat === 'stay' || cat == null ? set(out, 'nightlyRate', t.amount) : uncertain(); break
       case 'food':    cat === 'pg' ? set(out, 'foodCharges', t.amount, 0.8) : uncertain(); break
       case 'price':   set(out, 'rent', t.amount); break

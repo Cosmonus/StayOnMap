@@ -1129,6 +1129,10 @@ model Appointment {
   tenantId      String
   ownerId       String
   requestedDate DateTime
+  // SHORT_STAY only: the check-out date of a stay request. requestedDate is
+  // then the check-in, and the nights are [requestedDate, checkOutDate). NULL
+  // for every visit request — a visit occupies one day, not a range.
+  checkOutDate  DateTime?
   requestedTime String
   message       String?
   contactNumber String

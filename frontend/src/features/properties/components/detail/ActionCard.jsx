@@ -62,7 +62,14 @@ export default function ActionCard({ formId, isOwner, property, avail, propertyI
       ) : user ? (
         <>
           <div id={formId} className="mt-4 border-t border-slate-100 pt-4">
-            <AppointmentSection propertyId={propertyId} windowStart={property.appointmentWindowStart} windowEnd={property.appointmentWindowEnd} />
+            <AppointmentSection
+              propertyId={propertyId}
+              type={property.type}
+              minNights={property.minNights}
+              maxNights={property.maxNights}
+              windowStart={property.appointmentWindowStart}
+              windowEnd={property.appointmentWindowEnd}
+            />
           </div>
           {/* A listing with no coordinates gets a full-width Chat button rather
               than a half-width one beside an empty cell. */}

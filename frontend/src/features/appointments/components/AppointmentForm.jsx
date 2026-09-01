@@ -17,6 +17,18 @@ import { track } from '@lib/analytics'
 // invites a slot that's stale before the owner opens the notification.
 const LEAD_MINUTES = 30
 
+// The same form, worded for what is actually being asked for — a plot gets a
+// site visit, a shop an inspection, and a short stay is booked as DATES, not
+// a viewing slot. Per-type behaviour is declared here, not scattered.
+const TYPE_COPY = {
+  default:    { heading: 'Request a visit',            cta: "I'm interested — request a visit", success: 'Visit requested!' },
+  LAND:       { heading: 'Request a site visit',       cta: 'Request a site visit',             success: 'Site visit requested!' },
+  COMMERCIAL: { heading: 'Request an inspection visit', cta: 'Request an inspection visit',     success: 'Inspection requested!' },
+  SHORT_STAY: { heading: 'Book your stay',             cta: 'Request to book',                  success: 'Stay requested!' },
+}
+
+const DAY_MS = 86_400_000
+
 const pad = (n) => String(n).padStart(2, '0')
 
 // Local date parts, not toISOString(): the ISO string is UTC, so between
@@ -26,15 +38,19 @@ function localISO(d) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-export default function AppointmentForm({ propertyId, onSuccess, windowStart, windowEnd }) {
+export default function AppointmentForm({ propertyId, type, minNights, maxNights, onSuccess, windowStart, windowEnd }) {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { user } = useAuth()
+  const isStay = type === 'SHORT_STAY'
+  const copy = TYPE_COPY[type] ?? TYPE_COPY.default
   // `contactNumber: null` means "the person hasn't touched this field", which
   // is what lets the profile number below fill it. Once they type — including
   // typing nothing, i.e. clearing it — it becomes a string and stops falling
   // back, so we never re-impose a number they deliberately deleted.
-  const [form, setForm] = useState({ requestedDate: '', requestedTime: '', message: '', contactNumber: null })
+  const [form, setForm] = useState({ requestedDate: '', requestedTime: '', checkOutDate: '', message: '', contactNumber: null })
+  // false | 'requested' | 'confirmed' — instant book comes back ACCEPTED and
+  // the success card must not claim the owner still has to answer.
   const [submitted, setSubmitted] = useState(false)
   const [chatLoading, setChatLoading] = useState(false)
 
@@ -53,20 +69,27 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
     mutationFn: (data) => {
       const payload = {
         requestedDate: new Date(data.requestedDate).toISOString(),
-        requestedTime: data.requestedTime,
+        // A stay has no viewing slot; the server never reads the time for one,
+        // but the schema requires the field. Noon is the conventional filler.
+        requestedTime: isStay ? '12:00' : data.requestedTime,
         // Normalised on the way out too: the field accepts what a person
         // actually types, the wire only ever carries ten digits.
         contactNumber: normalizePhone(data.contactNumber),
       }
+      if (isStay) payload.checkOutDate = new Date(data.checkOutDate).toISOString()
       if (data.message?.trim()) payload.message = data.message.trim()
       return appointmentService.request(propertyId, payload)
     },
-    onSuccess: () => {
-      setSubmitted(true)
+    onSuccess: (res) => {
+      const confirmed = res?.data?.status === 'ACCEPTED'
+      setSubmitted(confirmed ? 'confirmed' : 'requested')
       // Funnel step 5, the one that matters. Fired on the SERVER's confirmed
       // success, never on submit — a request that 400s is not a booking.
       track('appointment_created', { propertyId })
-      toast.success('Request sent', 'The owner will respond within 24 hours')
+      toast.success(
+        confirmed ? 'Booking confirmed' : 'Request sent',
+        confirmed ? 'Instant book — your dates are locked in.' : 'The owner will respond within 24 hours',
+      )
       // The day list is now stale for anyone who reopens the form — and for
       // this renter, who now has a pending request on it.
       qc.invalidateQueries({ queryKey: ['visit-availability', propertyId] })
@@ -128,16 +151,58 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
   const days = useMemo(
     () => buildDays({
       unavailable: availability?.unavailableDates ?? [],
-      hasSlots: (d) => slotsFor(d).length > 0,
+      // A stay has no viewing slots, so the clock never disables a check-in
+      // day — only the owner's calendar does.
+      hasSlots: (d) => isStay || slotsFor(d).length > 0,
     }),
-    [availability, slotsFor],
+    [availability, slotsFor, isStay],
   )
+
+  // Check-out choices for the chosen check-in: minNights to maxNights ahead,
+  // stopping at the first taken night. Nights are [check-in, check-out), so
+  // check-out may land ON a taken day — the guest leaves that morning — but a
+  // range may never CROSS one.
+  const checkOutDays = useMemo(() => {
+    if (!isStay || !form.requestedDate) return []
+    const [y, m, d] = form.requestedDate.split('-').map(Number)
+    const start = new Date(y, m - 1, d)
+    const taken = new Set(availability?.unavailableDates ?? [])
+    const minN = Math.max(1, minNights || 1)
+    const maxN = Math.max(minN, maxNights || 28)
+    let maxValid = Infinity
+    for (let k = 1; k <= maxN; k++) {
+      if (taken.has(localISO(new Date(start.getTime() + k * DAY_MS)))) { maxValid = k; break }
+    }
+    return Array.from({ length: maxN - minN + 1 }, (_, i) => {
+      const n = minN + i
+      const dt = new Date(start.getTime() + n * DAY_MS)
+      const disabled = n > maxValid
+      return {
+        value: localISO(dt),
+        full: `${dt.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })} — ${n} night${n === 1 ? '' : 's'}`,
+        weekday: dt.toLocaleDateString('en-IN', { weekday: 'short' }),
+        dayNum: dt.getDate(),
+        month: dt.toLocaleDateString('en-IN', { month: 'short' }),
+        disabled,
+        reason: disabled ? 'the owner already has those dates booked' : null,
+      }
+    })
+  }, [isStay, form.requestedDate, availability, minNights, maxNights])
+
+  const nights = isStay && form.requestedDate && form.checkOutDate
+    ? Math.round((new Date(form.checkOutDate) - new Date(form.requestedDate)) / DAY_MS)
+    : 0
 
   const slots = form.requestedDate ? slotsFor(form.requestedDate) : []
 
   // A date change can invalidate the chosen time (picking Today late in the
-  // day). Clearing it here beats submitting a combination the server refuses.
+  // day) — or, on a stay, the chosen check-out. Clearing beats submitting a
+  // combination the server refuses.
   function pickDate(value) {
+    if (isStay) {
+      setForm(f => ({ ...f, requestedDate: value, checkOutDate: '' }))
+      return
+    }
     setForm(f => ({
       ...f,
       requestedDate: value,
@@ -147,7 +212,8 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
 
   const set = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }))
   const setValue = (key) => (value) => setForm(f => ({ ...f, [key]: value }))
-  const isValid = form.requestedDate && form.requestedTime && isValidPhone(contactNumber)
+  const isValid = form.requestedDate && isValidPhone(contactNumber)
+    && (isStay ? form.checkOutDate : form.requestedTime)
 
   if (submitted) {
     return (
@@ -157,8 +223,14 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
             <Check size={16} color="#059669" strokeWidth={2.5} />
           </div>
           <div>
-            <p className="text-sm font-bold text-emerald-800">Visit requested!</p>
-            <p className="text-xs text-emerald-600 mt-0.5">The owner will respond within 24 hours.</p>
+            <p className="text-sm font-bold text-emerald-800">
+              {submitted === 'confirmed' ? 'Booking confirmed!' : copy.success}
+            </p>
+            <p className="text-xs text-emerald-600 mt-0.5">
+              {submitted === 'confirmed'
+                ? 'Instant book — your dates are locked in, and the owner has your details.'
+                : 'The owner will respond within 24 hours.'}
+            </p>
           </div>
         </div>
 
@@ -186,23 +258,47 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
 
   return (
     <div className="space-y-5">
-      <h3 className="font-semibold text-slate-800">Request a visit</h3>
+      <h3 className="font-semibold text-slate-800">{copy.heading}</h3>
 
-      <Field label="Pick a day" hint="Greyed-out days are already booked by the owner." htmlFor="visit-day">
-        {() => <DayStrip days={days} value={form.requestedDate} onChange={pickDate} />}
-      </Field>
+      {isStay ? (
+        <>
+          <Field label="Check-in" hint="Greyed-out days are already booked." htmlFor="stay-checkin">
+            {() => <DayStrip days={days} value={form.requestedDate} onChange={pickDate} label="Check-in" />}
+          </Field>
+          <Field
+            label="Check-out"
+            hint={minNights > 1 ? `Minimum stay is ${minNights} nights.` : undefined}
+            htmlFor="stay-checkout"
+          >
+            {() => form.requestedDate
+              ? <DayStrip days={checkOutDays} value={form.checkOutDate} onChange={setValue('checkOutDate')} label="Check-out" />
+              : <p className="text-sm text-slate-500 rounded-xl bg-slate-50 border border-slate-200 px-3 py-3">Choose your check-in first.</p>}
+          </Field>
+          {nights > 0 && (
+            <p className="text-sm font-medium text-slate-700">
+              {nights} night{nights === 1 ? '' : 's'}
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          <Field label="Pick a day" hint="Greyed-out days are already booked by the owner." htmlFor="visit-day">
+            {() => <DayStrip days={days} value={form.requestedDate} onChange={pickDate} />}
+          </Field>
 
-      <Field
-        label="Pick a time"
-        hint={windowStart && windowEnd
-          ? `The owner shows the place between ${formatTime(windowStart)} and ${formatTime(windowEnd)}.`
-          : undefined}
-        htmlFor="visit-time"
-      >
-        {() => form.requestedDate
-          ? <TimeGrid slots={slots} value={form.requestedTime} onChange={setValue('requestedTime')} />
-          : <p className="text-sm text-slate-500 rounded-xl bg-slate-50 border border-slate-200 px-3 py-3">Choose a day first.</p>}
-      </Field>
+          <Field
+            label="Pick a time"
+            hint={windowStart && windowEnd
+              ? `The owner shows the place between ${formatTime(windowStart)} and ${formatTime(windowEnd)}.`
+              : undefined}
+            htmlFor="visit-time"
+          >
+            {() => form.requestedDate
+              ? <TimeGrid slots={slots} value={form.requestedTime} onChange={setValue('requestedTime')} />
+              : <p className="text-sm text-slate-500 rounded-xl bg-slate-50 border border-slate-200 px-3 py-3">Choose a day first.</p>}
+          </Field>
+        </>
+      )}
 
       <Field
         label="Mobile number"
@@ -252,7 +348,7 @@ export default function AppointmentForm({ propertyId, onSuccess, windowStart, wi
         loading={mutation.isPending}
         onClick={() => mutation.mutate({ ...form, contactNumber })}
       >
-        {mutation.isPending ? 'Sending…' : "I'm interested — request a visit"}
+        {mutation.isPending ? 'Sending…' : copy.cta}
       </Button>
     </div>
   )

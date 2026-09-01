@@ -107,10 +107,32 @@ describe('starting', () => {
     expect(prismaMock.user.create.mock.calls[0][0].data).toMatchObject({ phone: PHONE.slice(2), email: null, role: 'OWNER', name: 'Asha Rao' })
     expect(sent[0].kind).toBe('text')
     expect(sent[0].body).toMatch(/Welcome to StayOnMap/)
+    // The broker gate is the flow's first question, before the type list.
+    expect(last().kind).toBe('buttons')
+    expect(last().body).toMatch(/Are you a broker\?/)
+    expect(last().buttons.map((b) => b.id)).toEqual(['act:broker:no', 'act:broker:yes'])
+    await say(reply('act:broker:no'))
     expect(last().kind).toBe('list')
     expect(last().rows.map((r) => r.id)).toEqual(['type:apartment', 'type:house', 'type:land', 'type:pg', 'type:shop', 'type:stay'])
     expect(conv().status).toBe('PROPERTY_TYPE')
     expect(events.map((e) => e.name)).toContain('wa_conversation_started')
+  })
+
+  it('a broker who admits it is refused and the conversation ends', async () => {
+    await say(text('hi'))
+    await say(reply('act:broker:yes', "Yes, I'm a broker"))
+    expect(conv().status).toBe('CANCELLED')
+    expect(last().body).toMatch(/strictly owner-listed/)
+    expect(events.map((e) => e.name)).toContain('wa_broker_rejected')
+  })
+
+  it('a typed "no" passes the gate, and gibberish re-asks it', async () => {
+    await say(text('hi'))
+    await say(text('maybe'))
+    expect(last().body).toMatch(/Are you a broker\?/) // re-asked, nothing advanced
+    await say(text('no'))
+    expect(last().kind).toBe('list') // the type list — the gate is passed
+    expect(conv().draft.flags.brokerOk).toBe(true)
   })
 
   it('a verified existing user is reused — never a second account', async () => {
@@ -144,6 +166,7 @@ describe('starting', () => {
   it('a first message that already describes the property skips the type question and applies what it said', async () => {
     resolveLocationInput.mockResolvedValue({ status: 'imprecise', place: 'Velachery' })
     await say(text('2bhk apartment in Velachery, fully furnished, 28k rent, 1 lakh deposit, available September'))
+    await say(reply('act:broker:no')) // the first message rides through the gate
     const c = conv()
     expect(c.propertyType).toBe('apartment')
     expect(c.draft.fields).toMatchObject({ bhk: 2, furnished: 'FULLY', rent: 28000, deposit: 100000 })
@@ -158,6 +181,7 @@ describe('starting', () => {
 describe('the questionnaire', () => {
   async function toApartment() {
     await say(text('hi'))
+    await say(reply('act:broker:no'))
     await say({ id: `wamid.${++seq}`, type: 'interactive', interactive: { type: 'list_reply', list_reply: { id: 'type:apartment', title: 'Apartment' } } })
   }
 
@@ -205,16 +229,19 @@ describe('the questionnaire', () => {
     await say(pin(12.98, 80.22)); await say(reply('act:loc:confirm'))
     await say(reply('opt:bhk:2', '2 BHK'))
     expect(conv().draft.fields.bhk).toBe(2)
+    expect(conv().currentQuestion).toBe('pricingModel')
+    await say(text('monthly rent'))
+    expect(conv().draft.fields.pricingModel).toBe('RENT')
     expect(conv().currentQuestion).toBe('rent')
     await say(text('28k'))
     expect(conv().draft.fields.rent).toBe(28000)
     expect(conv().currentQuestion).toBe('deposit')
     await say(text('deposit is 1 lakh and it is semi furnished'))
     expect(conv().draft.fields).toMatchObject({ deposit: 100000, furnished: 'SEMI' })
-    expect(conv().currentQuestion).toBe('bathrooms') // furnished was answered in the sentence, so it was not asked
+    expect(conv().currentQuestion).toBe('maintenance') // furnished was answered in the sentence, so it was not asked
     await say(text('skip'))
-    expect(conv().draft.fields.bathrooms).toBeNull()
-    expect(conv().currentQuestion).toBe('parking')
+    expect(conv().draft.fields.maintenance).toBeNull()
+    expect(conv().currentQuestion).toBe('bathrooms')
   })
 
   it('unexpected input on a question re-asks it with a sentence, and counts the miss', async () => {
@@ -228,6 +255,7 @@ describe('the questionnaire', () => {
 
   it('a business category asks the business question first and upgrades on yes', async () => {
     await say(text('hi'))
+    await say(reply('act:broker:no'))
     await say(text('I want to list my PG'))
     expect(last().kind).toBe('buttons')
     expect(last().body).toMatch(/business/)
@@ -241,9 +269,12 @@ describe('the questionnaire', () => {
 describe('photos, review, publish', () => {
   async function toPhotos() {
     await say(text('2bhk apartment, fully furnished, 28k rent, 1 lakh deposit'))
+    await say(reply('act:broker:no'))
     await say(pin(12.98, 80.22)); await say(reply('act:loc:confirm'))
-    // bathrooms, parking, floor, totalFloors, availableFrom, amenities, rules, details — all optional
-    for (let i = 0; i < 8; i++) await say(text('skip'))
+    await say(text('monthly rent')) // pricingModel — required, asked before the money questions
+    // maintenance, bathrooms, area, parking, floor, totalFloors, facing,
+    // availableFrom, leaseDuration, noticePeriodDays, amenities, rules, details
+    for (let i = 0; i < 13; i++) await say(text('skip'))
     expect(conv().currentQuestion).toBe('photos')
     expect(conv().status).toBe('PHOTOS')
   }
@@ -251,6 +282,7 @@ describe('photos, review, publish', () => {
   it('photos are accepted whenever they arrive, deduped, and counted', async () => {
     ingestPhoto.mockImplementation(async (draft, media) => ({ status: 'added', photo: { url: `https://s/${media.id}_full.webp`, waMediaId: media.id, order: draft.photos.length } }))
     await say(text('2bhk apartment, fully furnished, 28k rent, 1 lakh deposit'))
+    await say(reply('act:broker:no'))
     await say(image('early'))
     expect(conv().draft.photos).toHaveLength(1)
     expect(last().body).toMatch(/Received 1 photo/)
@@ -291,16 +323,49 @@ describe('photos, review, publish', () => {
     expect(prismaMock.user.update).toHaveBeenCalledWith(expect.objectContaining({ data: { showExactLocation: false } }))
   })
 
-  it('Edit re-asks only the chosen section, then returns to the review', async () => {
+  it('Edit shows the section, then ONE question to change — nothing is wiped', async () => {
     await toReview()
     await say(reply('act:edit', 'Edit'))
     expect(last().kind).toBe('list')
     await say({ id: `wamid.${++seq}`, type: 'interactive', interactive: { type: 'list_reply', list_reply: { id: 'edit:price', title: 'Price' } } })
-    expect(conv().draft.fields.rent).toBeUndefined()
-    expect(conv().draft.fields.bhk).toBe(2) // untouched
+    // The picker lists the price questions with their CURRENT answers — the
+    // old behaviour deleted the whole section here and re-asked all of it.
+    expect(last().kind).toBe('list')
+    expect(last().rows.map((r) => r.id)).toContain('eq:rent')
+    expect(last().rows.find((r) => r.id === 'eq:rent').description).toMatch(/28,000/)
+    expect(conv().draft.fields.rent).toBe(28000) // NOT wiped
+    await say(reply('eq:rent'))
     expect(conv().currentQuestion).toBe('rent')
-    await say(text('30k')); await say(text('60k')); await say(text('skip'))
-    expect(conv().draft.fields).toMatchObject({ rent: 30000, deposit: 60000 })
+    await say(text('30k'))
+    // Only rent changed; the deposit kept its answer, and the review returned.
+    expect(conv().draft.fields).toMatchObject({ rent: 30000, deposit: 100000 })
+    expect(conv().status).toBe('REVIEW')
+  })
+
+  it('adding one amenity later touches nothing else — the toggle list opens with current ticks', async () => {
+    await toReview()
+    await say(reply('act:edit', 'Edit'))
+    await say({ id: `wamid.${++seq}`, type: 'interactive', interactive: { type: 'list_reply', list_reply: { id: 'edit:details', title: 'Property details' } } })
+    await say(reply('eq:amenities'))
+    expect(last().kind).toBe('list')
+    expect(last().rows.map((r) => r.id)).toContain('ms:amenities:done')
+    await say(reply('ms:amenities:2', 'Lift'))
+    await say(reply('ms:amenities:done', 'Done'))
+    expect(conv().draft.fields.amenities).toContain('Lift')
+    expect(conv().draft.fields.bhk).toBe(2) // untouched
+    expect(conv().status).toBe('REVIEW')
+  })
+
+  it('adding only photos: Edit → Photos keeps everything and returns to review after Done', async () => {
+    await toReview()
+    await say(reply('act:edit', 'Edit'))
+    await say({ id: `wamid.${++seq}`, type: 'interactive', interactive: { type: 'list_reply', list_reply: { id: 'edit:photos', title: 'Photos' } } })
+    expect(conv().currentQuestion).toBe('photos')
+    ingestPhoto.mockResolvedValue({ status: 'added', photo: { url: 'https://s/2_full.webp', waMediaId: 'p2', order: 1 } })
+    await say(image('p2'))
+    await say(reply('act:photos_done', 'Done'))
+    expect(conv().draft.photos).toHaveLength(2)
+    expect(conv().draft.fields.rent).toBe(28000) // untouched
     expect(conv().status).toBe('REVIEW')
   })
 
@@ -369,6 +434,7 @@ describe('commands', () => {
 
   it('status reports progress and what is still needed', async () => {
     await say(text('2bhk flat, 28k rent'))
+    await say(reply('act:broker:no'))
     await say(text('status'))
     expect(last().body).toMatch(/Apartment.*is \d+% done/)
     expect(last().body).toMatch(/Exact property location/)
@@ -376,6 +442,7 @@ describe('commands', () => {
 
   it('resuming after a long silence greets and re-asks the current question', async () => {
     await say(text('2bhk flat, 28k rent'))
+    await say(reply('act:broker:no'))
     conv().lastMessageAt = new Date(Date.now() - 8 * 3_600_000)
     await say(text('hi'))
     expect(sent.at(-2).body).toMatch(/Welcome back/)
@@ -393,8 +460,10 @@ describe('the email ask', () => {
   async function toReviewNoEmail() {
     prismaMock.user.findUnique.mockResolvedValue({ ...noEmailUser })
     await say(text('2bhk apartment, fully furnished, 28k rent, 1 lakh deposit'))
+    await say(reply('act:broker:no'))
     await say(pin(12.98, 80.22)); await say(reply('act:loc:confirm'))
-    for (let i = 0; i < 8; i++) await say(text('skip'))
+    await say(text('monthly rent'))
+    for (let i = 0; i < 13; i++) await say(text('skip'))
     ingestPhoto.mockResolvedValue({ status: 'added', photo: { url: 'https://s/1_full.webp', waMediaId: 'p1', order: 0 } })
     await say(image('p1'))
     await say(reply('act:photos_done', 'Done'))
@@ -422,7 +491,8 @@ describe('the email ask', () => {
     const before = asks()
     await say(reply('act:edit', 'Edit'))
     await say({ id: `wamid.${++seq}`, type: 'interactive', interactive: { type: 'list_reply', list_reply: { id: 'edit:price', title: 'Price' } } })
-    await say(text('30k')); await say(text('60k')); await say(text('skip'))
+    await say(reply('eq:rent'))
+    await say(text('30k'))
     expect(conv().status).toBe('REVIEW')
     expect(asks()).toBe(before)
   })
@@ -442,8 +512,10 @@ describe('the email ask', () => {
   it('an owner who already has an email is never asked', async () => {
     ingestPhoto.mockResolvedValue({ status: 'added', photo: { url: 'https://s/1_full.webp', waMediaId: 'p1', order: 0 } })
     await say(text('2bhk apartment, fully furnished, 28k rent, 1 lakh deposit'))
+    await say(reply('act:broker:no'))
     await say(pin(12.98, 80.22)); await say(reply('act:loc:confirm'))
-    for (let i = 0; i < 8; i++) await say(text('skip'))
+    await say(text('monthly rent'))
+    for (let i = 0; i < 13; i++) await say(text('skip'))
     await say(image('p1'))
     await say(reply('act:photos_done', 'Done'))
     expect(conv().status).toBe('REVIEW')
@@ -458,8 +530,10 @@ describe('the email ask', () => {
 describe('multi-select by tapping', () => {
   async function toAmenities() {
     await say(text('2bhk apartment, fully furnished, 28k rent, 1 lakh deposit'))
+    await say(reply('act:broker:no'))
     await say(pin(12.98, 80.22)); await say(reply('act:loc:confirm'))
-    for (let i = 0; i < 5; i++) await say(text('skip')) // bathrooms..availableFrom
+    await say(text('monthly rent'))
+    for (let i = 0; i < 10; i++) await say(text('skip')) // maintenance..noticePeriodDays
     expect(conv().currentQuestion).toBe('amenities')
   }
 
@@ -528,8 +602,10 @@ describe('editing a submitted listing', () => {
   }
   async function toReviewGlobal() {
     await say(text('2bhk apartment, fully furnished, 28k rent, 1 lakh deposit'))
+    await say(reply('act:broker:no'))
     await say(pin(12.98, 80.22)); await say(reply('act:loc:confirm'))
-    for (let i = 0; i < 5; i++) await say(text('skip'))
+    await say(text('monthly rent'))
+    for (let i = 0; i < 10; i++) await say(text('skip'))
     await say(reply('ms:amenities:done')); await say(reply('ms:rules:done')); await say(text('skip'))
     ingestPhoto.mockResolvedValue({ status: 'added', photo: { url: 'https://s/1_full.webp', waMediaId: 'p1', order: 0 } })
     await say(image('p1'))

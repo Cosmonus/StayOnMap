@@ -83,6 +83,7 @@ export const WHATSAPP_FUNNEL = [
  * loses people. Not steps — a failure is not progress — and never client-sent.
  */
 export const WHATSAPP_FAILURES = [
+  'wa_broker_rejected',
   'wa_extraction_failed',
   'wa_location_failed',
   'wa_photo_failed',

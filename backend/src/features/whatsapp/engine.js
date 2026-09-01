@@ -35,7 +35,7 @@ import { createLoginLink } from './loginLink.service.js'
 import { CATEGORIES, CATEGORY_KEYS, SECTIONS, getQuestionnaire } from './questionnaire/schemas.js'
 import {
   nextQuestion, findQuestion, missingRequired, completion, parseAnswer,
-  questionsInSection, questionLabel,
+  questionsInSection, questionLabel, isVisible,
 } from './questionnaire/engine.js'
 import { intelError, intelLog } from '../../lib/intelLog.js'
 
@@ -287,10 +287,12 @@ async function continueConversation(conv, msg, contactName) {
   if (msg.kind === 'text' && coordsFromText(msg.text) && conv.status === 'LOCATION') return onLocation(ctx, { kind: 'text', text: msg.text })
 
   // Pending sub-flows.
+  if (pending?.kind === 'broker') return resolveBrokerGate(ctx, msg)
   if (pending?.kind === 'location') return resolveLocationConfirm(ctx, msg)
   if (pending?.kind === 'pincode') return resolvePincode(ctx, msg)
   if (pending?.kind === 'business') return resolveBusinessGate(ctx, msg)
   if (pending?.kind === 'edit') return resolveEditChoice(ctx, msg)
+  if (pending?.kind === 'editq') return resolveEditQuestion(ctx, msg)
   if (pending?.kind === 'email') return resolveEmail(ctx, msg)
 
   switch (conv.status) {
@@ -345,6 +347,18 @@ async function askType(ctx) {
 
 async function handleTypeSelection(ctx, msg) {
   const { conv } = ctx
+
+  // The broker gate — the flow's FIRST question, whatever identity path led
+  // here (new account, verified owner, linked account: all three land in this
+  // function). The message that arrived rides along in `pending` so a typed
+  // "2bhk in Velachery, 28k rent" still counts once the gate is passed.
+  if (!conv.draft.flags.brokerOk) {
+    conv.draft.pending = { kind: 'broker', firstMessage: ['text', 'reply'].includes(msg.kind) ? msg : null }
+    await ctx.persist()
+    await ctx.buttons(copy.brokerGate(), BROKER_BUTTONS)
+    return conv
+  }
+
   let category = null
   let extracted = null
 
@@ -374,6 +388,30 @@ async function handleTypeSelection(ctx, msg) {
     return conv
   }
   return beginQuestionnaire(ctx, category, extracted)
+}
+
+const BROKER_BUTTONS = [
+  { id: 'act:broker:no', title: "No — I'm the owner" },
+  { id: 'act:broker:yes', title: "Yes, I'm a broker" },
+]
+
+async function resolveBrokerGate(ctx, msg) {
+  const { conv } = ctx
+  const pending = conv.draft.pending
+  if (isReply(msg, 'act:broker:no') || isCmd(msg, 'no', 'n', 'owner', 'i am the owner', "i'm the owner", 'im the owner', 'no i am the owner', 'not a broker', 'nahi', 'illa')) {
+    conv.draft.flags.brokerOk = true
+    conv.draft.pending = null
+    await ctx.persist()
+    return handleTypeSelection(ctx, pending.firstMessage ?? { kind: 'other' })
+  }
+  if (isReply(msg, 'act:broker:yes') || isCmd(msg, 'yes', 'y', 'broker', 'i am a broker', "i'm a broker", 'im a broker', 'agent', 'yes i am a broker', 'haan')) {
+    track(conv, 'wa_broker_rejected')
+    await conversations.cancel(conv)
+    await ctx.say(copy.brokerRejected())
+    return conv
+  }
+  await ctx.buttons(copy.brokerGate(), BROKER_BUTTONS)
+  return conv
 }
 
 async function resolveBusinessGate(ctx, msg) {
@@ -848,17 +886,80 @@ async function resolveEditChoice(ctx, msg) {
     await ctx.list(copy.askWhatToEdit(), copy.editSections(), { buttonText: 'Choose section', sectionTitle: 'Sections' })
     return conv
   }
-  conv.draft.pending = null
   await ctx.say(copy.editingSection(id))
   if (id === 'location') {
+    conv.draft.pending = null
     conv.draft.location = null
-  } else if (id === 'photos') {
-    conv.draft.photosDone = false
-  } else {
-    for (const q of questionsInSection(conv.propertyType, id)) delete fields(conv)[q.field]
+    await ctx.persist({ status: 'QUESTIONNAIRE' })
+    return askNext(ctx)
   }
-  await ctx.persist({ status: 'QUESTIONNAIRE' })
-  return askNext(ctx)
+  if (id === 'photos') {
+    conv.draft.pending = null
+    conv.draft.photosDone = false
+    await ctx.persist({ status: 'QUESTIONNAIRE' })
+    return askNext(ctx)
+  }
+  // A section is never wiped any more. That used to delete every answer in it
+  // and re-ask the lot — "I want to add one amenity" cost an owner the whole
+  // details questionnaire again. Now they pick the ONE question to change;
+  // everything else keeps its answer, and because the draft stays complete,
+  // answering it lands straight back at the review.
+  const qs = editableQuestions(conv, id)
+  if (qs.length === 1) {
+    conv.draft.pending = null
+    await ctx.persist({ status: 'QUESTIONNAIRE' })
+    return askQuestion(ctx, qs[0])
+  }
+  return sendEditQuestionList(ctx, id, 0)
+}
+
+function editableQuestions(conv, section) {
+  return questionsInSection(conv.propertyType, section)
+    .filter((q) => isVisible(q, conv.draft) && !['location', 'image'].includes(q.type))
+}
+
+// Lists carry at most 10 rows: 9 questions + a More row that cycles, same
+// pattern as the multi-select pager. Each row shows the CURRENT answer, so
+// the owner can see what needs changing without opening anything.
+const EDITQ_PAGE = 9
+
+async function sendEditQuestionList(ctx, section, page = 0) {
+  const { conv } = ctx
+  const qs = editableQuestions(conv, section)
+  const pages = Math.max(1, Math.ceil(qs.length / EDITQ_PAGE))
+  const p = ((page % pages) + pages) % pages
+  const rows = qs.slice(p * EDITQ_PAGE, (p + 1) * EDITQ_PAGE).map((q) => ({
+    id: `eq:${q.id}`,
+    title: copy.shortLabel(q).slice(0, 24),
+    description: copy.currentAnswer(conv.propertyType, q, conv.draft),
+  }))
+  if (pages > 1) rows.push({ id: `eq:more:${section}:${(p + 1) % pages}`, title: '➡ More', description: `Page ${p + 1} of ${pages}` })
+  conv.draft.pending = { kind: 'editq', section }
+  await ctx.persist()
+  await ctx.list(copy.askWhatToChange(SECTIONS[section]), rows, { buttonText: 'Choose', sectionTitle: 'Tap one to change' })
+  return conv
+}
+
+async function resolveEditQuestion(ctx, msg) {
+  const { conv } = ctx
+  const section = conv.draft.pending.section
+  const open = async (q) => {
+    conv.draft.pending = null
+    await ctx.persist({ status: 'QUESTIONNAIRE' })
+    return askQuestion(ctx, q)
+  }
+  if (msg.kind === 'reply') {
+    const more = msg.id.match(/^eq:more:([^:]+):(\d+)$/)
+    if (more) return sendEditQuestionList(ctx, more[1], parseInt(more[2], 10))
+    const m = msg.id.match(/^eq:([^:]+)$/)
+    const q = m && findQuestion(conv.propertyType, m[1])
+    if (q) return open(q)
+  }
+  if (msg.kind === 'text') {
+    const hit = editableQuestions(conv, section).find((q) => norm(copy.shortLabel(q)) === norm(msg.text) || q.id === norm(msg.text))
+    if (hit) return open(hit)
+  }
+  return sendEditQuestionList(ctx, section, 0)
 }
 
 async function doPublish(ctx) {
