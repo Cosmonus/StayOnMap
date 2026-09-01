@@ -2,6 +2,10 @@ import { z } from 'zod'
 
 export const createAppointmentSchema = z.object({
   requestedDate: z.string().datetime(),
+  // SHORT_STAY only: the check-out of a stay request (requestedDate is then
+  // the check-in). The service requires it for stays, ignores it otherwise —
+  // which side of that line a property is on is a DB fact, not a client claim.
+  checkOutDate: z.string().datetime().optional(),
   requestedTime: z.string().regex(/^\d{2}:\d{2}$/),
   message: z.string().max(500).optional(),
   contactNumber: z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number'),

@@ -480,12 +480,20 @@ export default function PropertyDetailScreen({ route, navigation }) {
               style={styles.bookButton}
               onPress={() => navigation.navigate('BookViewing', {
                 propertyId,
+                type: property.type,
+                minNights: property.minNights,
+                maxNights: property.maxNights,
                 windowStart: property.appointmentWindowStart,
                 windowEnd: property.appointmentWindowEnd,
               })}
             >
               <Icon name="calendar" size={16} color={colors.white} />
-              <Text style={styles.bookButtonText}>Request a visit</Text>
+              <Text style={styles.bookButtonText}>
+                {property.type === 'SHORT_STAY' ? 'Book your stay'
+                  : property.type === 'LAND' ? 'Request a site visit'
+                    : property.type === 'COMMERCIAL' ? 'Request an inspection'
+                      : 'Request a visit'}
+              </Text>
             </Pressable>
           )}
           </View>

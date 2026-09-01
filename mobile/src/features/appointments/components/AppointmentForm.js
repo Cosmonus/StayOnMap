@@ -35,6 +35,18 @@ const LEAD_MINUTES = 30
 
 const pad = (n) => String(n).padStart(2, '0')
 
+// The same form, worded for what is actually being asked for — a plot gets a
+// site visit, a shop an inspection, and a short stay is booked as DATES, not
+// a viewing slot. Mirrors web's AppointmentForm.jsx TYPE_COPY.
+const TYPE_COPY = {
+  default:    { heading: 'Request a visit',             cta: "I'm Interested — Request Visit", success: 'Visit requested!' },
+  LAND:       { heading: 'Request a site visit',        cta: 'Request a site visit',           success: 'Site visit requested!' },
+  COMMERCIAL: { heading: 'Request an inspection visit', cta: 'Request an inspection visit',    success: 'Inspection requested!' },
+  SHORT_STAY: { heading: 'Book your stay',              cta: 'Request to book',                success: 'Stay requested!' },
+}
+
+const DAY_MS = 86_400_000
+
 // Local date parts, NOT toISOString(). The ISO string is UTC, so between
 // midnight and 05:30 IST it names YESTERDAY — and the chip labelled "Today"
 // carried yesterday's date, which the server then rejects as a past slot. This
@@ -43,19 +55,23 @@ function localISO(d) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-export default function AppointmentForm({ propertyId, windowStart, windowEnd, onSuccess }) {
+export default function AppointmentForm({ propertyId, type, minNights, maxNights, windowStart, windowEnd, onSuccess }) {
   const navigation = useNavigation()
   const queryClient = useQueryClient()
   const { user } = useAuth()
+  const isStay = type === 'SHORT_STAY'
+  const copy = TYPE_COPY[type] ?? TYPE_COPY.default
   // `contactNumber: null` means "the person hasn't touched this field", which
   // is what lets the profile number below fill it. Once they type — including
   // typing nothing, i.e. clearing it — it becomes a string and stops falling
   // back, so we never re-impose a number they deliberately deleted.
-  const [form, setForm] = useState({ requestedDate: '', requestedTime: '', message: '', contactNumber: null })
+  const [form, setForm] = useState({ requestedDate: '', requestedTime: '', checkOutDate: '', message: '', contactNumber: null })
   // Which part of day is open. Null until tapped — the ACTIVE group is derived
   // below rather than stored, so a chosen time, a change of day and a tap
   // cannot disagree about which is showing.
   const [periodTap, setPeriodTap] = useState(null)
+  // false | 'requested' | 'confirmed' — instant book comes back ACCEPTED and
+  // the success card must not claim the owner still has to answer.
   const [submitted, setSubmitted] = useState(false)
   const [chatLoading, setChatLoading] = useState(false)
 
@@ -73,16 +89,19 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
     mutationFn: (data) => {
       const payload = {
         requestedDate: new Date(data.requestedDate).toISOString(),
-        requestedTime: data.requestedTime,
+        // A stay has no viewing slot; the server never reads the time for one,
+        // but the schema requires the field. Noon is the conventional filler.
+        requestedTime: isStay ? '12:00' : data.requestedTime,
         // Normalised on the way out too: the field accepts what a person
         // actually types, the wire only ever carries ten digits.
         contactNumber: normalizePhone(data.contactNumber),
       }
+      if (isStay) payload.checkOutDate = new Date(data.checkOutDate).toISOString()
       if (data.message?.trim()) payload.message = data.message.trim()
       return appointmentService.request(propertyId, payload)
     },
-    onSuccess: () => {
-      setSubmitted(true)
+    onSuccess: (res) => {
+      setSubmitted(res?.data?.status === 'ACCEPTED' ? 'confirmed' : 'requested')
       // Funnel step 5. On the SERVER's confirmed success, never on submit —
       // a request that 400s is not a booking.
       track('appointment_created', { propertyId })
@@ -147,15 +166,48 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
       const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow'
         : d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
       // Two different reasons, and they must not read as one: the owner is
-      // busy, or the day is simply over.
+      // busy, or the day is simply over. A stay has no viewing slots, so the
+      // clock never disables a check-in day — only the owner's calendar does.
       const reason = taken.has(value)
         ? 'the owner already has a visit booked'
-        : slotsFor(value).length === 0
+        : !isStay && slotsFor(value).length === 0
           ? 'no visiting hours left today'
           : null
       return { value, label, disabled: Boolean(reason), reason }
     })
-  }, [availability, slotsFor])
+  }, [availability, slotsFor, isStay])
+
+  // Check-out choices for the chosen check-in: minNights to maxNights ahead,
+  // stopping at the first taken night. Nights are [check-in, check-out), so
+  // check-out may land ON a taken day — the guest leaves that morning — but a
+  // range may never CROSS one. Mirrors web's checkOutDays.
+  const checkOutDays = useMemo(() => {
+    if (!isStay || !form.requestedDate) return []
+    const [y, m, d] = form.requestedDate.split('-').map(Number)
+    const start = new Date(y, m - 1, d)
+    const taken = new Set(availability?.unavailableDates ?? [])
+    const minN = Math.max(1, minNights || 1)
+    const maxN = Math.max(minN, maxNights || 28)
+    let maxValid = Infinity
+    for (let k = 1; k <= maxN; k++) {
+      if (taken.has(localISO(new Date(start.getTime() + k * DAY_MS)))) { maxValid = k; break }
+    }
+    return Array.from({ length: maxN - minN + 1 }, (_, i) => {
+      const n = minN + i
+      const dt = new Date(start.getTime() + n * DAY_MS)
+      const disabled = n > maxValid
+      return {
+        value: localISO(dt),
+        label: `${dt.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} · ${n}n`,
+        disabled,
+        reason: disabled ? 'the owner already has those dates booked' : null,
+      }
+    })
+  }, [isStay, form.requestedDate, availability, minNights, maxNights])
+
+  const nights = isStay && form.requestedDate && form.checkOutDate
+    ? Math.round((new Date(form.checkOutDate) - new Date(form.requestedDate)) / DAY_MS)
+    : 0
 
   const slots = form.requestedDate ? slotsFor(form.requestedDate) : withinWindow
 
@@ -184,8 +236,13 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
     ?? timeGroups[0]
 
   // A date change can invalidate the chosen time (picking Today late in the
-  // day). Clearing it beats submitting a combination the server refuses.
+  // day) — or, on a stay, the chosen check-out. Clearing beats submitting a
+  // combination the server refuses.
   function pickDate(value) {
+    if (isStay) {
+      setForm((f) => ({ ...f, requestedDate: value, checkOutDate: '' }))
+      return
+    }
     setForm((f) => ({
       ...f,
       requestedDate: value,
@@ -193,7 +250,8 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
     }))
   }
 
-  const isValid = form.requestedDate && form.requestedTime && isValidPhone(contactNumber)
+  const isValid = form.requestedDate && isValidPhone(contactNumber)
+    && (isStay ? form.checkOutDate : form.requestedTime)
 
   if (submitted) {
     return (
@@ -201,9 +259,15 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
         <View style={styles.successBox}>
           <View style={styles.successRow}>
             <Icon name="checkCircle" size={18} color={colors.brand600} />
-            <Text style={styles.successTitle}>Visit requested!</Text>
+            <Text style={styles.successTitle}>
+              {submitted === 'confirmed' ? 'Booking confirmed!' : copy.success}
+            </Text>
           </View>
-          <Text style={styles.successBody}>The owner will respond within 24 hours.</Text>
+          <Text style={styles.successBody}>
+            {submitted === 'confirmed'
+              ? 'Instant book — your dates are locked in, and the owner has your details.'
+              : 'The owner will respond within 24 hours.'}
+          </Text>
         </View>
         <View style={styles.chatNudge}>
           <Text style={styles.chatNudgeTitle}>Want to ask the owner something?</Text>
@@ -250,10 +314,10 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
     <View style={styles.container}>
       <View style={styles.headingRow}>
         <Icon name="calendar" size={18} color={colors.slate800} />
-        <Text style={styles.heading}>Request a visit</Text>
+        <Text style={styles.heading}>{copy.heading}</Text>
       </View>
 
-      <View style={styles.labelRow}><Icon name="calendar" size={12} color={colors.slate500} /><Text style={styles.label}>Preferred date</Text></View>
+      <View style={styles.labelRow}><Icon name="calendar" size={12} color={colors.slate500} /><Text style={styles.label}>{isStay ? 'Check-in' : 'Preferred date'}</Text></View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
         {days.map(({ value, label, disabled, reason }) => (
           <Pressable
@@ -284,6 +348,44 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
       </ScrollView>
       <Text style={styles.hint}>Greyed-out days are already booked by the owner.</Text>
 
+      {isStay && (
+        <>
+          <View style={styles.labelRow}><Icon name="calendar" size={12} color={colors.slate500} /><Text style={styles.label}>Check-out</Text></View>
+          {form.requestedDate ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScroll}>
+              {checkOutDays.map(({ value, label, disabled, reason }) => (
+                <Pressable
+                  key={value}
+                  style={[
+                    styles.chip,
+                    disabled && styles.chipDisabled,
+                    !disabled && form.checkOutDate === value && styles.chipActive,
+                  ]}
+                  onPress={() => setForm((f) => ({ ...f, checkOutDate: value }))}
+                  disabled={disabled}
+                  hitSlop={{ top: 6, bottom: 6 }}
+                  accessibilityRole="radio"
+                  accessibilityLabel={disabled ? `${label} — unavailable, ${reason}` : `Check out ${label}`}
+                  accessibilityState={{ checked: form.checkOutDate === value, disabled }}
+                >
+                  <Text style={[
+                    styles.chipText,
+                    disabled && styles.chipTextDisabled,
+                    !disabled && form.checkOutDate === value && styles.chipTextActive,
+                  ]}>{label}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          ) : (
+            <Text style={styles.emptySlots}>Choose your check-in first.</Text>
+          )}
+          {minNights > 1 && <Text style={styles.hint}>Minimum stay is {minNights} nights.</Text>}
+          {nights > 0 && <Text style={styles.nightsText}>{nights} night{nights === 1 ? '' : 's'}</Text>}
+        </>
+      )}
+
+      {!isStay && (
+      <>
       <View style={styles.labelRow}><Icon name="clock" size={12} color={colors.slate500} /><Text style={styles.label}>Preferred time</Text></View>
       {slots.length === 0 ? (
         <Text style={styles.emptySlots}>No times left on this day. Pick another day.</Text>
@@ -326,6 +428,8 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
         </>
       )}
       {windowStart && windowEnd && <Text style={styles.hint}>Owner available {formatTime(windowStart)} – {formatTime(windowEnd)}</Text>}
+      </>
+      )}
 
       <View style={styles.labelRow}><Icon name="phone" size={12} color={colors.slate500} /><Text style={styles.label}>Mobile number</Text></View>
       <TextInput
@@ -360,7 +464,7 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
         onPress={() => mutation.mutate({ ...form, contactNumber })}
         disabled={!isValid || mutation.isPending}
         accessibilityRole="button"
-        accessibilityLabel="Request visit"
+        accessibilityLabel={copy.cta}
         accessibilityState={{ disabled: !isValid || mutation.isPending, busy: mutation.isPending }}
       >
         {mutation.isPending ? (
@@ -368,7 +472,7 @@ export default function AppointmentForm({ propertyId, windowStart, windowEnd, on
         ) : (
           <>
             <Icon name="calendar" size={16} color={colors.white} />
-            <Text style={styles.submitButtonText}>I&apos;m Interested — Request Visit</Text>
+            <Text style={styles.submitButtonText}>{copy.cta}</Text>
           </>
         )}
       </Pressable>
@@ -402,6 +506,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4,
   },
   hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 2 },
+  nightsText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700, marginTop: 2 },
   input: {
     borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md,
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4,

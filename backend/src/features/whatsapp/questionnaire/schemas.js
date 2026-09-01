@@ -83,18 +83,62 @@ const RULES_RESIDENTIAL = [
   { value: 'smokingAllowed',  label: 'Smoking allowed' },
 ]
 
+// ── Pricing mode (flats / houses / shops) ─────────────────────────────────
+// Mirrors the web wizard's LEASE_CATEGORIES/SALE_CATEGORIES: PG prices per
+// bed, stay per night, land carries its own saleOrLease — none get this
+// question. Asked BEFORE rent, because the answer changes what every money
+// question after it MEANS (see PricingModel in schema.prisma).
+const PRICING_MODE = { id: 'pricingModel', field: 'pricingModel', label: 'How are you offering it?', type: 'single_select', required: true, section: 'price', options: [
+  { value: 'RENT',  label: 'Monthly rent' },
+  { value: 'LEASE', label: 'Lease (lump sum)' },
+  { value: 'SALE',  label: 'For sale' },
+] }
+const notSale  = (f) => f.pricingModel !== 'SALE'
+const saleOnly = (f) => f.pricingModel === 'SALE'
+
+// Two rent questions sharing ONE field: a sale price runs to crores
+// (max mirrors MAX_PRICE) while rent/lease is capped at MAX_RENT — a static
+// per-question max cannot serve both, and the server refine that separates
+// them would surface as a publish-time error instead of a sentence here.
+const RENT_Q = { id: 'rent', field: 'rent', label: 'Monthly rent (₹)?', labelFor: { LEASE: 'Total lease amount (₹)?' }, type: 'currency', required: true, min: 1, max: 10_000_000, section: 'price', showIf: notSale }
+const SALE_PRICE_Q = { id: 'salePrice', field: 'rent', label: 'Asking price (₹)?', type: 'currency', required: true, min: 1, max: 999_999_999, section: 'price', showIf: saleOnly }
+// A lease carries no deposit — the lump sum IS the money at stake, and the
+// server rejects a lease with one — so the question is hidden, not asked.
+const DEPOSIT_Q = { id: 'deposit', field: 'deposit', label: 'Security deposit (₹)?', labelFor: { SALE: 'Booking advance (₹)?' }, type: 'currency', required: true, min: 0, max: 10_000_000, section: 'price', showIf: (f) => f.pricingModel !== 'LEASE' }
+const MAINTENANCE_Q = { id: 'maintenance', field: 'maintenance', label: 'Monthly maintenance (₹)? (or *skip*)', type: 'currency', required: false, min: 0, max: 1_000_000, section: 'price' }
+const MIN_STAY_Q = { id: 'leaseDuration', field: 'leaseDuration', label: 'Minimum stay in months? (or *skip*)', type: 'number', required: false, min: 1, max: 120, section: 'price', showIf: notSale }
+const NOTICE_Q = { id: 'noticePeriodDays', field: 'noticePeriodDays', label: 'Notice period in days? (or *skip*)', type: 'number', required: false, min: 0, max: 180, section: 'price', showIf: notSale }
+// The two questions every Indian buyer asks before anything else, plus
+// possession — only when selling.
+const SALE_TERM_QS = [
+  { id: 'possessionStatus', field: 'possessionStatus', label: 'Possession status?', type: 'single_select', required: false, section: 'price', showIf: saleOnly, options: [
+    { value: 'Ready to move', label: 'Ready to move' }, { value: 'Under construction', label: 'Under construction' }, { value: 'New launch', label: 'New launch' },
+  ] },
+  { id: 'priceNegotiable', field: 'priceNegotiable', label: 'Is the price negotiable?', type: 'boolean', required: false, options: YES_NO, section: 'price', showIf: saleOnly },
+  { id: 'loanEligible', field: 'loanEligible', label: 'Can a buyer get a bank loan on it?', type: 'boolean', required: false, options: YES_NO, section: 'price', showIf: saleOnly },
+]
+const FACING_Q = { id: 'facingDirection', field: 'facingDirection', label: 'Which way does it face?', type: 'single_select', required: false, options: FACING, section: 'details' }
+
 export const QUESTIONNAIRES = {
   apartment: [
     LOCATION,
     { id: 'bhk',         field: 'bhk',         label: 'How many bedrooms?',                  type: 'single_select', required: true, options: BHK, section: 'details' },
-    { id: 'rent',        field: 'rent',        label: 'Monthly rent (₹)?',                   type: 'currency', required: true, min: 1, max: 10_000_000, section: 'price' },
-    { id: 'deposit',     field: 'deposit',     label: 'Security deposit (₹)?',               type: 'currency', required: true, min: 0, max: 10_000_000, section: 'price' },
+    PRICING_MODE,
+    RENT_Q,
+    SALE_PRICE_Q,
+    DEPOSIT_Q,
+    MAINTENANCE_Q,
     { id: 'furnished',   field: 'furnished',   label: 'Furnishing?',                         type: 'single_select', required: true, options: FURNISHED, section: 'details' },
     { id: 'bathrooms',   field: 'bathrooms',   label: 'How many bathrooms?',                 type: 'number', required: false, min: 0, max: 20, section: 'details' },
+    { id: 'area',        field: 'area',        label: 'Built-up area in sq.ft? (or *skip*)', type: 'number', required: false, min: 1, max: 100_000, section: 'details' },
     { id: 'parking',     field: 'parking',     label: 'Is car parking available?',           type: 'boolean', required: false, options: YES_NO, section: 'details' },
     { id: 'floor',       field: 'floor',       label: 'Which floor is the flat on? (0 = ground)', type: 'number', required: false, min: 0, max: 200, section: 'details' },
     { id: 'totalFloors', field: 'totalFloors', label: 'How many floors does the building have?', type: 'number', required: false, min: 1, max: 200, section: 'details' },
-    { id: 'availableFrom', field: 'availableFrom', label: 'Available from? (a date, a month, or *immediately*)', type: 'date', required: false, section: 'price' },
+    FACING_Q,
+    { id: 'availableFrom', field: 'availableFrom', label: 'Available from? (a date, a month, or *immediately*)', labelFor: { SALE: 'Possession from? (a date, or *immediately*)' }, type: 'date', required: false, section: 'price' },
+    MIN_STAY_Q,
+    NOTICE_Q,
+    ...SALE_TERM_QS,
     { id: 'amenities',   field: 'amenities',   label: 'Which amenities does it have?',       type: 'multi_select', required: false, options: amenityOptions('apartment'), section: 'details' },
     { id: 'rules',       field: 'rules',       label: 'House rules — which of these apply?', type: 'multi_select', required: false, options: RULES_RESIDENTIAL, section: 'details' },
     DETAILS,
@@ -107,15 +151,22 @@ export const QUESTIONNAIRES = {
       { value: 'Duplex', label: 'Duplex' }, { value: 'Row house', label: 'Row house' },
     ] },
     { id: 'bhk',         field: 'bhk',         label: 'How many bedrooms?',                  type: 'single_select', required: true, options: BHK, section: 'details' },
-    { id: 'rent',        field: 'rent',        label: 'Monthly rent (₹)?',                   type: 'currency', required: true, min: 1, max: 10_000_000, section: 'price' },
-    { id: 'deposit',     field: 'deposit',     label: 'Security deposit (₹)?',               type: 'currency', required: true, min: 0, max: 10_000_000, section: 'price' },
+    PRICING_MODE,
+    RENT_Q,
+    SALE_PRICE_Q,
+    DEPOSIT_Q,
+    MAINTENANCE_Q,
     { id: 'furnished',   field: 'furnished',   label: 'Furnishing?',                         type: 'single_select', required: true, options: FURNISHED, section: 'details' },
     { id: 'bathrooms',   field: 'bathrooms',   label: 'How many bathrooms?',                 type: 'number', required: false, min: 0, max: 20, section: 'details' },
     { id: 'parking',     field: 'parking',     label: 'Is car parking available?',           type: 'boolean', required: false, options: YES_NO, section: 'details' },
     { id: 'area',        field: 'area',        label: 'Built-up area in sq.ft?',             type: 'number', required: false, min: 1, max: 100_000, section: 'details' },
     { id: 'extent',      field: 'extent',      label: 'Plot area in sq.ft?',                 type: 'number', required: false, min: 1, max: 10_000_000, section: 'details' },
     { id: 'totalFloors', field: 'totalFloors', label: 'How many floors?',                    type: 'number', required: false, min: 1, max: 200, section: 'details' },
-    { id: 'availableFrom', field: 'availableFrom', label: 'Available from? (a date, a month, or *immediately*)', type: 'date', required: false, section: 'price' },
+    FACING_Q,
+    { id: 'availableFrom', field: 'availableFrom', label: 'Available from? (a date, a month, or *immediately*)', labelFor: { SALE: 'Possession from? (a date, or *immediately*)' }, type: 'date', required: false, section: 'price' },
+    MIN_STAY_Q,
+    NOTICE_Q,
+    ...SALE_TERM_QS,
     { id: 'amenities',   field: 'amenities',   label: 'Which features does it have?',        type: 'multi_select', required: false, options: amenityOptions('house'), section: 'details' },
     { id: 'rules',       field: 'rules',       label: 'House rules — which of these apply?', type: 'multi_select', required: false, options: RULES_RESIDENTIAL, section: 'details' },
     DETAILS,
@@ -135,10 +186,13 @@ export const QUESTIONNAIRES = {
       labelFor: { LEASE: 'Lease rent per year (₹)?' } },
     { id: 'deposit',     field: 'deposit',     label: 'Advance amount (₹)? (or *skip*)',    type: 'currency', required: false, min: 0, max: 999_999_999, section: 'price', showIf: (f) => f.saleOrLease === 'LEASE' },
     { id: 'priceNegotiable', field: 'priceNegotiable', label: 'Is the price negotiable?',    type: 'boolean', required: false, options: YES_NO, section: 'price' },
+    { id: 'loanEligible', field: 'loanEligible', label: 'Can a buyer get a bank loan on it?', type: 'boolean', required: false, options: YES_NO, section: 'price', showIf: (f) => f.saleOrLease === 'SALE' },
+    { id: 'availableFrom', field: 'availableFrom', label: 'Available from? (a date, or *immediately*)', labelFor: { SALE: 'Possession from? (a date, or *immediately*)' }, type: 'date', required: false, section: 'price' },
     { id: 'landType',    field: 'landType',    label: 'What type of land?',                  type: 'single_select', required: true, section: 'details', options: [
       { value: 'Residential', label: 'Residential' }, { value: 'Agricultural', label: 'Agricultural' },
       { value: 'Commercial', label: 'Commercial' }, { value: 'Industrial', label: 'Industrial' },
     ] },
+    { id: 'dimensions',  field: 'dimensions',  label: 'Plot dimensions? e.g. 40 x 60 ft (or *skip*)', type: 'text', required: false, max: 60, section: 'details' },
     { id: 'roadWidth',   field: 'roadWidth',   label: 'Approach road width in feet? (or *skip*)', type: 'number', required: false, min: 0, max: 1000, section: 'details' },
     { id: 'facingDirection', field: 'facingDirection', label: 'Which way does the plot face?', type: 'single_select', required: false, options: FACING, section: 'details' },
     { id: 'approvalStatus', field: 'approvalStatus', label: 'Approval status?',              type: 'single_select', required: true, section: 'details', options: [
@@ -163,6 +217,9 @@ export const QUESTIONNAIRES = {
     { id: 'deposit',     field: 'deposit',     label: 'Security deposit (₹)?',               type: 'currency', required: true, min: 0, max: 10_000_000, section: 'price' },
     { id: 'foodIncluded', field: 'foodIncluded', label: 'Is food included in the rent?',     type: 'boolean', required: true, options: YES_NO, section: 'price' },
     { id: 'foodCharges', field: 'foodCharges', label: 'Food charges per month (₹)?',         type: 'currency', required: false, min: 0, max: 100_000, section: 'price', showIf: (f) => f.foodIncluded === false },
+    { id: 'totalBeds',   field: 'totalBeds',   label: 'How many beds does the PG have in total? (or *skip*)', type: 'number', required: false, min: 1, max: 500, section: 'details' },
+    { id: 'availableBeds', field: 'availableBeds', label: 'How many beds are free right now? (or *skip*)', type: 'number', required: false, min: 0, max: 500, section: 'details' },
+    { id: 'noticePeriodDays', field: 'noticePeriodDays', label: 'Notice period in days? (or *skip*)', type: 'number', required: false, min: 0, max: 180, section: 'price' },
     { id: 'availableFrom', field: 'availableFrom', label: 'Beds available from? (a date, or *immediately*)', type: 'date', required: false, section: 'price' },
     { id: 'genderPreference', field: 'genderPreference', label: 'Who is the PG for?',        type: 'single_select', required: true, section: 'details', options: [
       { value: 'ANY', label: 'Anyone' }, { value: 'MALE', label: 'Men' }, { value: 'FEMALE', label: 'Women' },
@@ -182,16 +239,23 @@ export const QUESTIONNAIRES = {
       { value: 'Retail shop', label: 'Shop' }, { value: 'Office', label: 'Office' }, { value: 'Showroom', label: 'Showroom' },
       { value: 'Warehouse', label: 'Warehouse / godown' }, { value: 'Restaurant', label: 'Restaurant space' }, { value: 'Other', label: 'Other' },
     ] },
-    { id: 'rent',        field: 'rent',        label: 'Monthly rent (₹)?',                   type: 'currency', required: true, min: 1, max: 10_000_000, section: 'price' },
-    { id: 'deposit',     field: 'deposit',     label: 'Security deposit (₹)?',               type: 'currency', required: true, min: 0, max: 10_000_000, section: 'price' },
+    PRICING_MODE,
+    RENT_Q,
+    SALE_PRICE_Q,
+    DEPOSIT_Q,
     { id: 'carpetArea',  field: 'carpetArea',  label: 'Built-up / carpet area in sq.ft?',    type: 'number', required: true, min: 1, max: 100_000, section: 'details' },
+    { id: 'frontage',    field: 'frontage',    label: 'Frontage in feet? (or *skip*)',       type: 'number', required: false, min: 1, max: 1000, section: 'details' },
     { id: 'floor',       field: 'floor',       label: 'Which floor? (0 = ground)',           type: 'number', required: false, min: 0, max: 200, section: 'details' },
+    { id: 'powerLoad',   field: 'powerLoad',   label: 'Sanctioned power load in kW? (or *skip*)', type: 'number', required: false, min: 0, max: 10_000, section: 'details' },
     { id: 'parking',     field: 'parking',     label: 'Is parking available?',               type: 'boolean', required: false, options: YES_NO, section: 'details' },
     { id: 'suitableFor', field: 'suitableFor', label: 'What kind of business suits it? (e.g. clinic, café, boutique)', type: 'text', required: false, max: 200, section: 'details' },
     { id: 'furnished',   field: 'furnished',   label: 'What condition is it in?',            type: 'single_select', required: true, section: 'details', options: [
       { value: 'FULLY', label: 'Fully fitted' }, { value: 'SEMI', label: 'Part fitted' }, { value: 'UNFURNISHED', label: 'Bare shell' },
     ] },
-    { id: 'availableFrom', field: 'availableFrom', label: 'Available from? (a date, or *immediately*)', type: 'date', required: false, section: 'price' },
+    { id: 'availableFrom', field: 'availableFrom', label: 'Available from? (a date, or *immediately*)', labelFor: { SALE: 'Possession from? (a date, or *immediately*)' }, type: 'date', required: false, section: 'price' },
+    { ...MIN_STAY_Q, label: 'Lock-in period in months? (or *skip*)' },
+    NOTICE_Q,
+    ...SALE_TERM_QS,
     { id: 'amenities',   field: 'amenities',   label: 'What does the space have?',           type: 'multi_select', required: false, options: amenityOptions('shop'), section: 'details' },
     DETAILS,
     PHOTOS,
@@ -202,13 +266,24 @@ export const QUESTIONNAIRES = {
       { value: 'Entire place', label: 'Entire place' }, { value: 'Private room', label: 'Private room' }, { value: 'Shared room', label: 'Shared room' },
     ] },
     { id: 'nightlyRate', field: 'nightlyRate', label: 'Price per night (₹)?',                type: 'currency', required: true, min: 1, max: 1_000_000, section: 'price' },
+    { id: 'cleaningFee', field: 'cleaningFee', label: 'Cleaning fee (₹)? (or *skip*)',       type: 'currency', required: false, min: 0, max: 100_000, section: 'price' },
+    { id: 'weekendRate', field: 'weekendRate', label: 'Weekend rate per night (₹)? (or *skip*)', type: 'currency', required: false, min: 1, max: 1_000_000, section: 'price' },
+    { id: 'minNights',   field: 'minNights',   label: 'Minimum stay in nights? (or *skip*)', type: 'number', required: false, min: 1, max: 365, section: 'price' },
+    { id: 'maxNights',   field: 'maxNights',   label: 'Maximum stay in nights? (or *skip*)', type: 'number', required: false, min: 1, max: 365, section: 'price' },
+    { id: 'instantBook', field: 'instantBook', label: 'Can guests book instantly, without approving each request?', type: 'boolean', required: false, options: YES_NO, section: 'price' },
     { id: 'maxGuests',   field: 'maxGuests',   label: 'Maximum guests?',                     type: 'number', required: true, min: 1, max: 50, section: 'details' },
     { id: 'bhk',         field: 'bhk',         label: 'How many bedrooms?',                  type: 'number', required: true, min: 0, max: 10, section: 'details' },
+    { id: 'beds',        field: 'beds',        label: 'How many beds? (or *skip*)',          type: 'number', required: false, min: 1, max: 50, section: 'details' },
     { id: 'bathrooms',   field: 'bathrooms',   label: 'How many bathrooms?',                 type: 'number', required: false, min: 0, max: 20, section: 'details' },
     { id: 'checkIn',     field: 'checkIn',     label: 'Check-in time? (e.g. 2 PM)',          type: 'text', required: false, max: 20, section: 'details' },
     { id: 'checkOut',    field: 'checkOut',    label: 'Check-out time? (e.g. 11 AM)',        type: 'text', required: false, max: 20, section: 'details' },
     { id: 'amenities',   field: 'amenities',   label: 'What can guests use?',                type: 'multi_select', required: false, options: amenityOptions('stay'), section: 'details' },
-    { id: 'rules',       field: 'rules',       label: 'House rules — which of these apply?', type: 'multi_select', required: false, section: 'details', options: [
+    { id: 'rules',       field: 'rules',       label: 'House rules — who can book, and what\'s allowed?', type: 'multi_select', required: false, section: 'details', options: [
+      // bachelorAllowed is the column that means "unmarried guests accepted" —
+      // for a short stay that is exactly what "couple friendly" claims. The
+      // guest CAP ("only 3 members") is maxGuests above, not a rule.
+      { value: 'bachelorAllowed', label: 'Couples welcome' },
+      { value: 'familyPreferred', label: 'Great for families' },
       { value: 'petsAllowed', label: 'Pets allowed' }, { value: 'nonVegAllowed', label: 'Non-veg allowed' }, { value: 'smokingAllowed', label: 'Smoking allowed' },
     ] },
     DETAILS,

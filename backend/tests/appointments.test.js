@@ -320,6 +320,103 @@ describe('getVisitAvailability', () => {
 
     expect(prismaMock.appointment.findMany.mock.calls[0][0].where.status).toBe('ACCEPTED')
   })
+
+  it('expands an accepted stay into every NIGHT of its range — the check-out day stays free', async () => {
+    const checkIn = daysFromNow(3)
+    prismaMock.appointment.findMany.mockResolvedValue([
+      { requestedDate: new Date(`${checkIn}T00:00:00.000Z`), checkOutDate: new Date(`${daysFromNow(6)}T00:00:00.000Z`) },
+    ])
+    prismaMock.availabilityBlock.findMany.mockResolvedValue([])
+
+    const result = await getVisitAvailability('prop-1')
+
+    expect(result.unavailableDates).toEqual([daysFromNow(3), daysFromNow(4), daysFromNow(5)])
+  })
+})
+
+/**
+ * SHORT_STAY: a stay is booked as a DATE RANGE — check-in in requestedDate,
+ * check-out in checkOutDate, nights [in, out) — and the property's own type
+ * decides which shape applies, never the client. instantBook is the owner's
+ * standing acceptance of any valid request.
+ */
+describe('requestAppointment — SHORT_STAY date-range booking', () => {
+  const stayProperty = {
+    id: 'prop-1', ownerId: 'owner-1', status: 'ACTIVE', riskScore: null,
+    type: 'SHORT_STAY', minNights: 2, maxNights: 28, instantBook: false,
+  }
+  const stayRequest = {
+    requestedDate: daysFromNow(7),
+    checkOutDate: daysFromNow(10),
+    requestedTime: '12:00',
+    contactNumber: '9876543210',
+  }
+
+  beforeEach(() => {
+    prismaMock.property.findUnique.mockResolvedValue({ ...stayProperty })
+    prismaMock.appointment.findFirst.mockResolvedValue(null)
+    prismaMock.appointment.findMany.mockResolvedValue([])
+    prismaMock.availabilityBlock.findFirst.mockResolvedValue(null)
+  })
+
+  it('refuses a stay with no check-out date, and one that ends before it starts', async () => {
+    await expect(requestAppointment('tenant-1', 'prop-1', { ...stayRequest, checkOutDate: undefined }))
+      .rejects.toMatchObject({ statusCode: 400 })
+    await expect(requestAppointment('tenant-1', 'prop-1', { ...stayRequest, checkOutDate: daysFromNow(7) }))
+      .rejects.toMatchObject({ statusCode: 400 })
+  })
+
+  it('enforces the property’s own minimum and maximum nights', async () => {
+    await expect(requestAppointment('tenant-1', 'prop-1', { ...stayRequest, checkOutDate: daysFromNow(8) }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringMatching(/minimum stay of 2/) })
+    prismaMock.property.findUnique.mockResolvedValue({ ...stayProperty, maxNights: 2 })
+    await expect(requestAppointment('tenant-1', 'prop-1', stayRequest))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringMatching(/up to 2 nights/) })
+  })
+
+  it('refuses a range that crosses an owner-blocked night', async () => {
+    prismaMock.availabilityBlock.findFirst.mockResolvedValue({ id: 'block-1' })
+    await expect(requestAppointment('tenant-1', 'prop-1', stayRequest))
+      .rejects.toMatchObject({ statusCode: 409 })
+    expect(prismaMock.appointment.create).not.toHaveBeenCalled()
+  })
+
+  it('creates a pending stay request with the range, and tells the owner it is a stay', async () => {
+    prismaMock.appointment.create.mockResolvedValue(makeAppointment({ checkOutDate: new Date(stayRequest.checkOutDate) }))
+
+    await requestAppointment('tenant-1', 'prop-1', stayRequest)
+
+    const created = prismaMock.appointment.create.mock.calls[0][0].data
+    expect(created.checkOutDate).toBeInstanceOf(Date)
+    expect(created.status).toBeUndefined() // PENDING by default — no instant book
+    expect(notifyUser).toHaveBeenCalledWith('owner-1', expect.objectContaining({
+      title: 'New stay request',
+    }))
+  })
+
+  it('instant book accepts on the owner’s standing instruction and stamps respondedAt', async () => {
+    prismaMock.property.findUnique.mockResolvedValue({ ...stayProperty, instantBook: true })
+    prismaMock.appointment.create.mockResolvedValue(makeAppointment({ status: 'ACCEPTED', checkOutDate: new Date(stayRequest.checkOutDate) }))
+
+    const result = await requestAppointment('tenant-1', 'prop-1', stayRequest)
+
+    const created = prismaMock.appointment.create.mock.calls[0][0].data
+    expect(created.status).toBe('ACCEPTED')
+    expect(created.respondedAt).toBeInstanceOf(Date)
+    expect(result.status).toBe('ACCEPTED')
+    expect(notifyUser).toHaveBeenCalledWith('owner-1', expect.objectContaining({
+      title: 'New booking confirmed',
+    }))
+  })
+
+  it('a flat cannot be opted into ranges by the client — checkOutDate is ignored', async () => {
+    prismaMock.property.findUnique.mockResolvedValue({ id: 'prop-1', ownerId: 'owner-1', status: 'ACTIVE', riskScore: null, type: 'APARTMENT' })
+    prismaMock.appointment.create.mockResolvedValue(makeAppointment())
+
+    await requestAppointment('tenant-1', 'prop-1', { ...validRequestData, checkOutDate: daysFromNow(10) })
+
+    expect(prismaMock.appointment.create.mock.calls[0][0].data.checkOutDate).toBeNull()
+  })
 })
 
 describe('updateAppointmentStatus — tenant proposing a different time', () => {

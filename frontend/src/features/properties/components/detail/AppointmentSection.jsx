@@ -20,7 +20,7 @@ const APPT_DISPLAY = {
   RESCHEDULE_REQUESTED: { icon: Clock,     label: 'Waiting on the owner',   bg: 'bg-amber-50',   border: 'border-amber-200',   text: 'text-amber-800'   },
 }
 
-export default function AppointmentSection({ propertyId, windowStart, windowEnd }) {
+export default function AppointmentSection({ propertyId, type, minNights, maxNights, windowStart, windowEnd }) {
   const [forceForm, setForceForm] = useState(false)
 
   const { data: myAppointments = [], isLoading } = useQuery({
@@ -47,19 +47,26 @@ export default function AppointmentSection({ propertyId, windowStart, windowEnd 
   if (!showForm && existing) {
     const cfg = APPT_DISPLAY[existing.status] ?? APPT_DISPLAY.PENDING
     const CfgIcon = cfg.icon
-    const date = existing.requestedDate
-      ? new Date(existing.requestedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-      : null
+    // A stay request is a date range, not a slot — the words and the date line
+    // both say so, and no time is shown because none was picked.
+    const isStayReq = Boolean(existing.checkOutDate)
+    const label = isStayReq
+      ? (existing.status === 'ACCEPTED' ? 'Stay confirmed' : existing.status === 'PENDING' ? 'Stay requested' : cfg.label)
+      : cfg.label
+    const fmt = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    const date = existing.requestedDate ? fmt(existing.requestedDate) : null
 
     return (
       <div className={`rounded-xl border p-4 space-y-2 ${cfg.bg} ${cfg.border}`}>
         <div className="flex items-center gap-2">
           <CfgIcon size={17} strokeWidth={2} className={cfg.text} aria-hidden="true" />
-          <span className={`text-sm font-bold ${cfg.text}`}>{cfg.label}</span>
+          <span className={`text-sm font-bold ${cfg.text}`}>{label}</span>
         </div>
         {date && (
           <p className={`text-xs ${cfg.text} opacity-80`}>
-            {date}{existing.requestedTime ? ` · ${formatTime(existing.requestedTime)}` : ''}
+            {isStayReq
+              ? `${date} → ${fmt(existing.checkOutDate)}`
+              : `${date}${existing.requestedTime ? ` · ${formatTime(existing.requestedTime)}` : ''}`}
           </p>
         )}
         {existing.ownerNote && (
@@ -103,7 +110,15 @@ export default function AppointmentSection({ propertyId, windowStart, windowEnd 
           <p className="text-xs text-blue-500 mt-1">Pick a new date and time below.</p>
         </div>
       )}
-      <AppointmentForm propertyId={propertyId} onSuccess={() => setForceForm(false)} windowStart={windowStart} windowEnd={windowEnd} />
+      <AppointmentForm
+        propertyId={propertyId}
+        type={type}
+        minNights={minNights}
+        maxNights={maxNights}
+        onSuccess={() => setForceForm(false)}
+        windowStart={windowStart}
+        windowEnd={windowEnd}
+      />
     </div>
   )
 }

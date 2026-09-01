@@ -61,9 +61,14 @@ export async function getVisitAvailability(propertyId) {
 
   const [booked, blocked] = await Promise.all([
     prisma.appointment.findMany({
-      where: { propertyId, status: 'ACCEPTED', requestedDate: { gte: from, lte: to } },
-      select: { requestedDate: true },
-      distinct: ['requestedDate'],
+      // A stay that STARTED before the window can still occupy nights inside
+      // it, so the filter is "overlaps the window", not "starts in it".
+      where: {
+        propertyId, status: 'ACCEPTED',
+        requestedDate: { lte: to },
+        OR: [{ checkOutDate: null, requestedDate: { gte: from } }, { checkOutDate: { gt: from } }],
+      },
+      select: { requestedDate: true, checkOutDate: true },
     }),
     prisma.availabilityBlock.findMany({
       where: { propertyId, isBlocked: true, date: { gte: from, lte: to } },
@@ -71,10 +76,16 @@ export async function getVisitAvailability(propertyId) {
     }),
   ])
 
-  const dates = new Set([
-    ...booked.map((a) => a.requestedDate.toISOString().slice(0, 10)),
-    ...blocked.map((b) => b.date.toISOString().slice(0, 10)),
-  ])
+  const dates = new Set(blocked.map((b) => b.date.toISOString().slice(0, 10)))
+  for (const a of booked) {
+    if (!a.checkOutDate) { dates.add(a.requestedDate.toISOString().slice(0, 10)); continue }
+    // An accepted stay occupies every NIGHT of its range — [checkIn,
+    // checkOut) — so the check-out day itself stays available for the next
+    // guest's check-in.
+    for (let d = Math.max(a.requestedDate.getTime(), from.getTime()); d < Math.min(a.checkOutDate.getTime(), to.getTime() + 86_400_000); d += 86_400_000) {
+      dates.add(new Date(d).toISOString().slice(0, 10))
+    }
+  }
   return { unavailableDates: [...dates].sort() }
 }
 
@@ -92,6 +103,59 @@ async function isDateUnavailable(propertyId, dateISO) {
     }),
   ])
   return Boolean(booked || blocked)
+}
+
+// A stay range [checkIn, checkOut) is unavailable when any of its NIGHTS is —
+// blocked by the owner, taken by an accepted visit, or inside an accepted
+// stay. Two ranges overlap when each starts before the other ends.
+async function isRangeUnavailable(propertyId, fromDay, toDay) {
+  const [blocked, bookedVisit, bookedStay] = await Promise.all([
+    prisma.availabilityBlock.findFirst({
+      where: { propertyId, isBlocked: true, date: { gte: fromDay, lt: toDay } },
+      select: { id: true },
+    }),
+    prisma.appointment.findFirst({
+      where: { propertyId, status: 'ACCEPTED', checkOutDate: null, requestedDate: { gte: fromDay, lt: toDay } },
+      select: { id: true },
+    }),
+    prisma.appointment.findFirst({
+      where: { propertyId, status: 'ACCEPTED', checkOutDate: { gt: fromDay }, requestedDate: { lt: toDay } },
+      select: { id: true },
+    }),
+  ])
+  return Boolean(blocked || bookedVisit || bookedStay)
+}
+
+// Every other PENDING request an acceptance settles: same-day visits, and any
+// stay whose range overlaps. Shared by the owner's Accept and by instant book,
+// which is an acceptance the owner configured in advance.
+async function rejectSupersededPending(appt) {
+  const rangeEnd = appt.checkOutDate ?? new Date(appt.requestedDate.getTime() + 86_400_000)
+  const conflicting = await prisma.appointment.findMany({
+    where: {
+      propertyId: appt.propertyId, id: { not: appt.id }, status: 'PENDING',
+      requestedDate: { lt: rangeEnd },
+      OR: [{ checkOutDate: null, requestedDate: { gte: appt.requestedDate } }, { checkOutDate: { gt: appt.requestedDate } }],
+    },
+    select: { id: true, tenantId: true },
+  })
+  if (!conflicting.length) return
+  await prisma.appointment.updateMany({
+    // These are answers too — filling the slot decides every other request for
+    // it. `respondedAt: null` is belt-and-braces: PENDING rows can't carry one.
+    where: { id: { in: conflicting.map((c) => c.id) }, respondedAt: null },
+    data: { status: 'REJECTED', ownerNote: 'Another visit was scheduled for this date.', respondedAt: new Date() },
+  })
+  await Promise.all(conflicting.map((c) =>
+    notifyUser(c.tenantId, {
+      type: 'APPOINTMENT_REJECTED',
+      title: 'Appointment not available',
+      body: 'Another visit was scheduled for this date. Please request a different date.',
+      referenceId: c.id,
+      referenceType: 'Appointment',
+      audience: 'TENANT',
+    }).catch(() => {})
+  ))
 }
 
 // A visit can't be asked for at a time that has already happened. Nothing
@@ -115,12 +179,46 @@ function assertFutureSlot(dateISO, hhmm) {
 }
 
 export async function requestAppointment(tenantId, propertyId, data) {
-  assertFutureSlot(data.requestedDate, data.requestedTime)
-
-  const property = await prisma.property.findUnique({ where: { id: propertyId }, select: { id: true, ownerId: true, status: true, riskScore: true } })
+  const property = await prisma.property.findUnique({
+    where: { id: propertyId },
+    select: { id: true, ownerId: true, status: true, riskScore: true, type: true, minNights: true, maxNights: true, instantBook: true },
+  })
   if (!property) throw Object.assign(new Error('Property not found'), { statusCode: 404 })
   if (property.status !== 'ACTIVE') throw Object.assign(new Error('Property is not available'), { statusCode: 400 })
   if (property.ownerId === tenantId) throw Object.assign(new Error('Cannot book your own property'), { statusCode: 400 })
+
+  // A short stay is booked as a DATE RANGE, not a viewing slot — check-in in
+  // requestedDate, check-out in checkOutDate, nights [in, out). The property's
+  // type decides which shape applies; a client cannot opt a flat into ranges
+  // or a stay out of them.
+  const isStay = property.type === 'SHORT_STAY'
+  let checkOutDay = null
+  if (!isStay) {
+    // A visit is a slot, and a slot in the past is unactionable.
+    assertFutureSlot(data.requestedDate, data.requestedTime)
+  } else {
+    const checkIn = utcMidnight(data.requestedDate)
+    // A stay has no slot — checking in TODAY at 9pm is a real booking, so the
+    // gate is the IST calendar day, not a clock time.
+    const istToday = utcMidnight(new Date(Date.now() + IST_OFFSET_MIN * 60_000).toISOString())
+    if (!checkIn || checkIn < istToday) {
+      throw Object.assign(new Error('Check-in cannot be in the past.'), { statusCode: 400 })
+    }
+    checkOutDay = data.checkOutDate ? utcMidnight(data.checkOutDate) : null
+    if (!checkOutDay || checkOutDay <= checkIn) {
+      throw Object.assign(new Error('Pick your check-in and check-out dates.'), { statusCode: 400 })
+    }
+    const nights = Math.round((checkOutDay - checkIn) / 86_400_000)
+    if (property.minNights && nights < property.minNights) {
+      throw Object.assign(new Error(`This place has a minimum stay of ${property.minNights} night${property.minNights === 1 ? '' : 's'}.`), { statusCode: 400 })
+    }
+    if (property.maxNights && nights > property.maxNights) {
+      throw Object.assign(new Error(`This place takes stays of up to ${property.maxNights} nights.`), { statusCode: 400 })
+    }
+    if (await isRangeUnavailable(propertyId, checkIn, checkOutDay)) {
+      throw Object.assign(new Error('Some of those dates are already booked or blocked — pick different dates.'), { statusCode: 409 })
+    }
+  }
   // Blocking has to cover the doorstep, not just the inbox. Someone you have
   // shut out of chat turning up at your home is strictly worse than a message,
   // and a visit request is the one action on this platform that produces a
@@ -143,15 +241,44 @@ export async function requestAppointment(tenantId, propertyId, data) {
   // uses ("Another visit was scheduled for this date"). Greying individual times
   // would imply the owner runs several viewings a day, which the server does not
   // believe.
-  if (await isDateUnavailable(propertyId, data.requestedDate)) {
+  if (!isStay && await isDateUnavailable(propertyId, data.requestedDate)) {
     throw Object.assign(
       new Error('The owner already has a visit booked that day — pick another date.'),
       { statusCode: 409 },
     )
   }
 
-  const appt = await prisma.appointment.create({ data: { ...data, tenantId, propertyId, ownerId: property.ownerId, requestedDate: new Date(data.requestedDate) } })
-  await notifyUser(property.ownerId, { type: 'APPOINTMENT_REQUEST', title: 'New Appointment Request', body: 'A tenant has requested to visit your property.', referenceId: appt.id, referenceType: 'Appointment', audience: 'OWNER' })
+  // Instant book: the owner of a short stay opted in advance into accepting
+  // any valid request — the range was just validated against their calendar,
+  // so the platform answers on their standing instruction. respondedAt is
+  // stamped because the renter waited zero, which is what it measures.
+  const instant = isStay && property.instantBook === true
+
+  const appt = await prisma.appointment.create({
+    data: {
+      ...data, tenantId, propertyId, ownerId: property.ownerId,
+      requestedDate: new Date(data.requestedDate),
+      checkOutDate: checkOutDay,
+      ...(instant && { status: 'ACCEPTED', respondedAt: new Date() }),
+    },
+  })
+  if (instant) await rejectSupersededPending(appt)
+
+  const fmtDay = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  const rangeLine = isStay ? `${fmtDay(data.requestedDate)} → ${fmtDay(checkOutDay)}` : null
+
+  await notifyUser(property.ownerId, {
+    type: 'APPOINTMENT_REQUEST',
+    title: instant ? 'New booking confirmed' : isStay ? 'New stay request' : 'New Appointment Request',
+    body: instant
+      ? `A guest booked your stay: ${rangeLine}. Instant book confirmed it for them.`
+      : isStay
+        ? `A guest requested to book your stay: ${rangeLine}.`
+        : 'A tenant has requested to visit your property.',
+    referenceId: appt.id,
+    referenceType: 'Appointment',
+    audience: 'OWNER',
+  })
 
   // The strongest preference signal there is — asking to physically go and see
   // a place. Drop the cached profile so recommendations reflect it immediately
@@ -160,8 +287,9 @@ export async function requestAppointment(tenantId, propertyId, data) {
 
   // Auto-create chat conversation and send appointment summary
   try {
-    const date = new Date(data.requestedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-    const chatMsg = `Visit requested\nDate: ${date}\nTime: ${data.requestedTime}\nPhone: ${data.contactNumber}${data.message ? `\n\n${data.message}` : ''}`
+    const chatMsg = isStay
+      ? `${instant ? 'Stay booked (instant book)' : 'Stay requested'}\nCheck-in: ${fmtDay(data.requestedDate)}\nCheck-out: ${fmtDay(checkOutDay)}\nPhone: ${data.contactNumber}${data.message ? `\n\n${data.message}` : ''}`
+      : `Visit requested\nDate: ${fmtDay(data.requestedDate)}\nTime: ${data.requestedTime}\nPhone: ${data.contactNumber}${data.message ? `\n\n${data.message}` : ''}`
     const convo = await getOrCreateConversation(tenantId, propertyId)
     await sendMessage(convo.id, tenantId, chatMsg)
   } catch { /* best-effort — don't fail the appointment if chat fails */ }
@@ -395,34 +523,9 @@ export async function updateAppointmentStatus(
     emailMeta,
   })
 
-  // When accepting, auto-reject other pending appointments for the same property on the same date
-  if (status === 'ACCEPTED') {
-    const conflicting = await prisma.appointment.findMany({
-      where: { propertyId: appt.propertyId, id: { not: appointmentId }, status: 'PENDING', requestedDate: appt.requestedDate },
-      select: { id: true, tenantId: true },
-    })
-    if (conflicting.length > 0) {
-      await prisma.appointment.updateMany({
-        // These are answers too — the owner filled the slot, which decides
-        // every other request for that day. Leaving them unstamped would score
-        // the owner as having ignored the very people their acceptance
-        // answered. `respondedAt: null` in the where is belt-and-braces: these
-        // rows are PENDING, so they cannot already carry a stamp.
-        where: { id: { in: conflicting.map(c => c.id) }, respondedAt: null },
-        data: { status: 'REJECTED', ownerNote: 'Another visit was scheduled for this date.', respondedAt: new Date() },
-      })
-      await Promise.all(conflicting.map(c =>
-        notifyUser(c.tenantId, {
-          type: 'APPOINTMENT_REJECTED',
-          title: 'Appointment not available',
-          body: 'Another visit was scheduled for this date. Please request a different date.',
-          referenceId: c.id,
-          referenceType: 'Appointment',
-          audience: 'TENANT',
-        }).catch(() => {})
-      ))
-    }
-  }
+  // Accepting settles every other pending request the acceptance covers —
+  // same-day visits, and for a stay every request overlapping its range.
+  if (status === 'ACCEPTED') await rejectSupersededPending(updated)
 
   // Send status update to chat
   try {

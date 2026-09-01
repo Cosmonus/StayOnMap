@@ -33,10 +33,11 @@ function deriveType(category, fields) {
 
 // Land: SALE is a sale; "lease" is the platform's RENT mode with
 // `saleOrLease: 'LEASE'` and the yearly rent in `rent` — exactly what the web
-// wizard sends. The LEASE pricing model (a refundable lump sum) is for flats,
-// houses and shops only, and createPropertySchema refuses it on land.
+// wizard sends. Flats, houses and shops carry their own pricingModel question
+// (RENT | LEASE lump sum | SALE); PG and stay are always RENT.
 function resolvePricingModel(category, fields) {
   if (category === 'land') return fields.saleOrLease === 'SALE' ? 'SALE' : 'RENT'
+  if (fields.pricingModel === 'LEASE' || fields.pricingModel === 'SALE') return fields.pricingModel
   return 'RENT'
 }
 
@@ -49,7 +50,7 @@ const PARKING_AMENITY = { apartment: 'Covered Parking', house: 'Covered Parking'
 
 const RESIDENTIAL_RULE_DEFAULTS = { bachelorAllowed: true, familyPreferred: false, petsAllowed: false, nonVegAllowed: true, smokingAllowed: false }
 const PG_RULE_DEFAULTS = { visitorsAllowed: true, nonVegAllowed: true, smokingAllowed: false }
-const STAY_RULE_DEFAULTS = { petsAllowed: false, nonVegAllowed: true, smokingAllowed: false }
+const STAY_RULE_DEFAULTS = { bachelorAllowed: false, familyPreferred: false, petsAllowed: false, nonVegAllowed: true, smokingAllowed: false }
 
 const fmtMoney = (n) => `₹${Number(n).toLocaleString('en-IN')}`
 
@@ -131,6 +132,7 @@ export function buildPropertyPayload(category, draft, amenityIdByName) {
   const pricingModel = resolvePricingModel(category, fields)
   const isStay = category === 'stay'
   const isSale = pricingModel === 'SALE'
+  const isLease = pricingModel === 'LEASE'
 
   const num = (v) => (v == null || v === '' ? undefined : Number(v))
   const str = (v) => (v == null || v === '' ? undefined : String(v))
@@ -154,8 +156,18 @@ export function buildPropertyPayload(category, draft, amenityIdByName) {
     amenityIds,
     pricingModel,
     rent: isStay ? num(fields.nightlyRate) : num(fields.rent),
-    deposit: num(fields.deposit) ?? 0,
+    // A lease carries no deposit — the schema rejects one — even if a deposit
+    // was typed before the owner switched the mode at review.
+    deposit: isLease ? 0 : num(fields.deposit) ?? 0,
     brokerage: 0,
+    ...(num(fields.maintenance) !== undefined && { maintenance: num(fields.maintenance) }),
+    ...(num(fields.leaseDuration) >= 1 && { leaseDuration: num(fields.leaseDuration) }),
+    ...(num(fields.noticePeriodDays) !== undefined && { noticePeriodDays: num(fields.noticePeriodDays) }),
+    ...(isSale && {
+      ...(fields.possessionStatus && { possessionStatus: fields.possessionStatus }),
+      ...(typeof fields.priceNegotiable === 'boolean' && { priceNegotiable: fields.priceNegotiable }),
+      ...(typeof fields.loanEligible === 'boolean' && { loanEligible: fields.loanEligible }),
+    }),
     ...(fields.furnished && { furnished: fields.furnished }),
     ...(num(fields.bhk) !== undefined && { bhk: num(fields.bhk) }),
     ...(num(fields.bathrooms) !== undefined && { bathrooms: num(fields.bathrooms) }),
@@ -173,28 +185,40 @@ export function buildPropertyPayload(category, draft, amenityIdByName) {
       extent: num(fields.extent),
       extentUnit: str(fields.extentUnit) ?? 'sq.ft',
       saleOrLease: fields.saleOrLease,
+      ...(str(fields.dimensions) && { dimensions: str(fields.dimensions) }),
       ...(num(fields.roadWidth) !== undefined && { roadWidth: num(fields.roadWidth) }),
       ...(fields.approvalStatus && { approvalStatus: fields.approvalStatus }),
-      ...(isSale && typeof fields.priceNegotiable === 'boolean' && { priceNegotiable: fields.priceNegotiable }),
     }),
     // PG
     ...(category === 'pg' && {
       sharing: num(fields.sharing),
+      ...(num(fields.totalBeds) !== undefined && { totalBeds: num(fields.totalBeds) }),
+      ...(num(fields.availableBeds) !== undefined && { availableBeds: num(fields.availableBeds) }),
     }),
     // COMMERCIAL
     ...(category === 'shop' && {
       commercialType: COMMERCIAL_TYPE[fields.commercialType] ?? 'Retail shop',
       ...(num(fields.carpetArea) !== undefined && { carpetArea: num(fields.carpetArea) }),
+      ...(num(fields.frontage) !== undefined && { frontage: num(fields.frontage) }),
+      // The column is a string ('15 kW' shape on web); the bot asks a number.
+      ...(num(fields.powerLoad) !== undefined && { powerLoad: String(fields.powerLoad) }),
     }),
     // SHORT_STAY
-    ...(isStay && {
-      placeType: fields.placeType,
-      nightlyRate: num(fields.nightlyRate),
-      cleaningFee: 0,
-      maxGuests: num(fields.maxGuests),
-      minNights: DEFAULT_MIN_NIGHTS,
-      maxNights: DEFAULT_MAX_NIGHTS,
-    }),
+    ...(isStay && (() => {
+      const minN = num(fields.minNights) ?? DEFAULT_MIN_NIGHTS
+      return {
+        placeType: fields.placeType,
+        nightlyRate: num(fields.nightlyRate),
+        cleaningFee: num(fields.cleaningFee) ?? 0,
+        ...(num(fields.weekendRate) !== undefined && { weekendRate: num(fields.weekendRate) }),
+        maxGuests: num(fields.maxGuests),
+        ...(num(fields.beds) !== undefined && { beds: num(fields.beds) }),
+        minNights: minN,
+        // A max below the min is a typo, not a policy — never publish one.
+        maxNights: Math.max(minN, num(fields.maxNights) ?? DEFAULT_MAX_NIGHTS),
+        ...(typeof fields.instantBook === 'boolean' && { instantBook: fields.instantBook }),
+      }
+    })()),
   }
 
   const rules = buildRules(category, fields)

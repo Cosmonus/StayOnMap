@@ -14,6 +14,11 @@ export const BRAND = {
 // The Android app's Play Store listing — the one place the URL is written.
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.stayonmap.app'
 
+// The WhatsApp listing bot (+91 73582 47801) — the one place the number is
+// written. The prefilled text is what opens the bot's listing flow.
+export const WHATSAPP_LIST_URL =
+  'https://wa.me/917358247801?text=' + encodeURIComponent('Hi, I want to list my property')
+
 export const DEFAULT_SEO = {
   title: `${BRAND.name} — ${BRAND.tagline}`,
   description:

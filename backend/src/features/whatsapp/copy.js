@@ -8,6 +8,10 @@ import { toDisplay } from './phone.js'
 
 export const BRAND = 'StayOnMap'
 
+// The Android app — the one place this URL is written on the backend.
+// (The web frontend keeps its own copy in frontend/src/lib/seo.js.)
+export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.stayonmap.app'
+
 const money = (n) => `₹${Number(n).toLocaleString('en-IN')}`
 
 export const FURNISHED_WORD = { FULLY: 'Fully furnished', SEMI: 'Semi furnished', UNFURNISHED: 'Unfurnished' }
@@ -18,6 +22,21 @@ export const welcome = (name) =>
   `Hi${name ? ` ${name}` : ''} 👋 Welcome to ${BRAND} — India's broker-free rental map.\n\n` +
   `List your property right here on WhatsApp. I'll ask a few questions, you share the location and photos, and it goes live after a quick check.\n\n` +
   `You can answer in your own words at any point — e.g. "2 BHK in Velachery, 28k rent, 1 lakh deposit".`
+
+// ── The broker gate — asked before anything else ──────────────────────────
+// Broker-free is the whole product, so the flow's first question is the
+// honest one. The threat is real: listings are verified, and the ban is on
+// the NUMBER, which on this platform is the identity.
+
+export const brokerGate = () =>
+  `Before we start, one honest question. 🛡\n\n` +
+  `${BRAND} is India's *broker-free* rental map. Renters come here because every home is listed by its real owner — no commission, no middlemen. That promise is the whole platform, and we enforce it strictly.\n\n` +
+  `*Are you a broker?*\n\n` +
+  `⚠️ Every listing is verified before it goes live. Broker listings are removed the moment we find them, and the property and this number are *permanently banned*.`
+
+export const brokerRejected = () =>
+  `Thanks for being straight with us — but ${BRAND} is strictly owner-listed, and we don't accept broker listings at any price.\n\n` +
+  `If you personally own a property, you're welcome any time — just say *hi* to list it. 🏠`
 
 export const askType = () => 'What would you like to list?'
 
@@ -147,7 +166,7 @@ export function reviewSummary(category, draft, { showExactLocation }) {
   lines.push(`${c.emoji} ${headline(category, f)}`)
   lines.push(`📍 ${[loc.locality, loc.city].filter(Boolean).join(', ')}`)
   lines.push(...priceLines(category, f))
-  const extra = describeFields(category, f, { skip: ['rent', 'deposit', 'nightlyRate', 'bhk', 'houseStyle', 'sharing', 'placeType', 'commercialType', 'extent', 'extentUnit', 'landType'] })
+  const extra = describeFields(category, f, { skip: ['rent', 'deposit', 'nightlyRate', 'bhk', 'houseStyle', 'sharing', 'placeType', 'commercialType', 'extent', 'extentUnit', 'landType', 'pricingModel', 'maintenance', 'cleaningFee', 'weekendRate', 'priceNegotiable'] })
   if (extra.length) lines.push(...extra.map((e) => `• ${e}`))
   lines.push(`📸 ${(draft.photos ?? []).length} photos`)
   lines.push('')
@@ -160,6 +179,18 @@ export function reviewSummary(category, draft, { showExactLocation }) {
 export const editSections = () => Object.entries(SECTIONS).map(([id, title]) => ({ id: `edit:${id}`, title }))
 export const askWhatToEdit = () => `What would you like to change?`
 export const editingSection = (id) => `Okay — let's redo *${SECTIONS[id] ?? id}*.`
+export const askWhatToChange = (sectionTitle) =>
+  `What in *${sectionTitle}* would you like to change?\n\nEverything else keeps its answer — you'll be back at the review right after.`
+
+/** "₹28,000/month" / "Not set" — the current value shown beside each editable question. */
+export function currentAnswer(category, q, draft) {
+  const v = draft.fields?.[q.field]
+  if (v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length)) return 'Not set'
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No'
+  if (Array.isArray(v)) return v.slice(0, 4).join(', ').slice(0, 60) + (v.length > 4 ? ` +${v.length - 4}` : '')
+  const word = FIELD_WORDS[q.field]?.(v, category, draft.fields ?? {})
+  return String(word ?? v).slice(0, 60)
+}
 export const privacySet = (exact) => `Map will show the *${exact ? 'exact pin' : 'approximate area'}*.`
 
 // ── Publish / verification ───────────────────────────────────────────────
@@ -195,7 +226,8 @@ export const multiSelectBody = (label, chosen) =>
 
 export const submitted = (category) =>
   `Thanks! 🙏 Your ${CATEGORIES[category]?.label ?? 'property'} has been submitted for verification.\n\n` +
-  `Our team checks every listing before it goes on the map — usually within a day. I'll message you here the moment it's live.`
+  `Our team checks every listing before it goes on the map — usually within a day. I'll message you here the moment it's live.\n\n` +
+  `📲 Meanwhile, get the ${BRAND} app to manage your listing, chat with renters and get instant updates — sign in with this mobile number:\n${PLAY_STORE_URL}`
 
 export const publishFailedValidation = (problems) =>
   `Almost there — a couple of things need fixing before it can go up:\n\n${problems.map((p) => `• ${p}`).join('\n')}`
@@ -258,18 +290,54 @@ export function headline(category, f) {
 function bhk(n) { return n === 0 ? 'Studio' : n != null ? `${n} BHK` : '' }
 
 function priceLines(category, f) {
-  if (category === 'stay') return [`💰 ${money(f.nightlyRate ?? 0)}/night`]
+  if (category === 'stay') {
+    const lines = [`💰 ${money(f.nightlyRate ?? 0)}/night`]
+    if (f.weekendRate) lines.push(`💰 ${money(f.weekendRate)}/night on weekends`)
+    if (f.cleaningFee) lines.push(`🧹 ${money(f.cleaningFee)} cleaning fee`)
+    return lines
+  }
   if (category === 'land') return [`💰 ${money(f.rent ?? 0)}${f.saleOrLease === 'SALE' ? '' : '/year'}${f.priceNegotiable ? ' (negotiable)' : ''}`]
-  const lines = [`💰 ${money(f.rent ?? 0)}/month${category === 'pg' ? ' per bed' : ''}`]
-  if (f.deposit != null) lines.push(`💵 ${money(f.deposit)} deposit`)
+  const lines = []
+  if (f.pricingModel === 'SALE') {
+    lines.push(`💰 ${money(f.rent ?? 0)} asking price${f.priceNegotiable ? ' (negotiable)' : ''}`)
+    if (f.deposit) lines.push(`💵 ${money(f.deposit)} booking advance`)
+  } else if (f.pricingModel === 'LEASE') {
+    lines.push(`💰 ${money(f.rent ?? 0)} lease (lump sum)`)
+  } else {
+    lines.push(`💰 ${money(f.rent ?? 0)}/month${category === 'pg' ? ' per bed' : ''}`)
+    if (f.deposit != null) lines.push(`💵 ${money(f.deposit)} deposit`)
+  }
+  if (f.maintenance) lines.push(`🔧 ${money(f.maintenance)}/month maintenance`)
   return lines
 }
 
 const FIELD_WORDS = {
   bhk:            (v) => (v === 0 ? 'Studio' : `${v} BHK`),
   houseStyle:     (v) => v,
-  rent:           (v, cat) => (cat === 'land' ? `${money(v)}` : `${money(v)}/month`),
-  deposit:        (v) => `${money(v)} deposit`,
+  rent:           (v, cat, f) => {
+    if (cat === 'land') return `${money(v)}`
+    if (f?.pricingModel === 'SALE') return `${money(v)} asking`
+    if (f?.pricingModel === 'LEASE') return `${money(v)} lease`
+    return `${money(v)}/month`
+  },
+  deposit:        (v, _c, f) => `${money(v)} ${f?.pricingModel === 'SALE' ? 'advance' : 'deposit'}`,
+  maintenance:    (v) => `${money(v)}/mo maintenance`,
+  pricingModel:   (v) => ({ RENT: 'For rent', LEASE: 'On lease', SALE: 'For sale' }[v] ?? null),
+  leaseDuration:  (v) => `${v} mo minimum stay`,
+  noticePeriodDays: (v) => `${v} days notice`,
+  totalBeds:      (v) => `${v} beds total`,
+  availableBeds:  (v) => `${v} beds free`,
+  frontage:       (v) => `${v} ft frontage`,
+  powerLoad:      (v) => `${v} kW power`,
+  dimensions:     (v) => v,
+  cleaningFee:    (v) => `${money(v)} cleaning fee`,
+  weekendRate:    (v) => `${money(v)}/night weekends`,
+  minNights:      (v) => `Min ${v} night${v === 1 ? '' : 's'}`,
+  maxNights:      (v) => `Max ${v} nights`,
+  instantBook:    (v) => (v ? 'Instant book' : null),
+  beds:           (v) => `${v} bed${v === 1 ? '' : 's'}`,
+  possessionStatus: (v) => v,
+  loanEligible:   (v) => (v ? 'Bank loan available' : null),
   nightlyRate:    (v) => `${money(v)}/night`,
   furnished:      (v) => FURNISHED_WORD[v] ?? v,
   bathrooms:      (v) => `${v} bath`,
@@ -280,7 +348,7 @@ const FIELD_WORDS = {
   extent:         (v, _c, f) => `${v} ${f.extentUnit ?? 'sq.ft'}`,
   availableFrom:  (v) => `Available ${fmtDate(v)}`,
   amenities:      (v) => (v?.length ? v.slice(0, 5).join(', ') + (v.length > 5 ? ` +${v.length - 5}` : '') : null),
-  rules:          (v) => (v?.length ? v.map(ruleWord).join(', ') : null),
+  rules:          (v, cat) => (v?.length ? v.map((k) => ruleWord(k, cat)).join(', ') : null),
   sharing:        (v) => (v === 1 ? 'Single sharing' : `${v}-sharing`),
   foodIncluded:   (v) => (v ? 'Food included' : 'Food not included'),
   foodCharges:    (v) => `Food ${money(v)}/month`,
@@ -302,7 +370,13 @@ const FIELD_WORDS = {
   curfewTime:     (v) => `Curfew ${v}`,
 }
 
-function ruleWord(k) {
+function ruleWord(k, cat) {
+  // Same columns, per-type words: on a short stay bachelorAllowed is the
+  // "couple friendly" claim, not a tenancy rule about bachelors.
+  if (cat === 'stay') {
+    const stay = { bachelorAllowed: 'Couples ok', familyPreferred: 'Family-friendly' }[k]
+    if (stay) return stay
+  }
   return { bachelorAllowed: 'Bachelors ok', familyPreferred: 'Families preferred', petsAllowed: 'Pets ok', nonVegAllowed: 'Non-veg ok', smokingAllowed: 'Smoking ok', visitorsAllowed: 'Visitors ok', curfew: 'Curfew' }[k] ?? k
 }
 
@@ -333,6 +407,12 @@ export function shortLabel(q) {
     extentUnit: 'Plot size unit', landType: 'Land type', approvalStatus: 'Approval status', sharing: 'Room sharing',
     foodIncluded: 'Food included?', genderPreference: 'Who it is for', commercialType: 'Type of space',
     carpetArea: 'Area', placeType: 'What guests book', houseStyle: 'Kind of house', saleOrLease: 'Sale or lease',
+    pricingModel: 'Rent, lease or sale', salePrice: 'Asking price', maintenance: 'Maintenance',
+    leaseDuration: 'Minimum stay', noticePeriodDays: 'Notice period', totalBeds: 'Total beds',
+    availableBeds: 'Beds available', frontage: 'Frontage', powerLoad: 'Power load', dimensions: 'Plot dimensions',
+    cleaningFee: 'Cleaning fee', weekendRate: 'Weekend rate', minNights: 'Minimum stay', maxNights: 'Maximum stay',
+    instantBook: 'Instant booking', possessionStatus: 'Possession status', loanEligible: 'Bank loan',
+    area: 'Built-up area', facingDirection: 'Facing', beds: 'Beds',
   }[q.id] ?? q.label.replace(/\?$/, '')
 }
 
