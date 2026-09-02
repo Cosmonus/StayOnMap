@@ -39,6 +39,7 @@ import {
 } from './questionnaire/engine.js'
 import { intelError, intelLog } from '../../lib/intelLog.js'
 import { notifyUser } from '../notifications/notifications.service.js'
+import { sendEmail, listingHeldEmail } from '../../services/email.service.js'
 import { env } from '../../config/env.js'
 
 const RESUME_AFTER_MS = 6 * 60 * 60 * 1000
@@ -994,6 +995,10 @@ async function doPublish(ctx) {
     await ctx.persist({ status: 'AWAITING_PROFILE', propertyId: result.property.id, lastError: null })
     const user = await identity.getUser(conv.userId)
     await ctx.say(copy.heldForProfile({ email: user?.email, missing: result.missing, loginUrl: env.frontendUrl }))
+    // The same steps by email — the inbox they must open for the code is the
+    // one place the instructions cannot be missed. Best-effort, like every
+    // other mail.
+    sendHeldEmail(user, result.missing).catch(() => {})
     notifyUser(conv.userId, {
       type: 'SYSTEM',
       audience: 'OWNER',
@@ -1031,6 +1036,12 @@ async function doPublish(ctx) {
   await ctx.persist({ status: 'REVIEW', lastError: `publish: ${result.error}` })
   await ctx.say(copy.publishFailedServer())
   return conv
+}
+
+async function sendHeldEmail(user, missing) {
+  if (!user?.email) return
+  const mail = listingHeldEmail({ name: user.name, email: user.email, signInUrl: copy.signInUrl(env.frontendUrl, user.email), missing })
+  await sendEmail({ to: user.email, ...mail })
 }
 
 /** Admin "retry publish" — the same path the Publish button takes. */

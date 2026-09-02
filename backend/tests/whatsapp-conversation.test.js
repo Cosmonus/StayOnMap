@@ -66,6 +66,7 @@ function installStore() {
 
 const { handleInbound } = await import('../src/features/whatsapp/engine.js')
 const { notifyUser } = await import('../src/features/notifications/notifications.service.js')
+const { sendEmail } = await import('../src/services/email.service.js')
 
 // A fresh number per test: the engine's per-number burst guard is module
 // state, and one number across the whole file would trip it.
@@ -453,7 +454,10 @@ describe('photos, review, publish', () => {
     expect(last().body).toMatch(/Your listing is saved/)
     expect(last().body).toMatch(/\*asha@example\.com\*/)
     expect(last().body).toMatch(/Email me a sign-in code/)
-    expect(last().body).toMatch(/signing in with the code verifies your email/)
+    expect(last().body).toMatch(/Signing in confirms your email/)
+    expect(last().body).toMatch(/\/\?signin=asha%40example\.com/) // the deep link onto the code form
+    // The same steps by email, to the address they must open for the code.
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: 'asha@example.com' }))
     // notifications.service is stubbed globally (tests/setup.js); the stub is the receipt.
     expect(notifyUser).toHaveBeenCalledWith('u-new', expect.objectContaining({ type: 'SYSTEM', audience: 'OWNER', referenceId: 'prop-1', referenceType: 'Property', push: true }))
     // The number has no OPEN conversation now; a later message says what is waiting.
@@ -468,7 +472,7 @@ describe('photos, review, publish', () => {
     publishFromConversation.mockResolvedValue({ ok: true, held: true, property: { id: 'prop-1', status: 'DRAFT' }, missing: [{ field: 'name', label: 'Your name' }, { field: 'email', label: 'Verified email' }] })
     await toReview()
     await say(reply('act:publish', 'Publish'))
-    expect(last().body).toMatch(/Open \*Settings\* and fill in: Your name/)
+    expect(last().body).toMatch(/Fill in Your name\* under Settings/)
   })
 
   it('a validation failure re-asks the offending question instead of showing a schema error', async () => {
