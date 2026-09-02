@@ -17,8 +17,16 @@ export const useUiStore = create((set) => ({
 
   openSidebar: (view = 'list') => set({ sidebarOpen: true, sidebarView: view }),
   closeSidebar: () => set({ sidebarOpen: false }),
-  openLoginModal: () => set({ loginModalOpen: true }),
-  closeLoginModal: () => set({ loginModalOpen: false }),
+  // `intent` is optional: { tab: 'otp', email } opens straight onto the
+  // "Email me a sign-in code" form with the address filled in — what the
+  // WhatsApp bot's link (/?signin=<email>) needs. Most callers pass the click
+  // event (onClick={openLoginModal}), which is why only a real intent counts.
+  loginIntent: null,
+  openLoginModal: (intent) => set({
+    loginModalOpen: true,
+    loginIntent: intent && typeof intent.tab === 'string' ? { tab: intent.tab, email: intent.email ?? '' } : null,
+  }),
+  closeLoginModal: () => set({ loginModalOpen: false, loginIntent: null }),
   openSignupModal: () => set({ signupModalOpen: true }),
   closeSignupModal: () => set({ signupModalOpen: false }),
   openFilterModal: () => set({ filterModalOpen: true }),

@@ -39,9 +39,11 @@ vi.mock('react-router-dom', async (orig) => ({
 const openLoginModal = vi.fn()
 const closeLoginModal = vi.fn()
 let modalOpen = true
+let intent = null
 vi.mock('@store/uiStore', () => ({
   useUiStore: (sel) => sel({
     loginModalOpen: modalOpen,
+    loginIntent: intent,
     openLoginModal,
     closeLoginModal,
     hostMode: false,
@@ -56,6 +58,20 @@ const SESSION = { token: 'jwt', user: { id: 'u1', name: 'A', role: 'TENANT' } }
 beforeEach(() => {
   vi.clearAllMocks()
   modalOpen = true
+  intent = null
+})
+
+// The WhatsApp bot's sign-in link (/?signin=<email>) must land the owner on
+// the code form with their email already in — they never set a password, and
+// a modal opening on the password tab is where they would get lost.
+describe('login intent', () => {
+  it('opens straight onto the sign-in-code form with the email filled in', async () => {
+    intent = { tab: 'otp', email: 'asha@example.com' }
+    renderWithProviders(<LoginModal />)
+    expect(await screen.findByText(/sign in with a code/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/you@example/i)).toHaveValue('asha@example.com')
+    expect(screen.getByRole('button', { name: /email me a code/i })).toBeInTheDocument()
+  })
 })
 
 describe('login', () => {

@@ -137,6 +137,34 @@ export function adminPasswordChangedEmail({ adminName, adminEmail }) {
   }
 }
 
+/**
+ * A WhatsApp listing is saved but held until the owner signs in with this
+ * address (which verifies it) — and, rarely, fills in name / city. Sent to
+ * the address they typed in the chat, which is where they will read the
+ * sign-in code anyway, so the steps and the code arrive in the same inbox.
+ * `signInUrl` opens the site straight onto the code form with the email in.
+ */
+export function listingHeldEmail({ name, email, signInUrl, missing = [] }) {
+  const rest = missing.filter((m) => m.field !== 'email').map((m) => esc(m.label))
+  return {
+    subject: 'One step left — sign in to submit your StayOnMap listing',
+    html: layout({
+      heading: 'Your listing is saved. One step left.',
+      body: panel(`
+      ${p(`Hi ${esc(name || 'there')},`)}
+      ${p('Thanks for listing your property on WhatsApp. It is saved as a draft and will go to our team for verification as soon as you sign in once.')}
+      ${p(`<strong>1. Sign in with this email — ${esc(email)}.</strong> No password is needed: tap the button, then tap <strong>Email me a sign-in code</strong> and enter the code we send here.`)}
+      <p style="margin:18px 0 22px;"><a href="${signInUrl}" style="display:inline-block;background:${JADE};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px;">Sign in and submit my listing</a></p>
+      ${rest.length
+        ? p(`<strong>2. Fill in ${rest.join(' and ')}</strong> under Settings. The moment your profile is complete, your listing is sent for verification.`)
+        : p('<strong>2. That is all.</strong> Signing in with the code confirms your email, and your listing is sent for verification straight away. We message you on WhatsApp when it is live.')}
+      ${p(`Always sign in with <strong>${esc(email)}</strong> — it is the email your property is registered under.`, 'margin-bottom:0;')}
+      `),
+      footNote: `If the button does not open, copy this link into your browser:<br>${signInUrl}`,
+    }),
+  }
+}
+
 export function emailVerificationEmail({ name, link }) {
   return {
     subject: 'Verify your StayOnMap email',

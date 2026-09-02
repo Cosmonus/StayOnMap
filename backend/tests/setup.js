@@ -144,4 +144,5 @@ vi.mock('../src/services/email.service.js', () => ({
   passwordChangedEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
   accountLinkedEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
   listingSubmittedEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
+  listingHeldEmail: vi.fn().mockReturnValue({ subject: 'test', html: 'test' }),
 }))

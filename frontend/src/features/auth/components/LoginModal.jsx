@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { X, Phone, MapPin, Eye, EyeOff, MailCheck, MessageSquareLock, KeyRound, House } from 'lucide-react'
@@ -49,6 +49,7 @@ function InputField({ id, label, type = 'text', autoComplete, value, onChange, p
 export default function LoginModal() {
   const isOpen  = useUiStore((s) => s.loginModalOpen)
   const onClose = useUiStore((s) => s.closeLoginModal)
+  const intent  = useUiStore((s) => s.loginIntent)
   const navigate = useNavigate()
   const { loginSuccess } = useAuth()
   const [tab, setTab]           = useState('login')
@@ -84,6 +85,15 @@ export default function LoginModal() {
   }
 
   function switchTab(t) { setTab(t); setError(''); setShowPw(false); setResetSent(false); setWaitlisted(false) }
+
+  // An intent lands the modal on a specific form with the email filled in
+  // (a WhatsApp owner following the bot's sign-in link). Applied on open only,
+  // so switching tabs afterwards is not fought.
+  useEffect(() => {
+    if (!isOpen || !intent) return
+    setTab(intent.tab)
+    if (intent.email) setEmail(intent.email)
+  }, [isOpen, intent])
 
   function handleClose() { reset(); onClose() }
 
