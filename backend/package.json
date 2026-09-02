@@ -55,7 +55,8 @@
   },
   "overrides": {
     "find-my-way": "^9.7.0",
-    "deepmerge-ts": "^8.0.1"
+    "deepmerge-ts": "^8.0.1",
+    "mysql2": "^3.24.3"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
