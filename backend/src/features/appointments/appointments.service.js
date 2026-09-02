@@ -309,6 +309,14 @@ export async function requestAppointment(tenantId, propertyId, data) {
     referenceType: 'Appointment',
     audience: 'OWNER',
   })
+  // An owner who listed over WhatsApp reads WhatsApp, not the bell. Dynamic
+  // import keeps the WhatsApp module graph out of this one; it is a no-op for
+  // everyone else and can never fail the request (features/whatsapp/ownerAlerts.js).
+  import('../whatsapp/ownerAlerts.js').then((m) => m.alertOwner(property.ownerId, {
+    kind: isStay ? 'stay' : 'visit',
+    propertyId,
+    detail: instant ? `${rangeLine} (instant book confirmed)` : isStay ? rangeLine : `${fmtDay(data.requestedDate)} at ${istHHMMLabel(data.requestedTime)}`,
+  })).catch(() => {})
 
   // The strongest preference signal there is — asking to physically go and see
   // a place. Drop the cached profile so recommendations reflect it immediately

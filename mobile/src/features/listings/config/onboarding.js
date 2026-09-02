@@ -607,6 +607,7 @@ export function draftFromProperty(property, categoryKey) {
     brokerage: property.brokerage != null && Number(property.brokerage) > 0 ? str(property.brokerage) : '',
     appointmentWindowStart: property.appointmentWindowStart ?? '',
     appointmentWindowEnd: property.appointmentWindowEnd ?? '',
+    visitContactMethod: property.visitContactMethod ?? '',
     instantBook: !!property.instantBook,
     blockedDates: [],
   }
@@ -710,6 +711,7 @@ export function buildPayload(categoryKey, type, draft, amenityIds) {
     }),
     ...(draft.appointmentWindowStart && { appointmentWindowStart: draft.appointmentWindowStart }),
     ...(draft.appointmentWindowEnd && { appointmentWindowEnd: draft.appointmentWindowEnd }),
+    ...(draft.visitContactMethod && { visitContactMethod: draft.visitContactMethod }),
   }
 
   const rules = buildRules(categoryKey, draft)

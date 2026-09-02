@@ -131,6 +131,10 @@ export const env = {
     // Unset = the go-live message is attempted as plain text and may be
     // refused by Meta; the attempt is logged either way.
     listingLiveTemplate: process.env.WHATSAPP_LISTING_LIVE_TEMPLATE || null,
+    // "You have {{1}} on StayOnMap for {{2}}. Respond here: {{3}}" — sent to an
+    // owner who listed over WhatsApp when a renter asks for a visit or writes
+    // in chat. Days after their last message, so a template like the one above.
+    ownerAlertTemplate:  process.env.WHATSAPP_OWNER_ALERT_TEMPLATE   || null,
     otpTemplate:         process.env.WHATSAPP_OTP_TEMPLATE          || null,
     templateLanguage:    process.env.WHATSAPP_TEMPLATE_LANGUAGE     || 'en',
   },

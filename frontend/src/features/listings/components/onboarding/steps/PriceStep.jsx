@@ -8,6 +8,14 @@ import { FieldLabel, Txt } from '../FieldControl'
 import TimeSelect from '@components/common/TimeSelect'
 import { VISIT_SLOTS } from '@utils/time'
 
+// Property.visitContactMethod — the same three values the API's Zod enum
+// accepts (VISIT_CONTACT_METHODS in properties.validation.js).
+const VISIT_CONTACT_OPTIONS = [
+  { value: 'CALL', label: 'Phone call' },
+  { value: 'WHATSAPP', label: 'WhatsApp message' },
+  { value: 'CHAT', label: 'Message in the app' },
+]
+
 // Step 5 — price, and the terms that go with it, with the locality benchmark
 // beside the field rather than after publishing.
 
@@ -183,6 +191,19 @@ export default function PriceStep({ categoryKey, draft, setDraft }) {
               </p>
             </div>
           )}
+
+          {/* Same question the WhatsApp bot asks last; the booking form shows
+              the answer beside the slot picker. Every type — a stay's guests
+              also need to know how to reach the host. */}
+          <div className="max-w-md">
+            <Select
+              label={`How should ${isStay ? 'guests' : isSale ? 'buyers' : 'renters'} contact you to arrange a visit?`}
+              placeholder="Choose one"
+              value={draft.visitContactMethod || ''}
+              onChange={(v) => setDraft((d) => ({ ...d, visitContactMethod: v }))}
+              options={VISIT_CONTACT_OPTIONS}
+            />
+          </div>
         </div>
 
         <div className="space-y-4">

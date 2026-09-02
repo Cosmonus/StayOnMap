@@ -298,6 +298,14 @@ export async function sendMessage(conversationId, senderId, body, attachment = {
     // can actually open the conversation.
     audience: convo.ownerId === recipientId ? 'OWNER' : 'TENANT',
   }).catch(() => {})
+  // A renter writing to an owner who listed over WhatsApp: tell them there,
+  // once an hour per thread (features/whatsapp/ownerAlerts.js). Renter-bound
+  // messages never go this way — the bot is the owner side only.
+  if (convo.ownerId === recipientId) {
+    import('../whatsapp/ownerAlerts.js').then((m) => m.alertOwner(recipientId, {
+      kind: 'message', propertyId: convo.propertyId, detail: notifBody, debounceKey: `message:${conversationId}`,
+    })).catch(() => {})
+  }
 
   return message
 }

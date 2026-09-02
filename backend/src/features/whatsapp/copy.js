@@ -303,6 +303,29 @@ export const heldNotificationBody = (missing = []) => {
     : `Your WhatsApp listing is saved as a draft. Signing in confirmed your email, so it is being sent to our team for verification now.`
 }
 
+// ── Owner alerts: a renter did something that needs an answer ─────────────
+// An owner who listed by chatting may never open the app or the site again.
+// Their visit requests and messages therefore go where they are — here.
+
+export const ownerAlertWhat = (kind) =>
+  ({ visit: 'a new visit request', stay: 'a new booking request', message: 'a new message from a renter' })[kind] ?? 'new activity'
+
+export const ownerAlert = ({ kind, title, detail, link }) => {
+  const head = kind === 'message'
+    ? `💬 *New message from a renter* about ${title ? `*${title}*` : 'your listing'}${detail ? `:\n"${String(detail).slice(0, 120)}"` : '.'}`
+    : kind === 'stay'
+      ? `📅 *New booking request* for ${title ? `*${title}*` : 'your place'}${detail ? ` — ${detail}` : ''}.`
+      : `📅 *New visit request* for ${title ? `*${title}*` : 'your listing'}${detail ? ` — ${detail}` : ''}.`
+  const ask = kind === 'message' ? 'Reply to them here (link signs you in, works once, 24 hours):' : 'Accept, decline or suggest another time here (link signs you in, works once, 24 hours):'
+  return `${head}\n\n${ask}\n${link}\n\nRenters move on quickly — a reply today keeps your listing near the top.`
+}
+
+// ── The held-listing reminder, sent ~20h after the hold ────────────────────
+export const heldReminder = ({ email, loginUrl }) =>
+  `⏰ Reminder: your listing is saved but *not yet sent for verification*.\n\n` +
+  `It goes to our team the moment you sign in once with${email ? ` *${email}*` : ' the email you gave here'}. Tap this link, then *Email me a sign-in code*:\n${signInUrl(loginUrl, email)}\n\n` +
+  `No password needed. Reply *help* if you're stuck.`
+
 export const releasedForVerification = (category) =>
   `🎉 Profile complete — your ${CATEGORIES[category]?.label ?? 'property'} has been sent to our team for verification. I'll message you here the moment it's live.`
 
