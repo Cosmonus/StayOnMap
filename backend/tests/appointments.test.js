@@ -257,6 +257,46 @@ describe('updateAppointmentStatus — tenant cancelling their own request', () =
 // Availability, and the renter's counter-offer (both added 2026-08-07)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// The owner's window was offered by both booking forms and enforced by
+// neither end until 2026-09-02 — a hand-built request could book 7 AM on a
+// listing whose owner said 10 to 6.
+describe('requestAppointment — the owner\'s viewing window', () => {
+  const windowed = { id: 'prop-1', ownerId: 'owner-1', status: 'ACTIVE', riskScore: null, appointmentWindowStart: '10:00', appointmentWindowEnd: '18:00' }
+
+  beforeEach(() => {
+    prismaMock.appointment.findFirst.mockResolvedValue(null)
+    prismaMock.availabilityBlock.findFirst.mockResolvedValue(null)
+    prismaMock.appointment.create.mockResolvedValue(makeAppointment())
+  })
+
+  it('refuses a slot outside the window, naming the window', async () => {
+    prismaMock.property.findUnique.mockResolvedValue(windowed)
+    await expect(requestAppointment('tenant-1', 'prop-1', { ...validRequestData, requestedTime: '07:00' })).rejects.toMatchObject({
+      statusCode: 400, message: expect.stringMatching(/between 10:00 AM and 6:00 PM/),
+    })
+    await expect(requestAppointment('tenant-1', 'prop-1', { ...validRequestData, requestedTime: '18:30' })).rejects.toMatchObject({ statusCode: 400 })
+    expect(prismaMock.appointment.create).not.toHaveBeenCalled()
+  })
+
+  it('accepts both bounds inclusively, matching the forms', async () => {
+    prismaMock.property.findUnique.mockResolvedValue(windowed)
+    await expect(requestAppointment('tenant-1', 'prop-1', { ...validRequestData, requestedTime: '10:00' })).resolves.toBeTruthy()
+    await expect(requestAppointment('tenant-1', 'prop-1', { ...validRequestData, requestedTime: '18:00' })).resolves.toBeTruthy()
+  })
+
+  it('a listing with no window accepts any slot, as before', async () => {
+    prismaMock.property.findUnique.mockResolvedValue({ ...windowed, appointmentWindowStart: null, appointmentWindowEnd: null })
+    await expect(requestAppointment('tenant-1', 'prop-1', { ...validRequestData, requestedTime: '07:00' })).resolves.toBeTruthy()
+  })
+
+  it('a renter\'s counter-offer is held to the same window', async () => {
+    prismaMock.appointment.findUnique.mockResolvedValue(makeAppointment({ property: { title: 'Test flat', appointmentWindowStart: '10:00', appointmentWindowEnd: '18:00' } }))
+    await expect(updateAppointmentStatus('appt-1', 'tenant-1', { status: 'RESCHEDULE_REQUESTED', requestedDate: FUTURE_DATE, requestedTime: '08:00' })).rejects.toMatchObject({
+      statusCode: 400, message: expect.stringMatching(/between 10:00 AM and 6:00 PM/),
+    })
+  })
+})
+
 describe('requestAppointment — days the owner is not free', () => {
   beforeEach(() => {
     prismaMock.property.findUnique.mockResolvedValue({ id: 'prop-1', ownerId: 'owner-1', status: 'ACTIVE', riskScore: null })

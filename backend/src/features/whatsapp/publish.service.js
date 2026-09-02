@@ -26,6 +26,7 @@ const PATH_TO_FIELD = {
   commercialType: 'commercialType', placeType: 'placeType', nightlyRate: 'nightlyRate', maxGuests: 'maxGuests',
   images: 'photos', pincode: 'location', address: 'location', city: 'location', lat: 'location', lng: 'location',
   floor: 'floor', totalFloors: 'totalFloors', carpetArea: 'carpetArea',
+  appointmentWindowStart: 'appointmentWindowStart', appointmentWindowEnd: 'appointmentWindowEnd', visitContactMethod: 'visitContact',
 }
 
 // A listing the owner can still change from chat. ACTIVE is deliberately NOT

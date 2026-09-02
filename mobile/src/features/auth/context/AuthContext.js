@@ -27,6 +27,11 @@ export function AuthProvider({ children }) {
         useUiStore.getState()._setHostModeSilent(hostMode === 'true')
         if (!token) return null
         return authService.getMe().then((res) => {
+          // Same rule as loginSuccess below, applied to the persisted mode: a
+          // non-owner never mounts the host tabs, whatever this device stored
+          // before (a role can only go TENANT → OWNER, so this only ever
+          // corrects a mode that was never theirs).
+          if (res.data?.role !== 'OWNER') useUiStore.getState().setHostMode(false)
           setUser(res.data)
           hadUser.current = true
           connectSocket()

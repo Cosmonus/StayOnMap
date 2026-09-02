@@ -5,8 +5,8 @@
 //   1. record the message (idempotent — a Meta retry stops here)
 //   2. load the open conversation for this number, or start one
 //   3. global commands (cancel / restart / help / status) and pending
-//      confirmations (link this account? confirm this location?) win over
-//      whatever question is in flight
+//      confirmations (link this account? your email? confirm this location?)
+//      win over whatever question is in flight
 //   4. media and locations are accepted in ANY state — an owner who sends six
 //      photos before being asked is not wrong
 //   5. text is tried against the current question first, then the extractor,
@@ -359,6 +359,21 @@ async function handleTypeSelection(ctx, msg) {
     return conv
   }
 
+  // The email — asked at the START, right after the gate, whenever the account
+  // has none (operator decision 2026-09-02; it was an optional ask at review).
+  // The message that arrived rides along in `pending`, same as the gate, so a
+  // typed description still counts once the email is in.
+  if (!conv.draft.flags.emailAsked) {
+    const user = await identity.getUser(conv.userId)
+    if (user && !user.email) {
+      conv.draft.flags.emailAsked = true
+      conv.draft.pending = { kind: 'email', firstMessage: ['text', 'reply'].includes(msg.kind) ? msg : null }
+      await ctx.persist()
+      await ctx.say(copy.askEmail())
+      return conv
+    }
+  }
+
   let category = null
   let extracted = null
 
@@ -619,7 +634,7 @@ async function handleAnswer(ctx, msg) {
   // 1. The current question, directly — a short reply is almost always that.
   const applied = {}
   let extracted = null
-  const direct = current ? parseAnswer(current, text) : { ok: false }
+  const direct = current ? parseAnswer(current, text, fields(conv)) : { ok: false }
   const isShort = text.length <= 24 && !/\d.*\D.*\d/.test(text)
   if (current && direct.ok && (isShort || ['single_select', 'multi_select', 'boolean', 'date'].includes(current.type))) {
     let value = direct.value
@@ -634,8 +649,11 @@ async function handleAnswer(ctx, msg) {
     applied[current.field] = value
   }
 
-  // 2. Whatever else the sentence carries.
-  if (!Object.keys(applied).length || !isShort) {
+  // 2. Whatever else the sentence carries. Not for a time question: "7 am"
+  // is never a description of the property, and the extractor would read the
+  // 7 as money and answer with a clarification instead of the time parser's
+  // own sentence.
+  if ((!Object.keys(applied).length || !isShort) && !(current?.type === 'time' && isShort)) {
     extracted = await extractFields(text, { category, draft: conv.draft, currentQuestion: current })
     for (const [field, value] of Object.entries(extracted.fields)) {
       if (field in applied) continue
@@ -741,28 +759,36 @@ async function resolveLocationConfirm(ctx, msg) {
   return conv
 }
 
-// ── Email (optional) ───────────────────────────────────────────────────────
+// ── Email (required, at the start) ─────────────────────────────────────────
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
+// The one way past the question without an address: the one they typed is on
+// another account (`pending.allowSkip`, set only after a 'taken'). Anything
+// else re-asks — the ask is required, and a wrong reply must not advance.
 async function resolveEmail(ctx, msg) {
   const { conv } = ctx
-  if (isReply(msg, 'act:skip') || isCmd(msg, 'skip', 'no', 'n', 'later', 'no thanks')) {
+  const pending = conv.draft.pending
+  const proceed = async () => {
     conv.draft.pending = null
     await ctx.persist()
-    return showReview(ctx)
+    return handleTypeSelection(ctx, pending.firstMessage ?? { kind: 'other' })
   }
+  if (pending.allowSkip && (isReply(msg, 'act:skip') || isCmd(msg, 'skip', 'later', 'not now', 'no thanks'))) return proceed()
   const text = msg.kind === 'text' ? msg.text.trim() : ''
   if (!EMAIL_RE.test(text)) {
-    await ctx.buttons(copy.emailInvalid(), [{ id: 'act:skip', title: 'Skip' }])
+    await ctx.say(copy.emailInvalid())
     return conv
   }
   const outcome = await identity.setEmailIfEmpty(conv.userId, text)
-  conv.draft.pending = null
-  await ctx.persist()
+  if (outcome === 'taken') {
+    pending.allowSkip = true
+    await ctx.persist()
+    await ctx.say(copy.emailTaken())
+    return conv
+  }
   if (outcome === 'saved') await ctx.say(copy.emailSaved(text.toLowerCase()))
-  else if (outcome === 'taken') await ctx.say(copy.emailTaken())
-  return showReview(ctx)
+  return proceed()
 }
 
 async function resolvePincode(ctx, msg) {
@@ -827,19 +853,6 @@ async function showReview(ctx) {
     track(conv, 'wa_draft_completed')
   }
   const user = await identity.getUser(conv.userId)
-
-  // One optional email ask, at the natural pause: the draft is complete, the
-  // owner is invested, and the account has no address. Asked once per
-  // conversation whatever the outcome — a review revisited after an edit
-  // must not nag. The phone needs no question: the WhatsApp number IS the
-  // verified phone (identity.service.js).
-  if (!conv.draft.flags.emailAsked && user && !user.email) {
-    conv.draft.flags.emailAsked = true
-    conv.draft.pending = { kind: 'email' }
-    await ctx.persist()
-    await ctx.buttons(copy.askEmail(), [{ id: 'act:skip', title: 'Skip' }])
-    return conv
-  }
   const showExact = user?.showExactLocation !== false
   await ctx.persist({ status: 'REVIEW', currentQuestion: null })
   track(conv, 'wa_review_shown')

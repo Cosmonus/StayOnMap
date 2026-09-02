@@ -62,10 +62,9 @@ export default function ProfileScreen({ navigation }) {
             hostMode={hostMode}
             onChange={setHostMode}
             waiting={waiting}
-            // A tenant sees "Become a host", not a Hosting segment they have no
-            // mode for — same rule web settled on 2026-08-07.
+            // A tenant sees a WhatsApp CTA, not a Hosting segment they have no
+            // mode for — on mobile only an owner can host (AccountRow.js).
             isOwner={user?.role === 'OWNER'}
-            onBecomeHost={() => setHostMode(true)}
           />
         )}
       />

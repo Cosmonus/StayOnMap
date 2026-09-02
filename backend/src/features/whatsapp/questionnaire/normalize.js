@@ -12,6 +12,7 @@
 //   boundaryWall  → the 'Boundary Wall' amenity (land)
 //   pgName        → the title
 //   suitableFor / checkIn / checkOut / foodCharges / details → the description
+//   visitContact  → visitContactMethod (the column keeps the longer name)
 //
 // Nothing here writes. The output is VALIDATED by createPropertySchema in
 // publish.service.js before it reaches createProperty(); a field this file gets
@@ -176,6 +177,14 @@ export function buildPropertyPayload(category, draft, amenityIdByName) {
     ...(num(fields.area) !== undefined && { area: num(fields.area) }),
     ...(fields.facingDirection && { facingDirection: fields.facingDirection }),
     ...(fields.availableFrom && { availableFrom: fields.availableFrom }),
+    // How to arrange a visit — the same columns the web wizard's Price step
+    // writes. Both bounds or neither: a half-window would fail the schema's
+    // start-before-end refine on the missing side.
+    ...(fields.visitContact && { visitContactMethod: fields.visitContact }),
+    ...(fields.appointmentWindowStart && fields.appointmentWindowEnd && {
+      appointmentWindowStart: fields.appointmentWindowStart,
+      appointmentWindowEnd: fields.appointmentWindowEnd,
+    }),
     // HOUSE
     ...(category === 'house' && fields.houseStyle && { houseStyle: fields.houseStyle }),
     ...(category === 'house' && num(fields.extent) !== undefined && { extent: num(fields.extent) }),

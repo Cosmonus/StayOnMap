@@ -135,14 +135,20 @@ export const locationChange = () => `Sure — share the location again with 📎
 
 export const askPincode = () => `What is the property's 6-digit pincode?`
 
-// ── Email (optional — asked once, at review) ─────────────────────────────
+// ── Email (asked at the START, before the property questions) ────────────
+// Required since 2026-09-02 (operator decision): every WhatsApp owner enters
+// an email up front. Until then it was one optional ask at review.
 
 export const askEmail = () =>
-  `Almost done! Would you like to add an *email address* to your account?\n\n` +
-  `It lets you sign in on the website and get updates about your listing. Reply with your email, or tap Skip.`
+  `First, what's your *email address*?\n\n` +
+  `We'll send updates about your listing there, and it lets you sign in on the website.`
 export const emailSaved = (email) => `✉️ Saved ${email} to your account.`
-export const emailInvalid = () => `That doesn't look like an email address — try again (like name@example.com), or tap Skip.`
-export const emailTaken = () => `That email is already in use on another account, so I'll leave it off — you can sort it out later from Settings on the website.`
+export const emailInvalid = () => `That doesn't look like an email address — please type it again (like name@example.com).`
+// "In use", never whose: User.email is unique and naming the account would be
+// an enumeration oracle. Skip is offered ONLY here, because the address they
+// hold may be on their own web account and there is no way through otherwise.
+export const emailTaken = () =>
+  `That email is already in use on another ${BRAND} account. Please enter a different email — or reply *skip* to continue without one for now.`
 
 // ── Photos ───────────────────────────────────────────────────────────────
 
@@ -166,14 +172,34 @@ export function reviewSummary(category, draft, { showExactLocation }) {
   lines.push(`${c.emoji} ${headline(category, f)}`)
   lines.push(`📍 ${[loc.locality, loc.city].filter(Boolean).join(', ')}`)
   lines.push(...priceLines(category, f))
-  const extra = describeFields(category, f, { skip: ['rent', 'deposit', 'nightlyRate', 'bhk', 'houseStyle', 'sharing', 'placeType', 'commercialType', 'extent', 'extentUnit', 'landType', 'pricingModel', 'maintenance', 'cleaningFee', 'weekendRate', 'priceNegotiable'] })
+  const extra = describeFields(category, f, { skip: ['rent', 'deposit', 'nightlyRate', 'bhk', 'houseStyle', 'sharing', 'placeType', 'commercialType', 'extent', 'extentUnit', 'landType', 'pricingModel', 'maintenance', 'cleaningFee', 'weekendRate', 'priceNegotiable', 'visitContact', 'appointmentWindowStart', 'appointmentWindowEnd'] })
   if (extra.length) lines.push(...extra.map((e) => `• ${e}`))
   lines.push(`📸 ${(draft.photos ?? []).length} photos`)
+  lines.push(...visitLines(f))
   lines.push('')
   lines.push(`📍 Location confirmed. Map shows: *${showExactLocation ? 'exact pin' : 'approximate area (~150 m)'}* — reply *approximate* or *exact* to change.`)
   lines.push('')
   lines.push('Ready to publish?')
   return lines.join('\n')
+}
+
+// How a renter arranges a visit — shown on the review and in the live message.
+export function visitLines(f) {
+  const lines = []
+  if (f.appointmentWindowStart && f.appointmentWindowEnd) lines.push(`🕒 Visits ${fmtTime(f.appointmentWindowStart)} – ${fmtTime(f.appointmentWindowEnd)}`)
+  if (f.visitContact) lines.push(`📞 Renters reach you by ${VISIT_CONTACT_WORDS[f.visitContact] ?? f.visitContact}`)
+  return lines
+}
+
+const VISIT_CONTACT_WORDS = { CALL: 'phone call', WHATSAPP: 'WhatsApp', CHAT: 'message in the app' }
+
+/** "10:00" → "10 AM", "17:30" → "5:30 PM". */
+export function fmtTime(hhmm) {
+  const [h, m] = String(hhmm).split(':').map(Number)
+  if (!Number.isFinite(h)) return String(hhmm)
+  const suffix = h >= 12 ? 'PM' : 'AM'
+  const hour12 = h % 12 === 0 ? 12 : h % 12
+  return m ? `${hour12}:${String(m).padStart(2, '0')} ${suffix}` : `${hour12} ${suffix}`
 }
 
 export const editSections = () => Object.entries(SECTIONS).map(([id, title]) => ({ id: `edit:${id}`, title }))
@@ -368,6 +394,9 @@ const FIELD_WORDS = {
   checkOut:       (v) => `Check-out ${v}`,
   pgName:         (v) => v,
   curfewTime:     (v) => `Curfew ${v}`,
+  visitContact:   (v) => `Contact by ${VISIT_CONTACT_WORDS[v] ?? v}`,
+  appointmentWindowStart: (v) => `Visits from ${fmtTime(v)}`,
+  appointmentWindowEnd:   (v) => `Visits until ${fmtTime(v)}`,
 }
 
 function ruleWord(k, cat) {
@@ -413,6 +442,7 @@ export function shortLabel(q) {
     cleaningFee: 'Cleaning fee', weekendRate: 'Weekend rate', minNights: 'Minimum stay', maxNights: 'Maximum stay',
     instantBook: 'Instant booking', possessionStatus: 'Possession status', loanEligible: 'Bank loan',
     area: 'Built-up area', facingDirection: 'Facing', beds: 'Beds',
+    visitContact: 'How renters contact you', visitFrom: 'Visits from', visitUntil: 'Visits until',
   }[q.id] ?? q.label.replace(/\?$/, '')
 }
 

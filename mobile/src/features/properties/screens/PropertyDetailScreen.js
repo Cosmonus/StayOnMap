@@ -485,6 +485,7 @@ export default function PropertyDetailScreen({ route, navigation }) {
                 maxNights: property.maxNights,
                 windowStart: property.appointmentWindowStart,
                 windowEnd: property.appointmentWindowEnd,
+                contactMethod: property.visitContactMethod,
               })}
             >
               <Icon name="calendar" size={16} color={colors.white} />

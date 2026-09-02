@@ -1,10 +1,11 @@
 import { Children, cloneElement, isValidElement } from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet, Linking } from 'react-native'
 import Icon from '@components/common/Icon'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
 import { spacing, radius } from '@theme/spacing'
 import { shadows } from '@theme/shadows'
+import { WHATSAPP_LIST_URL } from '@/config/whatsapp'
 
 // The account screen's building blocks, shared by the renter's Account tab and
 // the host's Profile tab. Mobile keeps those as two screens (the whole tab bar
@@ -68,24 +69,28 @@ export function AccountRow({ label, count, onPress, danger, last }) {
 // nothing on screen suggests switching. A dot, not a number: this says "there
 // is something over there", and the count itself belongs on the tab you land on.
 // `isOwner` gates the SWITCH itself. A two-segment control offers Hosting as a
-// place you already have, and a TENANT tapping it lands on the become-a-host
-// intro instead — a mode that does not exist for them yet. Web settled this on
-// 2026-08-07: owners get the switch, everyone else gets a "Become a host" CTA,
-// because that is onboarding rather than a mode change (.claude/architecture.md's
-// "Navigation Modes"). Rendering nothing for a tenant would be worse — the way
-// into hosting has to stay visible.
-export function ModeSwitch({ hostMode, onChange, waiting = 0, isOwner = true, onBecomeHost }) {
+// place you already have, and only an OWNER has one.
+//
+// ON MOBILE, ONLY AN OWNER CAN HOST (operator decision 2026-09-02). Until then
+// a tenant got a "Become a host" CTA that flipped the app into host mode and
+// walked them through the wizard's become-a-host intro. That path is gone from
+// the app: a first listing is made over WhatsApp (the bot is live) or on the
+// website, and the app is where an existing owner MANAGES. So a tenant sees a
+// WhatsApp CTA here, never a mode they have no listings for. Rendering nothing
+// would be worse — the way into hosting has to stay visible — it is just not
+// a mode change any more. Web keeps its "Become a host" button.
+export function ModeSwitch({ hostMode, onChange, waiting = 0, isOwner = true }) {
   if (!isOwner && !hostMode) {
     return (
       <Pressable
         style={styles.becomeHost}
-        onPress={() => (onBecomeHost ? onBecomeHost() : onChange(true))}
-        accessibilityRole="button"
-        accessibilityLabel="Become a host"
-        accessibilityHint="Starts listing your first property"
+        onPress={() => Linking.openURL(WHATSAPP_LIST_URL).catch(() => {})}
+        accessibilityRole="link"
+        accessibilityLabel="List your property on WhatsApp"
+        accessibilityHint="Opens WhatsApp to list your first property"
       >
-        <Icon name="key" size={16} color={colors.brand700} />
-        <Text style={styles.becomeHostText}>Become a host</Text>
+        <Icon name="messageCircle" size={16} color={colors.brand700} />
+        <Text style={styles.becomeHostText}>List your property on WhatsApp</Text>
       </Pressable>
     )
   }

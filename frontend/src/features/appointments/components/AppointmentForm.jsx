@@ -10,6 +10,7 @@ import Button from '@components/common/Button'
 import Field from '@components/common/Field'
 import { DayStrip, TimeGrid, buildDays } from './VisitSlotPicker'
 import { VISIT_SLOTS, formatTime } from '@utils/time'
+import { visitContactSentence } from '../visitContact'
 import { normalizePhone, isValidPhone } from '@utils/validation'
 import { track } from '@lib/analytics'
 
@@ -38,7 +39,7 @@ function localISO(d) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-export default function AppointmentForm({ propertyId, type, minNights, maxNights, onSuccess, windowStart, windowEnd }) {
+export default function AppointmentForm({ propertyId, type, minNights, maxNights, onSuccess, windowStart, windowEnd, contactMethod }) {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { user } = useAuth()
@@ -298,6 +299,15 @@ export default function AppointmentForm({ propertyId, type, minNights, maxNights
               : <p className="text-sm text-slate-500 rounded-xl bg-slate-50 border border-slate-200 px-3 py-3">Choose a day first.</p>}
           </Field>
         </>
+      )}
+
+      {/* The owner said how they want to be reached (the WhatsApp questionnaire
+          asks; the web wizard may later). Shown where the renter is about to
+          reach them, and nowhere when the listing never said. */}
+      {visitContactSentence(contactMethod) && (
+        <p className="text-sm text-slate-600 rounded-xl bg-brand-50 border border-brand-100 px-3 py-3">
+          {visitContactSentence(contactMethod)}
+        </p>
       )}
 
       <Field

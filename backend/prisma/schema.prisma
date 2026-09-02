@@ -808,9 +808,16 @@ model Property {
   occupancyLimit Int?
   leaseDuration  Int? // months
 
-  // Appointment window set by owner (e.g. "09:00" / "18:00")
+  // Appointment window set by owner (e.g. "09:00" / "18:00"). Enforced
+  // SERVER-side since 2026-09-02 (appointments.service.js assertWithinWindow):
+  // a renter's slot, and their counter-offer, must fall inside it.
   appointmentWindowStart String?
   appointmentWindowEnd   String?
+  // How the owner wants to be reached to arrange a visit — CALL | WHATSAPP |
+  // CHAT (in-app message). Asked at the end of the WhatsApp questionnaire and
+  // shown on the booking form. A String, like possessionStatus, so adding a
+  // value is not a two-migration enum change; the Zod enum is the gate.
+  visitContactMethod String?
 
   // Owner
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
