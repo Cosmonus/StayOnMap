@@ -65,6 +65,7 @@ function installStore() {
 }
 
 const { handleInbound } = await import('../src/features/whatsapp/engine.js')
+const { notifyUser } = await import('../src/features/notifications/notifications.service.js')
 
 // A fresh number per test: the engine's per-number burst guard is module
 // state, and one number across the whole file would trip it.
@@ -80,6 +81,18 @@ const last = () => sent[sent.length - 1]
 const conv = () => [...store.rows.values()].at(-1)
 
 const CANDIDATE = { lat: 12.98, lng: 80.22, city: 'Chennai', locality: 'Velachery', address: '3rd Main Rd, Velachery', state: 'Tamil Nadu', pincode: '600042', precision: 'exact', source: 'pin', confirmed: false }
+
+// The three closing questions (added 2026-09-02) sit AFTER the photos: how a
+// renter should reach the owner, and the visiting window. Every path to the
+// review passes through them.
+async function answerVisitQuestions() {
+  expect(conv().currentQuestion).toBe('visitContact')
+  await say(reply('opt:visitContact:1', 'WhatsApp message'))
+  expect(conv().currentQuestion).toBe('visitFrom')
+  await say(text('10 am'))
+  expect(conv().currentQuestion).toBe('visitUntil')
+  await say(text('6 pm'))
+}
 
 beforeEach(() => {
   PHONE = `91987650${String(phoneSeq++).padStart(4, '0')}`
@@ -298,10 +311,16 @@ describe('photos, review, publish', () => {
     ingestPhoto.mockResolvedValue({ status: 'added', photo: { url: 'https://s/1_full.webp', waMediaId: 'p1', order: 0 } })
     await say(image('p1'))
     await say(reply('act:photos_done', 'Done'))
+    // Photos done is not the end any more: the visit questions come last.
+    expect(conv().status).toBe('QUESTIONNAIRE')
+    await answerVisitQuestions()
+    expect(conv().draft.fields).toMatchObject({ visitContact: 'WHATSAPP', appointmentWindowStart: '10:00', appointmentWindowEnd: '18:00' })
     expect(conv().status).toBe('REVIEW')
     expect(last().kind).toBe('buttons')
     expect(last().buttons.map((b) => b.id)).toEqual(['act:publish', 'act:edit', 'act:cancel'])
     expect(last().body).toMatch(/2 BHK Apartment/)
+    expect(last().body).toMatch(/Visits 10 AM – 6 PM/)
+    expect(last().body).toMatch(/reach you by WhatsApp/)
     expect(last().body).toMatch(/₹28,000\/month/)
     expect(last().body).toMatch(/₹1,00,000 deposit/)
     expect(last().body).toMatch(/Velachery, Chennai/)
@@ -315,7 +334,43 @@ describe('photos, review, publish', () => {
     ingestPhoto.mockResolvedValue({ status: 'added', photo: { url: 'https://s/1_full.webp', waMediaId: 'p1', order: 0 } })
     await say(image('p1'))
     await say(reply('act:photos_done', 'Done'))
+    await answerVisitQuestions()
   }
+
+  it('the visiting window is checked as it is typed — an end before the start, or a time outside 9–8, is refused with a sentence', async () => {
+    await toPhotos()
+    ingestPhoto.mockResolvedValue({ status: 'added', photo: { url: 'https://s/1_full.webp', waMediaId: 'p1', order: 0 } })
+    await say(image('p1'))
+    await say(reply('act:photos_done', 'Done'))
+    await say(reply('opt:visitContact:0', 'Phone call'))
+    await say(text('7 am'))
+    expect(sent.at(-2).body).toMatch(/between 9 AM and 8 PM/)
+    expect(conv().currentQuestion).toBe('visitFrom')
+    await say(text('6'))  // a bare number is ambiguous — never guessed
+    expect(sent.at(-2).body).toMatch(/like 10 AM or 5:30 PM/)
+    await say(text('11:30 am'))
+    expect(conv().draft.fields.appointmentWindowStart).toBe('11:30')
+    await say(text('10 am'))  // before the start
+    expect(sent.at(-2).body).toMatch(/not after your start time/)
+    expect(conv().currentQuestion).toBe('visitUntil')
+    await say(text('5.30pm'))
+    expect(conv().draft.fields.appointmentWindowEnd).toBe('17:30')
+    expect(conv().status).toBe('REVIEW')
+    expect(last().body).toMatch(/Visits 11:30 AM – 5:30 PM/)
+    expect(last().body).toMatch(/reach you by phone call/)
+  })
+
+  it('a short stay is asked how to be contacted but never for a viewing window — it is booked as dates', async () => {
+    await say(text('hi'))
+    await say(reply('act:broker:no'))
+    await say({ id: `wamid.${++seq}`, type: 'interactive', interactive: { type: 'list_reply', list_reply: { id: 'type:stay', title: 'Stay' } } })
+    await say(reply('act:biz:yes'))
+    await say(pin(12.98, 80.22)); await say(reply('act:loc:confirm'))
+    const ids = (await import('../src/features/whatsapp/questionnaire/schemas.js')).getQuestionnaire('stay').map((q) => q.id)
+    expect(ids).toContain('visitContact')
+    expect(ids).not.toContain('visitFrom')
+    expect(ids).not.toContain('visitUntil')
+  })
 
   it('"approximate" switches the owner\'s map privacy and re-shows the review', async () => {
     await toReview()
@@ -378,6 +433,42 @@ describe('photos, review, publish', () => {
     expect(conv().propertyId).toBe('prop-1')
     expect(last().body).toMatch(/submitted for verification/)
     expect(events.map((e) => e.name)).toContain('wa_publish_confirmed')
+  })
+
+  it('Publish tells the owner to sign in with the email they gave here — the emailed code, no password', async () => {
+    publishFromConversation.mockResolvedValue({ ok: true, property: { id: 'prop-1', status: 'PENDING' } })
+    await toReview()
+    await say(reply('act:publish', 'Publish'))
+    expect(last().body).toMatch(/sign in with the email you registered this property under — \*asha@example\.com\*/)
+    expect(last().body).toMatch(/Email me a sign-in code/)
+  })
+
+  it('an incomplete profile HOLDS the listing: saved as a draft, told how to sign in, and notified in the app', async () => {
+    publishFromConversation.mockResolvedValue({ ok: true, held: true, property: { id: 'prop-1', status: 'DRAFT' }, missing: [{ field: 'email', label: 'Verified email' }] })
+    await toReview()
+    await say(reply('act:publish', 'Publish'))
+    expect(conv().status).toBe('AWAITING_PROFILE')
+    expect(conv().propertyId).toBe('prop-1')
+    expect(last().kind).toBe('text')
+    expect(last().body).toMatch(/Your listing is saved/)
+    expect(last().body).toMatch(/\*asha@example\.com\*/)
+    expect(last().body).toMatch(/Email me a sign-in code/)
+    expect(last().body).toMatch(/signing in with the code verifies your email/)
+    // notifications.service is stubbed globally (tests/setup.js); the stub is the receipt.
+    expect(notifyUser).toHaveBeenCalledWith('u-new', expect.objectContaining({ type: 'SYSTEM', audience: 'OWNER', referenceId: 'prop-1', referenceType: 'Property', push: true }))
+    // The number has no OPEN conversation now; a later message says what is waiting.
+    await say(text('thanks'))
+    expect(last().body).toMatch(/not yet sent for verification/)
+    expect(last().body).toMatch(/asha@example\.com/)
+    expect(last().buttons.map((b) => b.id)).toEqual(['act:another', 'act:edit:sub', 'act:no'])
+    expect(store.rows.size).toBe(1)
+  })
+
+  it('a held listing names the other missing fields when the email is not the only gap', async () => {
+    publishFromConversation.mockResolvedValue({ ok: true, held: true, property: { id: 'prop-1', status: 'DRAFT' }, missing: [{ field: 'name', label: 'Your name' }, { field: 'email', label: 'Verified email' }] })
+    await toReview()
+    await say(reply('act:publish', 'Publish'))
+    expect(last().body).toMatch(/Open \*Settings\* and fill in: Your name/)
   })
 
   it('a validation failure re-asks the offending question instead of showing a schema error', async () => {
@@ -450,76 +541,84 @@ describe('commands', () => {
   })
 })
 
-// ── The optional email ask (added 2026-09-01) ──────────────────────────────
+// ── The email ask — at the START, required (changed 2026-09-02) ───────────
 // The phone needs no question — the WhatsApp number IS the verified phone.
-// Email is asked ONCE, at review, only when the account has none, and a chat
-// message never overwrites an existing address (identity.setEmailIfEmpty).
+// Email is asked right after the broker gate whenever the account has none,
+// and the flow does not move on without one. The single exception: an address
+// already on another account, where Skip is offered because there is no other
+// way through. A chat message never overwrites an existing address
+// (identity.setEmailIfEmpty).
 describe('the email ask', () => {
   const noEmailUser = { id: 'u-new', name: 'Asha Rao', email: null, isBusiness: false, showExactLocation: true, role: 'OWNER' }
 
-  async function toReviewNoEmail() {
+  it('an account without an email is asked right after the gate, and the type list follows a valid reply', async () => {
     prismaMock.user.findUnique.mockResolvedValue({ ...noEmailUser })
-    await say(text('2bhk apartment, fully furnished, 28k rent, 1 lakh deposit'))
-    await say(reply('act:broker:no'))
-    await say(pin(12.98, 80.22)); await say(reply('act:loc:confirm'))
-    await say(text('monthly rent'))
-    for (let i = 0; i < 13; i++) await say(text('skip'))
-    ingestPhoto.mockResolvedValue({ status: 'added', photo: { url: 'https://s/1_full.webp', waMediaId: 'p1', order: 0 } })
-    await say(image('p1'))
-    await say(reply('act:photos_done', 'Done'))
-  }
-
-  it('an account without an email is asked once at review; a valid reply saves it and the review follows', async () => {
     prismaMock.user.updateMany = vi.fn().mockResolvedValue({ count: 1 })
-    await toReviewNoEmail()
-    expect(last().kind).toBe('buttons')
-    expect(last().body).toMatch(/email/i)
-    expect(last().buttons.map((b) => b.id)).toEqual(['act:skip'])
+    await say(text('hi'))
+    await say(reply('act:broker:no'))
+    expect(last().kind).toBe('text')
+    expect(last().body).toMatch(/email address/i)
     expect(conv().draft.flags.emailAsked).toBe(true)
+    expect(conv().propertyType).toBeNull()
     await say(text('Asha.Rao@Example.com'))
     expect(prismaMock.user.updateMany).toHaveBeenCalledWith({ where: { id: 'u-new', email: null }, data: { email: 'asha.rao@example.com' } })
     expect(sent.some((s) => s.kind === 'text' && /Saved asha\.rao@example\.com/.test(s.body))).toBe(true)
-    expect(conv().status).toBe('REVIEW')
-    expect(last().buttons.map((b) => b.id)).toEqual(['act:publish', 'act:edit', 'act:cancel'])
+    expect(last().kind).toBe('list') // the type list — the flow carries on
+    expect(conv().status).toBe('PROPERTY_TYPE')
   })
 
-  it('Skip declines it, the review shows, and a revisited review never asks again', async () => {
-    await toReviewNoEmail()
-    await say(reply('act:skip', 'Skip'))
-    expect(conv().status).toBe('REVIEW')
-    const asks = () => sent.filter((s) => s.kind === 'buttons' && /email/i.test(s.body)).length
-    const before = asks()
-    await say(reply('act:edit', 'Edit'))
-    await say({ id: `wamid.${++seq}`, type: 'interactive', interactive: { type: 'list_reply', list_reply: { id: 'edit:price', title: 'Price' } } })
-    await say(reply('eq:rent'))
-    await say(text('30k'))
-    expect(conv().status).toBe('REVIEW')
-    expect(asks()).toBe(before)
+  it('a first message that describes the property rides through the email ask, like it rides through the gate', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ ...noEmailUser })
+    prismaMock.user.updateMany = vi.fn().mockResolvedValue({ count: 1 })
+    resolveLocationInput.mockResolvedValue({ status: 'imprecise', place: 'Velachery' })
+    await say(text('2bhk apartment in Velachery, 28k rent'))
+    await say(reply('act:broker:no'))
+    expect(last().body).toMatch(/email address/i)
+    await say(text('asha@example.com'))
+    expect(conv().propertyType).toBe('apartment')
+    expect(conv().draft.fields).toMatchObject({ bhk: 2, rent: 28000 })
   })
 
-  it('gibberish re-asks with Skip still offered; an email already on another account is told and dropped', async () => {
-    const { Prisma } = await import('@prisma/client')
-    prismaMock.user.updateMany = vi.fn().mockRejectedValue(new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: 't' }))
-    await toReviewNoEmail()
+  it('gibberish and "skip" both re-ask — the question is required', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ ...noEmailUser })
+    await say(text('hi'))
+    await say(reply('act:broker:no'))
     await say(text('not an email'))
-    expect(last().kind).toBe('buttons')
     expect(last().body).toMatch(/doesn't look like an email/)
-    await say(text('taken@example.com'))
-    expect(sent.some((s) => s.kind === 'text' && /already in use/.test(s.body))).toBe(true)
-    expect(conv().status).toBe('REVIEW')
+    await say(text('skip'))
+    expect(last().body).toMatch(/doesn't look like an email/)
+    expect(conv().status).toBe('PROPERTY_TYPE')
+    expect(conv().draft.pending?.kind).toBe('email')
+    expect(sent.filter((s) => s.kind === 'list').length).toBe(0) // never reached the types
   })
 
-  it('an owner who already has an email is never asked', async () => {
+  it('an email already on another account is told, and only then may be skipped', async () => {
+    const { Prisma } = await import('@prisma/client')
+    prismaMock.user.findUnique.mockResolvedValue({ ...noEmailUser })
+    prismaMock.user.updateMany = vi.fn().mockRejectedValue(new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: 't' }))
+    await say(text('hi'))
+    await say(reply('act:broker:no'))
+    await say(text('taken@example.com'))
+    expect(last().body).toMatch(/already in use/)
+    expect(conv().draft.pending).toMatchObject({ kind: 'email', allowSkip: true })
+    await say(text('skip'))
+    expect(last().kind).toBe('list')
+    expect(conv().draft.pending).toBeNull()
+  })
+
+  it('an owner who already has an email is never asked, at the start or at review', async () => {
     ingestPhoto.mockResolvedValue({ status: 'added', photo: { url: 'https://s/1_full.webp', waMediaId: 'p1', order: 0 } })
     await say(text('2bhk apartment, fully furnished, 28k rent, 1 lakh deposit'))
     await say(reply('act:broker:no'))
+    expect(last().body).not.toMatch(/email/i)
     await say(pin(12.98, 80.22)); await say(reply('act:loc:confirm'))
     await say(text('monthly rent'))
     for (let i = 0; i < 13; i++) await say(text('skip'))
     await say(image('p1'))
     await say(reply('act:photos_done', 'Done'))
+    await answerVisitQuestions()
     expect(conv().status).toBe('REVIEW')
-    expect(sent.filter((s) => s.kind === 'buttons' && /add an \*email/.test(s.body)).length).toBe(0)
+    expect(sent.filter((s) => /email address/i.test(s.body)).length).toBe(0)
   })
 })
 
@@ -610,6 +709,7 @@ describe('editing a submitted listing', () => {
     ingestPhoto.mockResolvedValue({ status: 'added', photo: { url: 'https://s/1_full.webp', waMediaId: 'p1', order: 0 } })
     await say(image('p1'))
     await say(reply('act:photos_done', 'Done'))
+    await answerVisitQuestions()
     expect(conv().status).toBe('REVIEW')
   }
 

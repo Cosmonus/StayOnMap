@@ -133,6 +133,38 @@ function rolled(now, mo, d, y) {
   return validDate(year, mo, d)
 }
 
+// The booking forms offer half-hour slots from 09:00 to 20:00 (VISIT_SLOTS in
+// both clients' utils/time.js). A window bound outside that range would leave
+// the form with nothing to offer, so the bot accepts only what it can honour.
+export const VISIT_EARLIEST = '09:00'
+export const VISIT_LATEST = '20:00'
+
+/**
+ * "10 AM", "10am", "10:30", "10.30 pm", "17:00", "6 in the evening" → "HH:MM"
+ * on the half hour, or null. A bare "6" is refused rather than guessed: an
+ * owner means 6 PM, a schema means 06:00, and the two disagree exactly here.
+ */
+export function parseTime(text) {
+  const s = norm(text).replace(/\./g, ':')
+  if (!s) return null
+  const m = s.match(/^(?:at\s+|from\s+|until\s+|till\s+|by\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a:m|p:m|(?:in the )?(?:morning|afternoon|evening|night))?$/)
+  if (!m) return null
+  let h = parseInt(m[1], 10)
+  const min = m[2] ? parseInt(m[2], 10) : 0
+  const tag = m[3] ?? ''
+  if (h > 23 || min > 59) return null
+  const pm = /pm|p:m|afternoon|evening|night/.test(tag)
+  const am = /am|a:m|morning/.test(tag)
+  if (pm && h < 12) h += 12
+  else if (am && h === 12) h = 0
+  else if (!pm && !am && !m[2]) return null // "6" — ambiguous
+  else if (!pm && !am && h <= 8) h += 12 // "6:30" alone: nobody shows a flat at half past six in the morning
+  let mm = Math.round(min / 30) * 30
+  if (mm === 60) { h += 1; mm = 0 }
+  if (h > 23) return null
+  return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
+}
+
 /**
  * Match free text against a select question's options: by option value, by
  * label, by a 1-based index ("2"), or by a leading word ("fully"). Returns the
@@ -187,12 +219,23 @@ export function matchOptions(q, text) {
  *
  * @returns {{ ok: true, value: any } | { ok: false, error: string }}
  */
-export function parseAnswer(q, raw) {
+export function parseAnswer(q, raw, fields = {}) {
   const s = typeof raw === 'string' ? raw.trim() : raw
 
   // An optional question accepts a skip in every type.
   if (!q.required && typeof s === 'string' && SKIP_WORDS.has(norm(s))) return { ok: true, value: null }
 
+  const result = parseByType(q, s)
+  // A cross-field rule declared on the question (a window's end after its
+  // start) runs only on a value the type already accepted.
+  if (result.ok && result.value != null && typeof q.validate === 'function') {
+    const error = q.validate(result.value, fields ?? {})
+    if (error) return { ok: false, error }
+  }
+  return result
+}
+
+function parseByType(q, s) {
   switch (q.type) {
     case 'text': {
       if (typeof s !== 'string' || !s) return { ok: false, error: 'Please type an answer.' }
@@ -233,6 +276,12 @@ export function parseAnswer(q, raw) {
       const iso = parseDate(s)
       if (!iso) return { ok: false, error: 'Please give a date like "1 Sep", a month like "September", or say "immediately".' }
       return { ok: true, value: iso }
+    }
+    case 'time': {
+      const hhmm = parseTime(s)
+      if (!hhmm) return { ok: false, error: 'Please give a time like 10 AM or 5:30 PM.' }
+      if (hhmm < VISIT_EARLIEST || hhmm > VISIT_LATEST) return { ok: false, error: 'Visits can be between 9 AM and 8 PM — please pick a time in that range.' }
+      return { ok: true, value: hhmm }
     }
     case 'phone': {
       const digits = String(s).replace(/\D/g, '')

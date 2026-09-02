@@ -69,6 +69,7 @@ export default function ActionCard({ formId, isOwner, property, avail, propertyI
               maxNights={property.maxNights}
               windowStart={property.appointmentWindowStart}
               windowEnd={property.appointmentWindowEnd}
+              contactMethod={property.visitContactMethod}
             />
           </div>
           {/* A listing with no coordinates gets a full-width Chat button rather

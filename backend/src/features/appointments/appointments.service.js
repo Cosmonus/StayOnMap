@@ -165,6 +165,32 @@ async function rejectSupersededPending(appt) {
 //
 // Shared by the first request and by a renter's counter-offer: a proposed time
 // is a time, and both need exactly these two checks.
+// The owner's viewing window is a promise about when they are free, and it is
+// what both booking forms already offer — but until 2026-09-02 nothing on the
+// server checked it, so a hand-built request could book 7 AM on a listing
+// whose owner said 10 to 6. Bounds are inclusive on both ends, matching the
+// clients' `t >= start && t <= end`. A listing with no window accepts any
+// slot, as before.
+function assertWithinWindow(property, hhmm) {
+  const start = property?.appointmentWindowStart
+  const end = property?.appointmentWindowEnd
+  if (!start || !end) return
+  if (hhmm < start || hhmm > end) {
+    throw Object.assign(
+      new Error(`The owner shows this place between ${istHHMMLabel(start)} and ${istHHMMLabel(end)} — pick a time in that window.`),
+      { statusCode: 400 },
+    )
+  }
+}
+
+// "10:00" → "10:00 AM"; the wall-clock label for a window bound (no date).
+function istHHMMLabel(hhmm) {
+  const [h, m] = hhmm.split(':').map(Number)
+  const suffix = h >= 12 ? 'PM' : 'AM'
+  const hour12 = h % 12 === 0 ? 12 : h % 12
+  return `${hour12}:${String(m).padStart(2, '0')} ${suffix}`
+}
+
 function assertFutureSlot(dateISO, hhmm) {
   const slot = istSlotInstant(dateISO, hhmm)
   if (Number.isNaN(slot.getTime())) {
@@ -181,7 +207,10 @@ function assertFutureSlot(dateISO, hhmm) {
 export async function requestAppointment(tenantId, propertyId, data) {
   const property = await prisma.property.findUnique({
     where: { id: propertyId },
-    select: { id: true, ownerId: true, status: true, riskScore: true, type: true, minNights: true, maxNights: true, instantBook: true },
+    select: {
+      id: true, ownerId: true, status: true, riskScore: true, type: true, minNights: true, maxNights: true, instantBook: true,
+      appointmentWindowStart: true, appointmentWindowEnd: true,
+    },
   })
   if (!property) throw Object.assign(new Error('Property not found'), { statusCode: 404 })
   if (property.status !== 'ACTIVE') throw Object.assign(new Error('Property is not available'), { statusCode: 400 })
@@ -196,6 +225,7 @@ export async function requestAppointment(tenantId, propertyId, data) {
   if (!isStay) {
     // A visit is a slot, and a slot in the past is unactionable.
     assertFutureSlot(data.requestedDate, data.requestedTime)
+    assertWithinWindow(property, data.requestedTime)
   } else {
     const checkIn = utcMidnight(data.requestedDate)
     // A stay has no slot — checking in TODAY at 9pm is a real booking, so the
@@ -347,7 +377,10 @@ export async function updateAppointmentStatus(
   userId,
   { status, scheduledAt, ownerNote, requestedDate, requestedTime, tenantNote },
 ) {
-  const appt = await prisma.appointment.findUnique({ where: { id: appointmentId }, include: { property: { select: { title: true } } } })
+  const appt = await prisma.appointment.findUnique({
+    where: { id: appointmentId },
+    include: { property: { select: { title: true, appointmentWindowStart: true, appointmentWindowEnd: true } } },
+  })
   if (!appt) throw Object.assign(new Error('Appointment not found'), { statusCode: 404 })
 
   const isOwner  = appt.ownerId === userId
@@ -392,6 +425,7 @@ export async function updateAppointmentStatus(
       throw Object.assign(new Error('Pick the date and time you would prefer.'), { statusCode: 400 })
     }
     assertFutureSlot(requestedDate, requestedTime)
+    assertWithinWindow(appt.property, requestedTime)
     if (await isDateUnavailable(appt.propertyId, requestedDate)) {
       throw Object.assign(
         new Error('The owner already has a visit booked that day — pick another date.'),

@@ -223,6 +223,9 @@ export async function verifyEmail(rawToken) {
   // Fire-and-forget — a points failure must never break verification, and the
   // unique (userId, action, '') makes a re-clicked link a no-op, not a payout.
   awardPoints(payload.sub, 'EMAIL_VERIFIED').catch(() => {})
+  // A verified email is what a WhatsApp owner's held listing is usually
+  // waiting on (whatsapp/listingEvents.js). Dynamic: no WhatsApp in this graph.
+  import('../whatsapp/listingEvents.js').then((m) => m.onProfileCompleted(payload.sub)).catch(() => {})
 }
 
 // ── Passwordless login — emailed 6-digit OTP ────────────────────────────────
@@ -348,6 +351,9 @@ export async function verifyLoginOtp(email, code, ctx = {}) {
   // Same award as the link flow — both prove inbox control. Fire-and-forget,
   // idempotent, so a second OTP login never pays twice.
   awardPoints(updated.id, 'EMAIL_VERIFIED').catch(() => {})
+  // And the same release: for a WhatsApp owner THIS sign-in is the step their
+  // held listing was waiting on (whatsapp/listingEvents.js).
+  import('../whatsapp/listingEvents.js').then((m) => m.onProfileCompleted(updated.id)).catch(() => {})
 
   const refreshToken = await issueSession(updated.id, ctx)
   return { token: signUserToken(updated), refreshToken, user: stripPasswordHash(updated) }

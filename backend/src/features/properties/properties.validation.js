@@ -21,6 +21,9 @@ const storageImageUrl = z.string().url().refine(
 // Types whose bhk represents bedrooms and is required (PG uses `sharing`
 // instead; LAND/COMMERCIAL have no bedroom concept at all).
 const BHK_REQUIRED_TYPES = ['APARTMENT', 'HOUSE', 'VILLA', 'INDEPENDENT_HOUSE', 'SHORT_STAY']
+// How an owner wants to be reached to arrange a visit. Exported so the
+// WhatsApp questionnaire offers exactly these and nothing it would then refuse.
+export const VISIT_CONTACT_METHODS = ['CALL', 'WHATSAPP', 'CHAT']
 
 // Types that can be offered on lease (lump sum, no monthly rent). PG prices
 // per bed and SHORT_STAY per night, so a lease deal is meaningless for both;
@@ -165,6 +168,9 @@ export const createPropertySchema = z.object({
   // Appointment window
   appointmentWindowStart: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format').optional(),
   appointmentWindowEnd:   z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format').optional(),
+  // How the owner wants to be reached to arrange a visit. The column is a
+  // String; this enum is what keeps it a closed set.
+  visitContactMethod: z.enum(VISIT_CONTACT_METHODS).optional(),
 
   // Media & amenities
   amenityIds: z.array(z.string()).max(20).default([]),
@@ -273,6 +279,7 @@ export const updatePropertySchema = z.object({
   leaseDuration:      z.number().int().min(1).optional(),
   appointmentWindowStart: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format').optional(),
   appointmentWindowEnd:   z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format').optional(),
+  visitContactMethod: z.enum(VISIT_CONTACT_METHODS).optional(),
   amenityIds:         z.array(z.string()).max(20).optional(),
   images:             z.array(storageImageUrl).min(1).max(10).optional(),
 

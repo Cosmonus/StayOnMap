@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest'
 import { QUESTIONNAIRES, CATEGORY_KEYS, SECTIONS, getQuestionnaire } from '../src/features/whatsapp/questionnaire/schemas.js'
 import {
-  nextQuestion, missingRequired, completion, parseAnswer, parseMoney, parseDate, matchOption, matchOptions, isVisible,
+  nextQuestion, missingRequired, completion, parseAnswer, parseMoney, parseDate, parseTime, matchOption, matchOptions, isVisible,
 } from '../src/features/whatsapp/questionnaire/engine.js'
 import { buildPropertyPayload, amenityNames } from '../src/features/whatsapp/questionnaire/normalize.js'
 import { createPropertySchema } from '../src/features/properties/properties.validation.js'
@@ -16,6 +16,8 @@ import { AMENITIES } from '../prisma/amenities.js'
 
 const location = { lat: 12.9716, lng: 77.5946, city: 'Bengaluru', locality: 'Koramangala', address: '12, 5th Block, Koramangala', state: 'Karnataka', pincode: '560095', confirmed: true }
 const photos = [{ url: `${process.env.SUPABASE_URL ?? 'https://x.supabase.co'}/storage/v1/object/public/StayOnMap/properties/u/a_full.webp` }]
+// The closing questions every complete draft carries (a stay has no window).
+const visits = { visitContact: 'WHATSAPP', appointmentWindowStart: '10:00', appointmentWindowEnd: '18:00' }
 
 describe('schemas — one questionnaire per category, all different', () => {
   it('declares all six categories', () => {
@@ -45,6 +47,22 @@ describe('schemas — one questionnaire per category, all different', () => {
     expect(getQuestionnaire('pg').map((q) => q.id)).not.toContain('bhk')
     expect(getQuestionnaire('shop').map((q) => q.id)).not.toContain('bhk')
     expect(getQuestionnaire('stay').map((q) => q.id)).toContain('nightlyRate')
+  })
+
+  it('closes every questionnaire with how to reach the owner, and a viewing window for everything but a stay', () => {
+    for (const k of CATEGORY_KEYS) {
+      const ids = getQuestionnaire(k).map((q) => q.id)
+      expect(ids.indexOf('visitContact'), k).toBeGreaterThan(ids.indexOf('photos'))
+      const q = getQuestionnaire(k).find((x) => x.id === 'visitContact')
+      expect(q.required).toBe(true)
+      expect(q.options.map((o) => o.value)).toEqual(['CALL', 'WHATSAPP', 'CHAT'])
+      if (k === 'stay') {
+        expect(ids).not.toContain('visitFrom')
+      } else {
+        expect(ids.slice(-3)).toEqual(['visitContact', 'visitFrom', 'visitUntil'])
+        expect(getQuestionnaire(k).find((x) => x.id === 'visitFrom').required).toBe(true)
+      }
+    }
   })
 
   it('every amenity chip is a real amenity name — an unknown one is dropped silently at publish', () => {
@@ -77,7 +95,7 @@ describe('engine — what is next, what is missing, how far along', () => {
   })
 
   it('treats null as an explicit skip, and never moves completion for optional questions', () => {
-    const draft = { fields: { bhk: 2, pricingModel: 'RENT', rent: 28000, deposit: 56000, furnished: 'FULLY', bathrooms: null }, location, photos, photosDone: true }
+    const draft = { fields: { bhk: 2, pricingModel: 'RENT', rent: 28000, deposit: 56000, furnished: 'FULLY', bathrooms: null, ...visits }, location, photos, photosDone: true }
     expect(nextQuestion('apartment', draft).id).toBe('maintenance')
     expect(completion('apartment', draft)).toBe(100)
     expect(missingRequired('apartment', draft)).toEqual([])
@@ -85,11 +103,11 @@ describe('engine — what is next, what is missing, how far along', () => {
 
   it('reports what is still required, in question order', () => {
     const draft = { fields: { bhk: 2 }, location, photos: [] }
-    expect(missingRequired('apartment', draft).map((q) => q.id)).toEqual(['pricingModel', 'rent', 'deposit', 'furnished', 'photos'])
+    expect(missingRequired('apartment', draft).map((q) => q.id)).toEqual(['pricingModel', 'rent', 'deposit', 'furnished', 'photos', 'visitContact', 'visitFrom', 'visitUntil'])
   })
 
   it('photos count only once the owner says done', () => {
-    const base = { fields: { bhk: 2, pricingModel: 'RENT', rent: 1, deposit: 0, furnished: 'SEMI' }, location, photos }
+    const base = { fields: { bhk: 2, pricingModel: 'RENT', rent: 1, deposit: 0, furnished: 'SEMI', ...visits }, location, photos }
     expect(missingRequired('apartment', { ...base, photosDone: false }).map((q) => q.id)).toEqual(['photos'])
     expect(missingRequired('apartment', { ...base, photosDone: true })).toEqual([])
   })
@@ -150,17 +168,45 @@ describe('parsing — money, dates, options', () => {
     const loc = getQuestionnaire('apartment').find((x) => x.id === 'location')
     expect(parseAnswer(loc, 'Velachery').ok).toBe(false)
   })
+
+  it('reads times the way owners write them, on the half hour, and never guesses a bare number', () => {
+    expect(parseTime('10 AM')).toBe('10:00')
+    expect(parseTime('10am')).toBe('10:00')
+    expect(parseTime('5:30 pm')).toBe('17:30')
+    expect(parseTime('5.30pm')).toBe('17:30')
+    expect(parseTime('17:00')).toBe('17:00')
+    expect(parseTime('12 pm')).toBe('12:00')
+    expect(parseTime('12 am')).toBe('00:00')
+    expect(parseTime('6 in the evening')).toBe('18:00')
+    expect(parseTime('10:15')).toBe('10:30') // snapped to the slot grid the forms offer
+    expect(parseTime('6:30')).toBe('18:30') // no tag, single digit → evening
+    expect(parseTime('6')).toBeNull()
+    expect(parseTime('noon-ish')).toBeNull()
+  })
+
+  it('the viewing window is bounded to what the booking forms can offer, and the end must follow the start', () => {
+    const from = getQuestionnaire('apartment').find((x) => x.id === 'visitFrom')
+    const until = getQuestionnaire('apartment').find((x) => x.id === 'visitUntil')
+    expect(parseAnswer(from, '10 am', {})).toEqual({ ok: true, value: '10:00' })
+    expect(parseAnswer(from, '7 am', {}).error).toMatch(/9 AM and 8 PM/)
+    expect(parseAnswer(until, '9 pm', {}).error).toMatch(/9 AM and 8 PM/)
+    expect(parseAnswer(until, '9 am', { appointmentWindowStart: '10:00' }).error).toMatch(/not after your start/)
+    expect(parseAnswer(until, '6 pm', { appointmentWindowStart: '10:00' })).toEqual({ ok: true, value: '18:00' })
+    expect(parseAnswer(from, '7 pm', { appointmentWindowEnd: '18:00' }).error).toMatch(/not before your end/)
+    // The window is required: a skip word is not an answer.
+    expect(parseAnswer(from, 'skip', {}).ok).toBe(false)
+  })
 })
 
 describe('normalize — every category produces a payload createPropertySchema accepts', () => {
   const amenityIdByName = new Map(AMENITIES.map((n) => [n, `id-${n}`]))
   const drafts = {
-    apartment: { fields: { bhk: 2, pricingModel: 'RENT', rent: 28000, deposit: 100000, maintenance: 1500, furnished: 'FULLY', bathrooms: 2, area: 1100, parking: true, floor: 4, totalFloors: 12, facingDirection: 'EAST', availableFrom: '2026-09-01T00:00:00.000Z', leaseDuration: 11, noticePeriodDays: 30, amenities: ['WiFi', 'Lift'], rules: ['petsAllowed'], details: 'Sunny, quiet street.' } },
-    house:     { fields: { houseStyle: 'Villa', bhk: 3, pricingModel: 'RENT', rent: 45000, deposit: 200000, furnished: 'SEMI', area: 1800, extent: 2400, totalFloors: 2, amenities: ['Garden'] } },
-    land:      { fields: { saleOrLease: 'SALE', extent: 1200, extentUnit: 'sq.ft', rent: 4500000, priceNegotiable: true, loanEligible: true, landType: 'Residential', dimensions: '30 x 40 ft', approvalStatus: 'DTCP', boundaryWall: true, facingDirection: 'EAST' } },
-    pg:        { fields: { pgName: 'Sunrise PG', sharing: 2, furnished: 'FULLY', rent: 9500, deposit: 19000, foodIncluded: true, totalBeds: 24, availableBeds: 6, noticePeriodDays: 30, genderPreference: 'FEMALE', amenities: ['WiFi'], rules: ['visitorsAllowed', 'curfew'], curfewTime: '10:30 PM' } },
-    shop:      { fields: { commercialType: 'Restaurant', pricingModel: 'RENT', rent: 85000, deposit: 510000, carpetArea: 850, frontage: 18, floor: 0, powerLoad: 15, parking: true, suitableFor: 'café', furnished: 'SEMI', amenities: ['Washroom'] } },
-    stay:      { fields: { placeType: 'Entire place', nightlyRate: 5250, cleaningFee: 800, weekendRate: 6500, minNights: 2, maxNights: 28, instantBook: true, maxGuests: 4, bhk: 2, beds: 3, bathrooms: 2, checkIn: '2 PM', checkOut: '11 AM', amenities: ['WiFi', 'Kitchen'], rules: ['bachelorAllowed', 'familyPreferred'] } },
+    apartment: { fields: { ...visits, bhk: 2, pricingModel: 'RENT', rent: 28000, deposit: 100000, maintenance: 1500, furnished: 'FULLY', bathrooms: 2, area: 1100, parking: true, floor: 4, totalFloors: 12, facingDirection: 'EAST', availableFrom: '2026-09-01T00:00:00.000Z', leaseDuration: 11, noticePeriodDays: 30, amenities: ['WiFi', 'Lift'], rules: ['petsAllowed'], details: 'Sunny, quiet street.' } },
+    house:     { fields: { ...visits, houseStyle: 'Villa', bhk: 3, pricingModel: 'RENT', rent: 45000, deposit: 200000, furnished: 'SEMI', area: 1800, extent: 2400, totalFloors: 2, amenities: ['Garden'] } },
+    land:      { fields: { ...visits, saleOrLease: 'SALE', extent: 1200, extentUnit: 'sq.ft', rent: 4500000, priceNegotiable: true, loanEligible: true, landType: 'Residential', dimensions: '30 x 40 ft', approvalStatus: 'DTCP', boundaryWall: true, facingDirection: 'EAST' } },
+    pg:        { fields: { ...visits, pgName: 'Sunrise PG', sharing: 2, furnished: 'FULLY', rent: 9500, deposit: 19000, foodIncluded: true, totalBeds: 24, availableBeds: 6, noticePeriodDays: 30, genderPreference: 'FEMALE', amenities: ['WiFi'], rules: ['visitorsAllowed', 'curfew'], curfewTime: '10:30 PM' } },
+    shop:      { fields: { ...visits, commercialType: 'Restaurant', pricingModel: 'RENT', rent: 85000, deposit: 510000, carpetArea: 850, frontage: 18, floor: 0, powerLoad: 15, parking: true, suitableFor: 'café', furnished: 'SEMI', amenities: ['Washroom'] } },
+    stay:      { fields: { visitContact: 'CALL', placeType: 'Entire place', nightlyRate: 5250, cleaningFee: 800, weekendRate: 6500, minNights: 2, maxNights: 28, instantBook: true, maxGuests: 4, bhk: 2, beds: 3, bathrooms: 2, checkIn: '2 PM', checkOut: '11 AM', amenities: ['WiFi', 'Kitchen'], rules: ['bachelorAllowed', 'familyPreferred'] } },
   }
 
   for (const [category, draft] of Object.entries(drafts)) {
@@ -175,12 +221,12 @@ describe('normalize — every category produces a payload createPropertySchema a
       expect(d.city).toBe('Bengaluru')
       expect(d.images).toHaveLength(1)
       switch (category) {
-        case 'apartment': expect(d.type).toBe('APARTMENT'); expect(d.rules.petsAllowed).toBe(true); expect(d.amenityIds).toContain('id-Covered Parking'); expect(d.maintenance).toBe(1500); expect(d.leaseDuration).toBe(11); expect(d.noticePeriodDays).toBe(30); expect(d.area).toBe(1100); expect(d.facingDirection).toBe('EAST'); break
+        case 'apartment': expect(d.type).toBe('APARTMENT'); expect(d.visitContactMethod).toBe('WHATSAPP'); expect(d.appointmentWindowStart).toBe('10:00'); expect(d.appointmentWindowEnd).toBe('18:00'); expect(d.rules.petsAllowed).toBe(true); expect(d.amenityIds).toContain('id-Covered Parking'); expect(d.maintenance).toBe(1500); expect(d.leaseDuration).toBe(11); expect(d.noticePeriodDays).toBe(30); expect(d.area).toBe(1100); expect(d.facingDirection).toBe('EAST'); break
         case 'house':     expect(d.type).toBe('VILLA'); expect(d.extent).toBe(2400); break
         case 'land':      expect(d.type).toBe('LAND'); expect(d.pricingModel).toBe('SALE'); expect(d.rent).toBe(4500000); expect(d.amenityIds).toContain('id-Boundary Wall'); expect(d.dimensions).toBe('30 x 40 ft'); expect(d.loanEligible).toBe(true); break
         case 'pg':        expect(d.type).toBe('PG'); expect(d.sharing).toBe(2); expect(d.rules.genderPreference).toBe('FEMALE'); expect(d.rules.curfewTime).toBe('10:30 PM'); expect(d.amenityIds).toContain('id-Breakfast'); expect(d.title).toContain('Sunrise PG'); expect(d.totalBeds).toBe(24); expect(d.availableBeds).toBe(6); expect(d.noticePeriodDays).toBe(30); break
         case 'shop':      expect(d.type).toBe('COMMERCIAL'); expect(d.commercialType).toBe('Retail shop'); expect(d.description).toContain('Restaurant'); expect(d.frontage).toBe(18); expect(d.powerLoad).toBe('15'); break
-        case 'stay':      expect(d.type).toBe('SHORT_STAY'); expect(d.nightlyRate).toBe(5250); expect(d.rent).toBe(5250); expect(d.description).toContain('Check-in 2 PM'); expect(d.cleaningFee).toBe(800); expect(d.weekendRate).toBe(6500); expect(d.minNights).toBe(2); expect(d.instantBook).toBe(true); expect(d.beds).toBe(3); expect(d.rules.bachelorAllowed).toBe(true); expect(d.rules.familyPreferred).toBe(true); expect(d.rules.smokingAllowed).toBe(false); break
+        case 'stay':      expect(d.type).toBe('SHORT_STAY'); expect(d.visitContactMethod).toBe('CALL'); expect(d.appointmentWindowStart).toBeUndefined(); expect(d.nightlyRate).toBe(5250); expect(d.rent).toBe(5250); expect(d.description).toContain('Check-in 2 PM'); expect(d.cleaningFee).toBe(800); expect(d.weekendRate).toBe(6500); expect(d.minNights).toBe(2); expect(d.instantBook).toBe(true); expect(d.beds).toBe(3); expect(d.rules.bachelorAllowed).toBe(true); expect(d.rules.familyPreferred).toBe(true); expect(d.rules.smokingAllowed).toBe(false); break
       }
     })
   }
@@ -204,7 +250,7 @@ describe('normalize — every category produces a payload createPropertySchema a
     expect(saleParsed.data.possessionStatus).toBe('Ready to move')
     expect(saleParsed.data.loanEligible).toBe(true)
     // The deposit question is hidden on LEASE, and the lease terms hide on SALE.
-    expect(missingRequired('apartment', { ...base, fields: { ...base.fields, pricingModel: 'LEASE', rent: 800000 } })).toEqual([])
+    expect(missingRequired('apartment', { ...base, fields: { ...base.fields, pricingModel: 'LEASE', rent: 800000, ...visits } })).toEqual([])
   })
 
   it('a lease on land is the RENT pricing model with saleOrLease=LEASE — LEASE itself is refused on land', () => {

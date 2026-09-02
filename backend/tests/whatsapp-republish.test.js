@@ -17,7 +17,9 @@ vi.mock('../src/features/properties/properties.service.js', () => ({
 
 const { publishFromConversation, propertyEditability, EDITABLE_STATUSES } = await import('../src/features/whatsapp/publish.service.js')
 
-const USER = { id: 'u1', role: 'OWNER', isBusiness: false, isBlocked: false, city: 'Bengaluru', phone: '9876543210' }
+// Complete profile by default (name, phone, city, VERIFIED email) so the
+// profile hold stays out of every test that isn't about it.
+const USER = { id: 'u1', role: 'OWNER', isBusiness: false, isBlocked: false, city: 'Bengaluru', phone: '9876543210', name: 'Asha', email: 'asha@example.com', isVerified: true }
 const DRAFT = {
   fields: { bhk: 2, rent: 28000, deposit: 100000, furnished: 'FULLY', amenities: [], rules: [], details: null, bathrooms: null, parking: null, floor: null, totalFloors: null, availableFrom: null },
   location: { lat: 12.9716, lng: 77.5946, city: 'Bengaluru', locality: 'Koramangala', address: '12, 5th Block, Koramangala', state: 'Karnataka', pincode: '560095', confirmed: true },
@@ -86,5 +88,43 @@ describe('publishFromConversation with an existing property', () => {
     expect(r.ok).toBe(true)
     expect(createProperty).toHaveBeenCalled()
     expect(updateProperty).not.toHaveBeenCalled()
+  })
+})
+
+// ── The profile hold (2026-09-02) ──────────────────────────────────────────
+// requireCompleteProfile's rule, applied at PUBLISH: the Property is created
+// so nothing typed is lost, and it is held — not submitted — until name,
+// phone, city and a VERIFIED email are all there.
+describe('publishFromConversation — an incomplete profile holds the listing', () => {
+  it('create: the DRAFT exists, publishProperty is NOT called, and the missing fields are named', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ ...USER, isVerified: false })
+    const r = await publishFromConversation(conv(null))
+    expect(r).toMatchObject({ ok: true, held: true, property: { id: 'p-new' } })
+    expect(r.missing.map((m) => m.field)).toEqual(['email'])
+    expect(createProperty).toHaveBeenCalled()
+    expect(publishProperty).not.toHaveBeenCalled()
+  })
+
+  it('names every missing field, not just the email', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ ...USER, isVerified: false, name: '' })
+    const r = await publishFromConversation(conv(null))
+    expect(r.missing.map((m) => m.field)).toEqual(['name', 'email'])
+  })
+
+  it('edit of a DRAFT: updated in place and held again, never published past the gate', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ ...USER, isVerified: false })
+    prismaMock.property.findUnique.mockResolvedValue({ status: 'DRAFT', ownerId: 'u1' })
+    const r = await publishFromConversation(conv('p1'))
+    expect(r).toMatchObject({ ok: true, updated: true, held: true })
+    expect(updateProperty).toHaveBeenCalled()
+    expect(publishProperty).not.toHaveBeenCalled()
+  })
+
+  it('a PENDING listing is already queued — an edit updates it and the gate does not apply', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ ...USER, isVerified: false })
+    prismaMock.property.findUnique.mockResolvedValue({ status: 'PENDING', ownerId: 'u1' })
+    const r = await publishFromConversation(conv('p1'))
+    expect(r).toMatchObject({ ok: true, updated: true })
+    expect(r.held).toBeFalsy()
   })
 })

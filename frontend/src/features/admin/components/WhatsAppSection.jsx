@@ -14,6 +14,7 @@ import { STATUS_WORD, ago } from './whatsappVocab'
 
 const FILTERS = [
   { value: 'open',      label: 'In progress' },
+  { value: 'AWAITING_PROFILE', label: 'Waiting on profile' },
   { value: 'VERIFICATION', label: 'Awaiting review' },
   { value: 'COMPLETED', label: 'Live' },
   { value: 'CANCELLED', label: 'Cancelled' },

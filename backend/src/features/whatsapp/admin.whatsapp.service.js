@@ -76,6 +76,7 @@ export async function listConversations({ status, page = 1, limit = 30, search }
   const byStatus = Object.fromEntries(statusRows.map((r) => [r.status, r._count._all]))
   const counts = {
     open: OPEN_STATUSES.reduce((n, s) => n + (byStatus[s] ?? 0), 0),
+    AWAITING_PROFILE: byStatus.AWAITING_PROFILE ?? 0,
     VERIFICATION: byStatus.VERIFICATION ?? 0,
     COMPLETED: byStatus.COMPLETED ?? 0,
     CANCELLED: byStatus.CANCELLED ?? 0,
@@ -157,7 +158,7 @@ export async function getFunnel({ days = 30 } = {}) {
       _count: { _all: true },
     }).catch(() => []),
     prisma.whatsAppConversation.findMany({
-      where: { status: { in: ['VERIFICATION', 'COMPLETED'] }, createdAt: { gte: since }, propertyId: { not: null } },
+      where: { status: { in: ['AWAITING_PROFILE', 'VERIFICATION', 'COMPLETED'] }, createdAt: { gte: since }, propertyId: { not: null } },
       select: { createdAt: true, updatedAt: true, completedAt: true },
       take: 1000,
     }).catch(() => []),

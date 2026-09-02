@@ -17,7 +17,9 @@
 //             draft.photos for the two special kinds)
 //   label     the question as asked
 //   type      text | number | currency | single_select | multi_select | boolean
-//             | date | location | image | phone | confirmation
+//             | date | time | location | image | phone | confirmation
+//   validate  (value, fields) => error string | null — a cross-field check the
+//             per-question min/max cannot express (a window's end after its start)
 //   required  the listing cannot publish without it
 //   options   [{ value, label, description? }] for the select kinds
 //   min/max   numeric bounds, mirrored from properties.validation.js so an
@@ -31,6 +33,7 @@
 // one exists. The handful that are not columns — parking, foodIncluded,
 // checkIn, extras — are folded into amenities / rules / the description by
 // normalize.js, which is the only place that mapping lives.
+import { VISIT_CONTACT_METHODS } from '../../properties/properties.validation.js'
 
 export const CATEGORIES = {
   apartment: { type: 'APARTMENT',  label: 'Apartment / Flat',       emoji: '🏠', tier: 'free' },
@@ -74,6 +77,30 @@ const amenityOptions = (key) => AMENITIES[key].map((name) => ({ value: name, lab
 const DETAILS = { id: 'details', field: 'details', label: 'Anything else a renter should know? (or say *skip*)', type: 'text', required: false, max: 1500, section: 'description' }
 const PHOTOS  = { id: 'photos',  field: 'photos',  label: 'Send photos of the property', type: 'image', required: true, min: 1, max: 10, section: 'photos' }
 const LOCATION = { id: 'location', field: 'location', label: 'Share the exact property location', type: 'location', required: true, section: 'location' }
+
+// ── The closing questions: how to arrange a visit (added 2026-09-02) ──────
+// Asked LAST, after the photos, because they are about the owner rather than
+// the property, and an owner who has just finished describing their flat is
+// the right person to say when they can show it.
+//
+// The window is the SAME pair of columns the web wizard's "Visits from / until"
+// writes, and the booking form on both platforms offers only slots inside it
+// (appointments.service.js now refuses one outside it too). Required here,
+// where the web wizard leaves it optional: a listing that arrives with no
+// window lets a renter pick 9 PM and puts the awkward "no" on the owner.
+//
+// SHORT_STAY has no viewing slot — it is booked as a date range — so a stay
+// gets the contact question only. Every other type gets all three.
+const VISIT_CONTACT_LABELS = { CALL: 'Phone call', WHATSAPP: 'WhatsApp message', CHAT: 'Message in the app' }
+const VISIT_CONTACT_Q = { id: 'visitContact', field: 'visitContact', label: 'How should renters contact you to arrange a visit?', type: 'single_select', required: true, section: 'visits',
+  options: VISIT_CONTACT_METHODS.map((value) => ({ value, label: VISIT_CONTACT_LABELS[value] })) }
+const VISIT_FROM_Q = { id: 'visitFrom', field: 'appointmentWindowStart', label: 'From what time can renters visit on a typical day? (e.g. 10 AM)', type: 'time', required: true, section: 'visits',
+  help: 'Visits can be between 9 AM and 8 PM. Renters will only be able to book inside your window.',
+  validate: (v, f) => (f.appointmentWindowEnd && v >= f.appointmentWindowEnd ? 'That is not before your end time — pick an earlier start, or change the end time first.' : null) }
+const VISIT_UNTIL_Q = { id: 'visitUntil', field: 'appointmentWindowEnd', label: 'Until what time? (e.g. 6 PM)', type: 'time', required: true, section: 'visits',
+  validate: (v, f) => (f.appointmentWindowStart && v <= f.appointmentWindowStart ? 'That is not after your start time — pick a later end.' : null) }
+const VISIT_QS = [VISIT_CONTACT_Q, VISIT_FROM_Q, VISIT_UNTIL_Q]
+const STAY_VISIT_QS = [VISIT_CONTACT_Q]
 
 const RULES_RESIDENTIAL = [
   { value: 'bachelorAllowed', label: 'Bachelors allowed' },
@@ -143,6 +170,7 @@ export const QUESTIONNAIRES = {
     { id: 'rules',       field: 'rules',       label: 'House rules — which of these apply?', type: 'multi_select', required: false, options: RULES_RESIDENTIAL, section: 'details' },
     DETAILS,
     PHOTOS,
+    ...VISIT_QS,
   ],
   house: [
     LOCATION,
@@ -171,6 +199,7 @@ export const QUESTIONNAIRES = {
     { id: 'rules',       field: 'rules',       label: 'House rules — which of these apply?', type: 'multi_select', required: false, options: RULES_RESIDENTIAL, section: 'details' },
     DETAILS,
     PHOTOS,
+    ...VISIT_QS,
   ],
   land: [
     { id: 'saleOrLease', field: 'saleOrLease', label: 'Is the plot for sale, or for lease?', type: 'single_select', required: true, section: 'price', options: [
@@ -203,6 +232,7 @@ export const QUESTIONNAIRES = {
     { id: 'amenities',   field: 'amenities',   label: 'Anything else that stands out?',      type: 'multi_select', required: false, options: amenityOptions('land'), section: 'details' },
     DETAILS,
     PHOTOS,
+    ...VISIT_QS,
   ],
   pg: [
     LOCATION,
@@ -232,6 +262,7 @@ export const QUESTIONNAIRES = {
     { id: 'curfewTime',  field: 'curfewTime',  label: 'What time is the curfew? (e.g. 10:30 PM)', type: 'text', required: false, max: 20, section: 'details', showIf: (f) => Array.isArray(f.rules) && f.rules.includes('curfew') },
     DETAILS,
     PHOTOS,
+    ...VISIT_QS,
   ],
   shop: [
     LOCATION,
@@ -259,6 +290,7 @@ export const QUESTIONNAIRES = {
     { id: 'amenities',   field: 'amenities',   label: 'What does the space have?',           type: 'multi_select', required: false, options: amenityOptions('shop'), section: 'details' },
     DETAILS,
     PHOTOS,
+    ...VISIT_QS,
   ],
   stay: [
     LOCATION,
@@ -288,6 +320,7 @@ export const QUESTIONNAIRES = {
     ] },
     DETAILS,
     PHOTOS,
+    ...STAY_VISIT_QS,
   ],
 }
 
@@ -299,6 +332,7 @@ export const SECTIONS = {
   details:     'Property details',
   description: 'Extra details',
   photos:      'Photos',
+  visits:      'Visits & contact',
 }
 
 export function getQuestionnaire(category) {
