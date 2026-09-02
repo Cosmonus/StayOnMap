@@ -57,6 +57,7 @@ import localityRoutes     from './features/seo/locality.routes.js'
 import blogRoutes         from './features/blog/blog.routes.js'
 import contactRoutes      from './features/contact/contact.routes.js'
 import { startRefresher, stopRefresher } from './features/spatial/refresher.js'
+import { startHeldReminders, stopHeldReminders } from './features/whatsapp/reminders.js'
 import aiRoutes          from './features/ai/ai.routes.js'
 import areaRoutes        from './features/areas/areas.routes.js'
 import metroRoutes       from './features/metro/metro.routes.js'
@@ -203,6 +204,10 @@ httpServer.listen(PORT, () => {
   startRefresher()
     .then((path) => console.log(`Spatial refresher started (${path})`))
     .catch(() => {})
+
+  // One WhatsApp reminder for a listing held on the owner's profile, inside
+  // the 24h window (features/whatsapp/reminders.js). No-op when unconfigured.
+  startHeldReminders()
 })
 
 // ── Graceful shutdown ────────────────────────────────────────────────────────
@@ -249,6 +254,7 @@ async function shutdown(signal) {
     // accepting them, against a Prisma client about to disconnect. Before
     // $disconnect for that reason.
     try { await stopRefresher() } catch { /* nothing to stop */ }
+    stopHeldReminders()
     await prisma.$disconnect()
     console.log('[shutdown] clean')
     process.exit(0)
