@@ -14,7 +14,7 @@ const SCREEN_TITLE = {
 
 export default function BookViewingScreen({ route, navigation }) {
   const { contentMaxWidth } = useLayout()
-  const { propertyId, type, minNights, maxNights, windowStart, windowEnd, contactMethod } = route.params
+  const { propertyId, type, minNights, maxNights, windowStart, windowEnd } = route.params
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -28,7 +28,6 @@ export default function BookViewingScreen({ route, navigation }) {
             maxNights={maxNights}
             windowStart={windowStart}
             windowEnd={windowEnd}
-            contactMethod={contactMethod}
             onSuccess={() => {}}
           />
         </ScrollView>

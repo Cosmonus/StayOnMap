@@ -7,7 +7,6 @@ import { chatService } from '@services/chat.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import Icon from '@components/common/Icon'
 import { VISIT_SLOTS, formatTime } from '@utils/time'
-import { visitContactSentence } from '../visitContact'
 import { normalizePhone, isValidPhone } from '@utils/phone'
 import { colors } from '@theme/colors'
 import { fonts, fontSizes } from '@theme/typography'
@@ -56,7 +55,7 @@ function localISO(d) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-export default function AppointmentForm({ propertyId, type, minNights, maxNights, windowStart, windowEnd, contactMethod, onSuccess }) {
+export default function AppointmentForm({ propertyId, type, minNights, maxNights, windowStart, windowEnd, onSuccess }) {
   const navigation = useNavigation()
   const queryClient = useQueryClient()
   const { user } = useAuth()
@@ -432,13 +431,6 @@ export default function AppointmentForm({ propertyId, type, minNights, maxNights
       </>
       )}
 
-      {/* The owner's own answer to "how should renters reach you" — shown
-          where the renter is about to, and not at all when the listing never
-          said. Mirrors web's AppointmentForm. */}
-      {!!visitContactSentence(contactMethod) && (
-        <Text style={styles.contactNote}>{visitContactSentence(contactMethod)}</Text>
-      )}
-
       <View style={styles.labelRow}><Icon name="phone" size={12} color={colors.slate500} /><Text style={styles.label}>Mobile number</Text></View>
       <TextInput
         style={styles.input}
@@ -514,11 +506,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4,
   },
   hint: { fontFamily: fonts.body, fontSize: 11, color: colors.slate500, marginTop: 2 },
-  contactNote: {
-    fontFamily: fonts.body, fontSize: fontSizes.sm, color: colors.slate600, lineHeight: 20,
-    backgroundColor: colors.brand50, borderWidth: 1, borderColor: colors.brand100, borderRadius: radius.md,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm, marginTop: spacing.md,
-  },
   nightsText: { fontFamily: fonts.bodySemiBold, fontSize: fontSizes.sm, color: colors.slate700, marginTop: 2 },
   input: {
     borderWidth: 1, borderColor: colors.slate200, borderRadius: radius.md,

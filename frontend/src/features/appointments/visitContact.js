@@ -1,5 +1,5 @@
 // How the owner asked to be reached to arrange a visit — Property.visitContactMethod.
-// Mirrored in mobile/src/features/appointments/visitContact.js; keep the two in step.
+// Web only — the mobile booking form deliberately does not show it (operator decision 2026-09-02).
 export const VISIT_CONTACT_COPY = {
   CALL: 'a phone call',
   WHATSAPP: 'WhatsApp',
