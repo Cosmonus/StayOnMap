@@ -3,7 +3,7 @@
 
 export const STATUS_WORD = {
   START: 'Starting', PROPERTY_TYPE: 'Choosing type', QUESTIONNAIRE: 'Answering', LOCATION: 'Sharing location',
-  PHOTOS: 'Sending photos', REVIEW: 'Reviewing', CONFIRMATION: 'Publishing', VERIFICATION: 'Awaiting review',
+  PHOTOS: 'Sending photos', REVIEW: 'Reviewing', CONFIRMATION: 'Publishing', AWAITING_PROFILE: 'Waiting on profile', VERIFICATION: 'Awaiting review',
   COMPLETED: 'Live', CANCELLED: 'Cancelled',
 }
 

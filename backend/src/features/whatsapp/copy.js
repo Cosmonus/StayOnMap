@@ -250,10 +250,45 @@ export const multiSelectBody = (label, chosen) =>
 ` : '') +
   `Tap an option to add it — tap again to remove. You can also type names ("wifi, ac"). Tap *Done* when finished.`
 
-export const submitted = (category) =>
+export const submitted = (category, { email } = {}) =>
   `Thanks! 🙏 Your ${CATEGORIES[category]?.label ?? 'property'} has been submitted for verification.\n\n` +
   `Our team checks every listing before it goes on the map — usually within a day. I'll message you here the moment it's live.\n\n` +
-  `📲 Meanwhile, get the ${BRAND} app to manage your listing, chat with renters and get instant updates — sign in with this mobile number:\n${PLAY_STORE_URL}`
+  `📲 Meanwhile, manage your listing, chat with renters and get instant updates in the ${BRAND} app:\n${PLAY_STORE_URL}\n\n` +
+  signInLine(email)
+
+// The one way in for a WhatsApp owner: the email they gave here, and the
+// emailed sign-in code (no password was ever set). Said the same way at every
+// exit, so nobody hunts for a password they never had.
+const signInLine = (email) =>
+  `🔑 Always sign in with the email you registered this property under${email ? ` — *${email}*` : ''}: tap *Email me a sign-in code* on the login screen. No password needed.`
+
+// ── Held for an incomplete profile (2026-09-02) ───────────────────────────
+// The listing is saved as a draft; it goes to our team the moment the profile
+// is complete. For a WhatsApp owner that is usually ONLY the verified email,
+// and signing in with the emailed code is what verifies it — so step 1 is the
+// whole job in the common case, and the copy says so instead of listing chores.
+
+export const heldForProfile = ({ email, missing = [], loginUrl }) => {
+  const rest = missing.filter((m) => m.field !== 'email').map((m) => m.label)
+  const steps = [
+    `1. Sign in at ${loginUrl} — or in the ${BRAND} app — with the email you gave here${email ? ` (*${email}*)` : ''}. Tap *Email me a sign-in code*; no password needed.`,
+    rest.length
+      ? `2. Open *Settings* and fill in: ${rest.join(', ')}. Your listing goes to our team the moment your profile is complete.`
+      : `2. That's it — signing in with the code verifies your email, and your listing goes to our team for verification right away.`,
+  ]
+  return `✅ Your listing is saved.\n\nOne step before it goes for verification — complete your ${BRAND} profile:\n\n${steps.join('\n')}\n\n` +
+    `Always sign in with that email — it's the one your property is registered under. I'll message you here the moment your listing is live.`
+}
+
+export const heldNotificationBody = (missing = []) => {
+  const rest = missing.filter((m) => m.field !== 'email').map((m) => m.label)
+  return rest.length
+    ? `Your WhatsApp listing is saved as a draft. Add ${rest.join(', ')} in Settings and it will be sent to our team for verification.`
+    : `Your WhatsApp listing is saved as a draft. Now that you've signed in, it will be sent to our team for verification.`
+}
+
+export const releasedForVerification = (category) =>
+  `🎉 Profile complete — your ${CATEGORIES[category]?.label ?? 'property'} has been sent to our team for verification. I'll message you here the moment it's live.`
 
 export const publishFailedValidation = (problems) =>
   `Almost there — a couple of things need fixing before it can go up:\n\n${problems.map((p) => `• ${p}`).join('\n')}`
@@ -268,15 +303,17 @@ export const listingLive = ({ category, fields, locality, listingUrl, manageUrl 
   `${priceLines(category, fields)[0] ?? ''}\n\n` +
   `View listing:\n${listingUrl}\n\n` +
   `Manage your property:\n${manageUrl}\n\n` +
-  `You can also log in to ${BRAND} any time with your mobile number.`
+  signInLine()
 
 export const listingRejected = ({ note, manageUrl }) =>
   `Your listing couldn't be approved yet${note ? `: ${note}` : ''}.\n\nEdit it and resubmit here:\n${manageUrl}`
 
-export const afterCompletion = (state) =>
+export const afterCompletion = (state, { email, loginUrl } = {}) =>
   state === 'live'
     ? `Your listing is live. Want to list another property? (Say *edit* for a link to manage the live one.)`
-    : `Your listing is with our team for verification — I'll message you when it's live. While it waits you can still *edit* it, or list another property.`
+    : state === 'held'
+      ? `Your listing is saved but not yet sent for verification — sign in at ${loginUrl ?? 'stayonmap.com'} with${email ? ` *${email}*` : ' the email you gave here'} (tap *Email me a sign-in code*) to complete your profile. You can still *edit* it here, or list another property.`
+      : `Your listing is with our team for verification — I'll message you when it's live. While it waits you can still *edit* it, or list another property.`
 
 export const rateLimited = () => `You're sending messages faster than I can read them — give me a moment.`
 

@@ -26,6 +26,8 @@ import { toLocal } from './phone.js'
 const USER_SELECT = {
   id: true, name: true, email: true, phone: true, phoneVerifiedAt: true, role: true,
   isBusiness: true, isBlocked: true, city: true, showExactLocation: true,
+  // The profile gate at publish reads it (requireCompleteProfile's rule).
+  isVerified: true,
 }
 
 /** The account this number is verified on, if any. */

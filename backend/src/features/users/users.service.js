@@ -59,6 +59,12 @@ export async function updateUser(id, data) {
   const user = await prisma.user.update({ where: { id }, data: update })
   // Fire-and-forget — idempotent via the ledger's unique (userId, action, '').
   if (isProfileComplete(user)) awardPoints(id, 'PROFILE_COMPLETED').catch(() => {})
+  // A WhatsApp listing held on an incomplete profile (name / phone / city are
+  // the three this endpoint can complete). Dynamic import keeps the WhatsApp
+  // module graph out of this one; it re-checks the gate itself.
+  if (update.name !== undefined || update.phone !== undefined || update.city !== undefined) {
+    import('../whatsapp/listingEvents.js').then((m) => m.onProfileCompleted(id)).catch(() => {})
+  }
   return stripPasswordHash(user)
 }
 

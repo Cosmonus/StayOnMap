@@ -13,7 +13,8 @@
 import { env } from '../../config/env.js'
 import { prisma } from '../../lib/prisma.js'
 import { sendText, sendTemplate, whatsappConfigured } from './client.js'
-import { byPropertyId, complete } from './conversation.service.js'
+import { byPropertyId, complete, save } from './conversation.service.js'
+import { missingProfileFields } from '../../middlewares/requireCompleteProfile.middleware.js'
 import { createLoginLink } from './loginLink.service.js'
 import { track } from './analytics.js'
 import * as copy from './copy.js'
@@ -57,6 +58,57 @@ export async function onListingWentLive(propertyId) {
     track(conversation, 'wa_listing_published', { delivered: !!sent })
   } catch (err) {
     intelError('whatsapp.listing_live_notify_failed', err, { propertyId })
+  }
+}
+
+/**
+ * The profile just changed — release every WhatsApp listing held on it.
+ *
+ * Called fire-and-forget from the three places a profile can become complete:
+ * a profile edit (users.service.js), the emailed sign-in code and the
+ * verification link (auth.service.js — both set isVerified, which for a
+ * WhatsApp owner is the only thing usually missing). Re-checks the gate
+ * itself rather than trusting the caller, so a call on an incomplete profile
+ * is a no-op and never a way to skip the rule.
+ *
+ * DRAFT / REJECTED go through publishProperty (→ PENDING, admins emailed);
+ * a listing already moved on the website is only re-labelled. The WhatsApp
+ * message is best-effort — days may have passed, and outside the 24h window
+ * Meta drops a plain text; the in-app notification the hold created and the
+ * usual listing-live message still reach them.
+ */
+export async function onProfileCompleted(userId) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, phone: true, city: true, isVerified: true, isBlocked: true },
+    })
+    if (!user || user.isBlocked || missingProfileFields(user).length) return []
+    const held = await prisma.whatsAppConversation.findMany({
+      where: { userId, status: 'AWAITING_PROFILE', propertyId: { not: null } },
+      select: { id: true, phone: true, propertyId: true, propertyType: true, draft: true },
+    })
+    if (!held.length) return []
+    // Dynamic: properties.service sits upstream of the two files that call
+    // this, and a static import here would close a cycle at module load.
+    const { publishProperty } = await import('../properties/properties.service.js')
+    const released = []
+    for (const conv of held) {
+      const p = await prisma.property.findUnique({ where: { id: conv.propertyId }, select: { status: true, ownerId: true } })
+      if (!p || p.ownerId !== userId) continue
+      if (p.status === 'ACTIVE') { await complete(conv, conv.propertyId); continue }
+      if (p.status === 'DRAFT' || p.status === 'REJECTED') await publishProperty(conv.propertyId, userId)
+      await save(conv, { status: 'VERIFICATION' })
+      released.push(conv.propertyId)
+      track(conv, 'wa_publish_confirmed', { released: true })
+      if (whatsappConfigured() || env.nodeEnv === 'development') {
+        await sendText(conv.phone, copy.releasedForVerification(conv.propertyType), { conversationId: conv.id })
+      }
+    }
+    return released
+  } catch (err) {
+    intelError('whatsapp.profile_release_failed', err, { userId })
+    return []
   }
 }
 

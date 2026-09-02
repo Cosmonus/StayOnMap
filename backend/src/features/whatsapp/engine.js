@@ -38,6 +38,8 @@ import {
   questionsInSection, questionLabel, isVisible,
 } from './questionnaire/engine.js'
 import { intelError, intelLog } from '../../lib/intelLog.js'
+import { notifyUser } from '../notifications/notifications.service.js'
+import { env } from '../../config/env.js'
 
 const RESUME_AFTER_MS = 6 * 60 * 60 * 1000
 const BURST_WINDOW_MS = 60_000
@@ -146,7 +148,7 @@ async function startConversation(phone, msg, contactName) {
   // website, so that ask is answered with a fresh manage link. Everything else
   // gets "want to list another?" — unless the message itself already describes
   // a new property.
-  if (latest && ['VERIFICATION', 'COMPLETED'].includes(latest.status) && !isReply(msg, 'act:another')) {
+  if (latest && ['VERIFICATION', 'COMPLETED', 'AWAITING_PROFILE'].includes(latest.status) && !isReply(msg, 'act:another')) {
     const wantsEdit = isReply(msg, 'act:edit:sub') || isCmd(msg, 'edit', 'edit listing', 'change', 'update', 'update listing')
     if (wantsEdit) return reopenForEdit(latest)
     const looksNew = msg.kind === 'text' && (await extractFields(msg.text)).hadSignal
@@ -156,9 +158,11 @@ async function startConversation(phone, msg, contactName) {
         { id: 'act:edit:sub', title: 'Edit that listing' },
         { id: 'act:no', title: 'Not now' },
       ]
+      const state = latest.status === 'COMPLETED' ? 'live' : latest.status === 'AWAITING_PROFILE' ? 'held' : 'pending'
+      const user = state === 'held' && latest.userId ? await identity.getUser(latest.userId) : null
       await sendButtons(phone, {
-        body: copy.afterCompletion(latest.status === 'COMPLETED' ? 'live' : 'pending'),
-        buttons: latest.status === 'COMPLETED' ? [pendingButtons[0], pendingButtons[2]] : pendingButtons,
+        body: copy.afterCompletion(state, { email: user?.email, loginUrl: env.frontendUrl }),
+        buttons: state === 'live' ? [pendingButtons[0], pendingButtons[2]] : pendingButtons,
       }, { conversationId: latest.id })
       return latest
     }
@@ -981,10 +985,32 @@ async function doPublish(ctx) {
   track(conv, 'wa_publish_confirmed')
 
   const result = await publishFromConversation(conv)
+  if (result.ok && result.held) {
+    // Saved, not submitted: the profile is incomplete (see publish.service.js).
+    // Three things tell the owner what to do — this message, an in-app
+    // notification they will see the moment they sign in, and the fact that
+    // signing in with the emailed code is itself the missing step.
+    conv.propertyId = result.property.id
+    await ctx.persist({ status: 'AWAITING_PROFILE', propertyId: result.property.id, lastError: null })
+    const user = await identity.getUser(conv.userId)
+    await ctx.say(copy.heldForProfile({ email: user?.email, missing: result.missing, loginUrl: env.frontendUrl }))
+    notifyUser(conv.userId, {
+      type: 'SYSTEM',
+      audience: 'OWNER',
+      title: 'Complete your profile to submit your listing',
+      body: copy.heldNotificationBody(result.missing),
+      referenceId: result.property.id,
+      referenceType: 'Property',
+      push: true,
+    }).catch(() => {})
+    intelLog('whatsapp.held_for_profile_told', { conversationId: conv.id, propertyId: result.property.id })
+    return conv
+  }
   if (result.ok) {
     conv.propertyId = result.property.id
     await ctx.persist({ status: 'VERIFICATION', propertyId: result.property.id, lastError: null })
-    await ctx.say(result.updated ? copy.resubmitted(conv.propertyType) : copy.submitted(conv.propertyType))
+    const user = result.updated ? null : await identity.getUser(conv.userId)
+    await ctx.say(result.updated ? copy.resubmitted(conv.propertyType) : copy.submitted(conv.propertyType, { email: user?.email }))
     intelLog('whatsapp.submitted', { conversationId: conv.id, propertyId: result.property.id, updated: !!result.updated })
     return conv
   }

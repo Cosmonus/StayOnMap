@@ -16,6 +16,7 @@ import { createProperty, publishProperty, updateProperty } from '../properties/p
 import { buildPropertyPayload } from './questionnaire/normalize.js'
 import { findQuestion } from './questionnaire/engine.js'
 import { ensureOwnerRole, ensureBusiness, fillCityIfEmpty, getUser } from './identity.service.js'
+import { missingProfileFields } from '../../middlewares/requireCompleteProfile.middleware.js'
 import { CATEGORIES } from './questionnaire/schemas.js'
 import { intelLog, intelError } from '../../lib/intelLog.js'
 
@@ -47,8 +48,21 @@ export async function propertyEditability(propertyId, userId) {
   return { exists: true, editable: EDITABLE_STATUSES.includes(p.status), status: p.status }
 }
 
+// The web wizard's requireCompleteProfile gate, applied at PUBLISH rather than
+// at the door (operator decision 2026-09-02). The Property is created (DRAFT)
+// so nothing the owner typed is lost, and it is HELD — not submitted — until
+// name, phone, city and a VERIFIED email are all there. For a WhatsApp owner
+// that is almost always just the email: they typed it at the start, and
+// signing in with the emailed code is what verifies it. listingEvents.js's
+// onProfileCompleted releases the hold from the three places a profile can
+// become complete.
+function profileHold(user) {
+  const missing = missingProfileFields(user)
+  return missing.length ? missing : null
+}
+
 /**
- * @returns {Promise<{ ok: true, property, updated?: boolean } | { ok: false, kind: 'validation', problems: string[], reask: string[] } | { ok: false, kind: 'error', error }>}
+ * @returns {Promise<{ ok: true, property, updated?: boolean, held?: boolean, missing?: Array<{ field, label }> } | { ok: false, kind: 'validation', problems: string[], reask: string[] } | { ok: false, kind: 'error', error }>}
  */
 export async function publishFromConversation(conversation) {
   const category = conversation.propertyType
@@ -92,7 +106,14 @@ export async function publishFromConversation(conversation) {
       const check = await propertyEditability(conversation.propertyId, user.id)
       if (check.editable) {
         let property = await updateProperty(conversation.propertyId, user.id, parsed.data)
-        if (check.status !== 'PENDING') property = await publishProperty(conversation.propertyId, user.id)
+        if (check.status !== 'PENDING') {
+          const missing = profileHold(user)
+          if (missing) {
+            intelLog('whatsapp.held_for_profile', { conversationId: conversation.id, propertyId: conversation.propertyId, missing: missing.map((m) => m.field) })
+            return { ok: true, property, updated: true, held: true, missing }
+          }
+          property = await publishProperty(conversation.propertyId, user.id)
+        }
         intelLog('whatsapp.republished', { conversationId: conversation.id, propertyId: conversation.propertyId, from: check.status, status: property.status })
         return { ok: true, property, updated: true }
       }
@@ -100,6 +121,11 @@ export async function publishFromConversation(conversation) {
       // Deleted underneath us — fall through and create afresh.
     }
     const property = await createProperty(user.id, parsed.data)
+    const missing = profileHold(user)
+    if (missing) {
+      intelLog('whatsapp.held_for_profile', { conversationId: conversation.id, propertyId: property.id, missing: missing.map((m) => m.field) })
+      return { ok: true, property, held: true, missing }
+    }
     const published = await publishProperty(property.id, user.id)
     intelLog('whatsapp.published', { conversationId: conversation.id, propertyId: property.id, status: published.status })
     return { ok: true, property: published }

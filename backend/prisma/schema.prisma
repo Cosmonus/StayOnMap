@@ -2803,6 +2803,12 @@ enum WhatsAppConversationStatus {
   PHOTOS
   REVIEW
   CONFIRMATION
+  // The owner confirmed Publish and the Property exists (DRAFT), but their
+  // profile is not complete — in practice the email they gave is not yet
+  // VERIFIED, which signing in with the emailed code does. The listing goes
+  // to the admin queue (VERIFICATION) the moment the profile is complete
+  // (whatsapp/listingEvents.js onProfileCompleted). Added 2026-09-02.
+  AWAITING_PROFILE
   VERIFICATION
   COMPLETED
   CANCELLED

@@ -65,6 +65,7 @@ function installStore() {
 }
 
 const { handleInbound } = await import('../src/features/whatsapp/engine.js')
+const { notifyUser } = await import('../src/features/notifications/notifications.service.js')
 
 // A fresh number per test: the engine's per-number burst guard is module
 // state, and one number across the whole file would trip it.
@@ -432,6 +433,42 @@ describe('photos, review, publish', () => {
     expect(conv().propertyId).toBe('prop-1')
     expect(last().body).toMatch(/submitted for verification/)
     expect(events.map((e) => e.name)).toContain('wa_publish_confirmed')
+  })
+
+  it('Publish tells the owner to sign in with the email they gave here — the emailed code, no password', async () => {
+    publishFromConversation.mockResolvedValue({ ok: true, property: { id: 'prop-1', status: 'PENDING' } })
+    await toReview()
+    await say(reply('act:publish', 'Publish'))
+    expect(last().body).toMatch(/sign in with the email you registered this property under — \*asha@example\.com\*/)
+    expect(last().body).toMatch(/Email me a sign-in code/)
+  })
+
+  it('an incomplete profile HOLDS the listing: saved as a draft, told how to sign in, and notified in the app', async () => {
+    publishFromConversation.mockResolvedValue({ ok: true, held: true, property: { id: 'prop-1', status: 'DRAFT' }, missing: [{ field: 'email', label: 'Verified email' }] })
+    await toReview()
+    await say(reply('act:publish', 'Publish'))
+    expect(conv().status).toBe('AWAITING_PROFILE')
+    expect(conv().propertyId).toBe('prop-1')
+    expect(last().kind).toBe('text')
+    expect(last().body).toMatch(/Your listing is saved/)
+    expect(last().body).toMatch(/\*asha@example\.com\*/)
+    expect(last().body).toMatch(/Email me a sign-in code/)
+    expect(last().body).toMatch(/signing in with the code verifies your email/)
+    // notifications.service is stubbed globally (tests/setup.js); the stub is the receipt.
+    expect(notifyUser).toHaveBeenCalledWith('u-new', expect.objectContaining({ type: 'SYSTEM', audience: 'OWNER', referenceId: 'prop-1', referenceType: 'Property', push: true }))
+    // The number has no OPEN conversation now; a later message says what is waiting.
+    await say(text('thanks'))
+    expect(last().body).toMatch(/not yet sent for verification/)
+    expect(last().body).toMatch(/asha@example\.com/)
+    expect(last().buttons.map((b) => b.id)).toEqual(['act:another', 'act:edit:sub', 'act:no'])
+    expect(store.rows.size).toBe(1)
+  })
+
+  it('a held listing names the other missing fields when the email is not the only gap', async () => {
+    publishFromConversation.mockResolvedValue({ ok: true, held: true, property: { id: 'prop-1', status: 'DRAFT' }, missing: [{ field: 'name', label: 'Your name' }, { field: 'email', label: 'Verified email' }] })
+    await toReview()
+    await say(reply('act:publish', 'Publish'))
+    expect(last().body).toMatch(/Open \*Settings\* and fill in: Your name/)
   })
 
   it('a validation failure re-asks the offending question instead of showing a schema error', async () => {
