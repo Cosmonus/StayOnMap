@@ -78,7 +78,7 @@ export const createPropertySchema = z.object({
 
   // Location
   address:  z.string().min(5).max(300).trim(),
-  city:     z.enum(SUPPORTED_CITIES, { errorMap: () => ({ message: `Listings are only available in ${SUPPORTED_CITIES.join(', ')}` }) }),
+  city:     z.enum(SUPPORTED_CITIES, { error: `Listings are only available in ${SUPPORTED_CITIES.join(', ')}` }),
   state:    z.string().min(2).max(100).trim(),
   pincode:  z.string().regex(/^\d{6}$/, 'Invalid pincode'),
   landmark: z.string().max(200).trim().optional(),

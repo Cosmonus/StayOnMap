@@ -34,7 +34,7 @@ export const putDraftSchema = z
     // envelope saved by a released build still round-trips.
     stepIdx: z.number().int().min(0).max(20).optional(),
     stepKey: z.enum(STEP_KEYS).optional(),
-    draft: z.record(z.unknown()),
+    draft: z.record(z.string(), z.unknown()),
     // The client's own clock, and the tiebreak between two devices. Absent
     // means "stamp it on arrival" rather than "epoch", which would make every
     // such push instantly lose.

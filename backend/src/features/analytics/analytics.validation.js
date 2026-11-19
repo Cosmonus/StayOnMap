@@ -18,7 +18,7 @@ const event = z.object({
   sessionId: z.string().trim().min(8).max(64),
   propertyId: z.string().max(40).optional(),
   city: z.string().max(60).optional(),
-  props: z.record(propValue).optional(),
+  props: z.record(z.string(), propValue).optional(),
 })
 
 export const ingestSchema = z.object({
