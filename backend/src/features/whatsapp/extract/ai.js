@@ -24,8 +24,8 @@ const TIMEOUT_MS = 8_000
 const Output = z.object({
   intent: z.enum(['provide_property_details', 'answer_question', 'ask_help', 'cancel', 'restart', 'confirm', 'deny', 'edit', 'other']).default('other'),
   property_type: z.enum(CATEGORY_KEYS).nullable().optional(),
-  fields: z.record(z.unknown()).default({}),
-  confidence: z.record(z.number().min(0).max(1)).default({}),
+  fields: z.record(z.string(), z.unknown()).default({}),
+  confidence: z.record(z.string(), z.number().min(0).max(1)).default({}),
   location_text: z.string().max(200).nullable().optional(),
 })
 

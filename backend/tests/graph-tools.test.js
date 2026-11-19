@@ -55,14 +55,20 @@ describe('no arbitrary query is reachable', () => {
   })
 
   it('accepts no argument named like a query passthrough', () => {
+    let declared = 0
     for (const name of TOOL_NAMES) {
       // Zod strips unknown keys, so an injected `sql` never reaches a handler —
       // this asserts none is DECLARED either, which is the stronger statement.
-      const shape = TOOLS[name].input._def?.shape?.() ?? {}
+      // The public `.shape` (not `_def.shape()`, zod 3's internals, gone in 4).
+      const shape = TOOLS[name].input.shape ?? {}
+      declared += Object.keys(shape).length
       for (const key of Object.keys(shape)) {
         expect(/^(sql|query|raw|where|filter|cypher)$/i.test(key), `${name}.${key} looks like a passthrough`).toBe(false)
       }
     }
+    // Guard against the check silently reading nothing (how it would pass if the
+    // shape lookup broke again): the tools do declare arguments.
+    expect(declared).toBeGreaterThan(0)
   })
 
   it('strips an injected argument rather than forwarding it', async () => {
