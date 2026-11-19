@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import SEOMeta from '@components/common/SEOMeta'
+import { STATIC_PAGES } from '@/config/staticPages'
 import { canonical } from '@lib/seo'
 import { LegalPageLayout, Section } from '@components/common/LegalPageLayout'
 
@@ -27,8 +28,8 @@ export default function TermsOfServicePage() {
   return (
     <>
       <SEOMeta
-        title="Terms of Service"
-        description="The rules and disclaimers that govern your use of StayOnMap."
+        title={STATIC_PAGES['/terms'].title}
+        description={STATIC_PAGES['/terms'].description}
         canonical={canonical('/terms')}
       />
       <LegalPageLayout title="Terms of Service" lastUpdated="August 10, 2026" sections={SECTIONS}>

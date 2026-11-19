@@ -97,6 +97,17 @@ describe('head injection', () => {
     expect(html).toContain('\\u003c/script')
   })
 
+  it('falls back to the default share image when a page names none', () => {
+    // stripDefaults() removes the shell's og:image, so without the fallback a
+    // city, area or guides-index page shipped with no preview image at all.
+    const plain = renderHead(TEMPLATE, { title: 'T', description: 'D', canonical: 'C' })
+    expect(plain).toContain('<meta property="og:image" content="https://www.stayonmap.com/og-default.jpg" />')
+    expect(plain).toContain('<meta name="twitter:image" content="https://www.stayonmap.com/og-default.jpg" />')
+    const own = renderHead(TEMPLATE, { title: 'T', description: 'D', canonical: 'C', image: 'https://x.test/a.jpg' })
+    expect(own).toContain('<meta property="og:image" content="https://x.test/a.jpg" />')
+    expect(own).not.toContain('og-default.jpg')
+  })
+
   it('emits noindex only when asked', () => {
     const plain = renderHead(TEMPLATE, { title: 'T', description: 'D', canonical: 'C' })
     expect(plain).not.toContain('noindex')

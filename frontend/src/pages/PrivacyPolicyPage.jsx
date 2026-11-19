@@ -1,4 +1,5 @@
 import SEOMeta from '@components/common/SEOMeta'
+import { STATIC_PAGES } from '@/config/staticPages'
 import { canonical } from '@lib/seo'
 import { LegalPageLayout, Section } from '@components/common/LegalPageLayout'
 import { CITY_LIST_LABEL } from '@/config/cities'
@@ -23,8 +24,8 @@ export default function PrivacyPolicyPage() {
   return (
     <>
       <SEOMeta
-        title="Privacy Policy"
-        description="How StayOnMap collects, uses, and protects your personal data — including owner verification documents."
+        title={STATIC_PAGES['/privacy'].title}
+        description={STATIC_PAGES['/privacy'].description}
         canonical={canonical('/privacy')}
       />
       <LegalPageLayout title="Privacy Policy" lastUpdated="August 10, 2026" sections={SECTIONS}>

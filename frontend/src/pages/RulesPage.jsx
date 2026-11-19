@@ -6,6 +6,7 @@ import {
   House, KeyRound, Handshake, BookOpen, ChevronRight,
 } from 'lucide-react'
 import SEOMeta from '@components/common/SEOMeta'
+import { STATIC_PAGES } from '@/config/staticPages'
 import { canonical } from '@lib/seo'
 import { CITIES } from '@/config/cities'
 
@@ -147,8 +148,8 @@ export default function RulesPage() {
   return (
     <div className="min-h-screen bg-slate-50 overflow-x-hidden">
       <SEOMeta
-        title="Community Rules"
-        description="How owners, tenants, and property managers are expected to behave on StayOnMap — honest listings, moderated reports (anonymous welcome), zero commission demands."
+        title={STATIC_PAGES['/rules'].title}
+        description={STATIC_PAGES['/rules'].description}
         canonical={canonical('/rules')}
       />
       <div className="h-16" />

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FileText, Wrench, ShieldCheck, Truck, Plus, ArrowRight, Sparkles, ChefHat, Baby, Car, HandHelping, Zap, Droplets, Package } from 'lucide-react'
 import SEOMeta from '@components/common/SEOMeta'
+import { STATIC_PAGES } from '@/config/staticPages'
 import { toast } from '@components/common/Toaster'
 import { canonical } from '@lib/seo'
 
@@ -97,8 +98,8 @@ export default function ServicesPage() {
   return (
     <>
       <SEOMeta
-        title="Services — Coming Soon"
-        description="StayOnMap Services will bring broker-free moving, rental agreements, home repairs, and tenant verification into one place. Coming soon."
+        title={STATIC_PAGES['/services'].title}
+        description={STATIC_PAGES['/services'].description}
         canonical={canonical('/services')}
       />
 

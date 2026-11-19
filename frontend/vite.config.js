@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { staticHeads } from './vite-plugins/staticHeads.js'
 
 export default defineConfig({
-  plugins: [react()],
+  // staticHeads: writes dist/<page>.html with each fixed page's own <head> (see the file).
+  plugins: [react(), staticHeads()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
