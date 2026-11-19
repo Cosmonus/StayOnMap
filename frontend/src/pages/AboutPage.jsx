@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { CITY_LIST_LABEL, CITIES, CORE_CITIES, SUPPORTED_STATES } from '@/config/cities'
 import SEOMeta from '@components/common/SEOMeta'
+import { STATIC_PAGES } from '@/config/staticPages'
 import { canonical } from '@lib/seo'
 import { usePlatformStats } from '@hooks/usePlatformStats'
 
@@ -82,8 +83,8 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
       <SEOMeta
-        title="About Us"
-        description="How StayOnMap works: a broker-free, map-first rental platform live across 7 Indian states — six property types, direct owner chat, in-app visits and leases, zero commission."
+        title={STATIC_PAGES['/about'].title}
+        description={STATIC_PAGES['/about'].description}
         canonical={canonical('/about')}
       />
 

@@ -6,6 +6,7 @@ import {
   Mountain, MapPin,
 } from 'lucide-react'
 import SEOMeta from '@components/common/SEOMeta'
+import { STATIC_PAGES } from '@/config/staticPages'
 import { canonical } from '@lib/seo'
 
 /* ─── Scroll reveal ─────────────────────────────────── */
@@ -96,8 +97,8 @@ export default function IntelligencePage() {
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
       <SEOMeta
-        title="The Intelligence Behind StayOnMap"
-        description="StayOnMap runs on a live TrustScore engine, deterministic fraud detection, and a provenance-tracked neighbourhood data layer — every score explainable, nothing set by hand."
+        title={STATIC_PAGES['/intelligence'].title}
+        description={STATIC_PAGES['/intelligence'].description}
         canonical={canonical('/intelligence')}
       />
 

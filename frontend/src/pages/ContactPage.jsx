@@ -11,6 +11,7 @@ import { supportService } from '@services/support.service'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { usePlatformStats } from '@hooks/usePlatformStats'
 import SEOMeta from '@components/common/SEOMeta'
+import { STATIC_PAGES } from '@/config/staticPages'
 import { canonical } from '@lib/seo'
 
 /* ─── Scroll reveal ─────────────────────────────────── */
@@ -125,8 +126,8 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
       <SEOMeta
-        title="Contact Us"
-        description="Questions about StayOnMap, a listing to report, or a partnership to discuss? Reach the team directly — no ticket queue, real replies within 24 hours."
+        title={STATIC_PAGES['/contact'].title}
+        description={STATIC_PAGES['/contact'].description}
         canonical={canonical('/contact')}
       />
 

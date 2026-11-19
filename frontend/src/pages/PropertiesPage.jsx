@@ -10,6 +10,7 @@ import { toQueryParams } from '@/config/filters'
 import PropertyCard from '@features/properties/components/PropertyCard'
 import SaveSearchButton from '@features/filters/components/SaveSearchButton'
 import SEOMeta from '@components/common/SEOMeta'
+import { STATIC_PAGES } from '@/config/staticPages'
 import { canonical } from '@lib/seo'
 
 function CardSkeleton() {
@@ -143,10 +144,15 @@ export default function PropertiesPage() {
     : (n) => `${n} home${n !== 1 ? 's' : ''} available`
 
   const kind = forSale ? 'Properties for Sale' : onLease ? 'Properties on Lease' : 'Rental Properties'
-  const pageTitle = locationLabel ? `${kind} in ${locationLabel}` : `Browse ${kind}`
-  const pageDesc = locationLabel
-    ? `Browse broker-free ${kind.toLowerCase()} in ${locationLabel} — no broker fees.`
-    : `Browse broker-free ${kind.toLowerCase()} across India — no broker fees.`
+  // The unfiltered rental view is the one /properties.html is prerendered with
+  // (config/staticPages.js); every narrowed view describes itself.
+  const unfiltered = !locationLabel && !forSale && !onLease
+  const pageTitle = unfiltered ? STATIC_PAGES['/properties'].title
+    : locationLabel ? `${kind} in ${locationLabel}` : `Browse ${kind}`
+  const pageDesc = unfiltered ? STATIC_PAGES['/properties'].description
+    : locationLabel
+      ? `Browse broker-free ${kind.toLowerCase()} in ${locationLabel} — no broker fees.`
+      : `Browse broker-free ${kind.toLowerCase()} across India — no broker fees.`
 
   return (
     <>

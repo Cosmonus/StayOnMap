@@ -84,6 +84,11 @@ function stripDefaults(html) {
  * @param {object} meta { title, description, canonical, image, type, jsonLd, noindex }
  */
 export function renderHead(template, meta) {
+  // stripDefaults() removes the shell's own og:image, so a page that names no
+  // image of its own (a city or area page, the guides index, a listing with no
+  // photos) used to go out with none at all — and a share preview with no
+  // picture is the one most people scroll past. Fall back to the site's card.
+  meta = { ...meta, image: meta.image || `${ORIGIN}/og-default.jpg` }
   const tags = [
     `<title>${escapeHtml(meta.title)}</title>`,
     `<meta name="description" content="${escapeHtml(meta.description)}" />`,
