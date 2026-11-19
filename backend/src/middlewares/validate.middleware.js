@@ -9,7 +9,7 @@ export function validate(schema, target = 'body') {
       return res.status(400).json({
         success: false,
         error: 'VALIDATION_ERROR',
-        message: result.error.errors[0]?.message ?? 'Invalid input',
+        message: result.error.issues[0]?.message ?? 'Invalid input',
         statusCode: 400,
       })
     }
